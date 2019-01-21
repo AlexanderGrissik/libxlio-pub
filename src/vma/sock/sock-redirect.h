@@ -82,6 +82,10 @@
 
 #include <vlogger/vlogger.h>
 
+#if defined(DEFINED_NGINX)
+extern int g_worker_index;
+#endif
+
 struct mmsghdr;
 
 // Format a fd_set into a string for logging

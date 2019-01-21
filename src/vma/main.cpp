@@ -556,6 +556,9 @@ void print_vma_global_settings()
 	VLOG_PARAM_STRING("TSO support", safe_mce_sys().enable_tso, MCE_DEFAULT_TSO, SYS_VAR_TSO, safe_mce_sys().enable_tso ? "Enabled " : "Disabled");
 #endif /* DEFINED_TSO */
 	VLOG_PARAM_STRING("BF (Blue Flame)", safe_mce_sys().handle_bf, MCE_DEFAULT_BF_FLAG, SYS_VAR_BF, safe_mce_sys().handle_bf ? "Enabled " : "Disabled");
+#if defined(DEFINED_NGINX)
+	VLOG_PARAM_NUMBER("Src port stirde", safe_mce_sys().src_port_stride, MCE_DEFAULT_SRC_PORT_STRIDE, SYS_VAR_SRC_PORT_STRIDE);
+#endif
 	VLOG_PARAM_STRING("fork() support", safe_mce_sys().handle_fork, MCE_DEFAULT_FORK_SUPPORT, SYS_VAR_FORK, safe_mce_sys().handle_fork ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("close on dup2()", safe_mce_sys().close_on_dup2, MCE_DEFAULT_CLOSE_ON_DUP2, SYS_VAR_CLOSE_ON_DUP2, safe_mce_sys().close_on_dup2 ? "Enabled " : "Disabled");
 	switch (safe_mce_sys().mtu) {

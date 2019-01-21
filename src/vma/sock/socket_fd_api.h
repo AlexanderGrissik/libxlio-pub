@@ -251,10 +251,15 @@ protected:
 	// identification information <socket fd>
 	int m_fd;
 	const uint32_t	m_n_sysvar_select_poll_os_ratio;
-	epfd_info *m_econtext;
 
 	// Calling OS receive
 	ssize_t rx_os(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov,
 		      const int flags, sockaddr *__from, socklen_t *__fromlen, struct msghdr *__msg);
+	epfd_info *m_econtext;
+#if defined(DEFINED_NGINX)
+public:
+	bool m_is_listen;
+	int m_back_log;
+#endif
 };
 #endif

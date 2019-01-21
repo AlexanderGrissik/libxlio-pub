@@ -39,6 +39,7 @@
 #include <netinet/in.h>
 #include "vma/util/libvma.h"
 #include "vma/util/sock_addr.h"
+#include "vma/util/sys_vars.h"
 
 #define STR_MAX_LENGTH	100
 
@@ -93,7 +94,11 @@ public:
 	virtual size_t		hash(void);
 	virtual const char*	to_str();
 
+#if defined(DEFINED_NGINX)
+public:
+#else
 protected:
+#endif
 	in_addr_t	m_dst_ip;
 	in_addr_t	m_src_ip;
 	in_port_t	m_dst_port;

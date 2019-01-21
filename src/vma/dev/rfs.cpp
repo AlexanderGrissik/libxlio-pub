@@ -112,6 +112,10 @@ rfs::rfs(flow_tuple *flow_spec_5t, ring_slave *p_ring, rfs_rule_filter* rule_fil
 {
 	m_sinks_list = new pkt_rcvr_sink*[m_n_sinks_list_max_length];
 
+#if defined(DEFINED_NGINX)
+	m_flow_tag_id = 0;
+#endif
+
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (m_sinks_list == NULL) {
 		rfs_logpanic("sinks list allocation failed!");
@@ -234,6 +238,8 @@ bool rfs::attach_flow(pkt_rcvr_sink *sink)
 			return false;
 		}
 		filter_keep_attached(filter_iter);
+	} else {
+		rfs_logdbg("rfs: Joining existing flow");
 	}
 
 	if (sink) {

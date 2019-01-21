@@ -42,6 +42,8 @@
 #include "vtypes.h"
 #include "config.h"
 
+#define DEFINED_NGINX 1
+
 #include "vma/ib/base/verbs_extra.h"
 #include "vma/util/sysctl_reader.h"
 #include "vma/vma_extra.h"
@@ -428,6 +430,10 @@ public:
 	bool		rx_poll_on_tx_tcp;
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
+#if defined(DEFINED_NGINX)
+	int             workers_num;
+	int             src_port_stride;
+#endif
 private:
 	void print_vma_load_failure_msg();
 	int list_to_cpuset(char *cpulist, cpu_set_t *cpu_set);
@@ -543,6 +549,11 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_BF					"VMA_BF"
 #define SYS_VAR_CLOSE_ON_DUP2				"VMA_CLOSE_ON_DUP2"
 #define SYS_VAR_MTU					"VMA_MTU"
+#define MCE_DEFAULT_MTU                                 (0)
+#if defined(DEFINED_NGINX)
+#define SYS_VAR_WRK                                    "VMA_WRK_NUM"
+#define SYS_VAR_SRC_PORT_STRIDE                        "VMA_SRC_PORT_STRIDE"
+#endif
 #define SYS_VAR_TCP_MAX_SYN_RATE			"VMA_TCP_MAX_SYN_RATE"
 #define SYS_VAR_MSS					"VMA_MSS"
 #define SYS_VAR_TCP_CC_ALGO				"VMA_TCP_CC_ALGO"
@@ -671,6 +682,10 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_BF_FLAG				(true)
 #define MCE_DEFAULT_CLOSE_ON_DUP2			(true)
 #define MCE_DEFAULT_MTU					(0)
+#if defined(DEFINED_NGINX)
+#define MCE_DEFAULT_WRK_NUM                            (1)
+#define MCE_DEFAULT_SRC_PORT_STRIDE                    (2)
+#endif
 #define MCE_DEFAULT_MSS					(0)
 #define MCE_DEFAULT_LWIP_CC_ALGO_MOD			(0)
 #define MCE_DEFAULT_INTERNAL_THREAD_AFFINITY		(-1)

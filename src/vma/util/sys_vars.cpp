@@ -609,6 +609,10 @@ void mce_sys_var::get_env_params()
 	handle_bf		= MCE_DEFAULT_BF_FLAG;
 	close_on_dup2		= MCE_DEFAULT_CLOSE_ON_DUP2;
 	mtu			= MCE_DEFAULT_MTU;
+#if defined(DEFINED_NGINX)
+	workers_num             = MCE_DEFAULT_WRK_NUM;
+	src_port_stride         = MCE_DEFAULT_SRC_PORT_STRIDE;
+#endif
 	lwip_mss		= MCE_DEFAULT_MSS;
 	lwip_cc_algo_mod	= MCE_DEFAULT_LWIP_CC_ALGO_MOD;
 	mce_spec		= MCE_SPEC_NONE;
@@ -1265,6 +1269,13 @@ void mce_sys_var::get_env_params()
 	if ((env_ptr = getenv(SYS_VAR_MTU)) != NULL)
 		mtu = (uint32_t)atoi(env_ptr);
 
+#if defined(DEFINED_NGINX)
+	if ((env_ptr = getenv(SYS_VAR_WRK)) != NULL)
+		workers_num = (uint32_t)atoi(env_ptr);
+
+	if ((env_ptr = getenv(SYS_VAR_SRC_PORT_STRIDE)) != NULL)
+		src_port_stride = (uint32_t)atoi(env_ptr);
+#endif
 	if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL)
 		lwip_mss = (uint32_t)atoi(env_ptr);
 

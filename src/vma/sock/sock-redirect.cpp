@@ -82,6 +82,10 @@ using namespace std;
 
 #define EP_MAX_EVENTS (int)((INT_MAX / sizeof(struct epoll_event)))
 
+#if defined(DEFINED_NGINX)
+int g_worker_index = 0;
+#endif
+
 struct os_api orig_os_api;
 struct sigaction g_act_prev;
 sighandler_t g_sighandler = NULL;
@@ -974,6 +978,11 @@ int listen(int __fd, int backlog)
 	p_socket_object = fd_collection_get_sockfd(__fd);
 
 	if (p_socket_object) {
+#if defined(DEFINED_NGINX)
+		p_socket_object->m_is_listen = true;
+		p_socket_object->m_back_log = backlog;
+		return 0;
+#endif
 		int ret = p_socket_object->prepareListen(); // for verifying that the socket is really offloaded
 		if (ret < 0)
 			return ret; //error
@@ -2647,10 +2656,22 @@ pid_t fork(void)
 	if (!orig_os_api.fork) get_orig_funcs();
 	BULLSEYE_EXCLUDE_BLOCK_END
 
+#if defined(DEFINED_NGINX)
+	if (g_worker_index >= safe_mce_sys().workers_num) {
+		srdr_logerr("g_worker_index: %d exceeds: %d\n", g_worker_index, safe_mce_sys().workers_num);
+		errno = ENOMEM;
+		return -1;
+	}
+#endif
+
 	pid_t pid = orig_os_api.fork();
 	if (pid == 0) {
 		g_is_forked_child = true;
 		srdr_logdbg_exit("Child Process: returned with %d", pid);
+#if defined(DEFINED_NGINX)
+		int size = g_p_fd_collection->get_fd_map_size();
+		fd_collection* old = g_p_fd_collection;
+#endif
 		// Child's process - restart module
 		vlog_stop();
 
@@ -2670,9 +2691,50 @@ pid_t fork(void)
 		srdr_logdbg_exit("Child Process: starting with %d", getpid());
 		g_is_forked_child = false;
 		sock_redirect_main();
+#if defined(DEFINED_NGINX)
+               DO_GLOBAL_CTORS();
+               srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, old->get_fd_map_size());
+               for (int i = 0; i < size; ++i) {
+                   socket_fd_api* fd = old->get_sockfd(i);
+                   if (fd && fd->m_is_listen) {
+                       struct sockaddr_in addr;
+                       socklen_t tmp_sin_len = sizeof(sockaddr_in);
+                       fd->getsockname((struct sockaddr*)&addr, &tmp_sin_len);
+                       srdr_logdbg("found listen socket %d\n",  fd->get_fd());
+                       g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
+                       fd = g_p_fd_collection->get_sockfd(i);
+                       bind(i, (struct sockaddr*)&addr, tmp_sin_len);
+                       int ret = fd->prepareListen(); // for verifying that the socket is really offloaded
+                       if (ret < 0) {
+                               srdr_logerr("prepareListen error\n");
+                               fd = NULL;
+                       }
+                       if (ret > 0) { //Passthrough
+                               handle_close(fd->get_fd(), false, true);
+                               fd = NULL;
+                       }
+                       else {
+                               srdr_logdbg("Prepare listen succesfully offloaded\n");
+                       }
+
+                       if (fd) {
+                               ret = fd->listen(fd->m_back_log);
+                               if (ret < 0) {
+                                       srdr_logerr("Listen error\n");
+                               }
+                               else {
+                                       srdr_logdbg("Listen Success\n");
+                               }
+                       }
+                   }
+               }
+#endif
 	}
-	else if (pid > 0) {
+	else if (pid > 0) { 
 		srdr_logdbg_exit("Parent Process: returned with %d", pid);
+#if defined(DEFINED_NGINX)
+		g_worker_index++;
+#endif
 	}
 	else {
 		srdr_logdbg_exit("failed (errno=%d %m)", errno);

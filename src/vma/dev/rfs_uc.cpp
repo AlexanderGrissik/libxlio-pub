@@ -36,6 +36,7 @@
 #include "vma/proto/L2_address.h"
 #include "vma/dev/ring_simple.h"
 #include "util/instrumentation.h"
+#include "vma/sock/sock-redirect.h"
 
 #define MODULE_NAME 		"rfs_uc"
 
@@ -135,7 +136,17 @@ bool rfs_uc::prepare_flow_spec()
 		// to make sure 5-tuple have higher priority on ConnectX-4
 		p_attach_flow_data->ibv_flow_attr.priority = 0;
 	}
-
+#if defined(DEFINED_NGINX)
+	else {
+		p_tcp_udp->val.src_port = htons((uint16_t)g_worker_index * safe_mce_sys().src_port_stride);
+		p_tcp_udp->mask.src_port = htons((uint16_t)((safe_mce_sys().workers_num * safe_mce_sys().src_port_stride) - 2)); //htons(0xf);
+		p_attach_flow_data->ibv_flow_attr.priority = 0;
+		rfs_logdbg("safe_mce_sys().src_port_stride: %d safe_mce_sys().workers_num %d \n", safe_mce_sys().src_port_stride, safe_mce_sys().workers_num);
+		rfs_logdbg("sp_tcp_udp->val.src_port: %d p_tcp_udp->mask.src_port %d \n", ntohs(p_tcp_udp->val.src_port), ntohs(p_tcp_udp->mask.src_port));
+		m_flow_tuple.m_src_port = p_tcp_udp->val.src_port;
+		m_flow_tuple.set_str();
+	}
+#endif
 	if (m_flow_tag_id && attach_flow_data_eth) { // Will not attach flow_tag spec to rule for tag_id==0
 		ibv_flow_spec_flow_tag_set(p_flow_tag, m_flow_tag_id);
 		attach_flow_data_eth->ibv_flow_attr.add_flow_tag_spec();

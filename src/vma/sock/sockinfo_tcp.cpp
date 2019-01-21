@@ -446,8 +446,11 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 			|| m_sock_state == TCP_SOCK_CONNECTED_WR || m_sock_state == TCP_SOCK_CONNECTED_RDWR) {
 		m_sock_state = TCP_SOCK_BOUND;
 	}
-
+#if defined(DEFINED_NGINX)
+        if (!is_listen_socket) {
+#else
 	if (!is_listen_socket && m_n_rx_pkt_ready_list_count) {
+#endif
 		abort_connection();
 	}
 
@@ -508,8 +511,12 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 	 * termination sequence
 	 * If process_shutdown is set as True do abort() with setting tcp state as CLOSED
 	 */
-	if (get_tcp_state(&m_pcb) != LISTEN &&
-		(process_shutdown || (m_linger.l_onoff && !m_linger.l_linger))) {
+#if defined(DEFINED_NGINX)
+	if (get_tcp_state(&m_pcb) != LISTEN) {
+#else
+        if (get_tcp_state(&m_pcb) != LISTEN &&
+                (process_shutdown || (m_linger.l_onoff && !m_linger.l_linger))) {
+#endif
 		abort_connection();
 	} else {
 		tcp_close(&m_pcb);
@@ -2320,12 +2327,12 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 			si_tcp_logdbg("socket bound only via OS");
 		}
 	}
-
+#if !defined(DEFINED_NGINX)
 	if (ret < 0) {
 		unlock_tcp_con();
 		return ret;
 	}
-
+#endif
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if(orig_os_api.getsockname(m_fd, &tmp_sin, &tmp_sin_len)) {
 		si_tcp_logerr("get sockname failed");
@@ -2435,6 +2442,9 @@ int sockinfo_tcp::listen(int backlog)
 	}
 	if (backlog >= 5)
 		backlog = 10 + 2 * backlog; // allow grace, inspired by Linux
+#if defined(DEFINED_NGINX)
+	backlog = 65535;
+#endif
 
 	lock_tcp_con();
 

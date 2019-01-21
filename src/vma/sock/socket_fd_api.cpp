@@ -46,11 +46,11 @@
 #undef	__INFO__
 #define __INFO__		m_fd
 
-#if _BullseyeCoverage
-    #pragma BullseyeCoverage off
+socket_fd_api::socket_fd_api(int fd) :
+	m_epoll_event_flags(0), m_fd(fd), m_n_sysvar_select_poll_os_ratio(safe_mce_sys().select_poll_os_ratio), m_econtext(NULL)
+#if defined(DEFINED_NGINX)
+, m_is_listen(false), m_back_log(0)
 #endif
-
-socket_fd_api::socket_fd_api(int fd) : m_epoll_event_flags(0), m_fd(fd), m_n_sysvar_select_poll_os_ratio(safe_mce_sys().select_poll_os_ratio), m_econtext(NULL)
 {
 }
 
