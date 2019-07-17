@@ -586,6 +586,7 @@ void mce_sys_var::get_env_params()
 	progress_engine_wce_max	= MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX;
 	cq_keep_qp_full		= MCE_DEFAULT_CQ_KEEP_QP_FULL;
 	qp_compensation_level	= MCE_DEFAULT_QP_COMPENSATION_LEVEL;
+	user_huge_page_size	= MCE_DEFAULT_USER_HUGE_PAGE_SIZE;
 	internal_thread_arm_cq_enabled	= MCE_DEFAULT_INTERNAL_THREAD_ARM_CQ_ENABLED;
 
 	offloaded_sockets	= MCE_DEFAULT_OFFLOADED_SOCKETS;
@@ -1151,6 +1152,12 @@ void mce_sys_var::get_env_params()
 		qp_compensation_level = (uint32_t)atoi(env_ptr);
 	if (qp_compensation_level < rx_num_wr_to_post_recv)
 		qp_compensation_level = rx_num_wr_to_post_recv;
+
+	if ((env_ptr = getenv(SYS_VAR_USER_HUGE_PAGE_SIZE)) != NULL) {
+		user_huge_page_size = (size_t)atoi(env_ptr);
+		if (!user_huge_page_size)
+			user_huge_page_size = (size_t)strtoul(env_ptr, NULL, 16);
+	}
 
 	if ((env_ptr = getenv(SYS_VAR_OFFLOADED_SOCKETS)) != NULL)
 		offloaded_sockets = atoi(env_ptr) ? true : false;

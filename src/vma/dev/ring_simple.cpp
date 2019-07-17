@@ -1072,6 +1072,22 @@ int ring_simple::get_ring_descriptors(vma_mlx_hw_device_data &d)
 	return 0;
 }
 
+uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
+{
+	uint32_t lkey = 0;
+
+	lkey = m_user_lkey_map.get(addr, 0);
+	if (!lkey) {
+		lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
+		if (lkey == (uint32_t)(-1))
+			ring_logerr("Can't register user memory addr %p len %lx", addr, length);
+		else
+			m_user_lkey_map.set(addr, lkey);
+	}
+
+	return lkey;
+}
+
 uint32_t ring_simple::get_max_inline_data()
 {
 	return m_p_qp_mgr->get_max_inline_data();

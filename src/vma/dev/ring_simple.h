@@ -49,6 +49,8 @@ struct cq_moderation_info {
 	uint32_t missed_rounds;
 };
 
+typedef hash_map<void *, uint32_t> user_lkey_map_t;
+
 /**
  * @class ring simple
  *
@@ -92,6 +94,7 @@ public:
 	virtual uint32_t	get_underly_qpn() { return m_p_qp_mgr->get_underly_qpn(); }
 	virtual int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
 	virtual int		get_tx_channel_fd() const { return m_p_tx_comp_event_channel ? m_p_tx_comp_event_channel->fd : -1; };
+	virtual uint32_t 	get_tx_user_lkey(void *addr, size_t length);
         virtual uint32_t	get_max_inline_data();
 #ifdef DEFINED_TSO
         virtual uint32_t	get_max_send_sge(void);
@@ -131,6 +134,7 @@ protected:
 	struct cq_moderation_info m_cq_moderation_info;
 	cq_mgr*			m_p_cq_mgr_rx;
 	cq_mgr*			m_p_cq_mgr_tx;
+	user_lkey_map_t		m_user_lkey_map;
 private:
 	bool is_socketxtreme(void) {return m_socketxtreme.active;}
 

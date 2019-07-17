@@ -471,6 +471,23 @@ struct ibv_mr* ib_ctx_handler::get_mem_reg(uint32_t lkey)
 	return NULL;
 }
 
+uint32_t ib_ctx_handler::user_mem_reg(void *addr, size_t length, uint64_t access)
+{
+	auto_unlocker lock(m_lock_umr);
+	uint32_t lkey;
+
+	lkey = m_user_mem_lkey_map.get(addr, 0);
+	if (!lkey) {
+		lkey = mem_reg(addr, length, access);
+		if (lkey == (uint32_t)(-1))
+			ibch_logerr("Can't register user memory addr %p len %lx", addr, length);
+		else
+			m_user_mem_lkey_map.set(addr, lkey);
+	}
+
+	return lkey;
+}
+
 void ib_ctx_handler::set_flow_tag_capability(bool flow_tag_capability)
 {
 	m_flow_tag_enabled = flow_tag_capability;

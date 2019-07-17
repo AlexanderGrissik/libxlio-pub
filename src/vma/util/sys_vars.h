@@ -386,6 +386,7 @@ public:
 	uint32_t	progress_engine_wce_max;
 	bool		cq_keep_qp_full;
 	uint32_t	qp_compensation_level;
+	size_t		user_huge_page_size;
 
 	bool		offloaded_sockets;
 	uint32_t	timer_resolution_msec;
@@ -532,6 +533,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_PROGRESS_ENGINE_WCE_MAX			"VMA_PROGRESS_ENGINE_WCE_MAX"
 #define SYS_VAR_CQ_KEEP_QP_FULL				"VMA_CQ_KEEP_QP_FULL"
 #define SYS_VAR_QP_COMPENSATION_LEVEL			"VMA_QP_COMPENSATION_LEVEL"
+#define SYS_VAR_USER_HUGE_PAGE_SIZE			"VMA_USER_HUGE_PAGE_SIZE"
 #define SYS_VAR_OFFLOADED_SOCKETS			"VMA_OFFLOADED_SOCKETS"
 #define SYS_VAR_TIMER_RESOLUTION_MSEC			"VMA_TIMER_RESOLUTION_MSEC"
 #define SYS_VAR_TCP_TIMER_RESOLUTION_MSEC		"VMA_TCP_TIMER_RESOLUTION_MSEC"
@@ -664,6 +666,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX		(10000)
 #define MCE_DEFAULT_CQ_KEEP_QP_FULL			(true)
 #define MCE_DEFAULT_QP_COMPENSATION_LEVEL		(256)
+#define MCE_DEFAULT_USER_HUGE_PAGE_SIZE                 (2*1024*1024)
 #define MCE_DEFAULT_INTERNAL_THREAD_ARM_CQ_ENABLED	(false)
 #define MCE_DEFAULT_QP_FORCE_MC_ATTACH			(false)
 #define MCE_DEFAULT_OFFLOADED_SOCKETS			(true)

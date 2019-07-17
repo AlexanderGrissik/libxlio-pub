@@ -41,6 +41,7 @@
 #include "vma/dev/time_converter.h"
 #include "vma/ib/base/verbs_extra.h"
 #include "utils/lock_wrapper.h"
+#include "vma/util/hash_map.h"
 
 #ifdef DEFINED_DPCP
 #include <mellanox/dpcp.h>
@@ -48,6 +49,7 @@
 
 
 typedef std::tr1::unordered_map<uint32_t, struct ibv_mr*> mr_map_lkey_t;
+typedef hash_map<void *, uint32_t> user_lkey_map_t;
 
 struct pacing_caps_t {
 	uint32_t rate_limit_min;
@@ -89,6 +91,7 @@ public:
 	uint32_t                mem_reg(void *addr, size_t length, uint64_t access);
 	void                    mem_dereg(uint32_t lkey);
 	struct ibv_mr*          get_mem_reg(uint32_t lkey);
+	uint32_t                user_mem_reg(void *addr, size_t length, uint64_t access);
 	bool                    is_removed() { return m_removed;}
 	void                    set_ctx_time_converter_status(ts_conversion_mode_t conversion_mode);
 	ts_conversion_mode_t    get_ctx_time_converter_status();
@@ -129,6 +132,7 @@ private:
 	struct ibv_qp*          m_umr_qp;
 	time_converter*         m_p_ctx_time_converter;
 	mr_map_lkey_t           m_mr_map_lkey;
+	user_lkey_map_t		m_user_mem_lkey_map;
 
 	char m_str[255];
 };

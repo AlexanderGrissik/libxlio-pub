@@ -163,6 +163,7 @@ Example:
  VMA DETAILS: CQ Poll Batch (max)            16                         [VMA_CQ_POLL_BATCH_MAX]
  VMA DETAILS: CQ Keeps QP Full               Enabled                    [VMA_CQ_KEEP_QP_FULL]
  VMA DETAILS: QP Compensation Level          256                        [VMA_QP_COMPENSATION_LEVEL]
+ VMA DETAILS: User Huge Page Size            2097152                    [VMA_USER_HUGE_PAGE_SIZE]
  VMA DETAILS: Offloaded Sockets              Enabled                    [VMA_OFFLOADED_SOCKETS]
  VMA DETAILS: Timer Resolution (msec)        10                         [VMA_TIMER_RESOLUTION_MSEC]
  VMA DETAILS: TCP Timer Resolution (msec)    100                        [VMA_TCP_TIMER_RESOLUTION_MSEC]
@@ -731,6 +732,11 @@ VMA_QP_COMPENSATION_LEVEL
 Number of spare receive buffer CQ holds to allow for filling up QP while full
 receive buffers are being processes inside VMA.
 Default value is 256 buffers
+
+VMA_USER_HUGE_PAGE_SIZE
+Size of huge pages used by user application for buffers provided as part
+of the TX Zero Copy socket API (sendmsg with MSG_ZEROCOPY flag)
+Default value is 2MB
 
 VMA_OFFLOADED_SOCKETS
 Create all sockets as offloaded/not-offloaded by default.

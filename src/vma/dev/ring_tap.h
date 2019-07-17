@@ -69,6 +69,7 @@ public:
 
 	virtual int modify_ratelimit(struct vma_rate_limit_t &rate_limit) { NOT_IN_USE(rate_limit); return 0; }
 	void inc_cq_moderation_stats(size_t sz_data) { NOT_IN_USE(sz_data); }
+	virtual uint32_t get_tx_user_lkey(void *addr, size_t length) { NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-2; }
 	virtual uint32_t get_underly_qpn() { return -1; }
         virtual uint32_t get_max_inline_data() { return 0; }
 #ifdef DEFINED_TSO
