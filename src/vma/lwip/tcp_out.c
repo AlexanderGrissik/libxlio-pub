@@ -584,7 +584,10 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
 #if TCP_OVERSIZE_DBGCHECK
       pcb->last_unsent->oversize_left += oversize;
 #endif /* TCP_OVERSIZE_DBGCHECK */
-      TCP_DATA_COPY2(concat_p->payload, (u8_t*)arg + pos, seglen, &concat_chksum, &concat_chksum_swapped);
+      if (is_zerocopy)
+          concat_p->payload = (u8_t*)arg + pos;
+      else
+          TCP_DATA_COPY2(concat_p->payload, (u8_t*)arg + pos, seglen, &concat_chksum, &concat_chksum_swapped);
 #if TCP_CHECKSUM_ON_COPY
       concat_chksummed += seglen;
 #endif /* TCP_CHECKSUM_ON_COPY */
@@ -644,7 +647,10 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
            piov_cur_len = 0;
        }
     } else {
-       TCP_DATA_COPY2((char *)p->payload + optlen, (u8_t*)arg + pos, seglen, &chksum, &chksum_swapped);
+       if (is_zerocopy)
+           p->payload = (u8_t*)arg + pos;
+       else
+           TCP_DATA_COPY2((char *)p->payload + optlen, (u8_t*)arg + pos, seglen, &chksum, &chksum_swapped);
     }
 
     queuelen += pbuf_clen(p);
