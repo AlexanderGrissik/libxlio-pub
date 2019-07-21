@@ -50,9 +50,10 @@
 dst_entry_tcp::dst_entry_tcp(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port,
 			     socket_data &sock_data , resource_allocation_key &ring_alloc_logic):
 			     dst_entry(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic),
-			     m_n_sysvar_tx_bufs_batch_tcp(safe_mce_sys().tx_bufs_batch_tcp)
+			     m_n_sysvar_tx_bufs_batch_tcp(safe_mce_sys().tx_bufs_batch_tcp),
+			     m_n_sysvar_user_huge_page_size(safe_mce_sys().user_huge_page_size)
 {
-
+	m_user_huge_page_mask = ~((uint64_t)m_n_sysvar_user_huge_page_size - 1);
 }
 
 dst_entry_tcp::~dst_entry_tcp()
@@ -81,6 +82,14 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 
 	p_tcp_iov = (tcp_iovec*)p_iov;
 
+	/* ZC uses multiple IOVs, only the mlx5 TSO path supports that */
+	/* for small (< mss) ZC sends, must turn off CX5.SXP.disable_lso_on_only_packets
+	 * BF  --> mcra /dev/mst/mt41682_pciconf0 0x31500.3:1 0
+	 * CX5 --> mcra /dev/mst/mt4121_pciconf0 0x31500.3:1 0
+         * When set, single packet LSO WQEs are not treated as LSO. This prevents wrong handling of packets with padding by SW */
+	if (is_set(attr.flags, VMA_TX_PACKET_ZEROCOPY))
+		attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
+
 	attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
 
 	/* Supported scenarios:
@@ -98,6 +107,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		size_t total_packet_len = 0;
 		vma_ibv_send_wr send_wqe;
 		wqe_send_handler send_wqe_h;
+		ssize_t lso_sz_iov = 0;
+		void *masked_addr;
+		int ii = 0;
 
 		/* iov_base is a pointer to TCP header and data
 		 * so p_pkt should point to L2
@@ -123,8 +135,12 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			m_sge[0].addr = (uintptr_t)((uint8_t*)p_pkt + hdr_alignment_diff);
 			m_sge[0].length = total_packet_len;
 		} else if (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
+			lso_sz_iov = sz_iov;
+			/* for ZC sends, iov[0] has only the headers and fully goes into the WQE */
+			if (!(p_tcp_iov[0].iovec.iov_len - p_pkt->hdr.m_tcp_hdr.doff * 4))
+				lso_sz_iov--;
 			/* update send work request. do not expect noninlined scenario */
-			send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
+			send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, lso_sz_iov);
 			send_wqe_h.enable_tso(send_wqe,
 				(void *)((uint8_t*)p_pkt + hdr_alignment_diff),
 				m_header.m_total_hdr_len + p_pkt->hdr.m_tcp_hdr.doff * 4,
@@ -151,12 +167,24 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		 * for processing send wr completion (tx batching mode)
 		 */
 		m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
+		if (attr.flags & VMA_TX_PACKET_ZEROCOPY)
+			goto get_user_lkey;
+
 		for (int i = 1; i < sz_iov; ++i) {
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			m_sge[i].lkey = m_sge[0].lkey;
 		}
+		goto send_buffer;
 
+get_user_lkey:
+		for (int i = 1; i < sz_iov; ++i, ++ii) {
+			m_sge[ii].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
+			m_sge[ii].length = p_tcp_iov[i].iovec.iov_len;
+			masked_addr = (void *)((uint64_t)m_sge[ii].addr & m_user_huge_page_mask);
+			m_sge[ii].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
+		}
+send_buffer:
 		send_lwip_buffer(m_id, m_p_send_wqe, attr.flags);
 
 	} else { // We don'nt support inline in this case, since we believe that this a very rare case

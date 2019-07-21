@@ -476,7 +476,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
 	int	 max_inline_len = get_max_inline_data();
 
 	// assume packet is full inline
-	if (likely(data_len <= max_inline_len)) {
+	if (likely(data_len <= max_inline_len && vma_send_wr_opcode(*pswr) == VMA_IBV_WR_SEND)) {
 		uint8_t* data_addr = sga.get_data(&inline_len); // data for inlining in ETH header
 		data_len -= inline_len;
 		qp_logfunc("wqe_hot:%p num_sge: %d data_addr: %p data_len: %d max_inline_len: %d inline_len: %d",

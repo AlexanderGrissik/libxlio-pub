@@ -51,6 +51,8 @@ typedef enum vma_wr_tx_packet_attr {
 	VMA_TX_PACKET_TSO  = TCP_WRITE_TSO, /* 0x20 */
 	/* sendfile operation. */
 	VMA_TX_FILE  = TCP_WRITE_FILE, /* 0x40 */
+	/* zerocopy send operation. should use lkey per sge entry */
+	VMA_TX_PACKET_ZEROCOPY = TCP_WRITE_ZEROCOPY,
 
 	/* MLX5_ETH_WQE_L3_CSUM offload to HW L3 (IP) header checksum */
 	VMA_TX_PACKET_L3_CSUM = (1 << 6), /* hardcoded values. It is the same as VMA_TX_FILE but there is no conflict */
