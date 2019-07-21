@@ -437,6 +437,8 @@ struct tcp_pcb {
     /* Maximum number of SGE */
     u32_t max_send_sge;
   } tso;
+
+  u32_t max_send_sge;
 #endif /* LWIP_TSO */
 };
 

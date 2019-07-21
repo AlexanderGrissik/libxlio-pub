@@ -253,6 +253,11 @@ tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u8_t flags, u32_t seqno,
   seg->len = p->tot_len - optlen;
   seg->seqno = seqno;
 
+  if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
+    seg->tcphdr = &seg->zc_tcphdr;
+    goto set_tcphdr;
+ }
+
   /* build TCP header */
   if (pbuf_header(p, TCP_HLEN)) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_create_segment: no room for TCP header in pbuf.\n"));
@@ -261,6 +266,8 @@ tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u8_t flags, u32_t seqno,
     return NULL;
   }
   seg->tcphdr = (struct tcp_hdr *)seg->p->payload;
+
+set_tcphdr:
   seg->tcphdr->src = htons(pcb->local_port);
   seg->tcphdr->dest = htons(pcb->remote_port);
   seg->tcphdr->seqno = htonl(seqno);
@@ -467,6 +474,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
 #endif /* LWIP_TSO */
 
   optflags |= (apiflags & TCP_WRITE_DUMMY ? TF_SEG_OPTS_DUMMY_MSG : 0);
+  optflags |= is_zerocopy ? TF_SEG_OPTS_ZEROCOPY : 0;
 
 #if LWIP_TCP_TIMESTAMPS
   if ((pcb->flags & TF_TIMESTAMP)) {
@@ -1020,7 +1028,7 @@ tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     }
 
     tot_p += pbuf_clen(cur_seg->p);
-    if (tot_p > (int)pcb->tso.max_send_sge) {
+    if (tot_p > (int)pcb->max_send_sge) {
       goto err;
     }
 
@@ -1029,8 +1037,9 @@ tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
         seg->next = cur_seg->next;
         seg->len += cur_seg->len;
 
-        /* Update the first pbuf of current segment */
-        cur_seg->p->payload = (u8_t *)cur_seg->tcphdr + LWIP_TCP_HDRLEN(cur_seg->tcphdr);
+        /* Update the first pbuf of current segment, unless this is a zerocopy segment */
+        if (!(cur_seg->flags & TF_SEG_OPTS_ZEROCOPY))
+            cur_seg->p->payload = (u8_t *)cur_seg->tcphdr + LWIP_TCP_HDRLEN(cur_seg->tcphdr);
         cur_seg->p->len = cur_seg->len - (cur_seg->p->tot_len - cur_seg->p->len);
         cur_seg->p->tot_len = cur_seg->len;
 
@@ -1166,9 +1175,12 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   struct tcp_seg *cur_seg = NULL;
   struct tcp_seg *new_seg = NULL;
   struct pbuf *cur_p = NULL;
+  struct pbuf *tcphdr_p;
+  int tcp_hlen_delta;
   u16_t mss_local = 0;
   u8_t optflags = 0;
   u8_t optlen = 0;
+  u32_t seqno = 0;
 
   LWIP_ASSERT("tcp_rexmit_segment: sanity check", (seg && seg->p));
 
@@ -1199,9 +1211,22 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 
   optlen += LWIP_TCP_OPT_LENGTH(optflags);
 
+  /* ZC segments have a prepended bpuf with tcp header, remove it */
+  if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
+    optflags |= TF_SEG_OPTS_ZEROCOPY;
+    tcphdr_p = seg->p;
+    assert(tcphdr_p->len == TCP_HLEN);
+    seg->p = seg->p->next;
+    pbuf_free(tcphdr_p);
+    tcp_hlen_delta = 0;
+  } else {
+    tcp_hlen_delta = TCP_HLEN;
+  }
+
   cur_seg = seg;
   cur_seg->flags &= (~TF_SEG_OPTS_TSO);
-  cur_p = cur_seg->p->next;
+  cur_p = seg->p->next;
+
   while (cur_p) {
     /* Do prefetch to avoid no memory issue during segment creation with
      * predefined pbuf. It allows to avoid releasing pbuf inside tcp_create_segment()
@@ -1221,7 +1246,8 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     /* Fill in tcp_seg (allocation was done before).
      * Do not expect NULL but it is possible as far as pbuf_header(p, TCP_HLEN) can return NULL inside tcp_create_segment()
      */
-    if (NULL == (new_seg = tcp_create_segment(pcb, cur_p, 0,  cur_seg->seqno + cur_seg->p->len - TCP_HLEN - optlen, optflags))) {
+    seqno = cur_seg->seqno + cur_seg->p->len - tcp_hlen_delta - optlen;
+    if (NULL == (new_seg = tcp_create_segment(pcb, cur_p, 0,  seqno, optflags))) {
       LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_one_segment: could not allocate memory for segment\n"));
       if (cur_seg->len > pcb->mss) {
         cur_seg->flags |= TF_SEG_OPTS_TSO;
@@ -1235,7 +1261,7 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 
     /* Original segment update */
     cur_seg->next = new_seg;
-    cur_seg->len = cur_seg->p->len - TCP_HLEN - optlen;
+    cur_seg->len = cur_seg->p->len - tcp_hlen_delta - optlen;
     cur_seg->p->tot_len = cur_seg->p->len;
     cur_seg->p->next = NULL;
 
@@ -1546,7 +1572,8 @@ tcp_output(struct tcp_pcb *pcb)
 #endif /* LWIP_TSO */
 
     /* Split the segment in case of a small window */
-    if ((NULL == pcb->unacked) && (wnd) && ((seg->len + seg->seqno - pcb->lastack) > wnd)) {
+    if ((NULL == pcb->unacked) && (wnd) && ((seg->len + seg->seqno - pcb->lastack) > wnd) &&
+         !(seg->flags & TF_SEG_OPTS_ZEROCOPY)) {
       LWIP_ASSERT("tcp_output: no window for dummy packet", !LWIP_IS_DUMMY_SEGMENT(seg));
       tcp_split_segment(pcb, seg, wnd);
     }
@@ -1768,14 +1795,31 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
           htonl(seg->tcphdr->seqno), htonl(seg->tcphdr->seqno) +
           seg->len));
 
-  len = (u16_t)((u8_t *)seg->tcphdr - (u8_t *)seg->p->payload);
-
-  seg->p->len -= len;
-  seg->p->tot_len -= len;
-
-  seg->p->payload = seg->tcphdr;
-
   seg->tcphdr->chksum = 0;
+
+  /* for zercopy, add a pbuf for tcp/l3/l2 headers, prepend it to the list of pbufs */
+  if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
+    /* make sure not to prepend 2nd header if !tso and this is rexmit */
+    if (tcp_tso(pcb) || TCP_SEQ_GEQ(seg->seqno, pcb->snd_nxt)) {
+      struct tcp_hdr *tcphdr;
+      struct pbuf *p = tcp_tx_pbuf_alloc(pcb, 0, PBUF_RAM);
+
+      assert(p != NULL);
+      pbuf_header(p, TCP_HLEN);
+      tcphdr = (struct tcp_hdr *)p->payload;
+      memcpy(tcphdr, seg->tcphdr, TCP_HLEN);
+      pbuf_cat(p, seg->p);
+      seg->p = p;
+      pcb->snd_queuelen++; /* we added a pbuf, must account it */
+    }
+  } else {
+    len = (u16_t)((u8_t *)seg->tcphdr - (u8_t *)seg->p->payload);
+
+    seg->p->len -= len;
+    seg->p->tot_len -= len;
+
+    seg->p->payload = seg->tcphdr;
+  }
 
   TCP_STATS_INC(tcp.xmit);
 
@@ -1784,6 +1828,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   flags |= seg->flags & TF_SEG_OPTS_DUMMY_MSG;
   flags |= seg->flags & TF_SEG_OPTS_TSO;
   flags |= (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ? TCP_WRITE_REXMIT : 0);
+  flags |= (seg->flags & TF_SEG_OPTS_ZEROCOPY) ? TCP_WRITE_ZEROCOPY : 0;
   pcb->ip_output(seg->p, pcb, flags);
 #else
   pcb->ip_output(seg->p, pcb, seg->seqno < pcb->snd_nxt, LWIP_IS_DUMMY_SEGMENT(seg));

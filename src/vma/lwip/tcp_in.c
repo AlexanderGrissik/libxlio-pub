@@ -775,6 +775,9 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
 
   /* Just shrink first pbuf */
   if (TCP_SEQ_GT((seg->seqno + seg->p->len - TCP_HLEN), ackno)) {
+    if (seg->flags & TF_SEG_OPTS_ZEROCOPY)
+      goto out_zc;
+
     u8_t *dataptr = (u8_t *)seg->tcphdr + LWIP_TCP_HDRLEN(seg->tcphdr);
     len = ackno - seg->seqno;
     seg->len -= len;
@@ -829,6 +832,9 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     }
   }
 
+  if (seg->flags & TF_SEG_OPTS_ZEROCOPY)
+    goto out_zc;
+
   if (cur_p) {
     u8_t *dataptr = (u8_t *)seg->tcphdr + LWIP_TCP_HDRLEN(seg->tcphdr);
     len = ackno - seg->seqno;
@@ -852,6 +858,7 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     count++;
   }
 
+out_zc:
 #if TCP_TSO_DEBUG
     LWIP_DEBUGF(TCP_TSO_DEBUG | LWIP_DBG_TRACE,
                 ("tcp_shrink: count: %-5d unsent %s\n",
