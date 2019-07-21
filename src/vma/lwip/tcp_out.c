@@ -47,6 +47,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 /* Define some copy-macros for checksum-on-copy so that the code looks
    nicer by preventing too many ifdef's. */
@@ -441,6 +442,8 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
   int piov_cur_index = 0;
   int piov_cur_len = 0;
 
+  u8_t is_zerocopy = (apiflags & TCP_WRITE_ZEROCOPY)? 1:0;
+
   int byte_queued = pcb->snd_nxt - pcb->lastack;
   if ( len < pcb->mss && !(apiflags & TCP_WRITE_DUMMY))
           pcb->snd_sml_add = (pcb->unacked ? pcb->unacked->len : 0) + byte_queued;
@@ -477,6 +480,8 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
 #endif /* LWIP_TCP_TIMESTAMPS */
 
   optlen = LWIP_TCP_OPT_LENGTH( optflags );
+  if (is_zerocopy)
+    assert(optlen == 0); /* FIXME_ZC - do we need to handle this? */
 
   /*
    * TCP segmentation is done in three phases with increasing complexity:
@@ -534,6 +539,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
 #endif /* TCP_OVERSIZE_DBGCHECK */
 
     if (pcb->unsent_oversize > 0) {
+      assert(!is_zerocopy);
       if (!(apiflags & TCP_WRITE_FILE)) {
         oversize = pcb->unsent_oversize;
         LWIP_ASSERT("inconsistent oversize vs. space", oversize_used <= space);
@@ -562,12 +568,14 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
 #endif /* LWIP_TSO */
 
       u16_t seglen = space < len - pos ? space : len - pos;
+      /* create pbuf of the exact size needed now, to later avoid the p1 (oversize) flow */
+      u16_t max_len = is_zerocopy? seglen : space;
 
       /* Create a pbuf with a copy or reference to seglen bytes. We
        * can use PBUF_RAW here since the data appears in the middle of
        * a segment. A header will never be prepended. */
       /* Data is copied */
-      if ((concat_p = tcp_pbuf_prealloc(seglen, space, &oversize, pcb, TCP_WRITE_FLAG_MORE, 1)) == NULL) {
+      if ((concat_p = tcp_pbuf_prealloc(seglen, max_len, &oversize, pcb, TCP_WRITE_FLAG_MORE, 1)) == NULL) {
     	  LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2,
     			  ("tcp_write : could not allocate memory for pbuf copy size %"U16_F"\n",
     					  seglen));
@@ -603,6 +611,10 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
     u32_t left = len - pos;
     u16_t max_len = mss_local - optlen;
     u16_t seglen = left > max_len ? max_len : left;
+
+    /* create pbuf of the exact size needed now, to later avoid the p1 (oversize) flow */
+    if (is_zerocopy)
+        max_len = seglen;
 
     /* If copy is set, memory should be allocated and data copied
      * into pbuf */
