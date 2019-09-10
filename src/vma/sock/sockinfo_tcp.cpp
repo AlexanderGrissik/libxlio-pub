@@ -999,6 +999,10 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	tcp_iovec lwip_iovec[max_count];
 	vma_send_attr attr = {(vma_wr_tx_packet_attr)0, 0};
 	int count = 0;
+	void *cur_end;
+
+	if (flags & TCP_WRITE_ZEROCOPY)
+		goto compact_sge;
 
 	/* maximum number of sge can not exceed this value */
 	while (p && (count < max_count)) {
@@ -1008,7 +1012,30 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 		p = p->next;
 		count++;
 	}
+	goto send_iov;
 
+compact_sge:
+	lwip_iovec[0].iovec.iov_base = p->payload;
+	lwip_iovec[0].iovec.iov_len = p->len;
+	lwip_iovec[0].p_desc = (mem_buf_desc_t*)p;
+	p = p->next;
+	/* assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works */
+	while (p && (count < max_count)) {
+		cur_end = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base +
+					     lwip_iovec[count].iovec.iov_len);
+		if (cur_end == p->payload) {
+			lwip_iovec[count].iovec.iov_len += p->len;
+		} else {
+			count++;
+			lwip_iovec[count].iovec.iov_base = p->payload;
+			lwip_iovec[count].iovec.iov_len = p->len;
+			lwip_iovec[count].p_desc = (mem_buf_desc_t*)p;
+		}
+		p = p->next;
+	}
+	count++;
+
+send_iov:
 	/* Sanity check */
 	if (unlikely(p)) {
 		vlog_printf(VLOG_ERROR, "Number of buffers in request exceed  %d, so silently dropped.", max_count);
