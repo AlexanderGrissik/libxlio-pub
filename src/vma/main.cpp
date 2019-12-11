@@ -917,6 +917,7 @@ extern "C" int main_init(void)
 		else if (!(g_stats_file = fopen(safe_mce_sys().stats_filename, "w")))
 				vlog_printf(VLOG_WARNING," Couldn't open statistics file: %s\n", safe_mce_sys().stats_filename);
 	}
+	safe_mce_sys().stats_file = g_stats_file;
 
 	sock_redirect_main();
 

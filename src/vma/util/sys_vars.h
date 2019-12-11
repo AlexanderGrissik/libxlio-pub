@@ -440,6 +440,7 @@ public:
 	int             power_2_nginx_workers_num;
 	int             src_port_stride;
 #endif
+	FILE *stats_file;
 private:
 	void print_vma_load_failure_msg();
 	int list_to_cpuset(char *cpulist, cpu_set_t *cpu_set);
