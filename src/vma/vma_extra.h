@@ -36,6 +36,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 /*
  * Flags for recvfrom_zcopy()
@@ -57,6 +58,12 @@
  * Flags for Dummy send API
  */
 #define VMA_SND_FLAGS_DUMMY MSG_SYN // equals to 0x400
+
+#ifndef MSG_ZEROCOPY
+#define VMA_SND_FLAGS_ZEROCOPY 0x4000000
+#else
+#define VMA_SND_FLAGS_ZEROCOPY MSG_ZEROCOPY // equals to 0x4000000
+#endif
 
 /* 
  * Return values for the receive packet notify callback function

@@ -755,8 +755,9 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 	unsigned pos = 0;
 	int ret = 0;
 	int poll_count = 0;
-	uint8_t apiflags = 0;
+	uint16_t apiflags = 0;
 	bool is_dummy = false;
+	bool is_zerocopy = false;
 	bool block_this_run = false;
 	void *tx_ptr = NULL;
 
@@ -810,6 +811,7 @@ retry_is_ready:
 	lock_tcp_con();
 
 	is_dummy = IS_DUMMY_PACKET(__flags);
+	is_zerocopy = IS_ZEROCOPY_PACKET(__flags);
 	block_this_run = BLOCK_THIS_RUN(m_b_blocking, __flags);
 
 	if (unlikely(is_dummy)) {
@@ -820,6 +822,8 @@ retry_is_ready:
 			return -1;
 		}
 	}
+	if (is_zerocopy)
+		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 
 	if (tx_arg.opcode == TX_FILE) {
 		apiflags |= VMA_TX_FILE;

@@ -421,7 +421,7 @@ static inline u16_t tcp_xmit_size_goal(struct tcp_pcb *pcb, int use_max)
  * @return ERR_OK if enqueued, another err_t on error
  */
 err_t
-tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u8_t apiflags)
+tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags)
 {
   struct pbuf *concat_p = NULL;
   struct tcp_seg *seg = NULL, *prev_seg = NULL, *queue = NULL;
