@@ -109,11 +109,16 @@ bool g_init_global_ctors_done = true;
 static command_netlink *s_cmd_nl = NULL;
 #define MAX_VERSION_STR_LEN	128
 
+/* XXX For sendfile() zerocopy PoC */
+void sendfile_data_cleanup(void);
+
 static int free_libvma_resources()
 {
 	vlog_printf(VLOG_DEBUG, "%s: Closing libvma resources\n", __FUNCTION__);
 
 	g_b_exit = true;
+
+	sendfile_data_cleanup();
 
 	//Triggers connection close, relevant for TCP which may need some time to terminate the connection.
 	//and for any socket that may wait from another thread

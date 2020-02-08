@@ -48,6 +48,7 @@
 #include "vma/lwip/tcp_impl.h"
 #include "vma/lwip/stats.h"
 
+#include <assert.h>
 #include <string.h>
 
 typedef struct tcp_in_data {
@@ -768,6 +769,8 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
   u8_t optflags = 0;
   u8_t optlen = 0;
 
+  assert(!(seg->flags & TF_SEG_OPTS_ZEROCOPY));
+
   if ((NULL == seg) || (NULL == seg->p) ||
       !(TCP_SEQ_GT(ackno, seg->seqno) && TCP_SEQ_LT(ackno, seg->seqno + TCP_TCPLEN(seg)))) {
     return count;
@@ -775,9 +778,6 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
 
   /* Just shrink first pbuf */
   if (TCP_SEQ_GT((seg->seqno + seg->p->len - TCP_HLEN), ackno)) {
-    if (seg->flags & TF_SEG_OPTS_ZEROCOPY)
-      goto out_zc;
-
     u8_t *dataptr = (u8_t *)seg->tcphdr + LWIP_TCP_HDRLEN(seg->tcphdr);
     len = ackno - seg->seqno;
     seg->len -= len;
@@ -832,9 +832,6 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     }
   }
 
-  if (seg->flags & TF_SEG_OPTS_ZEROCOPY)
-    goto out_zc;
-
   if (cur_p) {
     u8_t *dataptr = (u8_t *)seg->tcphdr + LWIP_TCP_HDRLEN(seg->tcphdr);
     len = ackno - seg->seqno;
@@ -858,12 +855,58 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     count++;
   }
 
-out_zc:
 #if TCP_TSO_DEBUG
     LWIP_DEBUGF(TCP_TSO_DEBUG | LWIP_DBG_TRACE,
                 ("tcp_shrink: count: %-5d unsent %s\n",
                 		count, _dump_seg(pcb->unsent)));
 #endif /* TCP_TSO_DEBUG */
+
+  return count;
+}
+
+/**
+ * Called by tcp_output() to shrink TCP segment to lastackno.
+ * This call should process retransmitted TSO segment.
+ *
+ * @param pcb the tcp_pcb for the TCP connection used to send the segment
+ * @param seg the tcp_seg to send
+ * @param ackqno current ackqno
+ * @return number of freed pbufs
+ */
+static u32_t
+tcp_shrink_zc_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
+{
+  struct pbuf *p;
+  u32_t count = 0;
+  u32_t len;
+
+  assert(seg != NULL);
+  assert(seg->p != NULL);
+  assert(seg->flags & TF_SEG_OPTS_ZEROCOPY);
+
+  if (!(TCP_SEQ_GT(ackno, seg->seqno) && TCP_SEQ_LT(ackno, seg->seqno + TCP_TCPLEN(seg)))) {
+    return 0;
+  }
+
+  while (TCP_SEQ_GEQ(ackno, seg->seqno + seg->p->len)) {
+    p = seg->p;
+    seg->len -= p->len;
+    seg->seqno += p->len;
+    seg->p = p->next;
+    assert(seg->p != NULL);
+    /* XXX Maybe we will need to free zeropcopy pbuf in different way */
+    external_tcp_tx_pbuf_free(pcb, p);
+    ++count;
+  }
+  if (TCP_SEQ_GT(ackno, seg->seqno)) {
+    len = ackno - seg->seqno;
+    seg->p->payload = (char *)seg->p->payload + len;
+    seg->len -= len;
+    seg->p->len -= len;
+    seg->p->tot_len -= len;
+    seg->seqno = ackno;
+  }
+  seg->tcphdr->seqno = htonl(seg->seqno);
 
   return count;
 }
@@ -1060,7 +1103,11 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
          * input data processing releases whole acknowledged segment only.
          */
         if (pcb->unacked->flags & TF_SEG_OPTS_TSO) {
-            pcb->snd_queuelen -= tcp_shrink_segment(pcb, pcb->unacked, in_data->ackno);
+            u32_t removed;
+            removed = pcb->unacked->flags & TF_SEG_OPTS_ZEROCOPY ?
+                      tcp_shrink_zc_segment(pcb, pcb->unacked, in_data->ackno) :
+                      tcp_shrink_segment(pcb, pcb->unacked, in_data->ackno);
+            pcb->snd_queuelen -= removed;
         }
 
         if (!(TCP_SEQ_LEQ(pcb->unacked->seqno + TCP_TCPLEN(pcb->unacked), in_data->ackno))) {

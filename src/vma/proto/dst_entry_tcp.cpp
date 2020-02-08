@@ -68,12 +68,16 @@ transport_t dst_entry_tcp::get_transport(sockaddr_in to)
 }
 
 #ifdef DEFINED_TSO
+bool mem_buf_is_mmaped(uintptr_t addr, size_t size); /* XXX */
+
 ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr)
 {
 	int ret = 0;
 	tx_packet_template_t* p_pkt;
 	tcp_iovec* p_tcp_iov = NULL;
 	size_t hdr_alignment_diff = 0;
+
+	bool is_zerocopy = is_set(attr.flags, VMA_TX_PACKET_ZEROCOPY);
 
 	/* The header is aligned for fast copy but we need to maintain this diff
 	 * in order to get the real header pointer easily
@@ -87,8 +91,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 	 * BF  --> mcra /dev/mst/mt41682_pciconf0 0x31500.3:1 0
 	 * CX5 --> mcra /dev/mst/mt4121_pciconf0 0x31500.3:1 0
          * When set, single packet LSO WQEs are not treated as LSO. This prevents wrong handling of packets with padding by SW */
-	if (is_set(attr.flags, VMA_TX_PACKET_ZEROCOPY))
+	if (is_zerocopy) {
 		attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
+	}
 
 	attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
 
@@ -107,19 +112,24 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		size_t total_packet_len = 0;
 		vma_ibv_send_wr send_wqe;
 		wqe_send_handler send_wqe_h;
-		ssize_t lso_sz_iov = 0;
 		void *masked_addr;
-		int ii = 0;
 
 		/* iov_base is a pointer to TCP header and data
 		 * so p_pkt should point to L2
 		 */
-		p_pkt = (tx_packet_template_t*)((uint8_t*)p_tcp_iov[0].iovec.iov_base - m_header.m_aligned_l2_l3_len);
+		if (is_zerocopy) {
+			p_pkt = (tx_packet_template_t*)((uint8_t*)p_tcp_iov[0].tcphdr - m_header.m_aligned_l2_l3_len);
+		} else {
+			p_pkt = (tx_packet_template_t*)((uint8_t*)p_tcp_iov[0].iovec.iov_base - m_header.m_aligned_l2_l3_len);
+		}
 
 		/* iov_len is a size of TCP header and data
 		 * m_total_hdr_len is a size of L2/L3 header
 		 */
 		total_packet_len = p_tcp_iov[0].iovec.iov_len + m_header.m_total_hdr_len;
+		if (is_zerocopy) {
+			total_packet_len += 20 /* TCP_HLEN */;
+		}
 
 		/* copy just L2/L3 headers to p_pkt */
 		m_header.copy_l2_ip_hdr(p_pkt);
@@ -128,36 +138,47 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		 * setting this field to actual value allows to do valid call for scenario
 		 * when payload size less or equal to mss
 		 */
-		p_pkt->hdr.m_ip_hdr.tot_len = (htons)(p_tcp_iov[0].iovec.iov_len + m_header.m_ip_header_len);
+		p_pkt->hdr.m_ip_hdr.tot_len = htons(total_packet_len - m_header.m_transport_header_len);
 
-		if ((total_packet_len < m_max_inline) && (1 == sz_iov)) {
+		if (!is_zerocopy && (total_packet_len < m_max_inline) && (1 == sz_iov)) {
 			m_p_send_wqe = &m_inline_send_wqe;
 			m_sge[0].addr = (uintptr_t)((uint8_t*)p_pkt + hdr_alignment_diff);
 			m_sge[0].length = total_packet_len;
 		} else if (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
-			lso_sz_iov = sz_iov;
-			/* for ZC sends, iov[0] has only the headers and fully goes into the WQE */
-			if (!(p_tcp_iov[0].iovec.iov_len - p_pkt->hdr.m_tcp_hdr.doff * 4))
-				lso_sz_iov--;
 			/* update send work request. do not expect noninlined scenario */
-			send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, lso_sz_iov);
+			send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
 			send_wqe_h.enable_tso(send_wqe,
 				(void *)((uint8_t*)p_pkt + hdr_alignment_diff),
 				m_header.m_total_hdr_len + p_pkt->hdr.m_tcp_hdr.doff * 4,
 				attr.mss);
 			m_p_send_wqe = &send_wqe;
-			m_sge[0].addr = (uintptr_t)((uint8_t *)&p_pkt->hdr.m_tcp_hdr + p_pkt->hdr.m_tcp_hdr.doff * 4);
-			m_sge[0].length = p_tcp_iov[0].iovec.iov_len - p_pkt->hdr.m_tcp_hdr.doff * 4;
+			if (is_zerocopy) {
+				m_sge[0].addr = (uintptr_t)p_tcp_iov[0].iovec.iov_base;
+				m_sge[0].length = p_tcp_iov[0].iovec.iov_len;
+				assert(mem_buf_is_mmaped(m_sge[0].addr, m_sge[0].length)); /* XXX */
+			} else {
+				m_sge[0].addr = (uintptr_t)((uint8_t *)&p_pkt->hdr.m_tcp_hdr + p_pkt->hdr.m_tcp_hdr.doff * 4);
+				m_sge[0].length = p_tcp_iov[0].iovec.iov_len - p_pkt->hdr.m_tcp_hdr.doff * 4;
+			}
 		} else {
 			m_p_send_wqe = &m_not_inline_send_wqe;
 			m_sge[0].addr = (uintptr_t)((uint8_t*)p_pkt + hdr_alignment_diff);
 			m_sge[0].length = total_packet_len;
 		}
 
+		if (unlikely(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref > 1)) {
+			/* As workaround, allocate new fake buffer which will be assigned to wr_id */
+			/* XXX TODO Describe path for the fake buffer */
+			mem_buf_desc_t *p_mem_buf_desc = get_buffer(is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+			assert(p_mem_buf_desc != NULL);
+			p_tcp_iov[0].p_desc = p_mem_buf_desc;
+		} else {
+			p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
+		}
+
 		/* save pointers to ip and tcp headers for software checksum calculation */
 		p_tcp_iov[0].p_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
 		p_tcp_iov[0].p_desc->tx.p_tcp_h =(struct tcphdr*)((uint8_t*)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr));
-		p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
 
 		/* set wr_id as a pointer to memory descriptor */
 		m_p_send_wqe->wr_id = (uintptr_t)p_tcp_iov[0].p_desc;
@@ -166,25 +187,25 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		 * ref counter is incremented for the first memory descriptor only because it is needed
 		 * for processing send wr completion (tx batching mode)
 		 */
-		m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
-		if (attr.flags & VMA_TX_PACKET_ZEROCOPY)
-			goto get_user_lkey;
+		if (is_zerocopy) {
+			masked_addr = (void *)((uint64_t)m_sge[0].addr & m_user_huge_page_mask);
+			m_sge[0].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
+		} else {
+			m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
+		}
 
 		for (int i = 1; i < sz_iov; ++i) {
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
-			m_sge[i].lkey = m_sge[0].lkey;
+			if (is_zerocopy) {
+				masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
+				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
+				assert(mem_buf_is_mmaped(m_sge[i].addr, m_sge[i].length)); /* XXX */
+			} else {
+				m_sge[i].lkey = m_sge[0].lkey;
+			}
 		}
-		goto send_buffer;
 
-get_user_lkey:
-		for (int i = 1; i < sz_iov; ++i, ++ii) {
-			m_sge[ii].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
-			m_sge[ii].length = p_tcp_iov[i].iovec.iov_len;
-			masked_addr = (void *)((uint64_t)m_sge[ii].addr & m_user_huge_page_mask);
-			m_sge[ii].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
-		}
-send_buffer:
 		send_lwip_buffer(m_id, m_p_send_wqe, attr.flags);
 
 	} else { // We don'nt support inline in this case, since we believe that this a very rare case

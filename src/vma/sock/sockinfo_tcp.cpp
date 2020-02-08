@@ -1006,7 +1006,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	void *cur_end;
 
 	if (flags & TCP_WRITE_ZEROCOPY)
-		goto compact_sge;
+		goto zc_fill_iov;
 
 	/* maximum number of sge can not exceed this value */
 	while (p && (count < max_count)) {
@@ -1018,12 +1018,18 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	}
 	goto send_iov;
 
-compact_sge:
+zc_fill_iov:
+	/* For zerocopy, 1st pbuf contains pointer to TCP header */
+	lwip_iovec[0].tcphdr = p->payload;
+	p = p->next;
 	lwip_iovec[0].iovec.iov_base = p->payload;
 	lwip_iovec[0].iovec.iov_len = p->len;
 	lwip_iovec[0].p_desc = (mem_buf_desc_t*)p;
 	p = p->next;
-	/* assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works */
+	/*
+	 * Compact sequential memory buffers.
+	 * Assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works.
+	 */
 	while (p && (count < max_count)) {
 		cur_end = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base +
 					     lwip_iovec[count].iovec.iov_len);

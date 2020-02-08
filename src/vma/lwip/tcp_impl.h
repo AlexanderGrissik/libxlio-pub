@@ -308,7 +308,8 @@ struct tcp_seg {
 #define TF_SEG_OPTS_ZEROCOPY    (u8_t)0x80U /* Use zerocopy send mode */
 
   struct tcp_hdr *tcphdr;  /* the TCP header */
-  struct tcp_hdr zc_tcphdr;
+  /* 16 elements to make segment objects be aligned by 64 bit in the array */
+  u32_t tcphdr_zc[16] __attribute__ ((aligned (16))); /* XXX don't hardcode size/offset */
 };
 
 #define LWIP_IS_DUMMY_SEGMENT(seg) (seg->flags & TF_SEG_OPTS_DUMMY_MSG)

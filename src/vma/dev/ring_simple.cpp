@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <assert.h>
 
 #include "ring_simple.h"
 
@@ -112,6 +113,7 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 	m_lock_ring_tx_buf_wait("ring:lock_tx_buf_wait"), m_tx_num_bufs(0), m_tx_num_wr(0), m_tx_num_wr_free(0),
 	m_b_qp_tx_first_flushed_completion_handled(false), m_missing_buf_ref_count(0),
 	m_tx_lkey(0),
+	m_sendfile_lkey(0),
 	m_gro_mgr(safe_mce_sys().gro_streams_max, MAX_GRO_BUFS), m_up(false),
 	m_p_rx_comp_event_channel(NULL), m_p_tx_comp_event_channel(NULL), m_p_l2_addr(NULL)
 {
@@ -1072,10 +1074,14 @@ int ring_simple::get_ring_descriptors(vma_mlx_hw_device_data &d)
 	return 0;
 }
 
+/* XXX For sendfile() zerocopy PoC */
+vma_allocator *get_sendfile_alloc(void);
+
 uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
 {
 	uint32_t lkey = 0;
 
+#if 0
 	lkey = m_user_lkey_map.get(addr, 0);
 	if (!lkey) {
 		lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
@@ -1083,6 +1089,16 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
 			ring_logerr("Can't register user memory addr %p len %lx", addr, length);
 		else
 			m_user_lkey_map.set(addr, lkey);
+	}
+#endif
+
+	/* XXX sendfile() zerocopy PoC */
+	(void)addr;
+	(void)length;
+	lkey = m_sendfile_lkey;
+	if (!lkey) {
+		assert(get_sendfile_alloc() != NULL);
+		lkey = get_sendfile_alloc()->find_lkey_by_ib_ctx(m_p_ib_ctx);
 	}
 
 	return lkey;

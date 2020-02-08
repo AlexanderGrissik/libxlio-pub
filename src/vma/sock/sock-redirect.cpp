@@ -2026,13 +2026,43 @@ ssize_t sendto(int __fd, __const void *__buf, size_t __nbytes, int __flags,
 	return orig_os_api.sendto(__fd, __buf, __nbytes, __flags, __to, __tolen);
 }
 
+struct sendfile_data {
+	void *addr;
+	off_t size;
+	vma_allocator *alloc;
+};
+
+static struct sendfile_data g_sf_state = { NULL, 0, NULL };
+
+void sendfile_data_cleanup(void)
+{
+	if (g_sf_state.addr != NULL) {
+		delete g_sf_state.alloc;
+		munmap(g_sf_state.addr, g_sf_state.size);
+		memset(&g_sf_state, 0, sizeof(g_sf_state));
+	}
+}
+
+vma_allocator *get_sendfile_alloc(void)
+{
+	return g_sf_state.alloc;
+}
+
+bool mem_buf_is_mmaped(uintptr_t addr, size_t size)
+{
+	uintptr_t mmap_addr = (uintptr_t)g_sf_state.addr;
+
+	return (mmap_addr != 0) && (addr >= mmap_addr) &&
+		(addr + size <= mmap_addr + g_sf_state.size);
+}
+
 static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off64_t *offset, size_t count)
 {
 	ssize_t totSent = 0;
 	struct stat64 stat_buf;
-	__off64_t orig_offset = 0;
-	__off64_t cur_offset = 0;
-	struct iovec piov[1] = {{NULL, 0}};
+	__off64_t orig_offset;
+	__off64_t cur_offset;
+	struct iovec piov[1];
 	vma_tx_call_attr_t tx_arg;
 	sockinfo* s = (sockinfo*)p_socket_object;
 
@@ -2041,16 +2071,15 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		return -1;
 	}
 
-	orig_offset = lseek64(in_fd, 0, SEEK_CUR);
-	if (orig_offset < 0) {
-		errno = ESPIPE;
-		return -1;
-	}
-
-	cur_offset = (offset ? *offset : orig_offset);
-	if (offset && (lseek64(in_fd, cur_offset, SEEK_SET) == -1)) {
-		errno = EINVAL;
-		return -1;
+	if (offset == NULL) {
+		orig_offset = lseek64(in_fd, 0, SEEK_CUR);
+		if (orig_offset < 0) {
+			errno = ESPIPE;
+			return -1;
+		}
+		cur_offset = orig_offset;
+	} else {
+		cur_offset = *offset;
 	}
 
 	if ((fstat64(in_fd, &stat_buf) == -1) ||
@@ -2060,12 +2089,59 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 	}
 
 	if (PROTO_TCP == s->get_protocol()) {
-		tx_arg.opcode = TX_FILE;
+		/*
+		 * Mmap file only once and use zerocopy on top of the memory
+		 * area. Assume user always sends the same file.
+		 */
+		if (unlikely(g_sf_state.addr == NULL)) {
+			struct stat st;
+			int rc;
+
+			memset(&st, 0, sizeof(st));
+			rc = fstat(in_fd, &st);
+			if (rc != 0) {
+				srdr_logerr("fstat errno=%d (%s)", errno, strerror(errno));
+				return -1;
+			}
+
+			/*
+			 * Create mapping. User may open in_fd as read-only. In this case,
+			 * shared mapping with PROT_WRITE fails. On the other hand,
+			 * ibv_reg_mr() requires PROT_WRITE, registration fails otherwise.
+			 */
+			g_sf_state.size = st.st_size;
+			g_sf_state.addr = mmap64(NULL, g_sf_state.size, PROT_WRITE | PROT_READ,
+						 MAP_PRIVATE | MAP_NORESERVE | MAP_POPULATE,
+						 in_fd, 0);
+			if (g_sf_state.addr == MAP_FAILED) {
+				srdr_logerr("mmap64 errno=%d (%s)", errno, strerror(errno));
+				g_sf_state.addr = NULL;
+				return -1;
+			}
+
+			g_sf_state.alloc = new vma_allocator();
+			if (g_sf_state.alloc == NULL) {
+				srdr_logerr("Couldn't allocate vma_allocator object");
+				munmap(g_sf_state.addr, g_sf_state.size);
+				g_sf_state.addr = NULL;
+				errno = ENOMEM;
+				return -1;
+			}
+
+			/* This method doesn't return error. */
+			g_sf_state.alloc->alloc_and_reg_mr(g_sf_state.size, NULL, g_sf_state.addr);
+
+			srdr_loginfo("XXX Mapping registration is finished (pid=%u).", (unsigned)getpid());
+			srdr_loginfo("XXX addr=%p size=%zu.", g_sf_state.addr, g_sf_state.size);
+		}
+
+		piov[0].iov_base = (char *)g_sf_state.addr + cur_offset;
+		piov[0].iov_len = count;
+
+		tx_arg.opcode = TX_WRITE;
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
-
-		piov[0].iov_base = (void *)&in_fd;
-		piov[0].iov_len = count;
+		tx_arg.attr.msg.flags = VMA_SND_FLAGS_ZEROCOPY;
 
 		totSent = p_socket_object->tx(tx_arg);
 	} else {
@@ -2117,14 +2193,16 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		}
 
 		/* fallback on read() approach */
-		if (totSent <= 0) {
+		if (totSent == 0) {
 			char buf[sysconf(_SC_PAGE_SIZE)];
 			ssize_t toRead, numRead, numSent = 0;
 
 			while (count > 0) {
 				toRead = min(sizeof(buf), count);
-				numRead = orig_os_api.read(in_fd, buf, toRead);
+				numRead = pread(in_fd, buf, toRead, cur_offset + totSent);
 				if (numRead <= 0) {
+					if (numRead < 0 && totSent == 0)
+						totSent = -1;
 					break;
 				}
 
@@ -2144,7 +2222,6 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 
 	if (totSent > 0) {
 		if (offset != NULL) {
-			(void)lseek64(in_fd, (orig_offset), SEEK_SET);
 			*offset = *offset + totSent;
 		} else {
 			(void)lseek64(in_fd, (orig_offset + totSent), SEEK_SET);
