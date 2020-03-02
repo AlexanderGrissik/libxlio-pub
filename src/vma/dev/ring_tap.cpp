@@ -72,7 +72,7 @@ ring_tap::ring_tap(int if_index, ring* parent):
 	m_rx_pool.set_id("ring_tap (%p) : m_rx_pool", this);
 
 	/* Initialize TX buffer poll */
-	request_more_tx_buffers(m_sysvar_qp_compensation_level, 0);
+	request_more_tx_buffers(PBUF_RAM, m_sysvar_qp_compensation_level, 0);
 
 	/* Update ring statistics */
 	m_p_ring_stat->tap.n_tap_fd = m_tap_fd;
@@ -463,19 +463,20 @@ bool ring_tap::request_more_rx_buffers()
 	return true;
 }
 
-mem_buf_desc_t* ring_tap::mem_buf_tx_get(ring_user_id_t id, bool b_block, int n_num_mem_bufs)
+mem_buf_desc_t* ring_tap::mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs)
 {
 	mem_buf_desc_t* head = NULL;
 
 	NOT_IN_USE(id);
 	NOT_IN_USE(b_block);
+	NOT_IN_USE(type);
 
 	ring_logfuncall("n_num_mem_bufs=%d", n_num_mem_bufs);
 
 	m_lock_ring_tx.lock();
 
 	if (unlikely((int)m_tx_pool.size() < n_num_mem_bufs)) {
-		request_more_tx_buffers(m_sysvar_qp_compensation_level, 0);
+		request_more_tx_buffers(PBUF_RAM, m_sysvar_qp_compensation_level, 0);
 
 		if (unlikely((int)m_tx_pool.size() < n_num_mem_bufs)) {
 			m_lock_ring_tx.unlock();

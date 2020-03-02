@@ -192,6 +192,8 @@ public:
 	uint32_t get_flow_tag_val() { return m_flow_tag_id; }
 	inline in_protocol_t get_protocol(void) { return m_protocol; }
 
+        socket_stats_t*         m_p_socket_stats;
+
 private:
 	int				fcntl_helper(int __cmd, unsigned long int __arg, bool& bexit);
 
@@ -215,7 +217,6 @@ protected:
 	in_addr_t 		m_so_bindtodevice_ip;
 
 	socket_stats_t		m_socket_stats;
-	socket_stats_t*		m_p_socket_stats;
 
 	int			m_rx_epfd;
 	cache_observer 		m_rx_nd_observer;

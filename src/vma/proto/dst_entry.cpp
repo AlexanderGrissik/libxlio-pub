@@ -52,7 +52,7 @@ dst_entry::dst_entry(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port, soc
 	m_dst_ip(dst_ip), m_dst_port(dst_port), m_src_port(src_port), m_bound_ip(0),
 	m_so_bindtodevice_ip(0), m_route_src_ip(0), m_pkt_src_ip(0),
 	m_ring_alloc_logic(sock_data.fd, ring_alloc_logic, this),
-	m_p_tx_mem_buf_desc_list(NULL), m_b_tx_mem_buf_desc_list_pending(false),
+	m_p_tx_mem_buf_desc_list(NULL), m_p_zc_mem_buf_desc_list(NULL), m_b_tx_mem_buf_desc_list_pending(false),
 	m_ttl(sock_data.ttl), m_tos(sock_data.tos), m_pcp(sock_data.pcp), m_id(0)
 {
 	dst_logdbg("dst:%s:%d src: %d", m_dst_ip.to_str().c_str(), ntohs(m_dst_port), ntohs(m_src_port));
@@ -85,6 +85,10 @@ dst_entry::~dst_entry()
 		if (m_p_tx_mem_buf_desc_list) {
 			m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true);
 			m_p_tx_mem_buf_desc_list = NULL;
+		}
+		if (m_p_zc_mem_buf_desc_list) {
+			m_p_ring->mem_buf_tx_release(m_p_zc_mem_buf_desc_list, true);
+			m_p_zc_mem_buf_desc_list = NULL;
 		}
 
 		m_p_net_dev_val->release_ring(m_ring_alloc_logic.get_key());
@@ -340,6 +344,10 @@ bool dst_entry::release_ring()
 				m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true);
 				m_p_tx_mem_buf_desc_list = NULL;
 			}
+			if (m_p_zc_mem_buf_desc_list) {
+				m_p_ring->mem_buf_tx_release(m_p_zc_mem_buf_desc_list, true);
+				m_p_zc_mem_buf_desc_list = NULL;
+			}
 			dst_logdbg("releasing a ring");
 			if (m_p_net_dev_val->release_ring(m_ring_alloc_logic.get_key())) {
 				dst_logerr("Failed to release ring for allocation key %s",
@@ -549,6 +557,10 @@ bool dst_entry::prepare_to_send(struct vma_rate_limit_t &rate_limit, bool skip_r
 						m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true);
 						m_p_tx_mem_buf_desc_list = NULL;
 					}
+					if (m_p_zc_mem_buf_desc_list) {
+						m_p_ring->mem_buf_tx_release(m_p_zc_mem_buf_desc_list, true);
+						m_p_zc_mem_buf_desc_list = NULL;
+					}
 					resolved = true;
 				}
 			}
@@ -656,12 +668,17 @@ void dst_entry::do_ring_migration(lock_base& socket_lock, resource_allocation_ke
 
 	mem_buf_desc_t* tmp_list = m_p_tx_mem_buf_desc_list;
 	m_p_tx_mem_buf_desc_list = NULL;
+	mem_buf_desc_t* tmp_list_zc = m_p_zc_mem_buf_desc_list;
+	m_p_zc_mem_buf_desc_list = NULL;
 
 	m_slow_path_lock.unlock();
 	socket_lock.unlock();
 
 	if (tmp_list) {
 		old_ring->mem_buf_tx_release(tmp_list, true);
+	}
+	if (tmp_list_zc) {
+		old_ring->mem_buf_tx_release(tmp_list_zc, true);
 	}
 
 	m_p_net_dev_val->release_ring(&old_key);
@@ -743,17 +760,29 @@ bool dst_entry::alloc_neigh_val(transport_type_t tranport)
 
 void dst_entry::return_buffers_pool()
 {
-	if (m_p_tx_mem_buf_desc_list == NULL) {
+	int count;
+
+	if (m_p_tx_mem_buf_desc_list == NULL &&
+	    m_p_zc_mem_buf_desc_list == NULL) {
 		return;
 	}
 
-	if (m_b_tx_mem_buf_desc_list_pending && m_p_ring &&
-		m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true, true)) {
-		m_p_tx_mem_buf_desc_list = NULL;
-		set_tx_buff_list_pending(false);
-	} else {
-		set_tx_buff_list_pending(true);
+	if (m_b_tx_mem_buf_desc_list_pending && m_p_ring) {
+		if (m_p_tx_mem_buf_desc_list != NULL) {
+			count = m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true, true);
+			if (count) {
+				m_p_tx_mem_buf_desc_list = NULL;
+			}
+		}
+		if (m_p_zc_mem_buf_desc_list != NULL) {
+			count = m_p_ring->mem_buf_tx_release(m_p_zc_mem_buf_desc_list, true, true);
+			if (count) {
+				m_p_zc_mem_buf_desc_list = NULL;
+			}
+		}
 	}
+	set_tx_buff_list_pending(m_p_tx_mem_buf_desc_list != NULL ||
+				 m_p_zc_mem_buf_desc_list != NULL);
 }
 
 int dst_entry::modify_ratelimit(struct vma_rate_limit_t &rate_limit)

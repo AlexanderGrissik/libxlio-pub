@@ -137,6 +137,7 @@ protected:
 	ring*			m_p_ring;
 	ring_allocation_logic_tx m_ring_alloc_logic;
 	mem_buf_desc_t* 	m_p_tx_mem_buf_desc_list;
+	mem_buf_desc_t* 	m_p_zc_mem_buf_desc_list;
 	int			m_b_tx_mem_buf_desc_list_pending;
 	header 			m_header;
 	header 			m_header_neigh;

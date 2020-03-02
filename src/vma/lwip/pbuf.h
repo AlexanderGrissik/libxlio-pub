@@ -57,7 +57,8 @@ typedef enum {
   PBUF_RAM, /* pbuf data is stored in RAM */
   PBUF_ROM, /* pbuf data is stored in ROM */
   PBUF_REF, /* pbuf comes from the pbuf pool */
-  PBUF_POOL /* pbuf payload refers to RAM */
+  PBUF_POOL, /* pbuf payload refers to RAM */
+  PBUF_ZEROCOPY
 } pbuf_type;
 
 
@@ -100,6 +101,9 @@ struct pbuf {
    * the stack itself, or pbuf->next pointers from a chain.
    */
   u16_t ref;
+
+  /** Private data, used by zerocopy to hold mapping's pointer */
+  void *priv;
 };
 
 #if LWIP_SUPPORT_CUSTOM_PBUF

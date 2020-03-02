@@ -149,7 +149,7 @@ public:
 
 protected:
 
-	bool			request_more_tx_buffers(uint32_t count, uint32_t lkey);
+	bool			request_more_tx_buffers(pbuf_type type, uint32_t count, uint32_t lkey);
 	void			flow_udp_del_all();
 	void			flow_tcp_del_all();
 
@@ -168,6 +168,7 @@ protected:
 	lock_spin_recursive	m_lock_ring_tx;
 
 	descq_t             m_tx_pool;
+	descq_t             m_zc_pool;
 	transport_type_t    m_transport_type; /* transport ETH/IB */
 	ring_stats_t*       m_p_ring_stat;
 	in_addr_t           m_local_if;

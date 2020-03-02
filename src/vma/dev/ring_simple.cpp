@@ -30,12 +30,11 @@
  * SOFTWARE.
  */
 
-#include <assert.h>
-
 #include "ring_simple.h"
 
 #include "vma/util/valgrind.h"
 #include "vma/util/sg_array.h"
+#include "vma/proto/mapping.h"
 #include "vma/sock/fd_collection.h"
 #if defined(DEFINED_DIRECT_VERBS)
 #include "vma/dev/qp_mgr_eth_mlx5.h"
@@ -110,7 +109,8 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 	m_p_qp_mgr(NULL),
 	m_p_cq_mgr_rx(NULL),
 	m_p_cq_mgr_tx(NULL),
-	m_lock_ring_tx_buf_wait("ring:lock_tx_buf_wait"), m_tx_num_bufs(0), m_tx_num_wr(0), m_tx_num_wr_free(0),
+	m_lock_ring_tx_buf_wait("ring:lock_tx_buf_wait"),
+	m_tx_num_bufs(0), m_zc_num_bufs(0), m_tx_num_wr(0), m_tx_num_wr_free(0),
 	m_b_qp_tx_first_flushed_completion_handled(false), m_missing_buf_ref_count(0),
 	m_tx_lkey(0),
 	m_sendfile_lkey(0),
@@ -201,10 +201,12 @@ ring_simple::~ring_simple()
 	delete[] m_p_n_rx_channel_fds;
 
 	ring_logdbg("Tx buffer poll: free count = %u, sender_has = %d, total = %d, %s (%d)",
-			m_tx_pool.size(), m_missing_buf_ref_count, m_tx_num_bufs,
-			((m_tx_num_bufs - m_tx_pool.size() - m_missing_buf_ref_count) ?
+			m_tx_pool.size() + m_zc_pool.size(), m_missing_buf_ref_count,
+			m_tx_num_bufs + m_zc_num_bufs,
+			((m_tx_num_bufs + m_zc_num_bufs - m_tx_pool.size() - m_zc_pool.size() - m_missing_buf_ref_count) ?
 					"bad accounting!!" : "good accounting"),
-					(m_tx_num_bufs - m_tx_pool.size() - m_missing_buf_ref_count));
+					(m_tx_num_bufs + m_zc_num_bufs - m_tx_pool.size() - m_zc_pool.size() -
+					 m_missing_buf_ref_count));
 	ring_logdbg("Tx WR num: free count = %d, total = %d, %s (%d)",
 			m_tx_num_wr_free, m_tx_num_wr,
 			((m_tx_num_wr - m_tx_num_wr_free) ? "bad accounting!!":"good accounting"), (m_tx_num_wr - m_tx_num_wr_free));
@@ -504,7 +506,7 @@ int ring_simple::drain_and_proccess()
 	return ret;
 }
 
-mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int n_num_mem_bufs /* default = 1 */)
+mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs /* default = 1 */)
 {
 	NOT_IN_USE(id);
 	int ret = 0;
@@ -514,7 +516,7 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 	ring_logfuncall("n_num_mem_bufs=%d", n_num_mem_bufs);
 
 	m_lock_ring_tx.lock();
-	buff_list = get_tx_buffers(n_num_mem_bufs);
+	buff_list = get_tx_buffers(type, n_num_mem_bufs);
 	while (!buff_list) {
 
 		// Try to poll once in the hope that we get a few freed tx mem_buf_desc
@@ -527,7 +529,7 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 		}
 		else if (ret > 0) {
 			ring_logfunc("polling succeeded on tx cq_mgr (%d wce)", ret);
-			buff_list = get_tx_buffers(n_num_mem_bufs);
+			buff_list = get_tx_buffers(type, n_num_mem_bufs);
 		}
 		else if (b_block) { // (ret == 0)
 			// Arm & Block on tx cq_mgr notification channel
@@ -541,7 +543,7 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 			m_lock_ring_tx.lock();
 
 			// poll once more (in the hope that we get a few freed tx mem_buf_desc)
-			buff_list = get_tx_buffers(n_num_mem_bufs);
+			buff_list = get_tx_buffers(type, n_num_mem_bufs);
 			if (!buff_list) {
 				// Arm the CQ event channel for next Tx buffer release (tx cqe)
 				ret = m_p_cq_mgr_tx->request_notification(poll_sn);
@@ -565,7 +567,7 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 						m_lock_ring_tx_buf_wait.unlock();
 						/* coverity[double_lock] TODO: RM#1049980 */
 						m_lock_ring_tx.lock();
-						buff_list = get_tx_buffers(n_num_mem_bufs);
+						buff_list = get_tx_buffers(type, n_num_mem_bufs);
 						continue;
 					} else if (ret < 0) {
 						ring_logdbg("failed blocking on tx cq_mgr (errno=%d %m)", errno);
@@ -595,7 +597,7 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 						ring_logfunc("polling/blocking succeeded on tx cq_mgr (we got %d wce)", ret);
 					}
 				}
-				buff_list = get_tx_buffers(n_num_mem_bufs);
+				buff_list = get_tx_buffers(type, n_num_mem_bufs);
 			}
 			/* coverity[double_unlock] TODO: RM#1049980 */
 			m_lock_ring_tx.unlock();
@@ -805,8 +807,10 @@ bool ring_simple::is_available_qp_wr(bool b_block)
 
 void ring_simple::init_tx_buffers(uint32_t count)
 {
-	request_more_tx_buffers(count, m_tx_lkey);
+	request_more_tx_buffers(PBUF_RAM, count, m_tx_lkey);
 	m_tx_num_bufs = m_tx_pool.size();
+	request_more_tx_buffers(PBUF_ZEROCOPY, count, 0);
+	m_zc_num_bufs = m_zc_pool.size();
 }
 
 void ring_simple::inc_cq_moderation_stats(size_t sz_data)
@@ -816,31 +820,46 @@ void ring_simple::inc_cq_moderation_stats(size_t sz_data)
 }
 
 //call under m_lock_ring_tx lock
-mem_buf_desc_t* ring_simple::get_tx_buffers(uint32_t n_num_mem_bufs)
+mem_buf_desc_t* ring_simple::get_tx_buffers(pbuf_type type, uint32_t n_num_mem_bufs)
 {
-	mem_buf_desc_t* head = NULL;
-	if (unlikely(m_tx_pool.size() < n_num_mem_bufs)) {
+	mem_buf_desc_t *head;
+	descq_t *pool;
+
+	pool = type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
+
+	if (unlikely(pool->size() < n_num_mem_bufs)) {
 		int count = MAX(RING_TX_BUFS_COMPENSATE, n_num_mem_bufs);
-		if (request_more_tx_buffers(count, m_tx_lkey)) {
-			m_tx_num_bufs += count;
+		if (request_more_tx_buffers(type, count, m_tx_lkey)) {
+			/*
+			 * TODO Unify request_more_tx_buffers so ring_slave
+			 * keeps number of buffers instead of reinventing it in
+			 * ring_simple and ring_tap.
+			 */
+			if (type == PBUF_ZEROCOPY) {
+				m_zc_num_bufs += count;
+			} else {
+				m_tx_num_bufs += count;
+			}
 		}
 
-		if (unlikely(m_tx_pool.size() < n_num_mem_bufs)) {
-			return head;
+		if (unlikely(pool->size() < n_num_mem_bufs)) {
+			return NULL;
 		}
 	}
 
-	head = m_tx_pool.get_and_pop_back();
+	head = pool->get_and_pop_back();
 	head->lwip_pbuf.pbuf.ref = 1;
 	n_num_mem_bufs--;
 
 	mem_buf_desc_t* next = head;
 	while (n_num_mem_bufs) {
-		next->p_next_desc = m_tx_pool.get_and_pop_back();
+		next->p_next_desc = pool->get_and_pop_back();
 		next = next->p_next_desc;
 		next->lwip_pbuf.pbuf.ref = 1;
+		next->lwip_pbuf.pbuf.type = type;
 		n_num_mem_bufs--;
 	}
+	next->p_next_desc = NULL;
 
 	return head;
 }
@@ -852,6 +871,11 @@ void ring_simple::return_to_global_pool()
 		m_tx_num_bufs -= return_bufs;
 		g_buffer_pool_tx->put_buffers_thread_safe(&m_tx_pool, return_bufs);
 	}
+	if (unlikely(m_zc_pool.size() > (m_zc_num_bufs / 2) &&  m_zc_num_bufs >= RING_TX_BUFS_COMPENSATE * 2)) {
+		int return_bufs = m_zc_pool.size() / 2;
+		m_zc_num_bufs -= return_bufs;
+		g_buffer_pool_zc->put_buffers_thread_safe(&m_zc_pool, return_bufs);
+	}
 }
 
 //call under m_lock_ring_tx lock
@@ -859,6 +883,8 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t* buff_list)
 {
 	int count = 0, freed=0;
 	mem_buf_desc_t *next;
+	pbuf_type type;
+	descq_t *pool;
 
 	while (buff_list) {
 		next = buff_list->p_next_desc;
@@ -874,8 +900,15 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t* buff_list)
 			ring_logerr("ref count of %p is already zero, double free??", buff_list);
 
 		if (buff_list->lwip_pbuf.pbuf.ref == 0) {
+			type = (pbuf_type)buff_list->lwip_pbuf.pbuf.type;
+			pool = type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
 			free_lwip_pbuf(&buff_list->lwip_pbuf);
-			m_tx_pool.push_back(buff_list);
+			if (type == PBUF_ZEROCOPY && buff_list->lwip_pbuf.pbuf.priv != NULL) {
+				mapping_t *mapping = (mapping_t *)buff_list->lwip_pbuf.pbuf.priv;
+				mapping->put();
+				buff_list->lwip_pbuf.pbuf.priv = NULL;
+			}
+			pool->push_back(buff_list);
 			freed++;
 		}
 		count++;
@@ -892,8 +925,10 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t* buff_list)
 int ring_simple::put_tx_single_buffer(mem_buf_desc_t* buff)
 {
 	int count = 0;
+	descq_t *pool;
 
 	if (likely(buff)) {
+		pool = buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
 
 		if (buff->tx.dev_mem_length)
 			m_p_qp_mgr->dm_release_data(buff);
@@ -907,7 +942,12 @@ int ring_simple::put_tx_single_buffer(mem_buf_desc_t* buff)
 		if (buff->lwip_pbuf.pbuf.ref == 0) {
 			buff->p_next_desc = NULL;
 			free_lwip_pbuf(&buff->lwip_pbuf);
-			m_tx_pool.push_back(buff);
+			if (buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY && buff->lwip_pbuf.pbuf.priv != NULL) {
+				mapping_t *mapping = (mapping_t *)buff->lwip_pbuf.pbuf.priv;
+				mapping->put();
+				buff->lwip_pbuf.pbuf.priv = NULL;
+			}
+			pool->push_back(buff);
 			count++;
 		}
 	}
@@ -1074,12 +1114,9 @@ int ring_simple::get_ring_descriptors(vma_mlx_hw_device_data &d)
 	return 0;
 }
 
-/* XXX For sendfile() zerocopy PoC */
-vma_allocator *get_sendfile_alloc(void);
-
 uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
 {
-	uint32_t lkey = 0;
+	uint32_t lkey;
 
 #if 0
 	lkey = m_user_lkey_map.get(addr, 0);
@@ -1090,16 +1127,20 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
 		else
 			m_user_lkey_map.set(addr, lkey);
 	}
-#endif
-
-	/* XXX sendfile() zerocopy PoC */
-	(void)addr;
+#else
+	/*
+	 * XXX This implementation works only for zerocopy sendfile() PoC.
+	 * It breaks compatibility with send() zerocopy. We need to unify
+	 * sendfile's mapping, user's zerocopy buffer and buffer_pool's
+	 * registered memory as a memory region entity and assign this entity
+	 * to each buffer. So we can find lkey for any memory type quickly.
+	 */
 	(void)length;
-	lkey = m_sendfile_lkey;
-	if (!lkey) {
-		assert(get_sendfile_alloc() != NULL);
-		lkey = get_sendfile_alloc()->find_lkey_by_ib_ctx(m_p_ib_ctx);
-	}
+
+	mapping_t *mapping = (mapping_t *)addr;
+
+	lkey = mapping->get_lkey_by_ib_ctx(m_p_ib_ctx);
+#endif
 
 	return lkey;
 }

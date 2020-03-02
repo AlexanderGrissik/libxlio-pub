@@ -760,6 +760,7 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 	bool is_zerocopy = false;
 	bool block_this_run = false;
 	void *tx_ptr = NULL;
+	__off64_t file_offset = 0;
 
 	/* Let allow OS to process all invalid scenarios to avoid any
 	 * inconsistencies in setting errno values
@@ -822,10 +823,17 @@ retry_is_ready:
 			return -1;
 		}
 	}
-	if (is_zerocopy)
+	if (is_zerocopy) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
+	}
 
 	if (tx_arg.opcode == TX_FILE) {
+		/*
+		 * TX_FILE is a special operation which reads a single file.
+		 * Each p_iov item contains pointer to file offset and size
+		 * to be read. Pointer to the file descriptor is passed via
+		 * tx_arg.priv.
+		 */
 		apiflags |= VMA_TX_FILE;
 	}
 
@@ -841,7 +849,12 @@ retry_is_ready:
 		si_tcp_logfunc("iov:%d base=%p len=%d", i, p_iov[i].iov_base, p_iov[i].iov_len);
 
 		pos = 0;
-		tx_ptr = p_iov[i].iov_base;
+		if (tx_arg.opcode == TX_FILE) {
+			file_offset = *(__off64_t *)p_iov[i].iov_base;
+			tx_ptr = &file_offset;
+		} else {
+			tx_ptr = p_iov[i].iov_base;
+		}
 		while (pos < p_iov[i].iov_len) {
 			tx_size = tcp_sndbuf(&m_pcb);
 
@@ -903,7 +916,7 @@ retry_write:
 				goto err;
 			}
 
-			err = tcp_write(&m_pcb, tx_ptr, tx_size, apiflags);
+			err = tcp_write(&m_pcb, tx_ptr, tx_size, apiflags, tx_arg.priv);
 			if (unlikely(err != ERR_OK)) {
 				if (unlikely(err == ERR_CONN)) { // happens when remote drops during big write
 					si_tcp_logdbg("connection closed: tx'ed = %d", total_tx);
@@ -944,7 +957,11 @@ retry_write:
 
 				goto retry_write;
 			}
-			tx_ptr = (tx_arg.opcode == TX_FILE ? tx_ptr : (void *)((char *)tx_ptr + tx_size));
+			if (tx_arg.opcode == TX_FILE) {
+				file_offset += tx_size;
+			} else {
+				tx_ptr = (void *)((char *)tx_ptr + tx_size);
+			}
 			pos += tx_size;
 			total_tx += tx_size;
 		}	
@@ -4565,13 +4582,13 @@ int sockinfo_tcp::free_buffs(uint16_t len)
 	return 0;
 }
 
-struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn)
+struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void *priv)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 	mem_buf_desc_t* p_desc = NULL;
 	if (likely(p_dst)) {
-		p_desc = p_dst->get_buffer();
+		p_desc = p_dst->get_buffer(type, priv);
 	}
 	return (struct pbuf *)p_desc;
 }
@@ -4581,6 +4598,7 @@ void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
+
 	if (likely(p_dst)) {
 		p_dst->put_buffer((mem_buf_desc_t *)p_buff);
 	} else if (p_buff){
@@ -4593,8 +4611,12 @@ void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 			__log_err("ref count of %p is already zero, double free??", p_desc);
 
 		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+			if (p_buff->type == PBUF_ZEROCOPY) {
+				mapping_t *mapping = (mapping_t *)p_desc->get_priv();
+				mapping->put();
+			}
 			p_desc->p_next_desc = NULL;
-			g_buffer_pool_tx->put_buffers_thread_safe(p_desc);
+			buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
 		}
 	}
 }

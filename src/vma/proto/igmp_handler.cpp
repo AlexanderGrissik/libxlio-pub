@@ -197,7 +197,7 @@ bool igmp_handler::tx_igmp_report()
 		return false;
 	}
 
-	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, 1);
+	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		igmp_hdlr_logdbg("No free TX buffer, not sending igmp report");
 		return false;

@@ -440,7 +440,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 	neigh_logdbg("udp info: payload_sz=%d, frags=%d, scr_port=%d, dst_port=%d", sz_data_payload, n_num_frags, ntohs(h->m_header.hdr.m_udp_hdr.source), ntohs(h->m_header.hdr.m_udp_hdr.dest));
 
 	// Get all needed tx buf descriptor and data buffers
-	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, n_num_frags);
+	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, n_num_frags);
 
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		neigh_logdbg("Packet dropped. not enough tx buffers");
@@ -552,7 +552,7 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
 	wqe_send_handler wqe_sh;
 	wqe_sh.enable_hw_csum(m_send_wqe);
 
-	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, 1);
+	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
 
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (unlikely(p_mem_buf_desc == NULL)) {
@@ -562,6 +562,7 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
 	BULLSEYE_EXCLUDE_BLOCK_END
 
 	p_mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer + h->m_total_hdr_len;
+	p_mem_buf_desc->lwip_pbuf.pbuf.type = PBUF_RAM;
 
 	p_mem_buf_desc->p_next_desc = NULL;
 
@@ -1464,7 +1465,7 @@ bool neigh_eth::post_send_arp(bool is_broadcast)
 	BULLSEYE_EXCLUDE_BLOCK_END
 
 	m_id = m_p_ring->generate_id(src->get_address(), dst->get_address(), netdevice_eth->get_vlan() ? htons(ETH_P_8021Q) : htons(ETH_P_ARP), htons(ETH_P_ARP), 0, 0, 0, 0);
-	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, 1);
+	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		neigh_logdbg("No free TX buffer, not sending ARP");
@@ -1691,7 +1692,7 @@ bool neigh_ib::post_send_arp(bool is_broadcast)
 {
 	neigh_logdbg("Sending %s ARP", is_broadcast?"BC":"UC");
 
-	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, 1);
+	mem_buf_desc_t* p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		neigh_logdbg("No free TX buffer, not sending ARP");
 		return false;

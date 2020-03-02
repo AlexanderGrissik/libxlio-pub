@@ -209,6 +209,8 @@ void update_delta_stat(socket_stats_t* p_curr_stat, socket_stats_t* p_prev_stat)
 	p_prev_stat->counters.n_rx_migrations = (p_curr_stat->counters.n_rx_migrations - p_prev_stat->counters.n_rx_migrations) / delay;
 	p_prev_stat->counters.n_tx_migrations = (p_curr_stat->counters.n_tx_migrations - p_prev_stat->counters.n_tx_migrations) / delay;
 	p_prev_stat->counters.n_tx_retransmits = (p_curr_stat->counters.n_tx_retransmits - p_prev_stat->counters.n_tx_retransmits) / delay;
+	p_prev_stat->counters.n_tx_sendfile_fallbacks = (p_curr_stat->counters.n_tx_sendfile_fallbacks - p_prev_stat->counters.n_tx_sendfile_fallbacks) / delay;
+	p_prev_stat->counters.n_tx_sendfile_overflows = (p_curr_stat->counters.n_tx_sendfile_overflows - p_prev_stat->counters.n_tx_sendfile_overflows) / delay;
 }
 
 void update_delta_iomux_stat(iomux_func_stats_t* p_curr_stats, iomux_func_stats_t* p_prev_stats)
@@ -364,6 +366,8 @@ void print_bpool_stats(bpool_instance_block_t* p_bpool_inst_arr)
 				printf("\tBUFFER_POOL=[%u]\n", i);
 			printf(FORMAT_STATS_32bit, "Size:", p_bpool_stats->n_buffer_pool_size);
 			printf(FORMAT_STATS_32bit, "No buffers error:", p_bpool_stats->n_buffer_pool_no_bufs);
+			if (p_bpool_stats->n_buffer_pool_expands)
+				printf(FORMAT_STATS_32bit, "Expands:", p_bpool_stats->n_buffer_pool_expands);
 		}
 	}
 	printf("======================================================\n");

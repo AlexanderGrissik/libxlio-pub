@@ -46,6 +46,19 @@
 
 buffer_pool *g_buffer_pool_rx = NULL;
 buffer_pool *g_buffer_pool_tx = NULL;
+buffer_pool *g_buffer_pool_zc = NULL;
+
+buffer_pool_area::buffer_pool_area(size_t buffer_nr)
+{
+	m_ptr = malloc(sizeof(mem_buf_desc_t) * buffer_nr + MCE_ALIGNMENT);
+	m_area = (void *)((unsigned long)((char *)m_ptr + MCE_ALIGNMENT) & (~MCE_ALIGNMENT));
+	m_n_buffers = buffer_nr;
+}
+
+buffer_pool_area::~buffer_pool_area()
+{
+	free(m_ptr);
+}
 
 // inlining a function only help in case it come before using it...
 inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
@@ -62,6 +75,34 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 	m_p_bpool_stat->n_buffer_pool_size++;
 }
 
+void buffer_pool::expand(size_t count, void *data, size_t buf_size,
+			 pbuf_free_custom_fn custom_free_function)
+{
+	buffer_pool_area *area;
+	mem_buf_desc_t *desc;
+	uint8_t *ptr_data;
+	uint8_t *ptr_desc;
+
+	area = new buffer_pool_area(count);
+	assert(area != NULL);
+	assert(area->m_area != NULL);
+	m_areas.push_back(area);
+
+	ptr_data = (uint8_t *)data;
+	ptr_desc = (uint8_t *)area->m_area;
+
+	for (size_t i = 0; i < count; ++i) {
+		desc = new (ptr_desc) mem_buf_desc_t(ptr_data, buf_size, custom_free_function);
+		put_buffer_helper(desc);
+		ptr_desc += sizeof(mem_buf_desc_t);
+		if (ptr_data != NULL) {
+			ptr_data += buf_size;
+		}
+	}
+
+	m_n_buffers_created += count;
+}
+
 /** Free-callback function to free a 'struct pbuf_custom_ref', called by
  * pbuf_free. */
 void buffer_pool::free_rx_lwip_pbuf_custom(struct pbuf *p_buff)
@@ -71,47 +112,49 @@ void buffer_pool::free_rx_lwip_pbuf_custom(struct pbuf *p_buff)
 
 void buffer_pool::free_tx_lwip_pbuf_custom(struct pbuf *p_buff)
 {
-	g_buffer_pool_tx->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
+	buffer_pool *pool;
+
+	pool = (p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_tx;
+	pool->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
 }
 
 buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size, pbuf_free_custom_fn custom_free_function) :
 			m_lock_spin("buffer_pool"),
 			m_n_buffers(0),
-			m_n_buffers_created(buffer_count),
+			m_n_buffers_created(0),
 			m_p_head(NULL)
 {
 	size_t sz_aligned_element = 0;
-	uint8_t *ptr_buff, *ptr_desc;
+	void *ptr_data = NULL;
+	void *data_block;
 
 	__log_info_func("count = %d", buffer_count);
 
+	m_custom_free_function = custom_free_function;
 	m_p_bpool_stat = &m_bpool_stat_static;
 	memset(m_p_bpool_stat , 0, sizeof(*m_p_bpool_stat));
 	vma_stats_instance_create_bpool_block(m_p_bpool_stat);
 
-	if (buffer_count) {
+	if (buf_size == 0) {
+		m_size = 0;
+	} else if (buffer_count) {
 		sz_aligned_element = (buf_size + MCE_ALIGNMENT) & (~MCE_ALIGNMENT);
-		m_size = (sizeof(mem_buf_desc_t) + sz_aligned_element) * buffer_count + MCE_ALIGNMENT;
+		m_size = sz_aligned_element * buffer_count + MCE_ALIGNMENT;
 	} else {
 		m_size = buf_size;
 	}
-	void *data_block = m_allocator.alloc_and_reg_mr(m_size, NULL);
 
+	data_block = m_size ? m_allocator.alloc_and_reg_mr(m_size, NULL) : NULL;
+	assert(m_size == 0 || data_block != NULL);
 
 	if (!buffer_count) return;
 
-	// Align pointers
-	ptr_buff = (uint8_t *)((unsigned long)((char*)data_block + MCE_ALIGNMENT) & (~MCE_ALIGNMENT));
-	ptr_desc = ptr_buff + sz_aligned_element * buffer_count;
-
-	// Split the block to buffers
-	for (size_t i = 0; i < buffer_count; ++i) {
-		mem_buf_desc_t *desc = new (ptr_desc) mem_buf_desc_t(ptr_buff, buf_size, custom_free_function);
-		put_buffer_helper(desc);
-
-		ptr_buff += sz_aligned_element;
-		ptr_desc += sizeof(mem_buf_desc_t);
+	if (m_size) {
+		// Align pointers
+		ptr_data = (void *)((unsigned long)((char*)data_block + MCE_ALIGNMENT) & (~MCE_ALIGNMENT));
 	}
+
+	expand(buffer_count, ptr_data, sz_aligned_element, custom_free_function);
 
 	print_val_tbl();
 
@@ -136,6 +179,12 @@ void buffer_pool::free_bpool_resources()
 
 	vma_stats_instance_remove_bpool_block(m_p_bpool_stat);
 
+	while (!m_areas.empty()) {
+		buffer_pool_area *area;
+		area = m_areas.get_and_pop_front();
+		delete area;
+	}
+
 	__log_info_func("done");
 }
 
@@ -158,6 +207,14 @@ bool buffer_pool::get_buffers_thread_safe(descq_t &pDeque, ring_slave* desc_owne
 	__log_info_funcall("requested %lu, present %lu, created %lu", count, m_n_buffers, m_n_buffers_created);
 
 	if (unlikely(m_n_buffers < count)) {
+		if (m_size == 0) {
+			__log_info_dbg("Expanding buffer_pool %p", this);
+			m_p_bpool_stat->n_buffer_pool_expands++;
+			expand(m_areas.front()->m_n_buffers, NULL, 0, m_custom_free_function);
+			if (m_n_buffers >= count) {
+				goto return_buffers;
+			}
+		}
 		VLOG_PRINTF_INFO_ONCE_THEN_ALWAYS(VLOG_DEBUG, VLOG_FUNC, "ERROR! not enough buffers in the pool (requested: %lu, have: %lu, created: %lu, Buffer pool type: %s)",
 				count, m_n_buffers, m_n_buffers_created, m_p_bpool_stat->is_rx ? "Rx" : "Tx");
 
@@ -165,6 +222,7 @@ bool buffer_pool::get_buffers_thread_safe(descq_t &pDeque, ring_slave* desc_owne
 		return false;
 	}
 
+return_buffers:
 	// pop buffers from the list
 	m_n_buffers -= count;
 	m_p_bpool_stat->n_buffer_pool_size -= count;

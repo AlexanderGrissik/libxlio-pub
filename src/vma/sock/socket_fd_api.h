@@ -97,9 +97,16 @@ typedef struct vma_tx_call_attr {
 		} msg;
 	} attr;
 
-	vma_tx_call_attr() {
+	void *priv;
+
+	void clear(void) {
 		opcode = TX_UNDEF;
+		priv = NULL;
 		memset(&attr, 0, sizeof(attr));
+	}
+
+	vma_tx_call_attr() {
+		clear();
 	}
 } vma_tx_call_attr_t;
 

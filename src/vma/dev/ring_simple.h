@@ -83,7 +83,7 @@ public:
 	virtual bool		is_up();
 	void			start_active_qp_mgr();
 	void			stop_active_qp_mgr();
-	virtual mem_buf_desc_t*	mem_buf_tx_get(ring_user_id_t id, bool b_block, int n_num_mem_bufs = 1);
+	virtual mem_buf_desc_t*	mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs = 1);
 	virtual int		mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock = false);
 	virtual void		send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr);
 	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr);
@@ -192,7 +192,7 @@ private:
 	} m_socketxtreme;
 
 	inline void		send_status_handler(int ret, vma_ibv_send_wr* p_send_wqe);
-	inline mem_buf_desc_t*	get_tx_buffers(uint32_t n_num_mem_bufs);
+	inline mem_buf_desc_t*	get_tx_buffers(pbuf_type type, uint32_t n_num_mem_bufs);
 	inline int		put_tx_buffers(mem_buf_desc_t* buff_list);
 	inline int		put_tx_single_buffer(mem_buf_desc_t* buff);
 	inline void		return_to_global_pool();
@@ -202,6 +202,7 @@ private:
 
 	lock_mutex		m_lock_ring_tx_buf_wait;
 	uint32_t		m_tx_num_bufs;
+	uint32_t		m_zc_num_bufs;
 	uint32_t		m_tx_num_wr;
 	int32_t			m_tx_num_wr_free;
 	bool			m_b_qp_tx_first_flushed_completion_handled;

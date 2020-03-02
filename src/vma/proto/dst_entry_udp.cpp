@@ -84,7 +84,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const
 
 	// Get a bunch of tx buf descriptor and data buffers
 	if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
-		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, m_n_sysvar_tx_bufs_batch_udp);
+		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, PBUF_RAM, m_n_sysvar_tx_bufs_batch_udp);
 
 		if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
 			if (b_blocked) {
@@ -171,7 +171,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const
 
 	// request tx buffers for the next packets
 	if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
-		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, m_n_sysvar_tx_bufs_batch_udp);
+		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, PBUF_RAM, m_n_sysvar_tx_bufs_batch_udp);
 	}
 
 	// If all went well :) then return the user data count transmitted
@@ -197,7 +197,7 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz
 	dst_udp_logfunc("udp info: payload_sz=%d, frags=%d, scr_port=%d, dst_port=%d, blocked=%s, ", sz_data_payload, n_num_frags, ntohs(m_header.m_header.hdr.m_udp_hdr.source), ntohs(m_dst_port), b_blocked?"true":"false");
 
 	// Get all needed tx buf descriptor and data buffers
-	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, b_blocked, n_num_frags);
+	p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, b_blocked, PBUF_RAM, n_num_frags);
 
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		if (b_blocked) {

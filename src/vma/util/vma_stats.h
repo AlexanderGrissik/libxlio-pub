@@ -46,7 +46,7 @@
 
 #define NUM_OF_SUPPORTED_CQS                        16
 #define NUM_OF_SUPPORTED_RINGS                      16
-#define NUM_OF_SUPPORTED_BPOOLS                     2
+#define NUM_OF_SUPPORTED_BPOOLS                     3
 #define NUM_OF_SUPPORTED_EPFDS                      32
 #define SHMEM_STATS_SIZE(fds_num)                   sizeof(sh_mem_t) + (fds_num * sizeof(socket_instance_block_t))
 #define FILE_NAME_MAX_SIZE                          (NAME_MAX + 1)
@@ -163,6 +163,8 @@ typedef struct {
 	uint32_t    n_tx_os_eagain;
 	uint32_t    n_tx_migrations;
 	uint32_t    n_tx_dummy;
+	uint32_t    n_tx_sendfile_fallbacks;
+	uint32_t    n_tx_sendfile_overflows;
 } socket_counters_t;
 
 typedef struct {
@@ -289,6 +291,7 @@ typedef struct {
 	bool        is_tx;
 	uint32_t    n_buffer_pool_size;
 	uint32_t    n_buffer_pool_no_bufs;
+	uint32_t    n_buffer_pool_expands;
 } bpool_stats_t;
 
 typedef struct {

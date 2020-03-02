@@ -347,12 +347,12 @@ void ring_bond::adapt_cq_moderation()
 	m_lock_ring_rx.unlock();
 }
 
-mem_buf_desc_t* ring_bond::mem_buf_tx_get(ring_user_id_t id, bool b_block, int n_num_mem_bufs /* default = 1 */)
+mem_buf_desc_t* ring_bond::mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs /* default = 1 */)
 {
 	mem_buf_desc_t* ret = NULL;
 
 	auto_unlocker lock(m_lock_ring_tx);
-	ret = m_xmit_rings[id]->mem_buf_tx_get(id, b_block, n_num_mem_bufs);
+	ret = m_xmit_rings[id]->mem_buf_tx_get(id, b_block, type, n_num_mem_bufs);
 
 	return ret;
 }

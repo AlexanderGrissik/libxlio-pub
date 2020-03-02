@@ -131,6 +131,7 @@ libvma_la_SOURCES := \
 	proto/neighbour.cpp \
 	proto/neighbour_table_mgr.cpp \
 	proto/L2_address.cpp \
+	proto/mapping.cpp \
 	proto/route_table_mgr.cpp \
 	proto/route_entry.cpp \
 	proto/route_val.cpp \
@@ -259,6 +260,7 @@ libvma_la_SOURCES := \
 	proto/ip_address.h \
 	proto/ip_frag.h \
 	proto/L2_address.h \
+	proto/mapping.h \
 	proto/mem_buf_desc.h \
 	proto/neighbour.h \
 	proto/neighbour_observer.h \

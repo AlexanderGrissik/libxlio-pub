@@ -38,12 +38,35 @@
 #include "vma/util/vma_stats.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/dev/allocator.h"
+#include "vma/util/vma_list.h"
 
 inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 {
 	pbuf_custom->pbuf.flags = 0;
 	pbuf_custom->pbuf.ref = 0;
 }
+
+class buffer_pool_area {
+public:
+	buffer_pool_area(size_t buffer_nr);
+	~buffer_pool_area();
+
+	static inline size_t node_offset(void) {
+		return NODE_OFFSET(buffer_pool_area, m_node);
+	}
+
+	/* Pointer to aligned area */
+	void *m_area;
+	size_t m_n_buffers;
+
+private:
+	/* Pointer to unaligned allocated block */
+	void *m_ptr;
+
+	list_node<buffer_pool_area, buffer_pool_area::node_offset> m_node;
+};
+
+typedef vma_list_t<buffer_pool_area, buffer_pool_area::node_offset> buffer_pool_area_list_t;
 
 /**
  * A buffer pool which internally sorts the buffers.
@@ -104,10 +127,15 @@ private:
 	bpool_stats_t*	m_p_bpool_stat;
 	bpool_stats_t	m_bpool_stat_static;
 	vma_allocator	m_allocator;
+	buffer_pool_area_list_t m_areas;
+	pbuf_free_custom_fn m_custom_free_function;
+
 	/**
 	 * Add a buffer to the pool
 	 */
 	inline void	put_buffer_helper(mem_buf_desc_t *buff);
+	void		expand(size_t count, void *data, size_t buf_size,
+				pbuf_free_custom_fn custom_free_function);
 
 	void		buffersPanic();
 
@@ -119,6 +147,6 @@ private:
 
 extern buffer_pool* g_buffer_pool_rx;
 extern buffer_pool* g_buffer_pool_tx;
-
+extern buffer_pool* g_buffer_pool_zc;
 
 #endif

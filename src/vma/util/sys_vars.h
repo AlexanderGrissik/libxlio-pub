@@ -329,6 +329,8 @@ public:
 	int		ring_dev_mem_tx;
 	int		tcp_max_syn_rate;
 
+	uint32_t 	zc_num_bufs;
+	uint32_t 	zc_cache_threshold;
 	uint32_t 	tx_num_segs_tcp;
 	uint32_t 	tx_num_bufs;
 #ifdef DEFINED_TSO
@@ -481,6 +483,8 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_RING_LIMIT_PER_INTERFACE                "VMA_RING_LIMIT_PER_INTERFACE"
 #define SYS_VAR_RING_DEV_MEM_TX                         "VMA_RING_DEV_MEM_TX"
 
+#define SYS_VAR_ZC_NUM_BUFS				"VMA_ZC_BUFS"
+#define SYS_VAR_ZC_CACHE_THRESHOLD			"VMA_ZC_CACHE_THRESHOLD"
 #define SYS_VAR_TX_NUM_SEGS_TCP				"VMA_TX_SEGS_TCP"
 #define SYS_VAR_TX_NUM_BUFS				"VMA_TX_BUFS"
 #ifdef DEFINED_TSO
@@ -605,6 +609,8 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_RING_LIMIT_PER_INTERFACE            (0)
 #define MCE_DEFAULT_RING_DEV_MEM_TX                     (0)
 #define MCE_DEFAULT_TCP_MAX_SYN_RATE                	(0)
+#define MCE_DEFAULT_ZC_NUM_BUFS				(200000)
+#define MCE_DEFAULT_ZC_CACHE_THRESHOLD			(10 * 1024) // 10GB
 #define MCE_DEFAULT_TX_NUM_SEGS_TCP			(1000000)
 #define MCE_DEFAULT_TX_NUM_BUFS				(200000)
 #ifdef DEFINED_TSO

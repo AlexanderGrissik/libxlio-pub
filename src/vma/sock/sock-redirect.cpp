@@ -50,6 +50,7 @@
 #include <vma/iomux/epfd_info.h>
 #include <vma/iomux/epoll_wait_call.h>
 #include <vma/util/sys_vars.h>
+#include <vma/proto/mapping.h>
 #include <vma/proto/route_table_mgr.h>
 #include <vma/proto/vma_lwip.h>
 #include <vma/main.h>
@@ -330,6 +331,10 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 {
 	
 	srdr_logfunc("Cleanup fd=%d", fd);
+
+	if (g_zc_cache) {
+		g_zc_cache->handle_close(fd);
+	}
 
 	if (g_p_fd_collection) {
 		// Remove fd from all existing epoll sets
@@ -2026,41 +2031,11 @@ ssize_t sendto(int __fd, __const void *__buf, size_t __nbytes, int __flags,
 	return orig_os_api.sendto(__fd, __buf, __nbytes, __flags, __to, __tolen);
 }
 
-struct sendfile_data {
-	void *addr;
-	off_t size;
-	vma_allocator *alloc;
-};
-
-static struct sendfile_data g_sf_state = { NULL, 0, NULL };
-
-void sendfile_data_cleanup(void)
-{
-	if (g_sf_state.addr != NULL) {
-		delete g_sf_state.alloc;
-		munmap(g_sf_state.addr, g_sf_state.size);
-		memset(&g_sf_state, 0, sizeof(g_sf_state));
-	}
-}
-
-vma_allocator *get_sendfile_alloc(void)
-{
-	return g_sf_state.alloc;
-}
-
-bool mem_buf_is_mmaped(uintptr_t addr, size_t size)
-{
-	uintptr_t mmap_addr = (uintptr_t)g_sf_state.addr;
-
-	return (mmap_addr != 0) && (addr >= mmap_addr) &&
-		(addr + size <= mmap_addr + g_sf_state.size);
-}
-
 static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off64_t *offset, size_t count)
 {
 	ssize_t totSent = 0;
 	struct stat64 stat_buf;
-	__off64_t orig_offset;
+	__off64_t orig_offset = 0;
 	__off64_t cur_offset;
 	struct iovec piov[1];
 	vma_tx_call_attr_t tx_arg;
@@ -2082,72 +2057,91 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		cur_offset = *offset;
 	}
 
-	if ((fstat64(in_fd, &stat_buf) == -1) ||
-		((__off64_t)stat_buf.st_size < (__off64_t)(cur_offset + count))) {
-		errno = EOVERFLOW;
-		return -1;
-	}
-
 	if (PROTO_TCP == s->get_protocol()) {
-		/*
-		 * Mmap file only once and use zerocopy on top of the memory
-		 * area. Assume user always sends the same file.
-		 */
-		if (unlikely(g_sf_state.addr == NULL)) {
-			struct stat st;
-			int rc;
+#ifdef DEFINED_TSO
+		mapping_t *mapping;
+		mapping_state_t state;
+		int rc;
 
-			memset(&st, 0, sizeof(st));
-			rc = fstat(in_fd, &st);
-			if (rc != 0) {
-				srdr_logerr("fstat errno=%d (%s)", errno, strerror(errno));
-				return -1;
-			}
-
-			/*
-			 * Create mapping. User may open in_fd as read-only. In this case,
-			 * shared mapping with PROT_WRITE fails. On the other hand,
-			 * ibv_reg_mr() requires PROT_WRITE, registration fails otherwise.
-			 */
-			g_sf_state.size = st.st_size;
-			g_sf_state.addr = mmap64(NULL, g_sf_state.size, PROT_WRITE | PROT_READ,
-						 MAP_PRIVATE | MAP_NORESERVE | MAP_POPULATE,
-						 in_fd, 0);
-			if (g_sf_state.addr == MAP_FAILED) {
-				srdr_logerr("mmap64 errno=%d (%s)", errno, strerror(errno));
-				g_sf_state.addr = NULL;
-				return -1;
-			}
-
-			g_sf_state.alloc = new vma_allocator();
-			if (g_sf_state.alloc == NULL) {
-				srdr_logerr("Couldn't allocate vma_allocator object");
-				munmap(g_sf_state.addr, g_sf_state.size);
-				g_sf_state.addr = NULL;
-				errno = ENOMEM;
-				return -1;
-			}
-
-			/* This method doesn't return error. */
-			g_sf_state.alloc->alloc_and_reg_mr(g_sf_state.size, NULL, g_sf_state.addr);
-
-			srdr_loginfo("XXX Mapping registration is finished (pid=%u).", (unsigned)getpid());
-			srdr_loginfo("XXX addr=%p size=%zu.", g_sf_state.addr, g_sf_state.size);
+		/* Get mapping from the cache */
+		mapping = g_zc_cache->get_mapping(in_fd);
+		if (mapping == NULL) {
+			srdr_logdbg("Couldn't allocate mapping object");
+			goto fallback;
 		}
 
-		piov[0].iov_base = (char *)g_sf_state.addr + cur_offset;
+		/* Mapping object may be unmapped, call mmap() in this case */
+		mapping->lock();
+		if (mapping->m_state == MAPPING_STATE_UNMAPPED) {
+			rc = mapping->map(in_fd);
+			/* XXX Ignore for now, we check m_state */
+			(void)rc;
+		}
+		state = mapping->m_state;
+		mapping->unlock();
+
+		if (state == MAPPING_STATE_FAILED) {
+			g_zc_cache->put_mapping(mapping);
+			goto fallback;
+		}
+
+		if ((__off64_t)mapping->m_size < (__off64_t)(cur_offset + count)) {
+			struct stat st_buf;
+
+			/*
+			 * This is slow path, we check fstat(2) to handle the
+			 * scenario when user changes the file while respective
+			 * mapping exists and the file becomes larger.
+			 * As workaround, fallback to preadv() implementation.
+			 */
+			g_zc_cache->put_mapping(mapping);
+			rc = fstat(in_fd, &st_buf);
+			if ((rc == 0) && (st_buf.st_size >= (off_t)(cur_offset + count))) {
+				s->m_p_socket_stats->counters.n_tx_sendfile_overflows++;
+				goto fallback;
+			} else {
+				errno = EOVERFLOW;
+				return -1;
+			}
+		}
+
+		piov[0].iov_base = (char *)mapping->m_addr + cur_offset;
 		piov[0].iov_len = count;
 
 		tx_arg.opcode = TX_WRITE;
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
 		tx_arg.attr.msg.flags = VMA_SND_FLAGS_ZEROCOPY;
+		tx_arg.priv = (void *)mapping;
 
 		totSent = p_socket_object->tx(tx_arg);
+
+		g_zc_cache->put_mapping(mapping);
+
+fallback:
+#endif /* DEFINED_TSO */
+		/* Fallback to readv() implementation */
+		if (totSent == 0) {
+			s->m_p_socket_stats->counters.n_tx_sendfile_fallbacks++;
+			tx_arg.clear();
+			tx_arg.opcode = TX_FILE;
+			tx_arg.attr.msg.iov = piov;
+			tx_arg.attr.msg.sz_iov = 1;
+			tx_arg.priv = (void *)&in_fd;
+			piov[0].iov_base = (void *)&cur_offset;
+			piov[0].iov_len = count;
+			totSent = p_socket_object->tx(tx_arg);
+		}
 	} else {
 		__off64_t pa_offset = 0;
 		size_t pa_count = 0;
 		struct flock64 lock;
+
+		if ((fstat64(in_fd, &stat_buf) == -1) ||
+			((__off64_t)stat_buf.st_size < (__off64_t)(cur_offset + count))) {
+			errno = EOVERFLOW;
+			return -1;
+		}
 
 		tx_arg.opcode = TX_WRITE;
 		tx_arg.attr.msg.iov = piov;
@@ -2196,6 +2190,8 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		if (totSent == 0) {
 			char buf[sysconf(_SC_PAGE_SIZE)];
 			ssize_t toRead, numRead, numSent = 0;
+
+			s->m_p_socket_stats->counters.n_tx_sendfile_fallbacks++;
 
 			while (count > 0) {
 				toRead = min(sizeof(buf), count);

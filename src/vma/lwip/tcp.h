@@ -59,14 +59,10 @@ typedef err_t (*ip_output_fn)(struct pbuf *p, void* p_conn, u16_t flags);
 typedef err_t (*ip_output_fn)(struct pbuf *p, void* p_conn, int is_rexmit, u8_t is_dummy);
 #endif /* LWIP_TSO */
 void register_ip_output(ip_output_fn fn);
-
-typedef ssize_t (*sys_readv_fn)(int __fd, const struct iovec *iov, int iovcnt);
-void register_sys_readv(sys_readv_fn fn);
-
-#endif
+#endif /* LWIP_3RD_PARTY_L3 */
 
 #if LWIP_3RD_PARTY_BUFS
-typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn);
+typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, void *priv);
 
 void register_tcp_tx_pbuf_alloc(tcp_tx_pbuf_alloc_fn fn);
 
@@ -87,7 +83,7 @@ extern tcp_tx_pbuf_alloc_fn external_tcp_tx_pbuf_alloc;
 extern tcp_tx_pbuf_free_fn external_tcp_tx_pbuf_free;
 extern tcp_seg_alloc_fn external_tcp_seg_alloc;
 extern tcp_seg_free_fn external_tcp_seg_free;
-#endif
+#endif /* LWIP_3RD_PARTY_BUFS */
 
 
 struct tcp_pcb;
@@ -533,7 +529,7 @@ err_t            tcp_shutdown(struct tcp_pcb *pcb, int shut_rx, int shut_tx);
 #define TCP_WRITE_ZEROCOPY  (1 << 10)
 
 err_t            tcp_write   (struct tcp_pcb *pcb, const void *dataptr, u32_t len,
-                              u16_t apiflags);
+                              u16_t apiflags, void *priv);
 
 #define TCP_PRIO_MIN    1
 #define TCP_PRIO_NORMAL 64

@@ -62,6 +62,7 @@
 #include "vma/proto/route_table_mgr.h"
 #include "vma/proto/rule_table_mgr.h"
 #include "vma/proto/igmp_mgr.h"
+#include "vma/proto/mapping.h"
 
 #include "vma/proto/neighbour_table_mgr.h"
 #include "vma/netlink/netlink_wrapper.h"
@@ -108,17 +109,13 @@ bool g_is_forked_child = false;
 bool g_init_global_ctors_done = true;
 static command_netlink *s_cmd_nl = NULL;
 #define MAX_VERSION_STR_LEN	128
-
-/* XXX For sendfile() zerocopy PoC */
-void sendfile_data_cleanup(void);
+#define ONE_MB			(1024 * 1024)
 
 static int free_libvma_resources()
 {
 	vlog_printf(VLOG_DEBUG, "%s: Closing libvma resources\n", __FUNCTION__);
 
 	g_b_exit = true;
-
-	sendfile_data_cleanup();
 
 	//Triggers connection close, relevant for TCP which may need some time to terminate the connection.
 	//and for any socket that may wait from another thread
@@ -176,11 +173,17 @@ static int free_libvma_resources()
 	if (g_tcp_seg_pool) delete g_tcp_seg_pool;
 	g_tcp_seg_pool = NULL;
 
+	if (g_buffer_pool_zc) delete g_buffer_pool_zc;
+	g_buffer_pool_zc = NULL;
+
 	if (g_buffer_pool_tx) delete g_buffer_pool_tx;
 	g_buffer_pool_tx = NULL;
 
 	if (g_buffer_pool_rx) delete g_buffer_pool_rx;
 	g_buffer_pool_rx = NULL;
+
+	if (g_zc_cache) delete g_zc_cache;
+	g_zc_cache = NULL;
 
 	if (s_cmd_nl) delete s_cmd_nl;
 	s_cmd_nl = NULL;
@@ -434,6 +437,8 @@ void print_vma_global_settings()
 		VLOG_PARAM_NUMSTR("TCP max syn rate", safe_mce_sys().tcp_max_syn_rate, MCE_DEFAULT_TCP_MAX_SYN_RATE, SYS_VAR_TCP_MAX_SYN_RATE, "(no limit)");
 	}
 
+	VLOG_PARAM_NUMBER("Zerocopy Mem Bufs", safe_mce_sys().zc_num_bufs, MCE_DEFAULT_ZC_NUM_BUFS, SYS_VAR_ZC_NUM_BUFS);
+	VLOG_PARAM_NUMBER("Zerocopy Cache Threshold", safe_mce_sys().zc_cache_threshold, MCE_DEFAULT_ZC_CACHE_THRESHOLD, SYS_VAR_ZC_CACHE_THRESHOLD);
 	VLOG_PARAM_NUMBER("Tx Mem Segs TCP", safe_mce_sys().tx_num_segs_tcp, MCE_DEFAULT_TX_NUM_SEGS_TCP, SYS_VAR_TX_NUM_SEGS_TCP);
 	VLOG_PARAM_NUMBER("Tx Mem Bufs", safe_mce_sys().tx_num_bufs, MCE_DEFAULT_TX_NUM_BUFS, SYS_VAR_TX_NUM_BUFS);
 #ifdef DEFINED_TSO
@@ -710,6 +715,8 @@ static void do_global_ctors_helper()
 
 	NEW_CTOR(g_p_igmp_mgr, igmp_mgr());
 
+ 	NEW_CTOR(g_zc_cache, mapping_cache((size_t)safe_mce_sys().zc_cache_threshold * ONE_MB));
+
 	NEW_CTOR(g_buffer_pool_rx, buffer_pool(safe_mce_sys().rx_num_bufs,
 			RX_BUF_SIZE(g_p_net_device_table_mgr->get_max_mtu()),
 			buffer_pool::free_rx_lwip_pbuf_custom));
@@ -731,6 +738,10 @@ static void do_global_ctors_helper()
 			buffer_pool::free_tx_lwip_pbuf_custom));
 #endif /* DEFINED_TSO */
  	g_buffer_pool_tx->set_RX_TX_for_stats(false);
+
+ 	NEW_CTOR(g_buffer_pool_zc, buffer_pool(safe_mce_sys().zc_num_bufs, 0,
+			buffer_pool::free_tx_lwip_pbuf_custom));
+ 	g_buffer_pool_zc->set_RX_TX_for_stats(false);
 
  	NEW_CTOR(g_tcp_seg_pool,  tcp_seg_pool(safe_mce_sys().tx_num_segs_tcp));
 
@@ -811,8 +822,10 @@ void reset_globals()
 	g_p_fd_collection = NULL;
 	g_p_igmp_mgr = NULL;
 	g_p_ip_frag_manager = NULL;
+	g_zc_cache = NULL;
 	g_buffer_pool_rx = NULL;
 	g_buffer_pool_tx = NULL;
+	g_buffer_pool_zc = NULL;
 	g_tcp_seg_pool = NULL;
 	g_tcp_timers_collection = NULL;
 	g_p_vlogger_timer_handler = NULL;

@@ -33,6 +33,7 @@
 
 
 #include "dst_entry_tcp.h"
+#include "mapping.h"
 #include <netinet/tcp.h>
 
 #define MODULE_NAME             "dst_tcp"
@@ -68,8 +69,6 @@ transport_t dst_entry_tcp::get_transport(sockaddr_in to)
 }
 
 #ifdef DEFINED_TSO
-bool mem_buf_is_mmaped(uintptr_t addr, size_t size); /* XXX */
-
 ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr)
 {
 	int ret = 0;
@@ -142,8 +141,8 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 
 		if (!is_zerocopy && (total_packet_len < m_max_inline) && (1 == sz_iov)) {
 			m_p_send_wqe = &m_inline_send_wqe;
-			m_sge[0].addr = (uintptr_t)((uint8_t*)p_pkt + hdr_alignment_diff);
-			m_sge[0].length = total_packet_len;
+			p_tcp_iov[0].iovec.iov_base = (uint8_t*)p_pkt + hdr_alignment_diff;
+			p_tcp_iov[0].iovec.iov_len = total_packet_len;
 		} else if (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
 			/* update send work request. do not expect noninlined scenario */
 			send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
@@ -152,24 +151,39 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 				m_header.m_total_hdr_len + p_pkt->hdr.m_tcp_hdr.doff * 4,
 				attr.mss);
 			m_p_send_wqe = &send_wqe;
-			if (is_zerocopy) {
-				m_sge[0].addr = (uintptr_t)p_tcp_iov[0].iovec.iov_base;
-				m_sge[0].length = p_tcp_iov[0].iovec.iov_len;
-				assert(mem_buf_is_mmaped(m_sge[0].addr, m_sge[0].length)); /* XXX */
-			} else {
-				m_sge[0].addr = (uintptr_t)((uint8_t *)&p_pkt->hdr.m_tcp_hdr + p_pkt->hdr.m_tcp_hdr.doff * 4);
-				m_sge[0].length = p_tcp_iov[0].iovec.iov_len - p_pkt->hdr.m_tcp_hdr.doff * 4;
+			if (!is_zerocopy) {
+				p_tcp_iov[0].iovec.iov_base = (uint8_t *)&p_pkt->hdr.m_tcp_hdr + p_pkt->hdr.m_tcp_hdr.doff * 4;
+				p_tcp_iov[0].iovec.iov_len -= p_pkt->hdr.m_tcp_hdr.doff * 4;
 			}
 		} else {
 			m_p_send_wqe = &m_not_inline_send_wqe;
-			m_sge[0].addr = (uintptr_t)((uint8_t*)p_pkt + hdr_alignment_diff);
-			m_sge[0].length = total_packet_len;
+			p_tcp_iov[0].iovec.iov_base = (uint8_t*)p_pkt + hdr_alignment_diff;
+			p_tcp_iov[0].iovec.iov_len = total_packet_len;
 		}
 
 		if (unlikely(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref > 1)) {
-			/* As workaround, allocate new fake buffer which will be assigned to wr_id */
-			/* XXX TODO Describe path for the fake buffer */
-			mem_buf_desc_t *p_mem_buf_desc = get_buffer(is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+			/*
+			 * First buffer in the vector is used for reference counting.
+			 * The reference is released after completion depending on
+			 * batching mode.
+			 * There is situation, when a buffer resides in the list for
+			 * batching completion and the same buffer is queued for
+			 * retransmission. In this case, sending the buffer leads to
+			 * the list corruption because the buffer is re-inserted.
+			 *
+			 * As workaround, allocate new fake buffer which will be
+			 * assigned to wr_id and used for reference counting. This
+			 * buffer is allocated with ref == 1, so we must not increase
+			 * it. When completion happens, ref becomes 0 and the fake
+			 * buffer is released.
+			 *
+			 * We don't change data, only pointer to buffer descriptor.
+			 */
+			pbuf_type type = (pbuf_type)p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.type;
+			mem_buf_desc_t *p_mem_buf_desc = get_buffer(type,
+						p_tcp_iov[0].p_desc->get_priv(),
+						is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+			p_mem_buf_desc->lwip_pbuf.pbuf.type = type;
 			assert(p_mem_buf_desc != NULL);
 			p_tcp_iov[0].p_desc = p_mem_buf_desc;
 		} else {
@@ -184,25 +198,21 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		m_p_send_wqe->wr_id = (uintptr_t)p_tcp_iov[0].p_desc;
 
 		/* Update scatter gather element list
-		 * ref counter is incremented for the first memory descriptor only because it is needed
+		 * ref counter is incremented (above) for the first memory descriptor only because it is needed
 		 * for processing send wr completion (tx batching mode)
 		 */
-		if (is_zerocopy) {
-			masked_addr = (void *)((uint64_t)m_sge[0].addr & m_user_huge_page_mask);
-			m_sge[0].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
-		} else {
-			m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
-		}
-
-		for (int i = 1; i < sz_iov; ++i) {
+		for (int i = 0; i < sz_iov; ++i) {
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			if (is_zerocopy) {
-				masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
+				mapping_t *mapping = (mapping_t *)p_tcp_iov[i].p_desc->get_priv();
+				/* XXX We support zerocopy only for sendfile() now. */
+				/* masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask); */
+				masked_addr = (void *)mapping;
 				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
-				assert(mem_buf_is_mmaped(m_sge[i].addr, m_sge[i].length)); /* XXX */
+				/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
 			} else {
-				m_sge[i].lkey = m_sge[0].lkey;
+				m_sge[i].lkey = i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey;
 			}
 		}
 
@@ -212,7 +222,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		mem_buf_desc_t *p_mem_buf_desc;
 		size_t total_packet_len = 0;
 
-		p_mem_buf_desc = get_buffer(is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+		p_mem_buf_desc = get_buffer(PBUF_RAM, NULL, is_set(attr.flags, VMA_TX_PACKET_BLOCK));
 		if (p_mem_buf_desc == NULL) {
 			ret = -1;
 			goto out;
@@ -247,7 +257,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 
 	if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
 		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id,
-				is_set(attr.flags, VMA_TX_PACKET_BLOCK), m_n_sysvar_tx_bufs_batch_tcp);
+				is_set(attr.flags, VMA_TX_PACKET_BLOCK), PBUF_RAM, m_n_sysvar_tx_bufs_batch_tcp);
 	}
 
 out:
@@ -346,7 +356,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool 
 		}
 	}
 	else { // We don'nt support inline in this case, since we believe that this a very rare case
-		p_mem_buf_desc = get_buffer(b_blocked);
+		p_mem_buf_desc = get_buffer(PBUF_RAM, NULL, b_blocked);
 		if (p_mem_buf_desc == NULL) {
 			ret = -1;
 			goto out;
@@ -387,7 +397,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool 
 	}
 
 	if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
-		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, m_n_sysvar_tx_bufs_batch_tcp);
+		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, PBUF_RAM, m_n_sysvar_tx_bufs_batch_tcp);
 	}
 
 out:
@@ -461,25 +471,38 @@ ssize_t dst_entry_tcp::pass_buff_to_neigh(const iovec * p_iov, size_t sz_iov, ui
 	return(dst_entry::pass_buff_to_neigh(p_iov, sz_iov));
 }
 
-mem_buf_desc_t* dst_entry_tcp::get_buffer(bool b_blocked /*=false*/)
+mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, void *priv, bool b_blocked /*=false*/)
 {
+	mem_buf_desc_t** p_desc_list;
+
 	set_tx_buff_list_pending(false);
 
+	p_desc_list = type == PBUF_ZEROCOPY ? &m_p_zc_mem_buf_desc_list : &m_p_tx_mem_buf_desc_list;
+
 	// Get a bunch of tx buf descriptor and data buffers
-	if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
-		m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, m_n_sysvar_tx_bufs_batch_tcp);
+	if (unlikely(*p_desc_list == NULL)) {
+		*p_desc_list = m_p_ring->mem_buf_tx_get(m_id, b_blocked, type, m_n_sysvar_tx_bufs_batch_tcp);
 	}
 
-	mem_buf_desc_t* p_mem_buf_desc = m_p_tx_mem_buf_desc_list;
+	mem_buf_desc_t* p_mem_buf_desc = *p_desc_list;
 	if (unlikely(p_mem_buf_desc == NULL)) {
 		dst_tcp_logfunc("silent packet drop, no buffers!");
 	}
 	else {
-		m_p_tx_mem_buf_desc_list = m_p_tx_mem_buf_desc_list->p_next_desc;
+		*p_desc_list = (*p_desc_list)->p_next_desc;
 		p_mem_buf_desc->p_next_desc = NULL;
 		// for TX, set lwip payload to the data segment.
 		// lwip will send it with payload pointing to the tcp header.
-		p_mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer + m_header.m_aligned_l2_l3_len + sizeof(struct tcphdr);
+		if (p_mem_buf_desc->p_buffer) {
+			p_mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer + m_header.m_aligned_l2_l3_len + sizeof(struct tcphdr);
+		} else {
+			p_mem_buf_desc->lwip_pbuf.pbuf.payload = NULL;
+		}
+		p_mem_buf_desc->lwip_pbuf.pbuf.priv = priv;
+		if (type == PBUF_ZEROCOPY) {
+			mapping_t *mapping = (mapping_t *)priv;
+			mapping->get();
+		}
 	}
 
 	return p_mem_buf_desc;
@@ -506,8 +529,12 @@ void dst_entry_tcp::put_buffer(mem_buf_desc_t * p_desc)
 			dst_tcp_logerr("ref count of %p is already zero, double free??", p_desc);
 
 		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+			if (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) {
+				mapping_t *mapping = (mapping_t *)p_desc->get_priv();
+				mapping->put();
+			}
 			p_desc->p_next_desc = NULL;
-			g_buffer_pool_tx->put_buffers_thread_safe(p_desc);
+			buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf.pbuf);
 		}
 	}
 }

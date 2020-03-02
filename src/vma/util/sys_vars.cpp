@@ -531,6 +531,8 @@ void mce_sys_var::get_env_params()
 
 	tcp_max_syn_rate	= MCE_DEFAULT_TCP_MAX_SYN_RATE;
 
+	zc_num_bufs             = MCE_DEFAULT_ZC_NUM_BUFS;
+	zc_cache_threshold      = MCE_DEFAULT_ZC_CACHE_THRESHOLD;
 	tx_num_segs_tcp         = MCE_DEFAULT_TX_NUM_SEGS_TCP;
 	tx_num_bufs             = MCE_DEFAULT_TX_NUM_BUFS;
 #ifdef DEFINED_TSO
@@ -880,6 +882,12 @@ void mce_sys_var::get_env_params()
 		}
 	}
 
+
+	if ((env_ptr = getenv(SYS_VAR_ZC_NUM_BUFS)) != NULL)
+		zc_num_bufs = (uint32_t)atoi(env_ptr);
+
+	if ((env_ptr = getenv(SYS_VAR_ZC_CACHE_THRESHOLD)) != NULL)
+		zc_cache_threshold = (uint32_t)atoi(env_ptr);
 
 	if ((env_ptr = getenv(SYS_VAR_TX_NUM_SEGS_TCP)) != NULL)
 		tx_num_segs_tcp = (uint32_t)atoi(env_ptr);

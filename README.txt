@@ -121,6 +121,8 @@ Example:
  VMA DETAILS: Ring limit per interface       0 (no limit)               [VMA_RING_LIMIT_PER_INTERFACE]
  VMA DETAILS: Ring On Device Memory TX       0                          [VMA_RING_DEV_MEM_TX]
  VMA DETAILS: TCP max syn rate               0 (no limit)               [VMA_TCP_MAX_SYN_RATE]
+ VMA DETAILS: Zerocopy Mem Bufs              200000                     [VMA_ZC_BUFS]
+ VMA DETAILS: Zerocopy Cache Threshold       10240                      [VMA_ZC_CACHE_THRESHOLD]
  VMA DETAILS: Tx Mem Segs TCP                1000000                    [VMA_TX_SEGS_TCP]
  VMA DETAILS: Tx Mem Bufs                    200000                     [VMA_TX_BUFS]
  VMA DETAILS: Tx Mem Buf size                0                          [VMA_TX_BUF_SIZE]
@@ -355,6 +357,14 @@ VMA_HANDLE_SIGSEGV
 When Enabled, print backtrace if segmentation fault happens.
 Value range is 0 to 1
 Default value is 0 (Disabled)
+
+VMA_ZC_BUFS
+Number of global zerocopy data buffer elements allocation.
+Default value is 200000
+
+VMA_ZC_CACHE_THRESHOLD
+Memory limit for zerocopy (mapping) cache in MB.
+Default value is 10240
 
 VMA_TX_SEGS_TCP
 Number of TCP LWIP segments allocation for each VMA process.
