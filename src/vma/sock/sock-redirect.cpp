@@ -84,6 +84,7 @@ using namespace std;
 
 #if defined(DEFINED_NGINX)
 int g_worker_index = 0;
+bool g_b_add_second_4t_rule = false;
 #endif
 
 struct os_api orig_os_api;
@@ -2706,8 +2707,8 @@ pid_t fork(void)
 	BULLSEYE_EXCLUDE_BLOCK_END
 
 #if defined(DEFINED_NGINX)
-	if (g_worker_index >= safe_mce_sys().nginx_num_of_workers) {
-		srdr_logerr("g_worker_index: %d exceeds: %d\n", g_worker_index, safe_mce_sys().nginx_num_of_workers);
+	if (g_worker_index >= safe_mce_sys().actual_nginx_workers_num) {
+		srdr_logerr("g_worker_index: %d exceeds: %d\n", g_worker_index, safe_mce_sys().actual_nginx_workers_num);
 		errno = ENOMEM;
 		return -1;
 	}

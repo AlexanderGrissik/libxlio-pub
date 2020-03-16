@@ -35,6 +35,7 @@
 #include "vma/dev/rfs.h"
 #include "vma/dev/qp_mgr.h"
 #include "vma/dev/ring_simple.h"
+#include "vma/sock/sock-redirect.h"
 
 #define MODULE_NAME 		"rfs"
 
@@ -161,6 +162,9 @@ bool rfs::add_sink(pkt_rcvr_sink* p_sink)
 
 	rfs_logfunc("called with sink (%p)", p_sink);
 
+	if (g_b_add_second_4t_rule) { // if 4 tuple rules per worker is 2, no need to add same sink second time
+		return true;
+	}
 	// Check all sinks list array if already exists.
 	for (i = 0; i < m_n_sinks_list_entries; ++i) {
 		if (m_sinks_list[i] == p_sink) {
@@ -240,6 +244,10 @@ bool rfs::attach_flow(pkt_rcvr_sink *sink)
 		filter_keep_attached(filter_iter);
 	} else {
 		rfs_logdbg("rfs: Joining existing flow");
+		if (g_b_add_second_4t_rule) { // This is second 4 tuple rule for the same worker (when num of workers is not power of two)
+			create_ibv_flow();
+			rfs_logdbg("Added second rule to nginx worker: %d", g_worker_index);
+		}
 	}
 
 	if (sink) {

@@ -432,7 +432,8 @@ public:
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
 #if defined(DEFINED_NGINX)
-	int             nginx_num_of_workers;
+	int             actual_nginx_workers_num;
+	int             power_2_nginx_workers_num;
 	int             src_port_stride;
 #endif
 private:

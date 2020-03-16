@@ -661,6 +661,22 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 		si_logdbg("Failed to attach %s to ring %p", flow_key.to_str(), p_nd_resources->p_ring);
 		return false;
 	}
+
+	if ((safe_mce_sys().actual_nginx_workers_num != safe_mce_sys().power_2_nginx_workers_num) && flow_key.is_3_tuple()) {
+		if (g_worker_index < (safe_mce_sys().power_2_nginx_workers_num % safe_mce_sys().actual_nginx_workers_num)) {
+			g_b_add_second_4t_rule = true;
+			flow_tuple_with_local_if new_key(flow_key.get_dst_ip(), flow_key.get_dst_port(), 0, 1, flow_key.get_protocol(), flow_key.get_local_if());
+			if (!p_nd_resources->p_ring->attach_flow(new_key, this)) {
+				lock_rx_q();
+				si_logerr("Failed to attach %s to ring %p", new_key.to_str(), p_nd_resources->p_ring);
+				g_b_add_second_4t_rule = false;
+				return false;
+			}
+			si_logdbg("Added second rule %s for index %d to ring %p", new_key.to_str(), g_worker_index, p_nd_resources->p_ring);
+		}
+	}
+	g_b_add_second_4t_rule = false;
+
 	lock_rx_q();
 	BULLSEYE_EXCLUDE_BLOCK_END
 

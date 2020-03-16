@@ -46,6 +46,7 @@
 #include <execinfo.h>
 #include <libgen.h>
 #include <linux/igmp.h>
+#include <math.h>
 
 #include "vlogger/vlogger.h"
 #include "utils/rdtsc.h"
@@ -612,7 +613,8 @@ void mce_sys_var::get_env_params()
 	close_on_dup2		= MCE_DEFAULT_CLOSE_ON_DUP2;
 	mtu			= MCE_DEFAULT_MTU;
 #if defined(DEFINED_NGINX)
-	nginx_num_of_workers    = MCE_DEFAULT_NGINX_WORKERS_NUM;
+	actual_nginx_workers_num      = MCE_DEFAULT_NGINX_WORKERS_NUM;
+	power_2_nginx_workers_num 	= MCE_DEFAULT_NGINX_WORKERS_NUM;
 	src_port_stride         = MCE_DEFAULT_SRC_PORT_STRIDE;
 #endif
 	lwip_mss		= MCE_DEFAULT_MSS;
@@ -654,10 +656,10 @@ void mce_sys_var::get_env_params()
 
 #if defined(DEFINED_NGINX)
 	if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL) {
-		nginx_num_of_workers = (uint32_t)atoi(env_ptr);
+		actual_nginx_workers_num = (uint32_t)atoi(env_ptr);
 		// In order to ease the usage of Nginx cases, we apply Nginx profile when
 		// user will choose to use Nginx workers environment variable.
-		if (nginx_num_of_workers > MCE_DEFAULT_NGINX_WORKERS_NUM && mce_spec == MCE_SPEC_NONE) {
+		if (actual_nginx_workers_num > MCE_DEFAULT_NGINX_WORKERS_NUM && mce_spec == MCE_SPEC_NONE) {
 			mce_spec = MCE_SPEC_NGINX_669;
 		}
 	}
@@ -792,7 +794,7 @@ void mce_sys_var::get_env_params()
 
 #ifdef DEFINED_NGINX
 	case MCE_SPEC_NGINX_669:
-		tx_num_bufs = min(1000000 / nginx_num_of_workers, 50000); // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated based on amount of workers.
+		tx_num_bufs = min(1000000 / actual_nginx_workers_num, 50000); // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated based on amount of workers.
 #ifdef DEFINED_TSO
 		tx_buf_size = 32768;  // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
 #endif // DEFINED_TSO
@@ -1307,9 +1309,11 @@ void mce_sys_var::get_env_params()
 		mtu = (uint32_t)atoi(env_ptr);
 
 #if defined(DEFINED_NGINX)
-	if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL)
-		nginx_num_of_workers = (uint32_t)atoi(env_ptr);
-
+	if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL) {
+		actual_nginx_workers_num = (uint32_t)atoi(env_ptr);
+		power_2_nginx_workers_num = pow(2, ceil(log(actual_nginx_workers_num)/log(2)));
+	}
+	vlog_printf(VLOG_DEBUG, "Actual nginx workers num: %d Power of  two nginx workers num: %d\n", actual_nginx_workers_num, power_2_nginx_workers_num);
 	if ((env_ptr = getenv(SYS_VAR_SRC_PORT_STRIDE)) != NULL)
 		src_port_stride = (uint32_t)atoi(env_ptr);
 #endif // DEFINED_NGINX

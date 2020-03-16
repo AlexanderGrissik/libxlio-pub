@@ -329,7 +329,9 @@ bool ring_slave::attach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink *sink)
 				delete p_tmp_rfs;
 			} else {
 				p_rfs = p_tmp_rfs;
-				m_flow_tcp_map.set(rfs_key, p_rfs);
+				if (!g_b_add_second_4t_rule) {
+					m_flow_tcp_map.set(rfs_key, p_rfs);
+				}
 			}
 		}
 	BULLSEYE_EXCLUDE_BLOCK_START

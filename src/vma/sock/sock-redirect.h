@@ -84,6 +84,7 @@
 
 #if defined(DEFINED_NGINX)
 extern int g_worker_index;
+extern bool g_b_add_second_4t_rule;
 #endif
 
 struct mmsghdr;

@@ -138,10 +138,16 @@ bool rfs_uc::prepare_flow_spec()
 	}
 #if defined(DEFINED_NGINX)
 	else {
-		p_tcp_udp->val.src_port = htons((uint16_t)g_worker_index * safe_mce_sys().src_port_stride);
-		p_tcp_udp->mask.src_port = htons((uint16_t)((safe_mce_sys().nginx_num_of_workers * safe_mce_sys().src_port_stride) - 2)); //htons(0xf);
+		int src_port;
+		if (g_b_add_second_4t_rule) {
+			src_port = safe_mce_sys().actual_nginx_workers_num + g_worker_index;
+		} else {
+			src_port = g_worker_index;
+		}
+		p_tcp_udp->val.src_port = htons((uint16_t)src_port * safe_mce_sys().src_port_stride);
+		p_tcp_udp->mask.src_port = htons((uint16_t)((safe_mce_sys().power_2_nginx_workers_num * safe_mce_sys().src_port_stride) - 2)); //htons(0xf);
 		p_attach_flow_data->ibv_flow_attr.priority = 0;
-		rfs_logdbg("safe_mce_sys().src_port_stride: %d safe_mce_sys().nginx_num_of_workers %d \n", safe_mce_sys().src_port_stride, safe_mce_sys().nginx_num_of_workers);
+		rfs_logdbg("safe_mce_sys().src_port_stride: %d safe_mce_sys().workers_num %d \n", safe_mce_sys().src_port_stride, safe_mce_sys().actual_nginx_workers_num);
 		rfs_logdbg("sp_tcp_udp->val.src_port: %d p_tcp_udp->mask.src_port %d \n", ntohs(p_tcp_udp->val.src_port), ntohs(p_tcp_udp->mask.src_port));
 		m_flow_tuple.m_src_port = p_tcp_udp->val.src_port;
 		m_flow_tuple.set_str();
