@@ -59,6 +59,7 @@ typedef enum {
 	MCE_SPEC_RTI_784,
 	MCE_SPEC_LL_7750,
 	MCE_SPEC_LL_MULTI_RING,
+	MCE_SPEC_NGINX_669,
 
 	MCE_VMA__ALL /* last element */
 } vma_spec_t;
@@ -431,7 +432,7 @@ public:
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
 #if defined(DEFINED_NGINX)
-	int             workers_num;
+	int             nginx_num_of_workers;
 	int             src_port_stride;
 #endif
 private:
@@ -551,7 +552,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_MTU					"VMA_MTU"
 #define MCE_DEFAULT_MTU                                 (0)
 #if defined(DEFINED_NGINX)
-#define SYS_VAR_WRK                                    "VMA_WRK_NUM"
+#define SYS_VAR_NGINX_WORKERS_NUM                      "VMA_NGINX_WORKERS_NUM"
 #define SYS_VAR_SRC_PORT_STRIDE                        "VMA_SRC_PORT_STRIDE"
 #endif
 #define SYS_VAR_TCP_MAX_SYN_RATE			"VMA_TCP_MAX_SYN_RATE"
@@ -683,7 +684,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_CLOSE_ON_DUP2			(true)
 #define MCE_DEFAULT_MTU					(0)
 #if defined(DEFINED_NGINX)
-#define MCE_DEFAULT_WRK_NUM                            (1)
+#define MCE_DEFAULT_NGINX_WORKERS_NUM                  (0)
 #define MCE_DEFAULT_SRC_PORT_STRIDE                    (2)
 #endif
 #define MCE_DEFAULT_MSS					(0)

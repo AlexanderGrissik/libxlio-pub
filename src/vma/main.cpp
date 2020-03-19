@@ -558,6 +558,7 @@ void print_vma_global_settings()
 	VLOG_PARAM_STRING("BF (Blue Flame)", safe_mce_sys().handle_bf, MCE_DEFAULT_BF_FLAG, SYS_VAR_BF, safe_mce_sys().handle_bf ? "Enabled " : "Disabled");
 #if defined(DEFINED_NGINX)
 	VLOG_PARAM_NUMBER("Src port stirde", safe_mce_sys().src_port_stride, MCE_DEFAULT_SRC_PORT_STRIDE, SYS_VAR_SRC_PORT_STRIDE);
+	VLOG_PARAM_NUMBER("Number of Nginx workers", safe_mce_sys().nginx_num_of_workers, MCE_DEFAULT_NGINX_WORKERS_NUM, SYS_VAR_NGINX_WORKERS_NUM);
 #endif
 	VLOG_PARAM_STRING("fork() support", safe_mce_sys().handle_fork, MCE_DEFAULT_FORK_SUPPORT, SYS_VAR_FORK, safe_mce_sys().handle_fork ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("close on dup2()", safe_mce_sys().close_on_dup2, MCE_DEFAULT_CLOSE_ON_DUP2, SYS_VAR_CLOSE_ON_DUP2, safe_mce_sys().close_on_dup2 ? "Enabled " : "Disabled");
