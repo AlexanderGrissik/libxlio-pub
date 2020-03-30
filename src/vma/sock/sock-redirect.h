@@ -165,6 +165,10 @@ struct os_api {
 
 	int (*sigaction) (int signum, const struct sigaction *act, struct sigaction *oldact);
 	sighandler_t (*signal) (int signum, sighandler_t handler);
+#if defined(DEFINED_NGINX)
+	int (*setuid) (uid_t uid);
+#endif  // DEFINED_NGINX
+
 };
 
 /**

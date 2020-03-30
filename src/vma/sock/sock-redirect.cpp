@@ -203,6 +203,9 @@ void get_orig_funcs()
 	GET_ORIG_FUNC(daemon);
 	GET_ORIG_FUNC(sigaction);
 	GET_ORIG_FUNC(signal);
+#if defined(DEFINED_NGINX)
+	GET_ORIG_FUNC(setuid);
+#endif  // DEFINED_NGINX
 }
 
 const char* socket_get_domain_str(int domain)
@@ -341,6 +344,52 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 	}
 }
 
+#if defined(DEFINED_NGINX)
+
+int init_child_process_for_nginx()
+{
+	DO_GLOBAL_CTORS();
+
+	srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
+	for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {
+		socket_fd_api* fd = g_p_fd_collection_parent_process->get_sockfd(i);
+		if (fd && fd->m_is_listen) {
+			struct sockaddr_in addr;
+			socklen_t tmp_sin_len = sizeof(sockaddr_in);
+			fd->getsockname((struct sockaddr*) & addr, &tmp_sin_len);
+			srdr_logdbg("found listen socket %d\n", fd->get_fd());
+			g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
+			fd = g_p_fd_collection->get_sockfd(i);
+			bind(i, (struct sockaddr*) & addr, tmp_sin_len);
+			int ret = fd->prepareListen(); // for verifying that the socket is really offloaded
+			if (ret < 0) {
+				srdr_logerr("prepareListen error\n");
+				fd = NULL;
+			}
+			else if (ret > 0) { // Pass-through
+				handle_close(fd->get_fd(), false, true);
+				fd = NULL;
+			}
+			else {
+				srdr_logdbg("Prepare listen successfully offloaded\n");
+			}
+
+			if (fd) {
+				ret = fd->listen(fd->m_back_log);
+				if (ret < 0) {
+					srdr_logerr("Listen error\n");
+				}
+				else {
+					srdr_logdbg("Listen success\n");
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+#endif  // DEFINED_NGINX
 
 //-----------------------------------------------------------------------------
 // extended API functions
@@ -2669,9 +2718,9 @@ pid_t fork(void)
 		g_is_forked_child = true;
 		srdr_logdbg_exit("Child Process: returned with %d", pid);
 #if defined(DEFINED_NGINX)
-		int size = g_p_fd_collection->get_fd_map_size();
-		fd_collection* old = g_p_fd_collection;
-#endif
+		g_p_fd_collection_size_parent_process = g_p_fd_collection->get_fd_map_size();
+		g_p_fd_collection_parent_process = g_p_fd_collection;
+#endif  // DEFINED_NGINX
 		// Child's process - restart module
 		vlog_stop();
 
@@ -2686,49 +2735,21 @@ pid_t fork(void)
 		vlog_start("VMA", safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
 		if (vma_rdma_lib_reset()) {
 			srdr_logerr("Child Process: rdma_lib_reset failed %m",
-					errno);
+				errno);
 		}
 		srdr_logdbg_exit("Child Process: starting with %d", getpid());
 		g_is_forked_child = false;
 		sock_redirect_main();
-#if defined(DEFINED_NGINX)
-               DO_GLOBAL_CTORS();
-               srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, old->get_fd_map_size());
-               for (int i = 0; i < size; ++i) {
-                   socket_fd_api* fd = old->get_sockfd(i);
-                   if (fd && fd->m_is_listen) {
-                       struct sockaddr_in addr;
-                       socklen_t tmp_sin_len = sizeof(sockaddr_in);
-                       fd->getsockname((struct sockaddr*)&addr, &tmp_sin_len);
-                       srdr_logdbg("found listen socket %d\n",  fd->get_fd());
-                       g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
-                       fd = g_p_fd_collection->get_sockfd(i);
-                       bind(i, (struct sockaddr*)&addr, tmp_sin_len);
-                       int ret = fd->prepareListen(); // for verifying that the socket is really offloaded
-                       if (ret < 0) {
-                               srdr_logerr("prepareListen error\n");
-                               fd = NULL;
-                       }
-                       if (ret > 0) { //Passthrough
-                               handle_close(fd->get_fd(), false, true);
-                               fd = NULL;
-                       }
-                       else {
-                               srdr_logdbg("Prepare listen succesfully offloaded\n");
-                       }
 
-                       if (fd) {
-                               ret = fd->listen(fd->m_back_log);
-                               if (ret < 0) {
-                                       srdr_logerr("Listen error\n");
-                               }
-                               else {
-                                       srdr_logdbg("Listen Success\n");
-                               }
-                       }
-                   }
-               }
-#endif
+#if defined(DEFINED_NGINX)
+		// Do this only for regular user, not allowed for root user. Root user will be handled in setuid call.
+		if (geteuid() != 0) {
+			int rc = init_child_process_for_nginx();
+			if (rc != 0) {
+				srdr_logerr("Failed to initialize child process with PID %d for Nginx", getpid());
+			}
+		}
+#endif  // DEFINED_NGINX
 	}
 	else if (pid > 0) { 
 		srdr_logdbg_exit("Parent Process: returned with %d", pid);
@@ -2897,3 +2918,32 @@ sighandler_t signal(int signum, sighandler_t handler)
 
 	return orig_os_api.signal(signum, handler);
 }
+
+#if defined(DEFINED_NGINX)
+
+extern "C"
+int setuid(uid_t uid)
+{
+	BULLSEYE_EXCLUDE_BLOCK_START
+		if (!orig_os_api.setuid) get_orig_funcs();
+	BULLSEYE_EXCLUDE_BLOCK_END
+
+	uid_t previous_uid = geteuid();
+	int orig_rc = orig_os_api.setuid(uid);
+	if (orig_rc < 0) {
+		srdr_logdbg_exit("failed (errno=%d %m)", errno);
+	}
+
+	// Do this only for root user, regular user will be handled in fork call.
+	if (previous_uid == 0) {
+		int rc = init_child_process_for_nginx();
+		if (rc != 0) {
+			srdr_logerr("Failed to initialize child process with PID %d for Nginx, (errno=%d %m)", getpid(), errno);
+			orig_rc = -1;
+		}
+	}
+
+	return orig_rc;
+}
+
+#endif  // DEFINED_NGINX

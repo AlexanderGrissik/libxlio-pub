@@ -59,6 +59,10 @@
 
 
 fd_collection* g_p_fd_collection = NULL;
+#if defined(DEFINED_NGINX)
+fd_collection* g_p_fd_collection_parent_process = NULL;
+int g_p_fd_collection_size_parent_process = 0;
+#endif  // DEFINED_NGINX
 
 fd_collection::fd_collection() :
 	lock_mutex_recursive("fd_collection"),
