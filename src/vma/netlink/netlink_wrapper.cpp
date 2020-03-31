@@ -51,7 +51,7 @@
 #define nl_logwarn		__log_warn
 #define nl_loginfo		__log_info
 #define nl_logdbg		__log_dbg
-#define nl_logfunc		__log_func
+#define nl_logfine		__log_fine
 
 netlink_wrapper* g_p_netlink_handler = NULL;
 
@@ -67,12 +67,12 @@ typedef struct rcv_msg_arg
 static rcv_msg_arg_t  	g_nl_rcv_arg;
 
 int nl_msg_rcv_cb(struct nl_msg *msg, void *arg) {
-	nl_logfunc( "---> nl_msg_rcv_cb");
+	nl_logfine( "---> nl_msg_rcv_cb");
 	NOT_IN_USE(arg);
 	g_nl_rcv_arg.msghdr = nlmsg_hdr(msg);
 	// NETLINK MESAGE DEBUG
 	//nl_msg_dump(msg, stdout);
-	nl_logfunc( "<--- nl_msg_rcv_cb");
+	nl_logfine( "<--- nl_msg_rcv_cb");
 	return 0;
 }
 
@@ -105,32 +105,32 @@ extern void route_event_callback(nl_object* obj) {
 
 void netlink_wrapper::neigh_cache_callback(nl_object* obj)
 {
-	nl_logdbg( "---> neigh_cache_callback");
+	nl_logfine( "---> neigh_cache_callback");
 	struct rtnl_neigh* neigh = (struct rtnl_neigh*)obj;
 	neigh_nl_event new_event(g_nl_rcv_arg.msghdr, neigh, g_nl_rcv_arg.netlink);
 
 	netlink_wrapper::notify_observers(&new_event, nlgrpNEIGH);
 
 	g_nl_rcv_arg.msghdr = NULL;
-	nl_logdbg( "<--- neigh_cache_callback");
+	nl_logfine( "<--- neigh_cache_callback");
 
 }
 
 void netlink_wrapper::link_cache_callback(nl_object* obj)
 {
-	nl_logfunc( "---> link_cache_callback");
+	nl_logfine( "---> link_cache_callback");
 	struct rtnl_link* link = (struct rtnl_link*) obj;
 	link_nl_event new_event(g_nl_rcv_arg.msghdr, link, g_nl_rcv_arg.netlink);
 
 	netlink_wrapper::notify_observers(&new_event, nlgrpLINK);
 
 	g_nl_rcv_arg.msghdr = NULL;
-	nl_logfunc( "<--- link_cache_callback");
+	nl_logfine( "<--- link_cache_callback");
 }
 
 void netlink_wrapper::route_cache_callback(nl_object* obj)
 {
-	nl_logfunc( "---> route_cache_callback");
+	nl_logfine( "---> route_cache_callback");
 	struct rtnl_route* route = (struct rtnl_route*) obj;
 	if (route) {
 		int table_id = rtnl_route_get_table(route);
@@ -147,7 +147,7 @@ void netlink_wrapper::route_cache_callback(nl_object* obj)
 		nl_logdbg("Received invalid route event");
 	}
 	g_nl_rcv_arg.msghdr = NULL;
-	nl_logfunc( "<--- route_cache_callback");
+	nl_logfine( "<--- route_cache_callback");
 }
 
 
@@ -155,18 +155,18 @@ netlink_wrapper::netlink_wrapper() :
 		m_socket_handle(NULL), m_mngr(NULL), m_cache_link(NULL), m_cache_neigh(
 		                NULL), m_cache_route(NULL)
 {
-	nl_logdbg( "---> netlink_route_listener CTOR");
+	nl_logfine( "---> netlink_route_listener CTOR");
 	g_nl_rcv_arg.subjects_map = &m_subjects_map;
 	g_nl_rcv_arg.netlink = this;
 	g_nl_rcv_arg.msghdr = NULL;
-	nl_logdbg( "<--- netlink_route_listener CTOR");
+	nl_logfine( "<--- netlink_route_listener CTOR");
 }
 
 netlink_wrapper::~netlink_wrapper()
 {
 	/* different handling under LIBNL1 versus LIBNL3 */
 #ifdef HAVE_LIBNL3
-	nl_logdbg( "---> netlink_route_listener DTOR (LIBNL3)");
+	nl_logfine( "---> netlink_route_listener DTOR (LIBNL3)");
 	/* should not call nl_cache_free() for link, neigh, route as nl_cach_mngr_free() does the freeing */
 	// nl_cache_free(m_cache_link);
 	// nl_cache_free(m_cache_neigh);
@@ -174,7 +174,7 @@ netlink_wrapper::~netlink_wrapper()
 	nl_cache_mngr_free(m_mngr);	
 	nl_socket_handle_free(m_socket_handle); 
 #else // HAVE_LINBL1
-	nl_logdbg( "---> netlink_route_listener DTOR (LIBNL1)");
+	nl_logfine( "---> netlink_route_listener DTOR (LIBNL1)");
 	/* should not call nl_socket_handle_free(m_socket_handle) as nl_cache_mngr_free() does the freeing */ 
 	/* nl_socket_handle_free(m_socket_handle); */
 	nl_cache_free(m_cache_link);
@@ -188,7 +188,7 @@ netlink_wrapper::~netlink_wrapper()
 		delete iter->second;
 		iter++;
 	}
-	nl_logdbg( "<--- netlink_route_listener DTOR");
+	nl_logfine( "<--- netlink_route_listener DTOR");
 }
 
 int netlink_wrapper::open_channel()
@@ -295,7 +295,7 @@ int netlink_wrapper::handle_events()
 {
 	m_cache_lock.lock();
 
-	nl_logfunc("--->handle_events");
+	nl_logfine("--->handle_events");
 
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (!m_socket_handle) {
@@ -308,12 +308,12 @@ int netlink_wrapper::handle_events()
 	int n = nl_cache_mngr_data_ready(m_mngr);
 
 	//int n = nl_recvmsgs_default(m_handle);
-	nl_logfunc("nl_recvmsgs=%d", n);
+	nl_logfine("nl_recvmsgs=%d", n);
 	if (n < 0)
 		nl_logdbg("recvmsgs returned with error = %d", n);
 
 
-	nl_logfunc("<---handle_events");
+	nl_logfine("<---handle_events");
 
 	m_cache_lock.unlock();
 
@@ -355,7 +355,7 @@ bool netlink_wrapper::unregister(e_netlink_event_type type,
 int netlink_wrapper::get_neigh(const char* ipaddr, int ifindex, netlink_neigh_info* new_neigh_info)
 {
 	auto_unlocker lock(m_cache_lock);
-	nl_logfunc("--->netlink_listener::get_neigh");
+	nl_logfine("--->netlink_listener::get_neigh");
 	nl_object* obj;
 	rtnl_neigh* neigh;
 	char addr_str[256];
@@ -379,7 +379,7 @@ int netlink_wrapper::get_neigh(const char* ipaddr, int ifindex, netlink_neigh_in
 				new_neigh_info->fill(neigh);
 				nl_object_put(obj);
 				nl_logdbg("neigh - DST_IP:%s IF_INDEX:%d LLADDR:%s", addr_str, index, new_neigh_info->lladdr_str.c_str() );
-				nl_logfunc("<---netlink_listener::get_neigh");
+				nl_logfine("<---netlink_listener::get_neigh");
 				return 1;
 			}
 		}
@@ -387,23 +387,23 @@ int netlink_wrapper::get_neigh(const char* ipaddr, int ifindex, netlink_neigh_in
 		obj = nl_cache_get_next(obj);
 	}
 
-	nl_logfunc("<---netlink_listener::get_neigh");
+	nl_logfine("<---netlink_listener::get_neigh");
 	return 0;
 }
 
 void netlink_wrapper::neigh_timer_expired() {
 	m_cache_lock.lock();
 
-	nl_logfunc("--->netlink_wrapper::neigh_timer_expired");
+	nl_logfine("--->netlink_wrapper::neigh_timer_expired");
 	nl_cache_refill(m_socket_handle, m_cache_neigh);
 	notify_neigh_cache_entries();
-	nl_logfunc("<---netlink_wrapper::neigh_timer_expired");
+	nl_logfine("<---netlink_wrapper::neigh_timer_expired");
 
 	m_cache_lock.unlock();
 }
 
 void netlink_wrapper::notify_neigh_cache_entries() {
-	nl_logfunc("--->netlink_wrapper::notify_cache_entries");
+	nl_logfine("--->netlink_wrapper::notify_cache_entries");
 	g_nl_rcv_arg.msghdr = NULL;
 	nl_object* obj = nl_cache_get_first(m_cache_neigh);
 	while (obj) {
@@ -412,7 +412,7 @@ void netlink_wrapper::notify_neigh_cache_entries() {
 		nl_object_put(obj);
 		obj = nl_cache_get_next(obj);
 	}
-	nl_logfunc("<---netlink_wrapper::notify_cache_entries");
+	nl_logfine("<---netlink_wrapper::notify_cache_entries");
 
 }
 

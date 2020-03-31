@@ -44,6 +44,7 @@
 #define ibchtc_logwarn __log_warn
 #define ibchtc_loginfo __log_info
 #define ibchtc_logdbg __log_dbg
+#define ibchtc_logfine __log_fine
 
 
 #define UPDATE_HW_TIMER_PERIOD_MS 1000
@@ -153,7 +154,7 @@ void time_converter_ib_ctx::fix_hw_clock_deviation(){
 	estimated_hw_time = (diff_systime.tv_sec * current_parameters_set->hca_core_clock) + (diff_systime.tv_nsec * current_parameters_set->hca_core_clock / NSEC_PER_SEC);
 	deviation_hw = estimated_hw_time -  diff_hw_time;
 
-	ibchtc_logdbg("ibv device '%s' [%p] : fix_hw_clock_deviation parameters status : %ld.%09ld since last deviation fix, \nUPDATE_HW_TIMER_PERIOD_MS = %d, current_parameters_set = %p, "
+	ibchtc_logfine("ibv device '%s' [%p] : fix_hw_clock_deviation parameters status : %ld.%09ld since last deviation fix, \nUPDATE_HW_TIMER_PERIOD_MS = %d, current_parameters_set = %p, "
 			"estimated_hw_time = %ld, diff_hw_time = %ld, diff = %ld ,m_hca_core_clock = %ld", m_p_ibv_context->device->name, m_p_ibv_context->device, diff_systime.tv_sec, diff_systime.tv_nsec,
 			UPDATE_HW_TIMER_PERIOD_MS, current_parameters_set, estimated_hw_time, diff_hw_time, deviation_hw, current_parameters_set->hca_core_clock);
 

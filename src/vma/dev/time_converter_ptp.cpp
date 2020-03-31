@@ -50,7 +50,7 @@
 #define ibchtc_logwarn __log_warn
 #define ibchtc_loginfo __log_info
 #define ibchtc_logdbg __log_info_dbg
-#define ibchtc_logfunc __log_info_func
+#define ibchtc_logfine __log_info_fine
 
 #define UPDATE_HW_TIMER_PTP_PERIOD_MS 100
 
@@ -90,7 +90,7 @@ void time_converter_ptp::convert_hw_time_to_system_time(uint64_t hwtime, struct 
 	systime->tv_sec = sync_hw_clock / NSEC_PER_SEC;
 	systime->tv_nsec = sync_hw_clock % NSEC_PER_SEC;
 
-	ibchtc_logfunc("hwtime: 	%09ld", hwtime);
-	ibchtc_logfunc("systime:	%lld.%.9ld", systime->tv_sec, systime->tv_nsec);
+	ibchtc_logfine("hwtime: 	%09ld", hwtime);
+	ibchtc_logfine("systime:	%lld.%.9ld", systime->tv_sec, systime->tv_nsec);
 }
 #endif //DEFINED_IBV_CLOCK_INFO
