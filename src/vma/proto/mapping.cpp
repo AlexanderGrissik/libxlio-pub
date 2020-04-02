@@ -206,7 +206,7 @@ int mapping_t::duplicate_fd(int fd, bool &rw)
 {
 	int result;
 	ssize_t len;
-	char link[64];
+	char link[PATH_MAX];
 	char filename[PATH_MAX];
 
 	result = snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
