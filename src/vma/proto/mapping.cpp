@@ -216,7 +216,7 @@ int mapping_t::duplicate_fd(int fd, bool &rw)
 			filename[len] = '\0';
 			result = orig_os_api.open(filename, O_RDWR);
 			if (result < 0) {
-				map_logerr("open() errno=%d (%s)",
+				map_logdbg("open() errno=%d (%s)",
 					   errno, strerror(errno));
 			} else {
 				rw = true;
