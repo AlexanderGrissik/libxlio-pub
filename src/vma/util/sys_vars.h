@@ -440,6 +440,7 @@ public:
 	int             power_2_nginx_workers_num;
 	int             src_port_stride;
 #endif
+	uint32_t	tcp_send_buffer_size;
 	FILE *stats_file;
 private:
 	void print_vma_load_failure_msg();
@@ -593,7 +594,9 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TCP_ABORT_ON_CLOSE			"VMA_TCP_ABORT_ON_CLOSE"
 #define SYS_VAR_VMA_RX_POLL_ON_TX_TCP			"VMA_RX_POLL_ON_TX_TCP"
 #define SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME	"VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME"
+#define SYS_VAR_TCP_SEND_BUFFER_SIZE			"VMA_TCP_SEND_BUFFER_SIZE"
 
+#define MCE_DEFAULT_TCP_SEND_BUFFER_SIZE		(1000000)
 #define MCE_DEFAULT_LOG_FILE				("")
 #define MCE_DEFAULT_CONF_FILE				("/etc/libvma.conf")
 #define MCE_DEFAULT_STATS_FILE				("")

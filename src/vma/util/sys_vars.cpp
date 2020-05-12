@@ -634,7 +634,7 @@ void mce_sys_var::get_env_params()
 	tcp_abort_on_close	= MCE_DEFAULT_TCP_ABORT_ON_CLOSE;
 	rx_poll_on_tx_tcp	= MCE_DEFAULT_RX_POLL_ON_TX_TCP;
 	trigger_dummy_send_getsockname = MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME;
-
+	tcp_send_buffer_size = MCE_DEFAULT_TCP_SEND_BUFFER_SIZE;
 #ifdef VMA_TIME_MEASURE
 	vma_time_measure_num_samples = MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES;
 #endif
@@ -1349,6 +1349,10 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME)) != NULL)
 		trigger_dummy_send_getsockname = atoi(env_ptr) ? true : false;
+
+	if ((env_ptr = getenv(SYS_VAR_TCP_SEND_BUFFER_SIZE)) != NULL) {
+		tcp_send_buffer_size = (uint32_t)atoi(env_ptr);
+	}
 
 #ifdef VMA_TIME_MEASURE
 	if ((env_ptr = getenv(SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES)) != NULL) {

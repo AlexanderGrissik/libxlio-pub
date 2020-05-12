@@ -450,6 +450,7 @@ void print_vma_global_settings()
 	VLOG_PARAM_STRING("Tx MC Loopback", safe_mce_sys().tx_mc_loopback_default, MCE_DEFAULT_TX_MC_LOOPBACK, SYS_VAR_TX_MC_LOOPBACK, safe_mce_sys().tx_mc_loopback_default ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Tx non-blocked eagains", safe_mce_sys().tx_nonblocked_eagains, MCE_DEFAULT_TX_NONBLOCKED_EAGAINS, SYS_VAR_TX_NONBLOCKED_EAGAINS, safe_mce_sys().tx_nonblocked_eagains ? "Enabled " : "Disabled");
 	VLOG_PARAM_NUMBER("Tx Prefetch Bytes", safe_mce_sys().tx_prefetch_bytes, MCE_DEFAULT_TX_PREFETCH_BYTES, SYS_VAR_TX_PREFETCH_BYTES);
+	VLOG_PARAM_NUMBER("TCP Send Buffer size", safe_mce_sys().tcp_send_buffer_size, MCE_DEFAULT_TCP_SEND_BUFFER_SIZE, SYS_VAR_TCP_SEND_BUFFER_SIZE);
 
 	VLOG_PARAM_NUMBER("Rx Mem Bufs", safe_mce_sys().rx_num_bufs, MCE_DEFAULT_RX_NUM_BUFS, SYS_VAR_RX_NUM_BUFS);
 	VLOG_PARAM_NUMBER("Rx QP WRE", safe_mce_sys().rx_num_wr, MCE_DEFAULT_RX_NUM_WRE, SYS_VAR_RX_NUM_WRE);

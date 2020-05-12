@@ -191,7 +191,7 @@
 #ifdef _LWIP_MIN_MEM_MODE
 #define TCP_SND_BUF                     4096 //256*1024
 #else
-#define TCP_SND_BUF                     1000000 //100000 //256000
+#define TCP_SND_BUF                     (lwip_tcp_snd_buf)
 #endif
 
 #define TCP_SND_BUF_NO_NAGLE 256000

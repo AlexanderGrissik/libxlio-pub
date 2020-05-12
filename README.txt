@@ -971,6 +971,10 @@ Use value of 1 for Cubic algorithm.
 Use value of 2 in order to disable the congestion algorithm.
 Default value is 0 (LWIP).
 
+VMA_TCP_SEND_BUFFER_SIZE
+TCP send buffer size in bytes of LWIP.
+Default value is 1000000.
+
 VMA_TCP_MAX_SYN_RATE
 Limit the number of TCP SYN packets that VMA will handle
 per second per listen socket.

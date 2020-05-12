@@ -51,6 +51,7 @@ void register_sys_now(sys_now_fn fn);
 #define LWIP_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1) & ~(MEM_ALIGNMENT-1))
 
 extern u16_t lwip_tcp_mss;
+extern u32_t lwip_tcp_snd_buf;
 
 #if LWIP_3RD_PARTY_L3
 #if LWIP_TSO
