@@ -195,6 +195,7 @@ Example:
  VMA DETAILS: MTU                            0 (follow actual MTU)      [VMA_MTU]
  VMA DETAILS: MSS                            0 (follow VMA_MTU)         [VMA_MSS]
  VMA DETAILS: TCP CC Algorithm               0 (LWIP)                   [VMA_TCP_CC_ALGO]
+ VMA DETAILS: TCP abort on close             Disabled                   [VMA_TCP_ABORT_ON_CLOSE]
  VMA DETAILS: Polling Rx on Tx TCP           Disabled                   [VMA_RX_POLL_ON_TX_TCP]
  VMA DETAILS: Trig dummy send getsockname()  Disabled                   [VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME]
  VMA INFO: ---------------------------------------------------------------------------
@@ -593,6 +594,13 @@ of over CQ polling. This will enable a more 'real time' monitoring of the
 sockets ready packet queue.
 Recommended value is 100-5000 (nsec)
 Default value is 0 (Disable)
+
+VMA_TCP_ABORT_ON_CLOSE
+This parameter controls how VMA performs socket close operation. If enabled,
+VMA sends RST segment and discards TCP state for the socket. Notice, in this
+scenario pending data segments may be unsent.
+If disabled, VMA sends pending data segments and then FIN segment.
+Default: 0 (Disable)
 
 VMA_RX_POLL_ON_TX_TCP
 This parameter enables/disables TCP RX polling during TCP TX operation for faster

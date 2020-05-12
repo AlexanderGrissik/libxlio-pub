@@ -427,6 +427,7 @@ bool sockinfo_tcp::prepare_listen_to_close()
 
 bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 {
+	bool do_abort = safe_mce_sys().tcp_abort_on_close;
 
 	lock_tcp_con();
 
@@ -446,11 +447,7 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 			|| m_sock_state == TCP_SOCK_CONNECTED_WR || m_sock_state == TCP_SOCK_CONNECTED_RDWR) {
 		m_sock_state = TCP_SOCK_BOUND;
 	}
-#if defined(DEFINED_NGINX)
-        if (!is_listen_socket) {
-#else
-	if (!is_listen_socket && m_n_rx_pkt_ready_list_count) {
-#endif
+	if (!is_listen_socket && (do_abort || m_n_rx_pkt_ready_list_count)) {
 		abort_connection();
 	}
 
@@ -511,12 +508,8 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 	 * termination sequence
 	 * If process_shutdown is set as True do abort() with setting tcp state as CLOSED
 	 */
-#if defined(DEFINED_NGINX)
-	if (get_tcp_state(&m_pcb) != LISTEN) {
-#else
-        if (get_tcp_state(&m_pcb) != LISTEN &&
-                (process_shutdown || (m_linger.l_onoff && !m_linger.l_linger))) {
-#endif
+	if (get_tcp_state(&m_pcb) != LISTEN &&
+	    (do_abort || process_shutdown || (m_linger.l_onoff && !m_linger.l_linger))) {
 		abort_connection();
 	} else {
 		tcp_close(&m_pcb);
