@@ -537,6 +537,7 @@ void mce_sys_var::get_env_params()
 	tx_num_bufs             = MCE_DEFAULT_TX_NUM_BUFS;
 #ifdef DEFINED_TSO
 	tx_buf_size             = MCE_DEFAULT_TX_BUF_SIZE;
+	zc_tx_size              = MCE_DEFAULT_ZC_TX_SIZE;
 #endif /* DEFINED_TSO */
 	tx_num_wr               = MCE_DEFAULT_TX_NUM_WRE;
 	tx_num_wr_to_signal     = MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL;
@@ -899,6 +900,15 @@ void mce_sys_var::get_env_params()
 #ifdef DEFINED_TSO
 	if ((env_ptr = getenv(SYS_VAR_TX_BUF_SIZE)) != NULL)
 		tx_buf_size = (uint32_t)atoi(env_ptr);
+
+	if ((env_ptr = getenv(SYS_VAR_ZC_TX_SIZE)) != NULL) {
+		zc_tx_size = (uint32_t)atoi(env_ptr);
+		if (zc_tx_size > MCE_MAX_ZC_TX_SIZE) {
+			vlog_printf(VLOG_ERROR, "ZC TX size [%d] exceeds the maximum (max=%d), setting to default.\n",
+				zc_tx_size, MCE_MAX_ZC_TX_SIZE);
+			zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
+		}
+	}
 #endif /* DEFINED_TSO */
 
 	if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE)) != NULL)

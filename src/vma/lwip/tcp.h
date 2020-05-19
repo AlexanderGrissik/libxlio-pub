@@ -52,6 +52,9 @@ void register_sys_now(sys_now_fn fn);
 
 extern u16_t lwip_tcp_mss;
 extern u32_t lwip_tcp_snd_buf;
+#ifdef DEFINED_TSO
+extern u32_t lwip_zc_tx_size;
+#endif // DEFINED_TSO
 
 #if LWIP_3RD_PARTY_L3
 #if LWIP_TSO

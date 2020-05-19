@@ -975,6 +975,11 @@ VMA_TCP_SEND_BUFFER_SIZE
 TCP send buffer size in bytes of LWIP.
 Default value is 1000000.
 
+VMA_ZC_TX_SIZE
+Determines the maximum segment size for zero copy buffers.
+Maximum value is 65535.
+Default value is 32768.
+
 VMA_TCP_MAX_SYN_RATE
 Limit the number of TCP SYN packets that VMA will handle
 per second per listen socket.

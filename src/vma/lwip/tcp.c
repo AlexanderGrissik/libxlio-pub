@@ -95,6 +95,11 @@ enum cc_algo_mod lwip_cc_algo_module = CC_MOD_LWIP;
 
 u16_t lwip_tcp_mss = CONST_TCP_MSS;
 u32_t lwip_tcp_snd_buf = 0;
+#ifdef DEFINED_TSO
+u32_t lwip_zc_tx_size = 0;
+#endif // DEFINED_TSO
+
+
 u8_t enable_ts_option = 0;
 /* slow timer value */
 static u32_t slow_tmr_interval;

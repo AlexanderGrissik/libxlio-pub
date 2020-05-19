@@ -645,6 +645,7 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
 			m_pcb.tso.max_send_sge = m_p_connected_dst_entry->get_ring()->get_max_send_sge();
 			/* reserve one slot for network headers of zerocopy segments */
 			m_pcb.max_send_sge = m_pcb.tso.max_send_sge - 1;
+			safe_mce_sys().zc_tx_size = std::min(safe_mce_sys().zc_tx_size, m_pcb.tso.max_payload_sz);
 		}
 #endif /* DEFINED_TSO */
 	}

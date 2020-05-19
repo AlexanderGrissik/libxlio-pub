@@ -335,6 +335,7 @@ public:
 	uint32_t 	tx_num_bufs;
 #ifdef DEFINED_TSO
 	uint32_t 	tx_buf_size;
+	uint32_t 	zc_tx_size;
 #endif /* DEFINED_TSO */
 	uint32_t 	tx_num_wr;
 	uint32_t	tx_num_wr_to_signal;
@@ -492,6 +493,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TX_NUM_BUFS				"VMA_TX_BUFS"
 #ifdef DEFINED_TSO
 #define SYS_VAR_TX_BUF_SIZE				"VMA_TX_BUF_SIZE"
+#define SYS_VAR_ZC_TX_SIZE			"VMA_ZC_TX_SIZE"
 #endif /* DEFINED_TSO */
 #define SYS_VAR_TX_NUM_WRE				"VMA_TX_WRE"
 #define SYS_VAR_TX_NUM_WRE_TO_SIGNAL			"VMA_TX_WRE_BATCHING"
@@ -621,6 +623,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TX_NUM_BUFS				(200000)
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TX_BUF_SIZE				(0)
+#define MCE_DEFAULT_ZC_TX_SIZE				(32768)
 #endif /* DEFINED_TSO */
 #define MCE_DEFAULT_TX_NUM_WRE				(2048)
 #define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL		(64)
@@ -729,6 +732,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_MAX_RX_NUM_POLLS				(100000000)
 #define MCE_MIN_RX_PREFETCH_BYTES			(32) /* Just enough for headers (IPoIB+IP+UDP)*/
 #define MCE_MAX_RX_PREFETCH_BYTES			(2044)
+#define MCE_MAX_ZC_TX_SIZE				(65535)
 #define MCE_RX_CQ_DRAIN_RATE_DISABLED			(0)
 #define MCE_CQ_DRAIN_INTERVAL_DISABLED			(0)
 #define MCE_CQ_ADAPTIVE_MODERATION_DISABLED		(0)

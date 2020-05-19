@@ -478,6 +478,9 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
 
 #if LWIP_TSO
   mss_local = tcp_xmit_size_goal(pcb, 1);
+  if (is_zerocopy) {
+      mss_local = lwip_zc_tx_size;
+  }
 #else
   mss_local = LWIP_MIN(pcb->mss, pcb->snd_wnd_max/2);
   mss_local = mss_local ? mss_local : pcb->mss;
