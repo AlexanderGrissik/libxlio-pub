@@ -1029,9 +1029,11 @@ int listen(int __fd, int backlog)
 
 	if (p_socket_object) {
 #if defined(DEFINED_NGINX)
-		p_socket_object->m_is_listen = true;
-		p_socket_object->m_back_log = backlog;
-		return 0;
+		if (safe_mce_sys().actual_nginx_workers_num > 0) {
+			p_socket_object->m_is_listen = true;
+			p_socket_object->m_back_log = backlog;
+			return 0;
+		}
 #endif
 		int ret = p_socket_object->prepareListen(); // for verifying that the socket is really offloaded
 		if (ret < 0)
@@ -2755,7 +2757,9 @@ pid_t fork(void)
 	else if (pid > 0) { 
 		srdr_logdbg_exit("Parent Process: returned with %d", pid);
 #if defined(DEFINED_NGINX)
-		g_worker_index++;
+		if (safe_mce_sys().actual_nginx_workers_num > 0) {
+			g_worker_index++;
+		}
 #endif
 	}
 	else {

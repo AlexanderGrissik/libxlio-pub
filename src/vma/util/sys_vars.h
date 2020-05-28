@@ -685,6 +685,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_CLOSE_ON_DUP2			(true)
 #define MCE_DEFAULT_MTU					(0)
 #if defined(DEFINED_NGINX)
+// Nginx flow will be enabled by default for value greater than 0.
 #define MCE_DEFAULT_NGINX_WORKERS_NUM                  (0)
 #define MCE_DEFAULT_SRC_PORT_STRIDE                    (2)
 #endif

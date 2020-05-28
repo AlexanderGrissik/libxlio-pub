@@ -657,12 +657,14 @@ void mce_sys_var::get_env_params()
 #if defined(DEFINED_NGINX)
 	if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL) {
 		actual_nginx_workers_num = (uint32_t)atoi(env_ptr);
-		// In order to ease the usage of Nginx cases, we apply Nginx profile when
-		// user will choose to use Nginx workers environment variable.
-		if (actual_nginx_workers_num > MCE_DEFAULT_NGINX_WORKERS_NUM && mce_spec == MCE_SPEC_NONE) {
-			mce_spec = MCE_SPEC_NGINX_669;
-		}
 	}
+
+	// In order to ease the usage of Nginx cases, we apply Nginx profile when
+	// user will choose to use Nginx workers environment variable.
+	if (actual_nginx_workers_num > 0 && mce_spec == MCE_SPEC_NONE) {
+		mce_spec = MCE_SPEC_NGINX_669;
+	}
+
 #endif // DEFINED_NGINX
 
 	switch (mce_spec) {

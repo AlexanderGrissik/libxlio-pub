@@ -329,7 +329,10 @@ bool ring_slave::attach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink *sink)
 				delete p_tmp_rfs;
 			} else {
 				p_rfs = p_tmp_rfs;
-				if (!g_b_add_second_4t_rule) {
+#if defined(DEFINED_NGINX)
+				if (!g_b_add_second_4t_rule)
+#endif
+				{
 					m_flow_tcp_map.set(rfs_key, p_rfs);
 				}
 			}
