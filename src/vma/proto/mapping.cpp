@@ -342,7 +342,6 @@ void mapping_cache::handle_close(int local_fd)
 	lock();
 	iter = m_cache_fd.find(local_fd);
 	if (iter != m_cache_fd.end()) {
-		m_cache_fd.erase(local_fd);
 		mapping = iter->second;
 		assert(mapping->m_owners > 0);
 		--mapping->m_owners;
@@ -350,6 +349,7 @@ void mapping_cache::handle_close(int local_fd)
 			m_cache_uid.erase(mapping->m_uid);
 			delete mapping;
 		}
+		m_cache_fd.erase(iter);
 		/* TODO Check FAILED mappings, maybe they will appear in lru list */
 	}
 	unlock();
