@@ -754,6 +754,7 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 	bool block_this_run = false;
 	void *tx_ptr = NULL;
 	__off64_t file_offset = 0;
+	mapping_t *mapping = NULL;
 
 	/* Let allow OS to process all invalid scenarios to avoid any
 	 * inconsistencies in setting errno values
@@ -834,6 +835,11 @@ retry_is_ready:
 	}
 #endif
 
+	/* To force zcopy flow there are two possible ways
+	 * - send() MSG_ZEROCOPY flag should be passed by user application 
+	 * and SO_ZEROCOPY activated
+	 * - sendfile() MSG_SEROCOPY flag set internally with opcode TX_FILE
+	 */
 	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 	}
@@ -847,6 +853,16 @@ retry_is_ready:
 			tx_ptr = &file_offset;
 		} else {
 			tx_ptr = p_iov[i].iov_base;
+			/* Detect if zcopy from sendfile() or send() */
+			if ((apiflags & VMA_TX_PACKET_ZEROCOPY) && (tx_arg.opcode != TX_FILE)) {
+				mapping = g_zc_cache->get_mapping(p_iov[i].iov_base, p_iov[i].iov_len,
+						m_p_connected_dst_entry->get_ring()->get_ctx());
+				tx_arg.priv = (void *)mapping;
+				/* do not call
+				 * g_zc_cache->put_mapping(mapping);
+				 * at the moment */
+				assert(mapping);
+			}
 		}
 		while (pos < p_iov[i].iov_len) {
 			tx_size = tcp_sndbuf(&m_pcb);
@@ -957,9 +973,17 @@ retry_write:
 			}
 			pos += tx_size;
 			total_tx += tx_size;
-		}	
+		}
+		if (mapping) {
+			g_zc_cache->put_mapping(mapping);
+			mapping = NULL;
+		}
 	}
 done:	
+	if (mapping) {
+		g_zc_cache->put_mapping(mapping);
+		mapping = NULL;
+	}
 
 	tcp_output(&m_pcb); // force data out
 
@@ -999,6 +1023,10 @@ err:
 #ifdef VMA_TIME_MEASURE
 	INC_ERR_TX_COUNT;
 #endif
+	if (mapping) {
+		g_zc_cache->put_mapping(mapping);
+		mapping = NULL;
+	}
 
 	// nothing send  nb mode or got some other error
 	if (errno == EAGAIN)
@@ -4642,7 +4670,8 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 
 	if (likely(p_dst)) {
 		p_desc = p_dst->get_buffer(type, priv);
-		if ((NULL == priv) && p_desc && (type == PBUF_ZEROCOPY)) {
+		if (p_desc && (type == PBUF_ZEROCOPY) &&
+			priv && (((mapping_t *)priv)->m_state == MAPPING_STATE_USER)) {
 			p_desc = p_si_tcp->tcp_tx_zc_alloc(p_desc);
 		}
 	}

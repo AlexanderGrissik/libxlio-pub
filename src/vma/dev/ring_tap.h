@@ -73,6 +73,7 @@ public:
 	virtual uint32_t get_tx_user_lkey(void *addr, size_t length) { NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-2; }
 	virtual uint32_t get_underly_qpn() { return -1; }
         virtual uint32_t get_max_inline_data() { return 0; }
+	void*			get_ctx(void) { return NULL; }
 #ifdef DEFINED_TSO
         virtual uint32_t get_max_send_sge(void) { return 1; }
         virtual uint32_t get_max_payload_sz(void) { return 0; }

@@ -74,13 +74,14 @@ typedef enum {
 	MAPPING_STATE_UNKNOWN,
 	MAPPING_STATE_UNMAPPED,
 	MAPPING_STATE_MAPPED,
+	MAPPING_STATE_USER,
 	MAPPING_STATE_FAILED
 } mapping_state_t;
 
 /* TODO replace with rwlock */
 class mapping_t : public lock_spin {
 public:
-	mapping_t(file_uid_t &uid, mapping_cache *cache);
+	mapping_t(file_uid_t &uid, mapping_cache *cache, ib_ctx_handler *p_ib_ctx);
 	~mapping_t();
 
 	int map(int fd);
@@ -111,12 +112,13 @@ public:
 	int m_fd;
 	uint64_t m_ref;
 	uint64_t m_owners;
+	ib_ctx_handler *m_ib_ctx;
+	vma_allocator m_allocator;
 
 private:
 	int duplicate_fd(int fd, bool &rw);
 
 	mapping_cache *p_cache;
-	vma_allocator m_allocator;
 	list_node<mapping_t, mapping_t::mapping_node_offset> m_node;
 };
 
@@ -126,6 +128,8 @@ struct mapping_cache_stats {
 
 typedef std::tr1::unordered_map<int, mapping_t*> mapping_fd_map_t;
 typedef std::tr1::unordered_map<int, mapping_t*>::iterator mapping_fd_map_iter_t;
+typedef std::tr1::unordered_map<uintptr_t, mapping_t*> mapping_addr_map_t;
+typedef std::tr1::unordered_map<uintptr_t, mapping_t*>::iterator mapping_addr_map_iter_t;
 typedef std::tr1::unordered_map<file_uid_t, mapping_t*> mapping_uid_map_t;
 typedef std::tr1::unordered_map<file_uid_t, mapping_t*>::iterator mapping_uid_map_iter_t;
 typedef vma_list_t<mapping_t, mapping_t::mapping_node_offset> mapping_list_t;
@@ -135,10 +139,12 @@ public:
 	mapping_cache(size_t threshold);
 	~mapping_cache();
 
-	mapping_t *get_mapping(int local_fd);
+	mapping_t *get_mapping(int local_fd, void *p_ctx = NULL);
+	mapping_t *get_mapping(void *addr, size_t size, void *p_ctx = NULL);
 	void put_mapping(mapping_t *mapping);
 	void release_mapping(mapping_t *mapping);
 	void handle_close(int local_fd);
+	void handle_close(void *addr);
 
 	bool memory_reserve(size_t size);
 	void memory_free(size_t size);
@@ -146,12 +152,13 @@ public:
 	struct mapping_cache_stats m_stats;
 
 private:
-	mapping_t *get_mapping_by_uid_unlocked(file_uid_t &uid);
+	mapping_t *get_mapping_by_uid_unlocked(file_uid_t &uid, ib_ctx_handler *p_ib_ctx = NULL);
 	void evict_mapping_unlocked(mapping_t *mapping);
 	bool cache_evict_unlocked(size_t toFree);
 
 	mapping_uid_map_t m_cache_uid;
 	mapping_fd_map_t m_cache_fd;
+	mapping_addr_map_t m_cache_addr;
 	mapping_list_t m_lru_list;
 	size_t m_used;
 	size_t m_threshold;

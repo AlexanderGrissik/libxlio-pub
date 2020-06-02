@@ -79,6 +79,7 @@ public:
 	virtual int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
 	virtual uint32_t        get_tx_user_lkey(void *addr, size_t length) { NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-2; }
         virtual uint32_t	get_max_inline_data();
+	void*			get_ctx(void) { return NULL; }
 #ifdef DEFINED_TSO
         virtual uint32_t	get_max_send_sge(void);
         virtual uint32_t	get_max_payload_sz(void);
