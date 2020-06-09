@@ -85,14 +85,19 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 
 	p_tcp_iov = (tcp_iovec*)p_iov;
 
+	/* Suppress flags that should not be used anymore
+	 * to avoid conflicts with VMA_TX_PACKET_L3_CSUM and VMA_TX_PACKET_L4_CSUM
+	 */
+	attr.flags = (vma_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
+
 	/* ZC uses multiple IOVs, only the mlx5 TSO path supports that */
-	/* for small (< mss) ZC sends, must turn off CX5.SXP.disable_lso_on_only_packets
-	 * BF  --> mcra /dev/mst/mt41682_pciconf0 0x31500.3:1 0
-	 * CX5 --> mcra /dev/mst/mt4121_pciconf0 0x31500.3:1 0
+        /* for small (< mss) ZC sends, must turn off CX5.SXP.disable_lso_on_only_packets
+         * BF  --> mcra /dev/mst/mt41682_pciconf0 0x31500.3:1 0
+         * CX5 --> mcra /dev/mst/mt4121_pciconf0 0x31500.3:1 0
          * When set, single packet LSO WQEs are not treated as LSO. This prevents wrong handling of packets with padding by SW */
-	if (is_zerocopy) {
-		attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
-	}
+        if (is_zerocopy) {
+                attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
+        }
 
 	attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
 
