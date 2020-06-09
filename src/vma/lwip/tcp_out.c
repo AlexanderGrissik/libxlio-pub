@@ -289,13 +289,11 @@ set_tcphdr:
  */
 static struct pbuf *
 tcp_pbuf_prealloc(u16_t length, u16_t max_length,
-                  u16_t *oversize, struct tcp_pcb *pcb, u16_t tcp_write_flags,
+                  u16_t *oversize, struct tcp_pcb *pcb, pbuf_type type, u8_t tcp_write_flag_more,
                   u8_t first_seg, void *priv)
 {
   struct pbuf *p;
   u16_t alloc = length;
-  u8_t tcp_write_flag_more = tcp_write_flags & TCP_WRITE_FLAG_MORE;
-  pbuf_type type = tcp_write_flags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM;
 
   if (length < max_length) {
     /* Should we allocate an oversized pbuf, or just the minimum
@@ -450,7 +448,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
 
   int is_zerocopy = (apiflags & TCP_WRITE_ZEROCOPY) ? 1 : 0;
   int is_file = (apiflags & TCP_WRITE_FILE) ? 1 : 0;
-  u16_t pbuf_flags = is_zerocopy ? TCP_WRITE_ZEROCOPY : 0;
+  pbuf_type type = (apiflags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM);
 
   int byte_queued = pcb->snd_nxt - pcb->lastack;
   if ( len < pcb->mss && !(apiflags & TCP_WRITE_DUMMY))
@@ -586,7 +584,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
        * can use PBUF_RAW here since the data appears in the middle of
        * a segment. A header will never be prepended. */
       /* Data is copied */
-      if ((concat_p = tcp_pbuf_prealloc(seglen, max_len, &oversize, pcb, TCP_WRITE_FLAG_MORE | pbuf_flags, 1, priv)) == NULL) {
+      if ((concat_p = tcp_pbuf_prealloc(seglen, max_len, &oversize, pcb, type, TCP_WRITE_FLAG_MORE, 1, priv)) == NULL) {
     	  LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2,
     			  ("tcp_write : could not allocate memory for pbuf copy size %"U16_F"\n",
     					  seglen));
@@ -632,7 +630,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
 
     /* If copy is set, memory should be allocated and data copied
      * into pbuf */
-    if ((p = tcp_pbuf_prealloc(seglen + optlen, max_len, &oversize, pcb, TCP_WRITE_FLAG_MORE | pbuf_flags, queue == NULL, priv)) == NULL) {
+    if ((p = tcp_pbuf_prealloc(seglen + optlen, max_len, &oversize, pcb, type, TCP_WRITE_FLAG_MORE, queue == NULL, priv)) == NULL) {
     	LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_write : could not allocate memory for pbuf copy size %"U16_F"\n", seglen));
     	goto memerr;
     }
@@ -1096,13 +1094,13 @@ tcp_split_one_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t lentosend,
   int tcp_hlen_delta;
   u16_t max_length = 0;
   u16_t oversize = 0;
-  u16_t pbuf_flags = 0;
+  pbuf_type type = PBUF_RAM;
 
   int is_zerocopy = optflags & TF_SEG_OPTS_ZEROCOPY ? 1 : 0;
 
   if (is_zerocopy) {
     tcp_hlen_delta = 0;
-    pbuf_flags = TCP_WRITE_ZEROCOPY;
+    type = PBUF_ZEROCOPY;
   } else {
     tcp_hlen_delta = TCP_HLEN;
   }
@@ -1118,7 +1116,7 @@ tcp_split_one_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t lentosend,
       max_length = lentoqueue + optlen;
     }
     /* Allocate memory for p_buf and fill in fields. */
-    if (NULL == (cur_p = tcp_pbuf_prealloc(lentoqueue + optlen, max_length, &oversize, pcb, pbuf_flags, 0, cur_seg->p->priv))) {
+    if (NULL == (cur_p = tcp_pbuf_prealloc(lentoqueue + optlen, max_length, &oversize, pcb, type, 0, 0, cur_seg->p->priv))) {
       LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_one_segment: could not allocate memory for pbuf copy size %"U16_F"\n", (lentoqueue + optlen)));
       goto out;
     }
@@ -1338,7 +1336,7 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   u8_t  optlen = 0, optflags = 0;
   u16_t mss_local = 0;
   u16_t max_length;
-  u16_t pbuf_flags = 0;
+  pbuf_type type = PBUF_RAM;
 
   int is_zerocopy = seg->flags & TF_SEG_OPTS_ZEROCOPY ? 1 : 0;
 
@@ -1368,7 +1366,7 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 
   if (is_zerocopy) {
     optflags |= TF_SEG_OPTS_ZEROCOPY;
-    pbuf_flags = TCP_WRITE_ZEROCOPY;
+    type = PBUF_ZEROCOPY;
     tcp_hlen_delta = 0;
   } else {
     tcp_hlen_delta = TCP_HLEN;
@@ -1381,7 +1379,7 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     u32_t lentoqueue = seg->p->len - (tcp_hlen_delta + optlen) - lentosend;
     max_length = is_zerocopy ? lentoqueue + optlen : mss_local;
 
-    if (NULL == (p = tcp_pbuf_prealloc(lentoqueue + optlen, max_length, &oversize, pcb, pbuf_flags, 0, seg->p->priv))) {
+    if (NULL == (p = tcp_pbuf_prealloc(lentoqueue + optlen, max_length, &oversize, pcb, type, 0, 0, seg->p->priv))) {
       LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_segment: could not allocate memory for pbuf copy size %"U16_F"\n", (lentoqueue + optlen)));
       return;
     }

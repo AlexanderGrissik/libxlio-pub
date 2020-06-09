@@ -4598,6 +4598,8 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 	mem_buf_desc_t* p_desc = NULL;
+
+	NOT_IN_USE(type);
 	if (likely(p_dst)) {
 		p_desc = p_dst->get_buffer(type, priv);
 	}

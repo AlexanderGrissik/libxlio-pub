@@ -58,7 +58,7 @@ typedef enum {
   PBUF_ROM, /* pbuf data is stored in ROM */
   PBUF_REF, /* pbuf comes from the pbuf pool */
   PBUF_POOL, /* pbuf payload refers to RAM */
-  PBUF_ZEROCOPY
+  PBUF_ZEROCOPY /* pbuf data used directly from user */
 } pbuf_type;
 
 
