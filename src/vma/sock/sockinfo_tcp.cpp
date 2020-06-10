@@ -838,6 +838,10 @@ retry_is_ready:
 	}
 #endif
 
+	if ((__flags & MSG_ZEROCOPY) && (m_b_zc)) {
+		apiflags |= VMA_TX_PACKET_ZEROCOPY;
+	}
+
 	for (int i = 0; i < sz_iov; i++) {
 		si_tcp_logfunc("iov:%d base=%p len=%d", i, p_iov[i].iov_base, p_iov[i].iov_len);
 
@@ -969,6 +973,14 @@ done:
 		m_p_socket_stats->counters.n_tx_sent_byte_count += total_tx;
 		m_p_socket_stats->counters.n_tx_sent_pkt_count++;
 		m_p_socket_stats->n_tx_ready_byte_count += total_tx;
+	}
+
+	/* Each send call with MSG_ZEROCOPY that successfully sends
+	 * data increments the counter.
+	 * The counter is not incremented on failure or if called with length zero.
+	 */
+	if ((apiflags & VMA_TX_PACKET_ZEROCOPY) && (total_tx > 0)) {
+		atomic_fetch_and_inc(&m_zckey);
 	}
 
 	unlock_tcp_con();
@@ -4599,9 +4611,11 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 	mem_buf_desc_t* p_desc = NULL;
 
-	NOT_IN_USE(type);
 	if (likely(p_dst)) {
 		p_desc = p_dst->get_buffer(type, priv);
+		if (p_desc && (type == PBUF_ZEROCOPY)) {
+			p_desc = p_si_tcp->tcp_tx_zc_alloc(p_desc);
+		}
 	}
 	return (struct pbuf *)p_desc;
 }
@@ -4632,6 +4646,81 @@ void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 			buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
 		}
 	}
+}
+
+mem_buf_desc_t* sockinfo_tcp::tcp_tx_zc_alloc(mem_buf_desc_t* p_desc)
+{
+	p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
+	p_desc->tx.zc.id = atomic_read(&m_zckey);
+	p_desc->tx.zc.count = 1;
+	p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
+	p_desc->tx.zc.ctx = (void *)this;
+	p_desc->tx.zc.callback = tcp_tx_zc_callback;
+
+	return p_desc;
+}
+
+void sockinfo_tcp::tcp_tx_zc_callback(mem_buf_desc_t* p_desc)
+{
+	uint32_t lo, hi;
+	uint16_t count;
+	uint32_t prev_lo, prev_hi;
+	mem_buf_desc_t* err_queue = NULL;
+	sockinfo_tcp* sock = NULL;
+
+	if (!p_desc || !p_desc->tx.zc.ctx) {
+		return;
+	}
+
+	sock = (sockinfo_tcp *)p_desc->tx.zc.ctx;
+
+	if (sock->m_state != SOCKINFO_OPENED) {
+		return;
+	}
+
+	count = p_desc->tx.zc.count;
+	lo = p_desc->tx.zc.id;
+	hi = lo + count - 1;
+	memset(&p_desc->ee, 0, sizeof(p_desc->ee));
+	p_desc->ee.ee_errno = 0;
+	p_desc->ee.ee_origin = SO_EE_ORIGIN_ZEROCOPY;
+	p_desc->ee.ee_data = hi;
+	p_desc->ee.ee_info = lo;
+//	p_desc->ee.ee_code |= SO_EE_CODE_ZEROCOPY_COPIED;
+
+	/* Update last error queue element in case it has the same type */
+	err_queue = sock->m_error_queue.back();
+	if (err_queue &&
+		(err_queue->ee.ee_origin == p_desc->ee.ee_origin) &&
+		(err_queue->ee.ee_code == p_desc->ee.ee_code)) {
+		uint64_t sum_count = 0;
+
+		prev_hi = err_queue->ee.ee_data;
+		prev_lo = err_queue->ee.ee_info;
+		sum_count = prev_hi - prev_lo + 1ULL + count;
+
+		if (lo == prev_lo) {
+			err_queue->ee.ee_data = hi;
+		} else if ((sum_count >= (1ULL << 32)) || (lo != prev_hi + 1)) {
+			err_queue = NULL;
+		} else {
+			err_queue->ee.ee_data += count;
+		}
+	}
+
+	/* Add  information into error queue element */
+	if (!err_queue) {
+		err_queue = p_desc->clone();
+		sock->m_error_queue.push_back(err_queue);
+	}
+
+	/* Clean up */
+	p_desc->m_flags &= ~mem_buf_desc_t::ZCOPY;
+	memset(&p_desc->tx.zc, 0, sizeof(p_desc->tx.zc));
+
+	/* Signal events on socket */
+	NOTIFY_ON_EVENTS(sock, EPOLLERR);
+	sock->do_wakeup();
 }
 
 struct tcp_seg * sockinfo_tcp::tcp_seg_alloc(void* p_conn)
