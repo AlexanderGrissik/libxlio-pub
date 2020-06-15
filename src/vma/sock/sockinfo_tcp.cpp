@@ -833,7 +833,7 @@ retry_is_ready:
 	}
 #endif
 
-	if ((__flags & MSG_ZEROCOPY) && (m_b_zc)) {
+	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 	}
 
@@ -841,7 +841,7 @@ retry_is_ready:
 		si_tcp_logfunc("iov:%d base=%p len=%d", i, p_iov[i].iov_base, p_iov[i].iov_len);
 
 		pos = 0;
-		if (tx_arg.opcode == TX_FILE) {
+		if ((tx_arg.opcode == TX_FILE) && !(apiflags & VMA_TX_PACKET_ZEROCOPY)) {
 			file_offset = *(__off64_t *)p_iov[i].iov_base;
 			tx_ptr = &file_offset;
 		} else {
@@ -974,7 +974,7 @@ done:
 	 * data increments the counter.
 	 * The counter is not incremented on failure or if called with length zero.
 	 */
-	if ((apiflags & VMA_TX_PACKET_ZEROCOPY) && (total_tx > 0)) {
+	if ((tx_arg.opcode != TX_FILE) && (apiflags & VMA_TX_PACKET_ZEROCOPY) && (total_tx > 0)) {
 		atomic_fetch_and_inc(&m_zckey);
 	}
 
@@ -4608,7 +4608,7 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 
 	if (likely(p_dst)) {
 		p_desc = p_dst->get_buffer(type, priv);
-		if (p_desc && (type == PBUF_ZEROCOPY)) {
+		if ((NULL == priv) && p_desc && (type == PBUF_ZEROCOPY)) {
 			p_desc = p_si_tcp->tcp_tx_zc_alloc(p_desc);
 		}
 	}
@@ -4633,10 +4633,6 @@ void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 			__log_err("ref count of %p is already zero, double free??", p_desc);
 
 		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
-			if (p_buff->type == PBUF_ZEROCOPY) {
-				mapping_t *mapping = (mapping_t *)p_desc->get_priv();
-				mapping->put();
-			}
 			p_desc->p_next_desc = NULL;
 			buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
 		}

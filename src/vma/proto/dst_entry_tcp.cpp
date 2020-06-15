@@ -534,10 +534,6 @@ void dst_entry_tcp::put_buffer(mem_buf_desc_t * p_desc)
 			dst_tcp_logerr("ref count of %p is already zero, double free??", p_desc);
 
 		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
-			if (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) {
-				mapping_t *mapping = (mapping_t *)p_desc->get_priv();
-				mapping->put();
-			}
 			p_desc->p_next_desc = NULL;
 			buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf.pbuf);
 		}

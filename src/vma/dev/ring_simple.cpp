@@ -34,7 +34,6 @@
 
 #include "vma/util/valgrind.h"
 #include "vma/util/sg_array.h"
-#include "vma/proto/mapping.h"
 #include "vma/sock/fd_collection.h"
 #if defined(DEFINED_DIRECT_VERBS)
 #include "vma/dev/qp_mgr_eth_mlx5.h"
@@ -903,11 +902,6 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t* buff_list)
 			type = (pbuf_type)buff_list->lwip_pbuf.pbuf.type;
 			pool = type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
 			free_lwip_pbuf(&buff_list->lwip_pbuf);
-			if (type == PBUF_ZEROCOPY && buff_list->lwip_pbuf.pbuf.priv != NULL) {
-				mapping_t *mapping = (mapping_t *)buff_list->lwip_pbuf.pbuf.priv;
-				mapping->put();
-				buff_list->lwip_pbuf.pbuf.priv = NULL;
-			}
 			pool->push_back(buff_list);
 			freed++;
 		}
@@ -942,11 +936,6 @@ int ring_simple::put_tx_single_buffer(mem_buf_desc_t* buff)
 		if (buff->lwip_pbuf.pbuf.ref == 0) {
 			buff->p_next_desc = NULL;
 			free_lwip_pbuf(&buff->lwip_pbuf);
-			if (buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY && buff->lwip_pbuf.pbuf.priv != NULL) {
-				mapping_t *mapping = (mapping_t *)buff->lwip_pbuf.pbuf.priv;
-				mapping->put();
-				buff->lwip_pbuf.pbuf.priv = NULL;
-			}
 			pool->push_back(buff);
 			count++;
 		}

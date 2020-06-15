@@ -2108,7 +2108,7 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		piov[0].iov_base = (char *)mapping->m_addr + cur_offset;
 		piov[0].iov_len = count;
 
-		tx_arg.opcode = TX_WRITE;
+		tx_arg.opcode = TX_FILE;
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
 		tx_arg.attr.msg.flags = MSG_ZEROCOPY;

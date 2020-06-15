@@ -450,6 +450,17 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
   int is_file = (apiflags & TCP_WRITE_FILE) ? 1 : 0;
   pbuf_type type = (apiflags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM);
 
+  /* TODO: temporary suppress file option when TCP_WRITE_ZEROCOPY|TCP_WRITE_FILE
+   * to support current zc sendfile() flow
+   */
+  if (is_file && is_zerocopy) {
+    is_file = 0;
+  }
+  /* Return error for zc non sendfile() flow */
+  if (is_zerocopy && !priv) {
+    return ERR_MEM;
+  }
+
   int byte_queued = pcb->snd_nxt - pcb->lastack;
   if ( len < pcb->mss && !(apiflags & TCP_WRITE_DUMMY))
           pcb->snd_sml_add = (pcb->unacked ? pcb->unacked->len : 0) + byte_queued;

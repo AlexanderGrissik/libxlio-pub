@@ -39,10 +39,17 @@
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/dev/allocator.h"
 #include "vma/util/vma_list.h"
+#include "vma/proto/mapping.h"
 
 inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 {
 	mem_buf_desc_t* p_desc = (mem_buf_desc_t *)pbuf_custom;
+
+	if (pbuf_custom->pbuf.type == PBUF_ZEROCOPY && pbuf_custom->pbuf.priv != NULL) {
+		mapping_t *mapping = (mapping_t *)pbuf_custom->pbuf.priv;
+		mapping->put();
+		pbuf_custom->pbuf.priv = NULL;
+	}
 
 	if (p_desc->m_flags & mem_buf_desc_t::ZCOPY) {
 		p_desc->tx.zc.callback(p_desc);
