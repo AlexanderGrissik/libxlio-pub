@@ -53,7 +53,6 @@
 #endif
 
 #define IS_DUMMY_PACKET(flags) (flags & VMA_SND_FLAGS_DUMMY)
-#define IS_ZEROCOPY_PACKET(flags) (flags & VMA_SND_FLAGS_ZEROCOPY)
 
 class cq_mgr;
 class epfd_info;

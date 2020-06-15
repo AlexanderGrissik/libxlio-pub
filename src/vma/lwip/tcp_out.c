@@ -1875,7 +1875,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   flags |= seg->flags & TF_SEG_OPTS_DUMMY_MSG;
   flags |= seg->flags & TF_SEG_OPTS_TSO;
   flags |= (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ? TCP_WRITE_REXMIT : 0);
-  flags |= (seg->flags & TF_SEG_OPTS_ZEROCOPY) ? TCP_WRITE_ZEROCOPY : 0;
+  flags |= seg->flags & TF_SEG_OPTS_ZEROCOPY;
   pcb->ip_output(p, pcb, flags);
 #else
   pcb->ip_output(p, pcb, seg->seqno < pcb->snd_nxt, LWIP_IS_DUMMY_SEGMENT(seg));

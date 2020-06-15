@@ -2111,7 +2111,7 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		tx_arg.opcode = TX_WRITE;
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
-		tx_arg.attr.msg.flags = VMA_SND_FLAGS_ZEROCOPY;
+		tx_arg.attr.msg.flags = MSG_ZEROCOPY;
 		tx_arg.priv = (void *)mapping;
 
 		totSent = p_socket_object->tx(tx_arg);
