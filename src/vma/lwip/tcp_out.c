@@ -448,20 +448,9 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
   off_t offset = 0;
   off_t offset_next = 0;
 
-  int is_zerocopy = (apiflags & TCP_WRITE_ZEROCOPY) ? 1 : 0;
-  int is_file = (apiflags & TCP_WRITE_FILE) ? 1 : 0;
+  int is_zerocopy = ((apiflags & TCP_WRITE_ZEROCOPY) ? 1 : 0);
+  int is_file = ((apiflags & TCP_WRITE_FILE) && !(apiflags & TCP_WRITE_ZEROCOPY) ? 1 : 0);
   pbuf_type type = (apiflags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM);
-
-  /* TODO: temporary suppress file option when TCP_WRITE_ZEROCOPY|TCP_WRITE_FILE
-   * to support current zc sendfile() flow
-   */
-  if (is_file && is_zerocopy) {
-    is_file = 0;
-  }
-  /* Return error for zc non sendfile() flow */
-  if (is_zerocopy && !priv) {
-    return ERR_MEM;
-  }
 
   int byte_queued = pcb->snd_nxt - pcb->lastack;
   if ( len < pcb->mss && !(apiflags & TCP_WRITE_DUMMY))
@@ -594,14 +583,12 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, void 
 #endif /* LWIP_TSO */
 
       u16_t seglen = space < len - pos ? space : len - pos;
-      /* create pbuf of the exact size needed now, to later avoid the p1 (oversize) flow */
-      u16_t max_len = is_zerocopy? seglen : space;
 
       /* Create a pbuf with a copy or reference to seglen bytes. We
        * can use PBUF_RAW here since the data appears in the middle of
        * a segment. A header will never be prepended. */
       /* Data is copied */
-      if ((concat_p = tcp_pbuf_prealloc(seglen, max_len, &oversize, pcb, type, TCP_WRITE_FLAG_MORE, 1, priv)) == NULL) {
+      if ((concat_p = tcp_pbuf_prealloc(seglen, space, &oversize, pcb, type, TCP_WRITE_FLAG_MORE, 1, priv)) == NULL) {
     	  LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2,
     			  ("tcp_write : could not allocate memory for pbuf copy size %"U16_F"\n",
     					  seglen));
