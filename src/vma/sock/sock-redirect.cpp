@@ -2787,7 +2787,7 @@ pid_t fork(void)
 	BULLSEYE_EXCLUDE_BLOCK_END
 
 #if defined(DEFINED_NGINX)
-	if (g_worker_index >= safe_mce_sys().actual_nginx_workers_num) {
+	if ((safe_mce_sys().actual_nginx_workers_num > 0) && (g_worker_index >= safe_mce_sys().actual_nginx_workers_num)) {
 		srdr_logerr("g_worker_index: %d exceeds: %d\n", g_worker_index, safe_mce_sys().actual_nginx_workers_num);
 		errno = ENOMEM;
 		return -1;
