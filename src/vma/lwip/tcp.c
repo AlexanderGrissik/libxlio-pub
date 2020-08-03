@@ -1084,6 +1084,60 @@ void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio)
 	pcb->pbuf_alloc = NULL;
 }
 
+/**
+ * Resets pcb object to reuse it for the same tuple.
+ * It's called by tcp_pcb_reuse().
+ */
+void tcp_pcb_recycle(struct tcp_pcb* pcb)
+{
+	u32_t iss;
+
+	pcb->flags = 0;
+	pcb->max_snd_buff = TCP_SND_BUF;
+	pcb->snd_buf = pcb->max_snd_buff;
+	pcb->rto = 3000 / slow_tmr_interval;
+	pcb->sa = 0;
+	pcb->sv = 3000 / slow_tmr_interval;
+	pcb->nrtx = 0;
+	pcb->dupacks = 0;
+	pcb->rtime = -1;
+#if TCP_CC_ALGO_MOD
+	cc_init(pcb);
+#endif
+	pcb->cwnd = 1;
+	iss = tcp_next_iss();
+	pcb->acked = 0;
+	pcb->snd_wl2 = iss;
+	pcb->snd_nxt = iss;
+	pcb->lastack = iss;
+	pcb->snd_lbb = iss;
+	pcb->tmr = tcp_ticks;
+	pcb->snd_sml_snt = 0;
+	pcb->snd_sml_add = 0;
+	pcb->polltmr = 0;
+	pcb->tcp_timer = 0;
+	pcb->rttest = 0;
+#if LWIP_CALLBACK_API
+	pcb->recv = tcp_recv_null;
+#endif
+	pcb->keep_cnt_sent = 0;
+	pcb->quickack = 0;
+	pcb->snd_queuelen = 0;
+	pcb->snd_scale = 0;
+	pcb->rcv_scale = 0;
+	pcb->last_unsent = NULL;
+	pcb->last_unacked = NULL;
+	pcb->unsent_oversize = 0;
+	if (pcb->seg_alloc != NULL) {
+		tcp_tx_seg_free(pcb, pcb->seg_alloc);
+		pcb->seg_alloc = NULL;
+	}
+	if (pcb->pbuf_alloc) {
+		tcp_tx_pbuf_free(pcb, pcb->pbuf_alloc);
+		pcb->pbuf_alloc = NULL;
+	}
+}
+
 struct pbuf *
 tcp_tx_pbuf_alloc(struct tcp_pcb * pcb, u16_t length, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
 {

@@ -69,7 +69,7 @@ protected:
 };
 
 
-class fd_collection : private lock_mutex_recursive, public timer_handler
+class fd_collection : private lock_mutex_recursive
 {
 public:
 	fd_collection();
@@ -141,6 +141,7 @@ public:
 	 */
 	inline bool set_immediate_os_sample(int fd);
 
+	inline void add_one_sockfd(int fd, socket_fd_api *p_sfd_api_obj);
 	/**
 	 * Get sock_fd_api (sockinfo or pipeinfo) by fd.
 	 */
@@ -195,10 +196,6 @@ private:
 	ring_tap**		m_p_tap_map;
 
 	epfd_info_list_t		m_epfd_lst;
-	//Contains fds which are in closing process
-	sock_fd_api_list_t		m_pendig_to_remove_lst;
-
-	void*				m_timer_handle;
 
 	const bool			m_b_sysvar_offloaded_sockets;
 
@@ -256,6 +253,13 @@ inline bool fd_collection::set_immediate_os_sample(int fd)
 	}
 
 	return false;
+}
+
+inline void fd_collection::add_one_sockfd(int fd, socket_fd_api *p_sfd_api_obj)
+{
+	lock();
+	m_p_sockfd_map[fd] = p_sfd_api_obj;
+	unlock();
 }
 
 inline socket_fd_api* fd_collection::get_sockfd(int fd)

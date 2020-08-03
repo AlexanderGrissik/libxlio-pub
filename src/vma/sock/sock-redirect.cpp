@@ -324,9 +324,9 @@ void dbg_check_if_need_to_send_mcpkt()
 	dbg_check_if_need_to_send_mcpkt_prevent_nested_calls--;
 }
 
-void handle_close(int fd, bool cleanup, bool passthrough)
+bool handle_close(int fd, bool cleanup, bool passthrough)
 {
-	
+	bool is_closable = true;
 	srdr_logfunc("Cleanup fd=%d", fd);
 
 	if (g_zc_cache) {
@@ -337,14 +337,27 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 		// Remove fd from all existing epoll sets
 		g_p_fd_collection->remove_from_all_epfds(fd, passthrough);
 
-		if (fd_collection_get_sockfd(fd)) {
+		socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
+		if (sockfd) {
+			sockfd->m_is_closable = !passthrough;
 			g_p_fd_collection->del_sockfd(fd, cleanup);
+			/*
+			 * Don't call close() syscall for socket's descriptor,
+			 * because TCP socket can exist after closing and
+			 * be reused. Keep shadow socket alive until socket
+			 * is destroyed.
+			 * We mustn't close shadow socket in socket's destructor
+			 * in case of passthrough, because the descriptor is
+			 * still in use for syscalls.
+			 */
+			is_closable = passthrough;
 		}
 		if (fd_collection_get_epfd(fd)) {
 			g_p_fd_collection->del_epfd(fd, cleanup);
 		}
 
 	}
+	return is_closable;
 }
 
 #if defined(DEFINED_NGINX)
@@ -789,9 +802,10 @@ int close(int __fd)
 
 	srdr_logdbg_entry("fd=%d", __fd);
 
-	handle_close(__fd);
+	bool toclose = handle_close(__fd);
+	int rc = toclose ? orig_os_api.close(__fd) : 0;
 
-	return orig_os_api.close(__fd);
+	return rc;
 }
 
 extern "C"

@@ -133,7 +133,7 @@ sockinfo::sockinfo(int fd):
 
 sockinfo::~sockinfo()
 {
-	m_state = SOCKINFO_CLOSED;
+	m_state = SOCKINFO_DESTROYING;
 
 	// Change to non-blocking socket so calling threads can exit
 	m_b_blocking = false;
@@ -1109,6 +1109,7 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 	  "SOCKINFO_OPENED",
 	  "SOCKINFO_CLOSING",
 	  "SOCKINFO_CLOSED",
+	  "SOCKINFO_DESTROYING",
 	};
 
 	bool b_any_activity = false;

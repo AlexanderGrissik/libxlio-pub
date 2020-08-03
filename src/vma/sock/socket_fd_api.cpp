@@ -47,7 +47,8 @@
 #define __INFO__		m_fd
 
 socket_fd_api::socket_fd_api(int fd) :
-	m_epoll_event_flags(0), m_fd(fd), m_n_sysvar_select_poll_os_ratio(safe_mce_sys().select_poll_os_ratio), m_econtext(NULL)
+	m_epoll_event_flags(0), m_fd(fd), m_n_sysvar_select_poll_os_ratio(safe_mce_sys().select_poll_os_ratio), m_econtext(NULL),
+	m_is_closable(true)
 #if defined(DEFINED_NGINX)
 , m_is_listen(false), m_back_log(0)
 #endif
@@ -56,6 +57,8 @@ socket_fd_api::socket_fd_api(int fd) :
 
 socket_fd_api::~socket_fd_api()
 {
+	if (m_is_closable)
+		orig_os_api.close(m_fd);
 }
 
 

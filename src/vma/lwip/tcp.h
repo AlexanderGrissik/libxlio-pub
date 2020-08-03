@@ -280,6 +280,8 @@ struct tcp_pcb {
   IP_PCB;
 /** protocol specific PCB members */
   TCP_PCB_COMMON(struct tcp_pcb);
+  void *listen_sock;
+  tcp_syn_handled_fn syn_tw_handled_cb;
 
   /* ports are in host byte order */
   u16_t remote_port;
@@ -481,6 +483,7 @@ err_t lwip_tcp_event(void *arg, struct tcp_pcb *pcb,
 
 /*Initialization of tcp_pcb structure*/
 void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio);
+void tcp_pcb_recycle(struct tcp_pcb* pcb);
 
 void             tcp_arg     		(struct tcp_pcb *pcb, void *arg);
 void             tcp_ip_output          (struct tcp_pcb *pcb, ip_output_fn ip_output);

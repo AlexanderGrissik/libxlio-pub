@@ -179,7 +179,8 @@ public:
 	enum sockinfo_state {
 		SOCKINFO_OPENED,
 		SOCKINFO_CLOSING,
-		SOCKINFO_CLOSED
+		SOCKINFO_CLOSED,
+		SOCKINFO_DESTROYING
 	};
 
 	virtual void consider_rings_migration();

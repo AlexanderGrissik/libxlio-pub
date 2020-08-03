@@ -49,6 +49,7 @@
 #include "vma/lwip/stats.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 
 typedef struct tcp_in_data {
@@ -68,6 +69,7 @@ struct tcp_pcb *tcp_input_pcb;
 /* Forward declarations. */
 static err_t tcp_process(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data);
+static bool tcp_parseopt_ts(u8_t *opts, u16_t opts_len, u32_t *tsval);
 static void tcp_parseopt(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
 static err_t tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
@@ -431,6 +433,45 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
 }
 
 /**
+ * Reuse TIME-WAIT socket and move it to SYN-RCVD state.
+ */
+static err_t
+tcp_pcb_reuse(struct tcp_pcb *pcb, tcp_in_data *in_data)
+{
+  err_t rc;
+
+  tcp_pcb_recycle(pcb);
+  set_tcp_state(pcb, SYN_RCVD);
+  pcb->rcv_nxt = in_data->seqno + 1;
+  pcb->rcv_ann_right_edge = pcb->rcv_nxt;
+  pcb->snd_wl1 = in_data->seqno - 1;/* initialise to seqno-1 to force window update */
+  pcb->advtsd_mss = (LWIP_TCP_MSS > 0) ? tcp_eff_send_mss(LWIP_TCP_MSS, pcb) :
+                                         tcp_mss_follow_mtu_with_default(536, pcb);
+  /* Parse any options in the SYN. */
+  tcp_parseopt(pcb, in_data);
+  pcb->rcv_wnd = TCP_WND_SCALED(pcb);
+  pcb->rcv_ann_wnd = TCP_WND_SCALED(pcb);
+  pcb->rcv_wnd_max = TCP_WND_SCALED(pcb);
+  pcb->rcv_wnd_max_desired = TCP_WND_SCALED(pcb);
+  pcb->snd_wnd = SND_WND_SCALE(pcb, in_data->tcphdr->wnd);
+  pcb->snd_wnd_max = pcb->snd_wnd;
+  pcb->ssthresh = pcb->snd_wnd;
+  u16_t snd_mss = tcp_eff_send_mss(pcb->mss, pcb);
+  UPDATE_PCB_BY_MSS(pcb, snd_mss);
+  rc = pcb->syn_tw_handled_cb(pcb->listen_sock, pcb, ERR_OK);
+  if (rc != ERR_OK) {
+    return rc;
+  }
+  /* Send a SYN|ACK together with the MSS option. */
+  rc = tcp_enqueue_flags(pcb, TCP_SYN | TCP_ACK);
+  if (rc != ERR_OK) {
+    tcp_abandon(pcb, 0);
+    return rc;
+  }
+  return tcp_output(pcb);
+}
+
+/**
  * Called by tcp_input() when a segment arrives for a connection in
  * TIME_WAIT.
  *
@@ -452,12 +493,31 @@ tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
   }
   /* - fourth, check the SYN bit, */
   if (in_data->flags & TCP_SYN) {
-    /* If an incoming segment is not acceptable, an acknowledgment
-       should be sent in reply */
-    if (TCP_SEQ_BETWEEN(in_data->seqno, pcb->rcv_nxt, pcb->rcv_nxt+pcb->rcv_wnd)) {
-      /* If the SYN is in the window it is an error, send a reset */
-      tcp_rst(in_data->ackno, in_data->seqno + in_data->tcplen,
-        in_data->tcphdr->dest, in_data->tcphdr->src, pcb);
+    bool reusable;
+
+    /* Check whether socket can be reused according to RFC 6191 */
+#if LWIP_TCP_TIMESTAMPS
+    u16_t opts_len = (TCPH_HDRLEN(in_data->tcphdr) - 5) << 2;
+    u32_t tsval = 0;
+
+    /* Whether timestamps are present in SYN packet and previous incarnation */
+    reusable = tcp_parseopt_ts((u8_t *)in_data->tcphdr + TCP_HLEN, opts_len, &tsval) &&
+               (pcb->flags & TF_TIMESTAMP);
+    /* According to the RFC, we can reuse socket:
+     * - timestamps are enabled and SYN timestamp is greater than the last seen
+     * - timestamps are enabled and SYN timestamp is equal to the last seen and
+     *   and seqno of SYN is greater than last seen seqno
+     * - timestamps are disabled and seqno of SYN is greater than last seen seqno */
+    reusable = (reusable && pcb->ts_recent < tsval) ||
+               ((!reusable || pcb->ts_recent == tsval) && TCP_SEQ_GEQ(in_data->seqno, pcb->rcv_nxt));
+#else
+    reusable = TCP_SEQ_GEQ(in_data->seqno, pcb->rcv_nxt);
+#endif
+
+    if (reusable) {
+      return tcp_pcb_reuse(pcb, in_data);
+    } else {
+      /* RFC 6191: Otherwise, silently drop the incoming SYN segment... */
       return ERR_OK;
     }
   } else if (in_data->flags & TCP_FIN) {
@@ -467,7 +527,7 @@ tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
   }
 
   if ((in_data->tcplen > 0))  {
-    /* Acknowledge data, FIN or out-of-window SYN */
+    /* Acknowledge data or FIN */
     pcb->flags |= TF_ACK_NOW;
     return tcp_output(pcb);
   }
@@ -1645,10 +1705,60 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
 }
 
 /**
+ * Looks for TIMESTAMP option and returns its value.
+ *
+ * @param opts buffer with TCP options
+ * @param opts_len size of the buffer
+ * @param tsval TS value is stored by this pointer on success
+ * @return true if the option is present and false otherwise
+ */
+static bool
+tcp_parseopt_ts(u8_t *opts, u16_t opts_len, u32_t *tsval)
+{
+#if LWIP_TCP_TIMESTAMPS
+  u16_t c;
+
+  for (c = 0; c < opts_len; ) {
+    switch (opts[c]) {
+    case 0x08:
+      /* TIMESTAMP */
+      if (opts[c + 1] != 0x0A || c + 0x0A > opts_len) {
+        /* Bad length */
+        LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_parseopt: bad length\n"));
+        return false;
+      }
+      /* TCP timestamp option with valid length and in host byte order */
+      *tsval = read32_be(&opts[c + 2]);
+      return true;
+    case 0x00:
+      /* End of options. */
+      return false;
+    case 0x01:
+      /* NOP option. */
+      ++c;
+      break;
+    default:
+      if (opts[c + 1] == 0) {
+        LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_parseopt: bad length\n"));
+        /* If the length field is zero, the options are malformed
+           and we don't process them further. */
+        return false;
+      }
+      /* All other options have a length field, so that we easily
+         can skip past them. */
+        c += opts[c + 1];
+    }
+  }
+#endif
+  return false;
+}
+
+/**
  * Parses the options contained in the incoming segment. 
  *
- * Called from tcp_listen_input() and tcp_process().
- * Currently, only the MSS and window scaling options are supported!
+ * Called from tcp_listen_input(), tcp_process() and tcp_pcb_reuse().
+ * Currently, only the MSS, window scaling and TIMESTAMP options are
+ * supported!
  *
  * @param pcb the tcp_pcb for which a segment arrived
  */

@@ -207,6 +207,14 @@ public:
 	bool inline is_writeable();
 	bool inline is_errorable(int *errors);
 	bool is_closable() { return get_tcp_state(&m_pcb) == CLOSED && m_syn_received.empty() && m_accepted_conns.empty(); }
+	bool inline is_destroyable_lock(void)
+	{
+		bool state;
+		m_tcp_con_lock.lock();
+		state = get_tcp_state(&m_pcb) == CLOSED && m_state == SOCKINFO_CLOSING;
+		m_tcp_con_lock.unlock();
+		return state;
+	}
 	bool skip_os_select()
 	{
 		// calling os select on offloaded TCP sockets makes no sense unless it's a listen socket
@@ -355,6 +363,7 @@ private:
 	//Called when legal syn is received in order to remember the new active pcb which
 	//is already created by lwip, but no sockinfo instance is created yet at this stage
 	static err_t syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
+	static err_t syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
 
 	static err_t syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
 
@@ -484,6 +493,7 @@ private:
 	void process_rx_ctl_packets();
 	bool check_dummy_send_conditions(const int flags, const iovec* p_iov, const ssize_t sz_iov);
 	static void put_agent_msg(void *arg);
+	bool is_attached;
 };
 typedef struct tcp_seg tcp_seg;
 

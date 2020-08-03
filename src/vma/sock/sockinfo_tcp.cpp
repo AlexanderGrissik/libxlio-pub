@@ -322,6 +322,7 @@ sockinfo_tcp::sockinfo_tcp(int fd):
 
 	si_tcp_logdbg("TCP PCB FLAGS: 0x%x", m_pcb.flags);
 	g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
+	is_attached = false;
 	si_tcp_logfunc("done");
 }
 
@@ -439,6 +440,7 @@ bool sockinfo_tcp::prepare_listen_to_close()
 bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 {
 	bool do_abort = safe_mce_sys().tcp_abort_on_close;
+	bool state;
 
 	lock_tcp_con();
 
@@ -550,9 +552,14 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 		m_econtext->fd_closed(m_fd);
 	}
 
+	state = is_closable();
+	if (state) {
+		m_state = SOCKINFO_CLOSED;
+	}
+
 	unlock_tcp_con();
 
-	return (is_closable());
+	return state;
 }
 
 void sockinfo_tcp::handle_socket_linger() {
@@ -622,7 +629,7 @@ void sockinfo_tcp::unlock_rx_q()
 
 void sockinfo_tcp::tcp_timer()
 {
-	if (m_state == SOCKINFO_CLOSED) {
+	if (m_state == SOCKINFO_DESTROYING) {
 		return;
 	}
 
@@ -2952,7 +2959,10 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 	
 	/* if attach failed, we should continue getting traffic through the listen socket */
 	// todo register as 3-tuple rule for the case the listener is gone?
-	new_sock->attach_as_uc_receiver(role_t (NULL), true);
+	if (!new_sock->is_attached) {
+		new_sock->attach_as_uc_receiver(role_t (NULL), true);
+		new_sock->is_attached = true;
+	}
 
 	if (new_sock->m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE) {
 		new_sock->m_vma_thr = true;
@@ -3067,6 +3077,11 @@ err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb, err_t err)
 		/* cppcheck-suppress autoVariables */
 		*newpcb = (struct tcp_pcb*)(&new_sock->m_pcb);
 		new_sock->m_pcb.my_container = (void*)new_sock;
+		/* XXX We have to search for correct listen socket every time,
+		 * because the listen socket may be closed and reopened. */
+		new_sock->m_pcb.listen_sock = (void*)conn;
+		/* XXX Do similar as for other callbacks. */
+		new_sock->m_pcb.syn_tw_handled_cb = &sockinfo_tcp::syn_received_timewait_cb;
 	}
 	else {
 		ret_val = ERR_MEM;
@@ -3075,6 +3090,53 @@ err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb, err_t err)
 	conn->m_tcp_con_lock.lock();
 
 	return ret_val;
+}
+
+err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
+{
+	sockinfo_tcp *listen_sock = (sockinfo_tcp *)((arg));
+
+	if (!listen_sock || !newpcb) {
+		return ERR_VAL;
+	}
+
+	sockinfo_tcp *new_sock = (sockinfo_tcp *)((newpcb->my_container));
+
+	NOT_IN_USE(err);
+	ASSERT_LOCKED(new_sock->m_tcp_con_lock);
+
+	new_sock->m_state = SOCKINFO_OPENED;
+	new_sock->m_sock_state = TCP_SOCK_INITED;
+	new_sock->m_conn_state = TCP_CONN_INIT;
+	new_sock->m_parent = listen_sock;
+	tcp_recv(&new_sock->m_pcb, sockinfo_tcp::rx_lwip_cb);
+	tcp_err(&new_sock->m_pcb, sockinfo_tcp::err_lwip_cb);
+	tcp_sent(&new_sock->m_pcb, sockinfo_tcp::ack_recvd_lwip_cb);
+	new_sock->wakeup_clear();
+	if (new_sock->m_sysvar_tcp_ctl_thread  > CTL_THREAD_DISABLE) {
+		tcp_ip_output(&new_sock->m_pcb, sockinfo_tcp::ip_output_syn_ack);
+	}
+
+	new_sock->m_rcvbuff_max = MAX(listen_sock->m_rcvbuff_max, 2 * new_sock->m_pcb.mss);
+	new_sock->fit_rcv_wnd(true);
+	new_sock->m_p_socket_stats->reset();
+
+	new_sock->register_timer();
+
+	listen_sock->m_tcp_con_lock.lock();
+	new_sock->m_pcb.callback_arg = arg;
+	// Socket socket options
+	listen_sock->set_sock_options(new_sock);
+
+	flow_tuple key;
+	create_flow_tuple_key_from_pcb(key, newpcb);
+	listen_sock->m_syn_received[key] =  newpcb;
+
+	listen_sock->m_received_syn_num++;
+	listen_sock->m_tcp_con_lock.unlock();
+	g_p_fd_collection->add_one_sockfd(new_sock->m_fd, new_sock);
+
+	return ERR_OK;
 }
 
 err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
@@ -5059,9 +5121,14 @@ void tcp_timers_collection::handle_timer_expired(void* user_data)
 {
 	NOT_IN_USE(user_data);
 	timer_node_t* iter = m_p_intervals[m_n_location];
+	sockinfo_tcp* p_sock;
 	while (iter) {
 		__log_funcall("timer expired on %p", iter->handler);
+		p_sock = dynamic_cast<sockinfo_tcp*>(iter->handler);
 		iter->handler->handle_timer_expired(iter->user_data);
+		if (p_sock && p_sock->is_destroyable_lock()) {
+			p_sock->clean_obj();
+		}
 		iter = iter->next;
 	}
 	m_n_location = (m_n_location + 1) % m_n_intervals_size;

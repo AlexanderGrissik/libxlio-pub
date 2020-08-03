@@ -50,6 +50,7 @@ public:
 	virtual void remove_wakeup_fd() = 0;
 	void going_to_sleep();
 	void return_from_sleep() { --m_is_sleeping; };
+	void wakeup_clear() { m_is_sleeping = 0; }
 
 protected:
 	virtual void wakeup_set_epoll_fd(int epfd);

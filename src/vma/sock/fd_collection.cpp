@@ -66,12 +66,9 @@ int g_p_fd_collection_size_parent_process = 0;
 
 fd_collection::fd_collection() :
 	lock_mutex_recursive("fd_collection"),
-	m_timer_handle(0),
 	m_b_sysvar_offloaded_sockets(safe_mce_sys().offloaded_sockets)
 {
 	fdcoll_logfunc("");
-
-	m_pendig_to_remove_lst.set_id("fd_collection (%p) : m_pendig_to_remove_lst", this);
 
 	m_n_fd_map_size = 1024;
 	struct rlimit rlim;
@@ -113,8 +110,6 @@ fd_collection::~fd_collection()
 
 	// TODO: check if NOT empty - apparently one of them contains 1 element according to debug printout from ~vma_list_t
 	m_epfd_lst.clear_without_cleanup();
-	m_pendig_to_remove_lst.clear_without_cleanup();
-
 }
 
 //Triggers connection close of all handled fds.
@@ -146,19 +141,6 @@ void fd_collection::clear()
 		return;
 
 	lock();
-
-	if (m_timer_handle) {
-		g_p_event_handler_manager->unregister_timer_event(this, m_timer_handle);
-		m_timer_handle = 0;
-	}
-
-	/* internal thread should be already dead and
-	 * these sockets can not been deleted through the it.
-	 */
-	while (!m_pendig_to_remove_lst.empty()) {
-		socket_fd_api *p_sfd_api = m_pendig_to_remove_lst.get_and_pop_back();
-		p_sfd_api->clean_obj();
-	}
 
 	/* Clean up all left overs sockinfo
 	 */
@@ -555,19 +537,8 @@ int fd_collection::del_sockfd(int fd, bool b_cleanup /*=false*/)
 			//This will be done from fd_col timer handler.
 			if (m_p_sockfd_map[fd] == p_sfd_api) {
 				m_p_sockfd_map[fd] = NULL;
-				m_pendig_to_remove_lst.push_front(p_sfd_api);
 			}
 
-			if (m_pendig_to_remove_lst.size() == 1) {
-				//Activate timer
-				try {
-					m_timer_handle = g_p_event_handler_manager->register_timer_event(250, this, PERIODIC_TIMER, 0);
-				} catch (vma_exception &error) {
-	  				fdcoll_logdbg("recovering from %s", error.what());
-					unlock();
-	  				return -1;
-				}
-			}
 			unlock();
 			ret_val = 0;
 		}
@@ -625,51 +596,6 @@ int fd_collection::del(int fd, bool b_cleanup, cls **map_type)
 	}
 	unlock();
 	return -1;
-}
-
-void  fd_collection::handle_timer_expired(void* user_data)
-{
-	sock_fd_api_list_t::iterator itr;
-	fdcoll_logfunc();
-
-	lock();
-
-	NOT_IN_USE(user_data);
-
-	for (itr = m_pendig_to_remove_lst.begin(); itr != m_pendig_to_remove_lst.end(); ) {
-		if((*itr)->is_closable()) {
-			fdcoll_logfunc("Closing:%d", (*itr)->get_fd());
-			//The socket is ready to be closed, remove it from the list + delete it
-			socket_fd_api* p_sock_fd = *itr;
-			itr++;
-			m_pendig_to_remove_lst.erase(p_sock_fd);
-
-			if (p_sock_fd) {
-				p_sock_fd->clean_obj();
-				p_sock_fd = NULL;
-			}
-
-			//Deactivate the timer since there are no any pending to remove socket to handle anymore
-			if (!m_pendig_to_remove_lst.size()) {
-				if (m_timer_handle) {
-					g_p_event_handler_manager->unregister_timer_event(this, m_timer_handle);
-					m_timer_handle = 0;
-				}
-			}
-		}
-		else { //The socket is not closable yet
-			sockinfo_tcp* si_tcp = dynamic_cast<sockinfo_tcp*>(*itr);
-
-			if (si_tcp) {
-				//In case of TCP socket progress the TCP connection
-				fdcoll_logfunc("Call to handler timer of TCP socket:%d", (*itr)->get_fd());
-				si_tcp->handle_timer_expired(NULL);
-			}
-			itr++;
-		}
-	}
-
-	unlock();
 }
 
 void fd_collection::remove_from_all_epfds(int fd, bool passthrough)
