@@ -704,9 +704,8 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
 
 #ifdef DEFINED_TSO
 //! Filling wqe for LSO
-inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
+int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 {
-	struct mlx5_wqe_ctrl_seg *ctrl = (struct mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
 	struct mlx5_wqe_data_seg* dp_seg = NULL;
 	uint8_t* cur_seg = (uint8_t*)eth_seg;
@@ -716,11 +715,15 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 	//
 	int inline_len		= pswr->tso.hdr_sz;
 	int max_inline_len	= align_to_octoword_up(sizeof(struct mlx5_wqe_eth_seg) + inline_len - MLX5_ETH_INLINE_HEADER_SIZE);
+	eth_seg->mss		= htons(pswr->tso.mss);
 	eth_seg->inline_hdr_sz  = htons(inline_len);
 	int rest 		= (int)(m_sq_wqes_end - (uint8_t*)eth_seg);
 	int bottom_hdr_sz 	= 0;
 	int i = 0;
-	size_t total = 0;
+
+	if (unlikely(0 == pswr->tso.mss)) {
+		ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(VMA_IBV_WR_SEND) & 0xff));
+	}
 
 	if (likely(max_inline_len < rest)) {
 		// Fill Ethernet segment with full header inline
@@ -749,7 +752,6 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 		dp_seg->addr       = htonll((uint64_t)pswr->sg_list[i].addr);
                 dp_seg->lkey       = htonl(pswr->sg_list[i].lkey);
 		dp_seg->byte_count = htonl(pswr->sg_list[i].length);
-		total += pswr->sg_list[i].length;
 
 		qp_logfunc("DATA_SEG: addr:%llx len: %d lkey: %x dp_seg: %p wqe_size: %d",
 			pswr->sg_list[i].addr, pswr->sg_list[i].length, dp_seg->lkey, dp_seg, wqe_size);
@@ -759,15 +761,6 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 	}
 	inline_len = align_to_WQEBB_up(wqe_size) / 4;
 	m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | wqe_size);
-	if (total > pswr->tso.mss) {
-		eth_seg->mss = htons(pswr->tso.mss);
-	} else {
-		/*
-		 * XXX This is workaround for zerocopy segments which are
-		 * less or equal to MSS.
-		 */
-		ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(VMA_IBV_WR_SEND) & 0xff));
-	}
 	// sending by BlueFlame or DoorBell covering wrap around
 	if (likely(inline_len <= 4)) {
 		if (likely(bottom_hdr_sz == 0)) {

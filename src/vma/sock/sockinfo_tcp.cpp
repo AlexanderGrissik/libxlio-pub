@@ -1024,7 +1024,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
 	int max_count = p_si_tcp->m_pcb.tso.max_send_sge;
 	tcp_iovec lwip_iovec[max_count];
-	vma_send_attr attr = {(vma_wr_tx_packet_attr)0, 0};
+	vma_send_attr attr = {(vma_wr_tx_packet_attr)0, 0, 0};
 	int count = 0;
 	void *cur_end;
 
@@ -1036,6 +1036,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 		lwip_iovec[count].iovec.iov_base = p->payload;
 		lwip_iovec[count].iovec.iov_len = p->len;
 		lwip_iovec[count].p_desc = (mem_buf_desc_t*)p;
+		attr.length += p->len;
 		p = p->next;
 		count++;
 	}
@@ -1044,10 +1045,12 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 zc_fill_iov:
 	/* For zerocopy, 1st pbuf contains pointer to TCP header */
 	lwip_iovec[0].tcphdr = p->payload;
+	attr.length += p->len;
 	p = p->next;
 	lwip_iovec[0].iovec.iov_base = p->payload;
 	lwip_iovec[0].iovec.iov_len = p->len;
 	lwip_iovec[0].p_desc = (mem_buf_desc_t*)p;
+	attr.length += p->len;
 	p = p->next;
 	/*
 	 * Compact sequential memory buffers.
@@ -1064,6 +1067,7 @@ zc_fill_iov:
 			lwip_iovec[count].iovec.iov_len = p->len;
 			lwip_iovec[count].p_desc = (mem_buf_desc_t*)p;
 		}
+		attr.length += p->len;
 		p = p->next;
 	}
 	count++;
