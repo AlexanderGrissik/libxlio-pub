@@ -124,8 +124,19 @@ void cq_mgr::configure(int cq_size)
 
 	prep_ibv_cq(attr);
 
-	m_p_ibv_cq = vma_ibv_create_cq(m_p_ib_ctx_handler->get_ibv_context(),
-			cq_size - 1, (void *)this, m_comp_event_channel, 0, &attr);
+	struct ibv_context *context = m_p_ib_ctx_handler->get_ibv_context();
+	int comp_vector = 0;
+#if defined(DEFINED_NGINX)
+	/*
+	 * For NGINX scenario we may want to distribute CQs across multiple
+	 * CPUs to improve CPS in case of multiple NGINX worker processes.
+	 */
+	if (safe_mce_sys().nginx_distribute_cq_interrupts) {
+		comp_vector = g_worker_index % context->num_comp_vectors;
+	}
+#endif
+	m_p_ibv_cq = vma_ibv_create_cq(context,
+			cq_size - 1, (void *)this, m_comp_event_channel, comp_vector, &attr);
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (!m_p_ibv_cq) {
 		throw_vma_exception("ibv_create_cq failed");

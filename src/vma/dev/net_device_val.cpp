@@ -1658,6 +1658,8 @@ bool net_device_val::verify_qp_creation(const char* ifname, enum ibv_qp_type qp_
 	struct ibv_cq* cq = NULL;
 	struct ibv_comp_channel *channel = NULL;
 	struct ibv_qp* qp = NULL;
+	struct ibv_context *context;
+	int comp_vector = 0;
 
 	vma_ibv_qp_init_attr qp_init_attr;
 	memset(&qp_init_attr, 0, sizeof(qp_init_attr));
@@ -1710,7 +1712,17 @@ bool net_device_val::verify_qp_creation(const char* ifname, enum ibv_qp_type qp_
 		goto release_resources;
 	}
 	VALGRIND_MAKE_MEM_DEFINED(channel, sizeof(ibv_comp_channel));
-	cq = vma_ibv_create_cq(p_ib_ctx->get_ibv_context(), safe_mce_sys().tx_num_wr, (void*)this, channel, 0, &attr);
+	context = p_ib_ctx->get_ibv_context();
+#if defined(DEFINED_NGINX)
+	/*
+	 * For NGINX scenario we may want to distribute CQs across multiple
+	 * CPUs to improve CPS in case of multiple NGINX worker processes.
+	 */
+	if (safe_mce_sys().nginx_distribute_cq_interrupts) {
+		comp_vector = g_worker_index % context->num_comp_vectors;
+	}
+#endif
+	cq = vma_ibv_create_cq(context, safe_mce_sys().tx_num_wr, (void*)this, channel, comp_vector, &attr);
 	if (!cq) {
 		nd_logdbg("cq creation failed for interface %s (errno=%d %s)", ifname, errno, strerror(errno));
 		goto release_resources;

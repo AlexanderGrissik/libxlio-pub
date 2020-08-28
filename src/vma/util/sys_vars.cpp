@@ -619,7 +619,8 @@ void mce_sys_var::get_env_params()
 	close_on_dup2		= MCE_DEFAULT_CLOSE_ON_DUP2;
 	mtu			= MCE_DEFAULT_MTU;
 #if defined(DEFINED_NGINX)
-	actual_nginx_workers_num      = MCE_DEFAULT_NGINX_WORKERS_NUM;
+	nginx_distribute_cq_interrupts	= MCE_DEFAULT_NGINX_DISTRIBUTE_CQ;
+	actual_nginx_workers_num	= MCE_DEFAULT_NGINX_WORKERS_NUM;
 	power_2_nginx_workers_num 	= MCE_DEFAULT_NGINX_WORKERS_NUM;
 	src_port_stride         = MCE_DEFAULT_SRC_PORT_STRIDE;
 #endif
@@ -1380,6 +1381,9 @@ void mce_sys_var::get_env_params()
 		mtu = (uint32_t)atoi(env_ptr);
 
 #if defined(DEFINED_NGINX)
+	if ((env_ptr = getenv(SYS_VAR_NGINX_DISTRIBUTE_CQ)) != NULL) {
+		nginx_distribute_cq_interrupts = atoi(env_ptr) ? true : false;
+	}
 	if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL) {
 		actual_nginx_workers_num = (uint32_t)atoi(env_ptr);
 		power_2_nginx_workers_num = pow(2, ceil(log(actual_nginx_workers_num)/log(2)));

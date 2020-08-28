@@ -447,6 +447,7 @@ public:
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
 #if defined(DEFINED_NGINX)
+	bool		nginx_distribute_cq_interrupts;
 	int             actual_nginx_workers_num;
 	int             power_2_nginx_workers_num;
 	int             src_port_stride;
@@ -584,6 +585,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_CLOSE_ON_DUP2                         "XLIO_CLOSE_ON_DUP2"
 #define SYS_VAR_MTU                                   "XLIO_MTU"
 #if defined(DEFINED_NGINX)
+#define SYS_VAR_NGINX_DISTRIBUTE_CQ                   "XLIO_NGINX_DISTRIBUTE_CQ"
 #define SYS_VAR_NGINX_WORKERS_NUM                     "XLIO_NGINX_WORKERS_NUM"
 #define SYS_VAR_SRC_PORT_STRIDE                       "XLIO_SRC_PORT_STRIDE"
 #endif
@@ -728,6 +730,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_CLOSE_ON_DUP2                     (true)
 #define MCE_DEFAULT_MTU	                              (0)
 #if defined(DEFINED_NGINX)
+#define MCE_DEFAULT_NGINX_DISTRIBUTE_CQ               (false)
 #define MCE_DEFAULT_NGINX_WORKERS_NUM                 (0) /* Nginx flow will be enabled by default for value greater than 0 */
 #define MCE_DEFAULT_SRC_PORT_STRIDE                   (2)
 #endif
