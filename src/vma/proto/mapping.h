@@ -79,7 +79,7 @@ typedef enum {
 } mapping_state_t;
 
 /* TODO replace with rwlock */
-class mapping_t : public lock_spin {
+class mapping_t {
 public:
 	mapping_t(file_uid_t &uid, mapping_cache *cache, ib_ctx_handler *p_ib_ctx);
 	~mapping_t();
@@ -146,7 +146,7 @@ public:
 	void handle_close(int local_fd);
 	void handle_close(void *addr);
 
-	bool memory_reserve(size_t size);
+	bool memory_reserve_unlocked(size_t size);
 	void memory_free(size_t size);
 
 	struct mapping_cache_stats m_stats;

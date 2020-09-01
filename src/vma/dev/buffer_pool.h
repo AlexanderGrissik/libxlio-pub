@@ -47,7 +47,7 @@ inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 
 	if (pbuf_custom->pbuf.type == PBUF_ZEROCOPY && pbuf_custom->pbuf.priv != NULL) {
 		mapping_t *mapping = (mapping_t *)pbuf_custom->pbuf.priv;
-		mapping->put();
+		g_zc_cache->put_mapping(mapping);
 		pbuf_custom->pbuf.priv = NULL;
 	}
 

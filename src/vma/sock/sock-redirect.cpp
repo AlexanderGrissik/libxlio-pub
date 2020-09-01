@@ -2066,28 +2066,12 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 	if (PROTO_TCP == s->get_protocol()) {
 #ifdef DEFINED_TSO
 		mapping_t *mapping;
-		mapping_state_t state;
 		int rc;
 
 		/* Get mapping from the cache */
 		mapping = g_zc_cache->get_mapping(in_fd);
 		if (mapping == NULL) {
 			srdr_logdbg("Couldn't allocate mapping object");
-			goto fallback;
-		}
-
-		/* Mapping object may be unmapped, call mmap() in this case */
-		mapping->lock();
-		if (mapping->m_state == MAPPING_STATE_UNMAPPED) {
-			rc = mapping->map(in_fd);
-			/* XXX Ignore for now, we check m_state */
-			(void)rc;
-		}
-		state = mapping->m_state;
-		mapping->unlock();
-
-		if (state == MAPPING_STATE_FAILED) {
-			g_zc_cache->put_mapping(mapping);
 			goto fallback;
 		}
 

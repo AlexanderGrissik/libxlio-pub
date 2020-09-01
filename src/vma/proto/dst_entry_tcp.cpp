@@ -510,7 +510,9 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, void *priv, bool b_blo
 		p_mem_buf_desc->lwip_pbuf.pbuf.priv = priv;
 		if (type == PBUF_ZEROCOPY) {
 			mapping_t *mapping = (mapping_t *)priv;
+			g_zc_cache->lock();
 			mapping->get();
+			g_zc_cache->unlock();
 		}
 	}
 

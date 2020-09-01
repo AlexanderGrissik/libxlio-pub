@@ -58,7 +58,6 @@
 mapping_cache *g_zc_cache = NULL;
 
 mapping_t::mapping_t(file_uid_t &uid, mapping_cache *cache, ib_ctx_handler *p_ib_ctx) :
-	lock_spin("mapping_lock"),
 	m_allocator()
 {
 	m_state = MAPPING_STATE_UNMAPPED;
@@ -100,7 +99,7 @@ int mapping_t::map(int fd)
 		goto failed;
 	}
 
-	result = p_cache->memory_reserve(st.st_size);
+	result = p_cache->memory_reserve_unlocked(st.st_size);
 	if (!result) {
 		map_logdbg("Not enough space in the mapping cache %p", p_cache);
 		errno = ENOMEM;
@@ -188,20 +187,16 @@ bool mapping_t::memory_belongs(uintptr_t addr, size_t size)
 
 void mapping_t::get(void)
 {
-	lock();
 	++m_ref;
-	unlock();
 }
 
 void mapping_t::put(void)
 {
-	lock();
 	assert(m_ref > 0);
 	--m_ref;
 	if (m_ref == 0) {
 		p_cache->release_mapping(this);
 	}
-	unlock();
 }
 
 int mapping_t::duplicate_fd(int fd, bool &rw)
@@ -321,7 +316,18 @@ mapping_t *mapping_cache::get_mapping(int local_fd, void *p_ctx)
 quit:
 	if (mapping != NULL) {
 		mapping->get();
+
+                /* Mapping object may be unmapped, call mmap() in this case */
+                if (mapping->m_state == MAPPING_STATE_UNMAPPED) {
+                        rc = mapping->map(local_fd);
+                }
+
+                if (mapping->m_state == MAPPING_STATE_FAILED) {
+                        put_mapping(mapping);
+                        mapping = NULL;
+                }
 	}
+
 	unlock();
 	return mapping;
 }
@@ -370,7 +376,9 @@ m_n_sysvar_user_huge_page_size = size;
 
 void mapping_cache::put_mapping(mapping_t *mapping)
 {
+	lock();
 	mapping->put();
+	unlock();
 }
 
 void mapping_cache::release_mapping(mapping_t *mapping)
@@ -381,9 +389,7 @@ void mapping_cache::release_mapping(mapping_t *mapping)
 	if (mapping->m_state == MAPPING_STATE_FAILED)
 		return;
 
-	lock();
 	m_lru_list.push_back(mapping);
-	unlock();
 }
 
 void mapping_cache::handle_close(int local_fd)
@@ -432,11 +438,9 @@ void mapping_cache::handle_close(void *addr)
 	unlock();
 }
 
-bool mapping_cache::memory_reserve(size_t size)
+bool mapping_cache::memory_reserve_unlocked(size_t size)
 {
 	bool result = true;
-
-	lock();
 
 	if (m_used + size > m_threshold) {
 		result = cache_evict_unlocked(m_used + size - m_threshold);
@@ -444,8 +448,6 @@ bool mapping_cache::memory_reserve(size_t size)
 	if (result) {
 		m_used += size;
 	}
-
-	unlock();
 
 	return result;
 }
