@@ -1220,6 +1220,7 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 
 		notify_epoll = true;
 
+#if 0
 		// Add this new CQ channel fd to the rx epfd handle (no need to wake up any sleeping thread about this new fd)
 		epoll_event ev = {0, {0}};
 		ev.events = EPOLLIN;
@@ -1237,6 +1238,7 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 			}
 			BULLSEYE_EXCLUDE_BLOCK_END
 		}
+#endif
 
 		do_wakeup(); // A ready wce can be pending due to the drain logic (cq channel will not wake up by itself)
 	} else {
@@ -1293,6 +1295,7 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 				si_logerr("possible buffer leak, p_ring_info->rx_reuse_buff still contain %lu buffers.", p_ring_info->rx_reuse_info.rx_reuse.size());
 			}
 
+#if 0
 			size_t num_ring_rx_fds;
 			int *ring_rx_fds_array = base_ring->get_rx_channel_fds(num_ring_rx_fds);
 
@@ -1305,6 +1308,7 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 				}
 				BULLSEYE_EXCLUDE_BLOCK_END
 			}
+#endif
 
 			notify_epoll = true;
 
