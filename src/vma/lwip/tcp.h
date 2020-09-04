@@ -66,7 +66,7 @@ void register_ip_output(ip_output_fn fn);
 #endif /* LWIP_3RD_PARTY_L3 */
 
 #if LWIP_3RD_PARTY_BUFS
-typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, void *priv);
+typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, void *priv, struct pbuf *p_buff);
 
 void register_tcp_tx_pbuf_alloc(tcp_tx_pbuf_alloc_fn fn);
 

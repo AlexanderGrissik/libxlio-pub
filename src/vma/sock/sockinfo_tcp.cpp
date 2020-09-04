@@ -4662,7 +4662,7 @@ int sockinfo_tcp::free_buffs(uint16_t len)
 	return 0;
 }
 
-struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void *priv)
+struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void *priv, struct pbuf *p_buff)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
@@ -4672,7 +4672,21 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 		p_desc = p_dst->get_buffer(type, priv);
 		if (p_desc && (type == PBUF_ZEROCOPY) &&
 			priv && (((mapping_t *)priv)->m_state == MAPPING_STATE_USER)) {
-			p_desc = p_si_tcp->tcp_tx_zc_alloc(p_desc);
+			if (p_buff) {
+				/* It is a special case that can happen as a result
+				 * of split operation of existing zc buffer
+				 */
+				mem_buf_desc_t * p_prev_desc = (mem_buf_desc_t *)p_buff;
+				p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
+				p_desc->tx.zc.id = p_prev_desc->tx.zc.id;
+				p_desc->tx.zc.count = 1;
+				p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
+				p_desc->tx.zc.ctx = p_prev_desc->tx.zc.ctx;
+				p_desc->tx.zc.callback = tcp_tx_zc_callback;
+				p_prev_desc->tx.zc.count = 0;
+			} else {
+				p_si_tcp->tcp_tx_zc_alloc(p_desc);
+			}
 		}
 	}
 	return (struct pbuf *)p_desc;
