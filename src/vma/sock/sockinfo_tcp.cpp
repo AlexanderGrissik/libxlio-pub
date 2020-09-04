@@ -752,6 +752,7 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 	uint16_t apiflags = 0;
 	bool is_dummy = false;
 	bool block_this_run = false;
+	bool is_send_zerocopy = false;
 	void *tx_ptr = NULL;
 	__off64_t file_offset = 0;
 	mapping_t *mapping = NULL;
@@ -842,6 +843,7 @@ retry_is_ready:
 	 */
 	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
+		is_send_zerocopy = tx_arg.opcode != TX_FILE;
 	}
 
 	for (int i = 0; i < sz_iov; i++) {
@@ -910,6 +912,19 @@ retry_is_ready:
 
 			if (tx_size > p_iov[i].iov_len - pos) {
 				tx_size = p_iov[i].iov_len - pos;
+			}
+			if (is_send_zerocopy) {
+				/*
+				 * For send zerocopy we don't support pbufs which
+				 * cross huge page boundaries. To avoid forming
+				 * such a pbuf, we have to adjust tx_size, so
+				 * tcp_write receives a buffer which doesn't cross
+				 * the boundary.
+				 */
+				unsigned remainder = ~m_user_huge_page_mask + 1 -
+					((uint64_t)tx_ptr & ~m_user_huge_page_mask);
+				if (tx_size > remainder)
+					tx_size = remainder;
 			}
 retry_write:
 			if (unlikely(!is_rts())) {
@@ -999,9 +1014,7 @@ done:
 	 * data increments the counter.
 	 * The counter is not incremented on failure or if called with length zero.
 	 */
-	if ((tx_arg.opcode != TX_FILE) && 
-		(apiflags & VMA_TX_PACKET_ZEROCOPY) &&
-		(total_tx > 0)) {
+	if (is_send_zerocopy && (total_tx > 0)) {
 		if (m_last_zcdesc->tx.zc.id != (uint32_t)atomic_read(&m_zckey)) {
 			si_tcp_logerr("Invalid tx zcopy operation");
 		} else {

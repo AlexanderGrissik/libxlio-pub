@@ -342,9 +342,19 @@ mapping_t *mapping_cache::get_mapping(void *addr, size_t size, void *p_ctx)
 	void *masked_addr = (void *)((uint64_t)addr & m_user_huge_page_mask);
 	ib_ctx_handler *p_ib_ctx = (ib_ctx_handler *)p_ctx;
 
-masked_addr=addr;
-m_n_sysvar_user_huge_page_size = size;
-	assert(size <= m_n_sysvar_user_huge_page_size);
+	/* TODO:
+	 * This mapping is specific for SPDK at the moment
+	 * Finally it should be implemented in smart common manner.
+	 */
+//	masked_addr=addr;
+//	m_n_sysvar_user_huge_page_size = size;
+
+	if (((uintptr_t)addr - (uintptr_t)masked_addr + size) > m_n_sysvar_user_huge_page_size) {
+		map_logwarn("get_mapping: addr(%p:%d) -> (%p:%d)",
+				addr, (int)size, masked_addr, (int)m_n_sysvar_user_huge_page_size);
+		masked_addr=addr;
+		m_n_sysvar_user_huge_page_size = size;
+	}
 
 	lock();
 
