@@ -251,6 +251,7 @@ tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u8_t flags, u32_t seqno,
   if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
     /* XXX Don't hardcode size/offset */
     seg->tcphdr = (struct tcp_hdr *)(&seg->tcphdr_zc[10]);
+    seg->len = p->tot_len;
     goto set_tcphdr;
  }
 
@@ -437,6 +438,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
 #endif /* TCP_CHECKSUM_ON_COPY */
   err_t err;
   u16_t mss_local = 0;
+  u16_t mss_local_minus_opts;
 #if LWIP_TSO
   int tot_p = 0;
 #endif /* LWIP_TSO */
@@ -492,8 +494,10 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
 #endif /* LWIP_TCP_TIMESTAMPS */
 
   optlen = LWIP_TCP_OPT_LENGTH( optflags );
+  mss_local_minus_opts = mss_local - optlen;
   if (is_zerocopy) {
-    assert(optlen == 0); /* FIXME_ZC - do we need to handle this? */
+    /* TCP options will reside in seg->tcphdr_zc */
+    optlen = 0;
   }
   if (is_file) {
     offset = offset_next = *(__off64_t *)arg;
@@ -625,7 +629,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
   while (pos < len) {
     struct pbuf *p;
     u32_t left = len - pos;
-    u16_t max_len = mss_local - optlen;
+    u16_t max_len = mss_local_minus_opts;
     u16_t seglen = left > max_len ? max_len : left;
 
     /* create pbuf of the exact size needed now, to later avoid the p1 (oversize) flow */
@@ -1084,7 +1088,7 @@ err:
   /* All segments that greater than MSS must be processed as TSO segments
    * For example it can be actual for segments with large (more than MSS) buffer size
    */
-  if (seg->len > pcb->mss) {
+  if (seg->len + LWIP_TCP_OPT_LENGTH(seg->flags) > pcb->mss) {
     seg->flags |= TF_SEG_OPTS_TSO;
   }
 
@@ -1114,6 +1118,7 @@ tcp_split_one_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t lentosend,
   if (is_zerocopy) {
     tcp_hlen_delta = 0;
     type = PBUF_ZEROCOPY;
+    optlen = 0;
   } else {
     tcp_hlen_delta = TCP_HLEN;
   }
@@ -1189,7 +1194,7 @@ tcp_split_one_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t lentosend,
   result = seg;
 
 out:
-  if (cur_seg->len > pcb->mss) {
+  if (cur_seg->len + LWIP_TCP_OPT_LENGTH(cur_seg->flags) > pcb->mss) {
     cur_seg->flags |= TF_SEG_OPTS_TSO;
   }
   if (pcb->last_unsent == seg) {
@@ -1220,6 +1225,7 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   struct pbuf *cur_p = NULL;
   int tcp_hlen_delta;
   u16_t mss_local = 0;
+  u16_t mss_local_minus_opts;
   u8_t optflags = 0;
   u8_t optlen = 0;
   u32_t seqno = 0;
@@ -1256,10 +1262,11 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   }
 #endif /* LWIP_TCP_TIMESTAMPS */
 
-  optlen += LWIP_TCP_OPT_LENGTH(optflags);
+  optlen = LWIP_TCP_OPT_LENGTH(optflags);
+  mss_local_minus_opts = mss_local - optlen;
 
   if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
-    assert(optlen == 0);
+    optlen = 0;
     optflags |= TF_SEG_OPTS_ZEROCOPY;
     tcp_hlen_delta = 0;
   } else {
@@ -1293,7 +1300,7 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     seqno = cur_seg->seqno + cur_seg->p->len - tcp_hlen_delta - optlen;
     if (NULL == (new_seg = tcp_create_segment(pcb, cur_p, 0,  seqno, optflags))) {
       LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_one_segment: could not allocate memory for segment\n"));
-      if (cur_seg->len > pcb->mss) {
+      if (cur_seg->len + LWIP_TCP_OPT_LENGTH(cur_seg->flags) > pcb->mss) {
         cur_seg->flags |= TF_SEG_OPTS_TSO;
       }
       /* Avoid corrupting original segment's buffer in case of failure */
@@ -1323,9 +1330,9 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 
     tcp_seg_move_flags(cur_seg, new_seg, TCP_FIN | TCP_RST);
 
-    if (NULL == tcp_split_one_segment(pcb, cur_seg, mss_local, optflags, optlen)) {
+    if (NULL == tcp_split_one_segment(pcb, cur_seg, mss_local_minus_opts, optflags, optlen)) {
         LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_one_segment: could not allocate memory for segment\n"));
-        if (new_seg->len > pcb->mss) {
+        if (new_seg->len + LWIP_TCP_OPT_LENGTH(cur_seg->flags) > pcb->mss) {
           new_seg->flags |= TF_SEG_OPTS_TSO;
         }
         return seg;
@@ -1335,7 +1342,7 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     cur_p = cur_seg->p->next;
   }
 
-  if (NULL == tcp_split_one_segment(pcb, cur_seg, mss_local, optflags, optlen)) {
+  if (NULL == tcp_split_one_segment(pcb, cur_seg, mss_local_minus_opts, optflags, optlen)) {
       LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_split_one_segment: could not allocate memory for segment\n"));
       return seg;
   }
@@ -1389,15 +1396,16 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 #endif /* LWIP_TCP_TIMESTAMPS */
 #endif /* LWIP_TSO */
 
+  optlen = LWIP_TCP_OPT_LENGTH(optflags);
+
   if (is_zerocopy) {
     optflags |= TF_SEG_OPTS_ZEROCOPY;
     type = PBUF_ZEROCOPY;
+    optlen = 0;
     tcp_hlen_delta = 0;
   } else {
     tcp_hlen_delta = TCP_HLEN;
   }
-
-  optlen += LWIP_TCP_OPT_LENGTH( optflags );
 
   if (seg->p->len > ((tcp_hlen_delta + optlen) + lentosend)) {
     /* First buffer is too big, split it */
@@ -1892,9 +1900,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
     p->type = PBUF_ROM;
     p->payload = seg->tcphdr;
     p->next = seg->p;
-    /* We don't support options */
-    p->len = TCP_HLEN;
-    p->tot_len = TCP_HLEN;
+    p->len = p->tot_len = LWIP_TCP_HDRLEN(seg->tcphdr);
   } else {
     len = (u16_t)((u8_t *)seg->tcphdr - (u8_t *)seg->p->payload);
 

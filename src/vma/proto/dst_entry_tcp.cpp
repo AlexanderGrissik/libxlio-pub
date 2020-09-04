@@ -48,6 +48,9 @@
 #define dst_tcp_logfine            __log_info_fine
 #define dst_tcp_logfuncall         __log_info_finer
 
+#ifndef TCP_HLEN
+#define TCP_HLEN 20
+#endif
 
 dst_entry_tcp::dst_entry_tcp(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port,
 			     socket_data &sock_data , resource_allocation_key &ring_alloc_logic):
@@ -115,6 +118,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			(is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO)) ||
 			(sz_iov == 1 && !is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_REXMIT)))))) {
 		size_t total_packet_len = 0;
+		size_t tcp_hdr_len;
 		vma_ibv_send_wr send_wqe;
 		wqe_send_handler send_wqe_h;
 		void *masked_addr;
@@ -132,6 +136,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
                  * m_total_hdr_len is a size of L2/L3 header
                  */
                 total_packet_len = attr.length + m_header.m_total_hdr_len;
+		tcp_hdr_len = p_pkt->hdr.m_tcp_hdr.doff * 4;
 
 		/* copy just L2/L3 headers to p_pkt */
 		m_header.copy_l2_ip_hdr(p_pkt);
@@ -152,18 +157,18 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			if (attr.mss < (attr.length - p_pkt->hdr.m_tcp_hdr.doff * 4)) {
 				send_wqe_h.enable_tso(send_wqe,
 					(void *)((uint8_t*)p_pkt + hdr_alignment_diff),
-					m_header.m_total_hdr_len + p_pkt->hdr.m_tcp_hdr.doff * 4,
-					attr.mss);
+					m_header.m_total_hdr_len + tcp_hdr_len,
+					attr.mss - (tcp_hdr_len - TCP_HLEN));
 			} else {
 				send_wqe_h.enable_tso(send_wqe,
 					(void *)((uint8_t*)p_pkt + hdr_alignment_diff),
-					m_header.m_total_hdr_len + p_pkt->hdr.m_tcp_hdr.doff * 4,
+					m_header.m_total_hdr_len + tcp_hdr_len,
 					0);
 			}
 			m_p_send_wqe = &send_wqe;
 			if (!is_zerocopy) {
-				p_tcp_iov[0].iovec.iov_base = (uint8_t *)&p_pkt->hdr.m_tcp_hdr + p_pkt->hdr.m_tcp_hdr.doff * 4;
-				p_tcp_iov[0].iovec.iov_len -= p_pkt->hdr.m_tcp_hdr.doff * 4;
+				p_tcp_iov[0].iovec.iov_base = (uint8_t *)&p_pkt->hdr.m_tcp_hdr + tcp_hdr_len;
+				p_tcp_iov[0].iovec.iov_len -= tcp_hdr_len;
 			}
 		} else {
 			m_p_send_wqe = &m_not_inline_send_wqe;

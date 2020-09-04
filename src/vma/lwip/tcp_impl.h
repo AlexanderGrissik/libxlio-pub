@@ -308,14 +308,14 @@ struct tcp_seg {
 #define TF_SEG_OPTS_ZEROCOPY    (u8_t)TCP_WRITE_ZEROCOPY /* Use zerocopy send mode */
 
   struct tcp_hdr *tcphdr;  /* the TCP header */
-  /* 16 elements to make segment objects be aligned by 64 bit in the array */
-  u32_t tcphdr_zc[16] __attribute__ ((aligned (16))); /* XXX don't hardcode size/offset */
+  /* TCP header for zerocopy segments, it must have enough room for options */
+  u32_t tcphdr_zc[20] __attribute__ ((aligned (16)));
 };
 
 #define LWIP_IS_DUMMY_SEGMENT(seg) (seg->flags & TF_SEG_OPTS_DUMMY_MSG)
 
 #if LWIP_TCP_TIMESTAMPS
-#define LWIP_TCP_OPT_LEN_TS     10
+#define LWIP_TCP_OPT_LEN_TS     12
 #endif
 
 /* This macro calculates total length of tcp additional options
