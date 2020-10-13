@@ -154,13 +154,14 @@ int mapping_t::unmap(void)
 	assert(m_state == MAPPING_STATE_MAPPED);
 	assert(is_free());
 
+        map_logdbg("Unmapped: pid=%u fd=%d addr=%p size=%zu.",
+                   (unsigned)getpid(), m_fd, m_addr, m_size);
+
 	m_allocator.deregister_memory();
 	rc = munmap(m_addr, m_size);
 	if (rc < 0) {
 		map_logerr("munmap() errno=%d (%s)", errno, strerror(errno));
 	}
-	map_logdbg("Unmapped: pid=%u fd=%d addr=%p size=%zu.",
-		   (unsigned)getpid(), m_fd, m_addr, m_size);
 	p_cache->memory_free(m_size);
 	orig_os_api.close(m_fd);
 	m_fd = -1;

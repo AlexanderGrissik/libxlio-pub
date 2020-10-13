@@ -357,6 +357,14 @@ bool ring_slave::attach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink *sink)
 		ring_logerr("attach_flow=%d failed!", ret);
 	}
 
+#if defined(DEFINED_NGINX)
+	/* coverity[leaked_storage]
+	 * Storage leak happens due to g_b_add_second_4t_rule logic
+	 * created new rfs pointed by p_rfs is not stored in map
+	 * and as a result it is not destroyed
+	 */
+#endif
+	/* coverity[leaked_storage] */
 	return ret;
 }
 

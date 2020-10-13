@@ -361,32 +361,38 @@ int init_child_process_for_nginx()
 		socket_fd_api* fd = g_p_fd_collection_parent_process->get_sockfd(i);
 		if (fd && fd->m_is_listen) {
 			struct sockaddr_in addr;
+			int ret = 0;
 			socklen_t tmp_sin_len = sizeof(sockaddr_in);
 			fd->getsockname((struct sockaddr*) & addr, &tmp_sin_len);
 			srdr_logdbg("found listen socket %d\n", fd->get_fd());
 			g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
 			fd = g_p_fd_collection->get_sockfd(i);
-			bind(i, (struct sockaddr*) & addr, tmp_sin_len);
-			int ret = fd->prepareListen(); // for verifying that the socket is really offloaded
-			if (ret < 0) {
-				srdr_logerr("prepareListen error\n");
-				fd = NULL;
-			}
-			else if (ret > 0) { // Pass-through
-				handle_close(fd->get_fd(), false, true);
-				fd = NULL;
-			}
-			else {
-				srdr_logdbg("Prepare listen successfully offloaded\n");
-			}
-
 			if (fd) {
-				ret = fd->listen(fd->m_back_log);
+				ret = bind(i, (struct sockaddr*) & addr, tmp_sin_len);
 				if (ret < 0) {
-					srdr_logerr("Listen error\n");
+					srdr_logerr("bind() error\n");
+				}
+				ret = fd->prepareListen(); // for verifying that the socket is really offloaded
+				if (ret < 0) {
+					srdr_logerr("prepareListen error\n");
+					fd = NULL;
+				}
+				else if (ret > 0) { // Pass-through
+					handle_close(fd->get_fd(), false, true);
+					fd = NULL;
 				}
 				else {
-					srdr_logdbg("Listen success\n");
+					srdr_logdbg("Prepare listen successfully offloaded\n");
+				}
+
+				if (fd) {
+					ret = fd->listen(fd->m_back_log);
+					if (ret < 0) {
+						srdr_logerr("Listen error\n");
+					}
+					else {
+						srdr_logdbg("Listen success\n");
+					}
 				}
 			}
 		}

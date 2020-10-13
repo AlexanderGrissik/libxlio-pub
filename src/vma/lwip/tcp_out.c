@@ -1365,8 +1365,7 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   u16_t mss_local = 0;
   u16_t max_length;
   pbuf_type type = PBUF_RAM;
-
-  int is_zerocopy = seg->flags & TF_SEG_OPTS_ZEROCOPY ? 1 : 0;
+  int is_zerocopy = 0;
 
   LWIP_ASSERT("tcp_split_segment: sanity check", (seg && seg->p));
 
@@ -1374,6 +1373,7 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     return ;
   }
 
+  is_zerocopy = seg->flags & TF_SEG_OPTS_ZEROCOPY ? 1 : 0;
   lentosend = (wnd - (seg->seqno - pcb->lastack));
 
 #if LWIP_TSO

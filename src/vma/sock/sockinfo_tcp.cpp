@@ -2520,6 +2520,9 @@ int sockinfo_tcp::listen(int backlog)
 
 	int orig_backlog = backlog;
 
+#if defined(DEFINED_NGINX)
+        backlog = 65535;
+#else
 	if (backlog > safe_mce_sys().sysctl_reader.get_listen_maxconn()) {
 		si_tcp_logdbg("truncating listen backlog=%d to the maximun=%d", backlog, safe_mce_sys().sysctl_reader.get_listen_maxconn());
 		backlog = safe_mce_sys().sysctl_reader.get_listen_maxconn();
@@ -2530,8 +2533,6 @@ int sockinfo_tcp::listen(int backlog)
 	}
 	if (backlog >= 5)
 		backlog = 10 + 2 * backlog; // allow grace, inspired by Linux
-#if defined(DEFINED_NGINX)
-	backlog = 65535;
 #endif
 
 	lock_tcp_con();
