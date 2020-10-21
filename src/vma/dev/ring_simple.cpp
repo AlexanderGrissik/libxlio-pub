@@ -643,6 +643,13 @@ int ring_simple::mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_
 	return accounting;
 }
 
+void ring_simple::mem_buf_rx_release(mem_buf_desc_t* p_mem_buf_desc)
+{
+	p_mem_buf_desc->p_next_desc = NULL;
+	/* Call this method under m_lock_ring_rx lock */
+	reclaim_recv_buffers_no_lock(p_mem_buf_desc);
+}
+
 /* note that this function is inline, so keep it above the functions using it */
 inline int ring_simple::send_buffer(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr)
 {
