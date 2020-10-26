@@ -311,6 +311,7 @@ private:
 	static const unsigned TX_CONSECUTIVE_EAGAIN_THREASHOLD = 10;
 	unsigned	m_tx_consecutive_eagain_count;
 	bool		m_sysvar_rx_poll_on_tx_tcp;
+	uint64_t	m_user_huge_page_mask;
 
 	inline void init_pbuf_custom(mem_buf_desc_t *p_desc);
 

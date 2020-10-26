@@ -245,7 +245,6 @@ mapping_cache::mapping_cache(size_t threshold) :
 	lock_spin("mapping_cache_lock"),
 	m_cache_uid(),
 	m_cache_fd(),
-	m_cache_addr(),
 	m_lru_list()
 {
 	memset(&m_stats, 0, sizeof(m_stats));
@@ -261,11 +260,7 @@ mapping_cache::~mapping_cache()
 		handle_close(iter->first);
 	}
 
-	for (mapping_addr_map_iter_t iter = m_cache_addr.begin(); iter != m_cache_addr.end(); ++iter) {
-		handle_close((void *)iter->first);
-	}
 	assert(m_cache_fd.empty());
-	assert(m_cache_addr.empty());
 
 	while (!m_lru_list.empty()) {
 		mapping = m_lru_list.get_and_pop_front();
@@ -332,58 +327,6 @@ quit:
 	return mapping;
 }
 
-mapping_t *mapping_cache::get_mapping(void *addr, size_t size, void *p_ctx)
-{
-	mapping_t *mapping = NULL;
-	mapping_addr_map_iter_t iter;
-	file_uid_t uid = {(dev_t)-1, (ino_t)-1};
-	uint64_t m_n_sysvar_user_huge_page_size = safe_mce_sys().user_huge_page_size;
-	uint64_t m_user_huge_page_mask = ~((uint64_t)m_n_sysvar_user_huge_page_size - 1);
-	void *masked_addr = (void *)((uint64_t)addr & m_user_huge_page_mask);
-	ib_ctx_handler *p_ib_ctx = (ib_ctx_handler *)p_ctx;
-
-	/* TODO:
-	 * This mapping is specific for SPDK at the moment
-	 * Finally it should be implemented in smart common manner.
-	 */
-//	masked_addr=addr;
-//	m_n_sysvar_user_huge_page_size = size;
-
-	if (((uintptr_t)addr - (uintptr_t)masked_addr + size) > m_n_sysvar_user_huge_page_size) {
-		map_logwarn("get_mapping: addr(%p:%d) -> (%p:%d)",
-				addr, (int)size, masked_addr, (int)m_n_sysvar_user_huge_page_size);
-		masked_addr=addr;
-		m_n_sysvar_user_huge_page_size = size;
-	}
-
-	lock();
-
-	iter = m_cache_addr.find((uintptr_t)masked_addr);
-	if (iter != m_cache_addr.end()) {
-		mapping = iter->second;
-		if (mapping->is_free() && mapping->m_state == MAPPING_STATE_USER) {
-			m_lru_list.erase(mapping);
-		}
-	}
-
-	if (mapping == NULL) {
-		mapping = new mapping_t(uid, this, p_ib_ctx);
-		if (mapping != NULL) {
-			mapping->m_allocator.alloc_and_reg_mr(m_n_sysvar_user_huge_page_size, p_ib_ctx, masked_addr);
-			mapping->m_state = MAPPING_STATE_USER;
-			m_cache_uid[uid] = mapping;
-			m_cache_addr[(uintptr_t)masked_addr] = mapping;
-			++mapping->m_owners;
-		}
-	}
-
-	if (mapping != NULL) {
-		mapping->get();
-	}
-	unlock();
-	return mapping;
-}
-
 void mapping_cache::put_mapping(mapping_t *mapping)
 {
 	lock();
@@ -420,29 +363,6 @@ void mapping_cache::handle_close(int local_fd)
 			delete mapping;
 		}
 		m_cache_fd.erase(iter);
-		/* TODO Check FAILED mappings, maybe they will appear in lru list */
-	}
-	unlock();
-}
-
-void mapping_cache::handle_close(void *addr)
-{
-	mapping_t *mapping;
-	mapping_addr_map_iter_t iter;
-
-	lock();
-	iter = m_cache_addr.find((uintptr_t)addr);
-	if (iter != m_cache_addr.end()) {
-		mapping = iter->second;
-		assert(mapping->m_owners > 0);
-		--mapping->m_owners;
-		if (mapping->m_owners == 0 &&
-			(mapping->m_state != MAPPING_STATE_USER && mapping->m_state != MAPPING_STATE_UNKNOWN)) {
-			m_cache_uid.erase(mapping->m_uid);
-			mapping->m_state = MAPPING_STATE_USER;
-			delete mapping;
-		}
-		m_cache_addr.erase(iter);
 		/* TODO Check FAILED mappings, maybe they will appear in lru list */
 	}
 	unlock();

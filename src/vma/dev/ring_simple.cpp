@@ -1110,33 +1110,34 @@ int ring_simple::get_ring_descriptors(vma_mlx_hw_device_data &d)
 	return 0;
 }
 
-uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length)
+uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length, void *p_mapping /*=NULL*/)
 {
 	uint32_t lkey;
 
-#if 0
-	lkey = m_user_lkey_map.get(addr, 0);
-	if (!lkey) {
-		lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
-		if (lkey == (uint32_t)(-1))
-			ring_logerr("Can't register user memory addr %p len %lx", addr, length);
-		else
-			m_user_lkey_map.set(addr, lkey);
-	}
-#else
 	/*
-	 * XXX This implementation works only for zerocopy sendfile() PoC.
-	 * It breaks compatibility with send() zerocopy. We need to unify
-	 * sendfile's mapping, user's zerocopy buffer and buffer_pool's
-	 * registered memory as a memory region entity and assign this entity
-	 * to each buffer. So we can find lkey for any memory type quickly.
+	 * Current implementation supports 2 modes:
+	 * 1. Per ring registration cache where addr is the key
+	 * 2. Proxy query to an external mapping object
+	 *
+	 * The 1st mode is used for send zerocopy and the 2nd made is used for
+	 * sendfile offload. These 2 modes are differentiated by p_mapping
+	 * value. It is NULL in the 1st case.
+	 *
+	 * TODO In the 1st mode we don't support memory deregistration.
 	 */
-	(void)length;
-
-	mapping_t *mapping = (mapping_t *)addr;
-
-	lkey = mapping->get_lkey_by_ib_ctx(m_p_ib_ctx);
-#endif
+	if (p_mapping == NULL) {
+		lkey = m_user_lkey_map.get(addr, 0);
+		if (!lkey) {
+			lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
+			if (lkey == (uint32_t)(-1))
+				ring_logerr("Can't register user memory addr %p len %lx", addr, length);
+			else
+				m_user_lkey_map.set(addr, lkey);
+		}
+	} else {
+		mapping_t *mapping = (mapping_t *)p_mapping;
+		lkey = mapping->get_lkey_by_ib_ctx(m_p_ib_ctx);
+	}
 
 	return lkey;
 }

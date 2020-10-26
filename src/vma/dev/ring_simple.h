@@ -95,7 +95,7 @@ public:
 	virtual uint32_t	get_underly_qpn() { return m_p_qp_mgr->get_underly_qpn(); }
 	virtual int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
 	virtual int		get_tx_channel_fd() const { return m_p_tx_comp_event_channel ? m_p_tx_comp_event_channel->fd : -1; };
-	virtual uint32_t 	get_tx_user_lkey(void *addr, size_t length);
+	virtual uint32_t 	get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL);
         virtual uint32_t	get_max_inline_data();
 	void*			get_ctx(void) { return m_p_ib_ctx; }
 #ifdef DEFINED_TSO

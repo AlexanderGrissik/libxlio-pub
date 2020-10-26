@@ -228,7 +228,8 @@ sockinfo_tcp::sockinfo_tcp(int fd):
         m_sysvar_buffer_batching_mode(safe_mce_sys().buffer_batching_mode),
         m_sysvar_tcp_ctl_thread(safe_mce_sys().tcp_ctl_thread),
         m_sysvar_internal_thread_tcp_timer_handling(safe_mce_sys().internal_thread_tcp_timer_handling),
-        m_sysvar_rx_poll_on_tx_tcp(safe_mce_sys().rx_poll_on_tx_tcp)
+        m_sysvar_rx_poll_on_tx_tcp(safe_mce_sys().rx_poll_on_tx_tcp),
+	m_user_huge_page_mask(~((uint64_t)safe_mce_sys().user_huge_page_size - 1))
 {
 	si_tcp_logfuncall("");
 
@@ -755,7 +756,6 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 	bool is_send_zerocopy = false;
 	void *tx_ptr = NULL;
 	__off64_t file_offset = 0;
-	mapping_t *mapping = NULL;
 
 	/* Let allow OS to process all invalid scenarios to avoid any
 	 * inconsistencies in setting errno values
@@ -855,16 +855,6 @@ retry_is_ready:
 			tx_ptr = &file_offset;
 		} else {
 			tx_ptr = p_iov[i].iov_base;
-			/* Detect if zcopy from sendfile() or send() */
-			if ((apiflags & VMA_TX_PACKET_ZEROCOPY) && (tx_arg.opcode != TX_FILE)) {
-				mapping = g_zc_cache->get_mapping(p_iov[i].iov_base, p_iov[i].iov_len,
-						m_p_connected_dst_entry->get_ring()->get_ctx());
-				tx_arg.priv = (void *)mapping;
-				/* do not call
-				 * g_zc_cache->put_mapping(mapping);
-				 * at the moment */
-				assert(mapping);
-			}
 		}
 		while (pos < p_iov[i].iov_len) {
 			tx_size = tcp_sndbuf(&m_pcb);
@@ -989,17 +979,8 @@ retry_write:
 			pos += tx_size;
 			total_tx += tx_size;
 		}
-		if (mapping) {
-			g_zc_cache->put_mapping(mapping);
-			mapping = NULL;
-		}
 	}
 done:	
-	if (mapping) {
-		g_zc_cache->put_mapping(mapping);
-		mapping = NULL;
-	}
-
 	tcp_output(&m_pcb); // force data out
 
 	if (unlikely(is_dummy)) {
@@ -1036,10 +1017,6 @@ err:
 #ifdef VMA_TIME_MEASURE
 	INC_ERR_TX_COUNT;
 #endif
-	if (mapping) {
-		g_zc_cache->put_mapping(mapping);
-		mapping = NULL;
-	}
 
 	// nothing send  nb mode or got some other error
 	if (errno == EAGAIN)
@@ -1099,9 +1076,12 @@ zc_fill_iov:
 	 * Assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works.
 	 */
 	while (p && (count < max_count)) {
+		void *masked_addr = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base & p_si_tcp->m_user_huge_page_mask);
+		void *masked_addr2 = (void *)((uint64_t)p->payload & p_si_tcp->m_user_huge_page_mask);
+
 		cur_end = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base +
 					     lwip_iovec[count].iovec.iov_len);
-		if (cur_end == p->payload) {
+		if (cur_end == p->payload && masked_addr == masked_addr2) {
 			lwip_iovec[count].iovec.iov_len += p->len;
 		} else {
 			count++;
@@ -4683,8 +4663,8 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void
 
 	if (likely(p_dst)) {
 		p_desc = p_dst->get_buffer(type, priv);
-		if (p_desc && (type == PBUF_ZEROCOPY) &&
-			priv && (((mapping_t *)priv)->m_state == MAPPING_STATE_USER)) {
+		if (p_desc && (type == PBUF_ZEROCOPY) && priv == NULL) {
+			/* Prepare error queue fields for send zerocopy */
 			if (p_buff) {
 				/* It is a special case that can happen as a result
 				 * of split operation of existing zc buffer

@@ -214,11 +214,8 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			if (is_zerocopy) {
-				mapping_t *mapping = (mapping_t *)p_tcp_iov[i].p_desc->get_priv();
-				/* XXX We support zerocopy only for sendfile() now. */
-				/* masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask); */
-				masked_addr = (void *)mapping;
-				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size);
+				masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
+				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size, p_tcp_iov[i].p_desc->get_priv());
 				/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
 			} else {
 				m_sge[i].lkey = i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey;
@@ -508,7 +505,7 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, void *priv, bool b_blo
 			p_mem_buf_desc->lwip_pbuf.pbuf.payload = NULL;
 		}
 		p_mem_buf_desc->lwip_pbuf.pbuf.priv = priv;
-		if (type == PBUF_ZEROCOPY) {
+		if (type == PBUF_ZEROCOPY && priv != NULL) {
 			mapping_t *mapping = (mapping_t *)priv;
 			g_zc_cache->lock();
 			mapping->get();

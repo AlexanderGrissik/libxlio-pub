@@ -74,7 +74,6 @@ typedef enum {
 	MAPPING_STATE_UNKNOWN,
 	MAPPING_STATE_UNMAPPED,
 	MAPPING_STATE_MAPPED,
-	MAPPING_STATE_USER,
 	MAPPING_STATE_FAILED
 } mapping_state_t;
 
@@ -128,8 +127,6 @@ struct mapping_cache_stats {
 
 typedef std::tr1::unordered_map<int, mapping_t*> mapping_fd_map_t;
 typedef std::tr1::unordered_map<int, mapping_t*>::iterator mapping_fd_map_iter_t;
-typedef std::tr1::unordered_map<uintptr_t, mapping_t*> mapping_addr_map_t;
-typedef std::tr1::unordered_map<uintptr_t, mapping_t*>::iterator mapping_addr_map_iter_t;
 typedef std::tr1::unordered_map<file_uid_t, mapping_t*> mapping_uid_map_t;
 typedef std::tr1::unordered_map<file_uid_t, mapping_t*>::iterator mapping_uid_map_iter_t;
 typedef vma_list_t<mapping_t, mapping_t::mapping_node_offset> mapping_list_t;
@@ -140,11 +137,9 @@ public:
 	~mapping_cache();
 
 	mapping_t *get_mapping(int local_fd, void *p_ctx = NULL);
-	mapping_t *get_mapping(void *addr, size_t size, void *p_ctx = NULL);
 	void put_mapping(mapping_t *mapping);
 	void release_mapping(mapping_t *mapping);
 	void handle_close(int local_fd);
-	void handle_close(void *addr);
 
 	bool memory_reserve_unlocked(size_t size);
 	void memory_free(size_t size);
@@ -158,7 +153,6 @@ private:
 
 	mapping_uid_map_t m_cache_uid;
 	mapping_fd_map_t m_cache_fd;
-	mapping_addr_map_t m_cache_addr;
 	mapping_list_t m_lru_list;
 	size_t m_used;
 	size_t m_threshold;
