@@ -338,6 +338,26 @@ else
     AC_MSG_RESULT([no])
 fi
 
+# DPCP Library support
+#
+if test "x$vma_cv_directverbs" == x3; then
+    DPCP_CAPABILITY_SETUP()
+fi
+
+# Control NGINX support
+#
+AC_ARG_ENABLE([nginx],
+    AC_HELP_STRING([--enable-nginx],
+        [Enable NGINX availability (default=no)]))
+AC_MSG_CHECKING(
+    [for nginx support])
+if test "x$enable_nginx" = xyes; then
+    AC_DEFINE_UNQUOTED([DEFINED_NGINX], [1], [Define to 1 to support NGINX])
+    AC_MSG_RESULT([yes])
+else
+    AC_MSG_RESULT([no])
+fi
+
 AC_MSG_CHECKING([for md5 version of VMA statistics is])
 STATS_PROTOCOL_VER=`md5sum ${srcdir}/src/vma/util/vma_stats.h | awk '{ print $1}'`
 AC_DEFINE_UNQUOTED(STATS_PROTOCOL_VER, "${STATS_PROTOCOL_VER}", [Stats Protocol Version])
