@@ -31,31 +31,53 @@ function check_daemon()
     eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
 
     if systemctl >/dev/null 2>&1; then
-        echo "System has been booted with SystemD" >> ${out_log}
-        service=${install_dir}/sbin/vma
-    else
-        echo "System has been booted with SystemV" >> ${out_log}
-        service=${install_dir}/etc/init.d/vma
-    fi
+        service=${install_dir}/sbin/vmad
+        service_arg=${install_dir}/lib/systemd/system/vma.service
 
-    echo "daemon check output: ${service}" >> ${out_log}
-    if [ $(${sudo_cmd} ${service} start >>${out_log} 2>&1 || echo $?) ]; then
-        ret=1
-    fi
-    sleep 3
-    if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
-        ret=1
-    fi
-    if [ $(${sudo_cmd} ${service} status >>${out_log} 2>&1 || echo $?) ]; then
-        ret=1
-    fi
-    if [ $(${sudo_cmd} ${service} stop >>${out_log} 2>&1 || echo $?) ]; then
-        ret=1
-    fi
-    sleep 3
-    # Under docker containers vmad can be a zombie after killing
-    if [ "0" == "$ret" -a "" != "$(ps aux | grep vmad | egrep -v 'grep|defunct')" ]; then
-        ret=1
+        echo "System has been booted with SystemD" >> ${out_log}
+        echo "daemon check output: ${service}" >> ${out_log}
+
+        if [ $(sudo systemd-analyze verify ${service_arg} >>${out_log} 2>&1 || echo $?) ]; then
+            ret=1
+        fi
+        sleep 3
+        if [ $(sudo ${service} >>${out_log} 2>&1 || echo $?) ]; then
+            ret=1
+        fi
+        sleep 3
+        if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
+            ret=1
+        fi
+        sudo pkill -9 vmad >>${out_log} 2>&1
+        sleep 3
+        if [ "0" == "$ret" -a "" != "$(pgrep vmad)" ]; then
+            ret=1
+        fi
+    else
+        service=${install_dir}/etc/init.d/vma
+        service_arg=""
+
+        echo "System has been booted with SystemV" >> ${out_log}
+        echo "daemon check output: ${service}" >> ${out_log}
+
+        if [ $(${sudo_cmd} ${service} start >>${out_log} 2>&1 || echo $?) ]; then
+            ret=1
+        fi
+        sleep 3
+        if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
+            ret=1
+        fi
+        if [ $(${sudo_cmd} ${service} status >>${out_log} 2>&1 || echo $?) ]; then
+            ret=1
+        fi
+        if [ $(${sudo_cmd} ${service} stop >>${out_log} 2>&1 || echo $?) ]; then
+            ret=1
+        fi
+        sleep 3
+        # Under docker containers vmad can be a zombie after killing
+        if [ "0" == "$ret" -a "" != "$(ps aux | grep vmad | egrep -v 'grep|defunct')" ]; then
+            ret=1
+        fi
     fi
 
     eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
