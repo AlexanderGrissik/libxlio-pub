@@ -15,7 +15,7 @@ ln -s "${build_dir}/0/install" "${install_dir}"
 
 build_list="\
 default: \
-opt-log:--enable-opt-log=no"
+debug:--enable-opt-log=no --enable-debug"
 
 
 build_tap=${WORKSPACE}/${prefix}/build.tap
