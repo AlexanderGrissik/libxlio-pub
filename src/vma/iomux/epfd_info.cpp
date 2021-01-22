@@ -621,7 +621,7 @@ int epfd_info::ring_poll_and_process_element(uint64_t *p_poll_sn, void* pv_fd_re
 			__log_func("ring[%p] RX Returned with: %d (sn=%d)", iter->first, ret, *p_poll_sn);
 			ret_total += ret;
 		}
-
+#if defined(DEFINED_ZCOPY)
 		ret = iter->first->poll_and_process_element_tx(p_poll_sn);
 		BULLSEYE_EXCLUDE_BLOCK_START
 		if (ret < 0 && errno != EAGAIN) {
@@ -634,6 +634,7 @@ int epfd_info::ring_poll_and_process_element(uint64_t *p_poll_sn, void* pv_fd_re
 			__log_func("ring[%p] TX Returned with: %d (sn=%d)", iter->first, ret, *p_poll_sn);
 			ret_total += ret;
 		}
+#endif /* DEFINED_ZCOPY */
 	}
 
 	m_ring_map_lock.unlock();
@@ -670,7 +671,7 @@ int epfd_info::ring_request_notification(uint64_t poll_sn)
 		BULLSEYE_EXCLUDE_BLOCK_END
 		__log_func("ring[%p] RX Returned with: %d (sn=%d)", iter->first, ret, poll_sn);
 		ret_total += ret;
-
+#if defined(DEFINED_ZCOPY)
 		ret = iter->first->request_notification(CQT_TX, poll_sn);
 		BULLSEYE_EXCLUDE_BLOCK_START
 		if (ret < 0) {
@@ -681,6 +682,7 @@ int epfd_info::ring_request_notification(uint64_t poll_sn)
 		BULLSEYE_EXCLUDE_BLOCK_END
 		__log_func("ring[%p] TX Returned with: %d (sn=%d)", iter->first, ret, poll_sn);
 		ret_total += ret;
+#endif /* DEFINED_ZCOPY */
 	}
 
 	m_ring_map_lock.unlock();
