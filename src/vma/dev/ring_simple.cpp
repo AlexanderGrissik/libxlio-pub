@@ -109,7 +109,6 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 	m_tx_num_bufs(0), m_zc_num_bufs(0), m_tx_num_wr(0), m_tx_num_wr_free(0),
 	m_b_qp_tx_first_flushed_completion_handled(false), m_missing_buf_ref_count(0),
 	m_tx_lkey(0),
-	m_sendfile_lkey(0),
 	m_gro_mgr(safe_mce_sys().gro_streams_max, MAX_GRO_BUFS), m_up(false),
 	m_p_rx_comp_event_channel(NULL), m_p_tx_comp_event_channel(NULL), m_p_l2_addr(NULL)
 {
@@ -1099,7 +1098,7 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length, void *p_mappin
 		}
 	} else {
 		mapping_t *mapping = (mapping_t *)p_mapping;
-		lkey = mapping->get_lkey_by_ib_ctx(m_p_ib_ctx);
+		lkey = mapping->get_lkey(NULL, m_p_ib_ctx, addr, length);
 	}
 
 	return lkey;

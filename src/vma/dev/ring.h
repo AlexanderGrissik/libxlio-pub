@@ -123,7 +123,7 @@ public:
 	virtual uint32_t	get_tx_lkey(ring_user_id_t id) = 0;
         virtual bool		is_tso(void) = 0;
 #endif /* DEFINED_TSO */
-	virtual void*		get_ctx(void) = 0;
+	virtual ib_ctx_handler*	get_ctx(ring_user_id_t id) = 0;
 
 	virtual int		socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags) = 0;
 

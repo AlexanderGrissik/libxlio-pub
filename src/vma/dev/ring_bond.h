@@ -81,7 +81,7 @@ public:
 	/* XXX TODO We have to support ring_bond for zerocopy. */
 	virtual uint32_t        get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) { NOT_IN_USE(p_mapping), NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-1; }
         virtual uint32_t	get_max_inline_data();
-	void*			get_ctx(void) { return NULL; }
+	ib_ctx_handler*		get_ctx(ring_user_id_t id) { return m_xmit_rings[id]->get_ctx(0); }
 #ifdef DEFINED_TSO
         virtual uint32_t	get_max_send_sge(void);
         virtual uint32_t	get_max_payload_sz(void);

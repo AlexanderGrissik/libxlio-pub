@@ -123,6 +123,7 @@ libxlio_la_SOURCES := \
 	proto/neighbour.cpp \
 	proto/neighbour_table_mgr.cpp \
 	proto/L2_address.cpp \
+	proto/mem_desc.cpp \
 	proto/mapping.cpp \
 	proto/route_table_mgr.cpp \
 	proto/route_entry.cpp \
@@ -236,6 +237,7 @@ libxlio_la_SOURCES := \
 	netlink/route_info.h \
 	\
 	proto/arp.h \
+	proto/mem_desc.h \
 	proto/dst_entry.h \
 	proto/dst_entry_tcp.h \
 	proto/dst_entry_udp.h \

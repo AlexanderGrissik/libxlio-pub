@@ -98,7 +98,7 @@ public:
 	virtual int		get_tx_channel_fd() const { return m_p_tx_comp_event_channel ? m_p_tx_comp_event_channel->fd : -1; };
 	virtual uint32_t 	get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL);
         virtual uint32_t	get_max_inline_data();
-	void*			get_ctx(void) { return m_p_ib_ctx; }
+	ib_ctx_handler*         get_ctx(ring_user_id_t id) { NOT_IN_USE(id); return m_p_ib_ctx; }
 #ifdef DEFINED_TSO
         virtual uint32_t	get_max_send_sge(void);
         virtual uint32_t	get_max_payload_sz(void);
@@ -209,7 +209,6 @@ private:
 	bool			m_b_qp_tx_first_flushed_completion_handled;
 	uint32_t		m_missing_buf_ref_count;
 	uint32_t		m_tx_lkey; // this is the registered memory lkey for a given specific device for the buffer pool use
-	uint32_t		m_sendfile_lkey;
 	gro_mgr			m_gro_mgr;
 	bool			m_up;
 	struct ibv_comp_channel* m_p_rx_comp_event_channel;

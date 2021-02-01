@@ -1901,7 +1901,7 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 			 * mapping exists and the file becomes larger.
 			 * As workaround, fallback to preadv() implementation.
 			 */
-			g_zc_cache->put_mapping(mapping);
+			mapping->put();
 			rc = fstat(in_fd, &st_buf);
 			if ((rc == 0) && (st_buf.st_size >= (off_t)(cur_offset + count))) {
 				s->m_p_socket_stats->counters.n_tx_sendfile_overflows++;
@@ -1923,8 +1923,7 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		tx_arg.priv.map = (void *)mapping;
 		totSent = p_socket_object->tx(tx_arg);
 
-		g_zc_cache->put_mapping(mapping);
-
+		mapping->put();
 fallback:
 #endif /* DEFINED_TSO */
 		/* Fallback to readv() implementation */

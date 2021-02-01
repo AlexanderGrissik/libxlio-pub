@@ -34,6 +34,7 @@
 
 #include "dst_entry_tcp.h"
 #include "mapping.h"
+#include "mem_desc.h"
 #include <netinet/tcp.h>
 
 #define MODULE_NAME             "dst_tcp"
@@ -209,6 +210,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 		 * ref counter is incremented (above) for the first memory descriptor only because it is needed
 		 * for processing send wr completion (tx batching mode)
 		 */
+		ib_ctx_handler *ib_ctx = m_p_ring->get_ctx(m_id);
 		for (int i = 0; i < sz_iov; ++i) {
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
@@ -216,6 +218,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 				if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
 					/* PBUF_DESC_MKEY - value is provided by user */
 					m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mkey;
+				} else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
+					mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mdesc;
+					m_sge[i].lkey = mdesc->get_lkey(p_tcp_iov[i].p_desc, ib_ctx, (void*)m_sge[i].addr, m_sge[i].length);
 				} else {
 					/* Do not check desc.attr for specific type because
 					 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
@@ -226,7 +231,6 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 					m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr,
 							m_n_sysvar_user_huge_page_size,
 							p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.map);
-					/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
 				}
 			} else {
 				m_sge[i].lkey = (i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey);
@@ -521,12 +525,13 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc, bool 
 		memset(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, 0, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
 		if (desc) {
 			memcpy(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, desc, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
-			if (p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY &&
+			if (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MDESC) {
+				mem_desc *mdesc = (mem_desc *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.mdesc;
+				mdesc->get();
+			} else if (p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY &&
 					(p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MAP)) {
 				mapping_t *mapping = (mapping_t *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.map;
-				g_zc_cache->lock();
 				mapping->get();
-				g_zc_cache->unlock();
 			}
 		}
 	}

@@ -745,17 +745,17 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 {
 	iovec* p_iov = tx_arg.attr.msg.iov;
 	ssize_t sz_iov = tx_arg.attr.msg.sz_iov;
-	int __flags = tx_arg.attr.msg.flags;
 	struct sockaddr *__dst = tx_arg.attr.msg.addr;
 	socklen_t __dstlen = tx_arg.attr.msg.len;
+	int __flags = tx_arg.attr.msg.flags;
 	int errno_tmp = errno;
 	int total_tx = 0;
 	unsigned tx_size;
-	err_t err;
 	unsigned pos = 0;
 	int ret = 0;
 	int poll_count = 0;
 	uint16_t apiflags = 0;
+	err_t err;
 	bool is_dummy = false;
 	bool block_this_run = false;
 	bool is_send_zerocopy = false;
@@ -771,7 +771,7 @@ ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 			(0 >= sz_iov) ||
 			(NULL == p_iov[0].iov_base))) {
 		goto tx_packet_to_os;
-		}
+	}
 
 #ifdef VMA_TIME_MEASURE
 	TAKE_T_TX_START;
@@ -4103,7 +4103,11 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
 				if (m_p_connected_dst_entry) {
 					ring* tx_ring = m_p_connected_dst_entry->get_ring();
 					if (tx_ring) {
-						ib_ctx_handler* p_ib_ctx_h = (ib_ctx_handler *)tx_ring->get_ctx();
+						/*
+						 * For bonding we get context of the 1st slave. This approach
+						 * works for RoCE LAG mode.
+						 */
+						ib_ctx_handler* p_ib_ctx_h = (ib_ctx_handler *)tx_ring->get_ctx(0);
 						if (p_ib_ctx_h) {
 							struct vma_pd_attr* pd_attr = (struct vma_pd_attr *)__optval;
 							pd_attr->flags = 0;

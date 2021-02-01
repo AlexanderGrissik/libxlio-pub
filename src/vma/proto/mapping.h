@@ -34,6 +34,7 @@
 #define VMA_MAPPING_H
 
 #include "vma/dev/allocator.h"
+#include "vma/proto/mem_desc.h"
 #include "vma/util/vma_list.h"
 
 #include <assert.h>
@@ -78,7 +79,7 @@ typedef enum {
 } mapping_state_t;
 
 /* TODO replace with rwlock */
-class mapping_t {
+class mapping_t : public mem_desc, lock_spin {
 public:
 	mapping_t(file_uid_t &uid, mapping_cache *cache, ib_ctx_handler *p_ib_ctx);
 	~mapping_t();
@@ -86,18 +87,17 @@ public:
 	int map(int fd);
 	int unmap(void);
 
-	uint32_t get_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx);
-	bool memory_belongs(uintptr_t addr, size_t size);
-
+	/* mem_desc interface */
+	uint32_t get_lkey(mem_buf_desc_t *desc, ib_ctx_handler *ib_ctx,
+			  void *addr, size_t len);
 	void get(void);
 	void put(void);
 
-	bool is_free(void) { return m_ref == 0; }
 
-	static void static_get(void *ptr) {
-		mapping_t *mapping = (mapping_t *)ptr;
-		mapping->get();
-	}
+	/* For debug */
+	bool memory_belongs(uintptr_t addr, size_t size);
+
+	bool is_free(void) { return m_ref == 0; }
 
 	static inline size_t mapping_node_offset(void) {
 		return NODE_OFFSET(mapping_t, m_node);
@@ -105,12 +105,12 @@ public:
 
 public:
 	mapping_state_t m_state;
+	int m_fd;
 	file_uid_t m_uid;
 	void *m_addr;
 	size_t m_size;
-	int m_fd;
-	uint64_t m_ref;
-	uint64_t m_owners;
+	uint32_t m_ref;
+	uint32_t m_owners;
 	ib_ctx_handler *m_ib_ctx;
 	vma_allocator m_allocator;
 
@@ -137,7 +137,6 @@ public:
 	~mapping_cache();
 
 	mapping_t *get_mapping(int local_fd, void *p_ctx = NULL);
-	void put_mapping(mapping_t *mapping);
 	void release_mapping(mapping_t *mapping);
 	void handle_close(int local_fd);
 

@@ -61,8 +61,8 @@ mapping_t::mapping_t(file_uid_t &uid, mapping_cache *cache, ib_ctx_handler *p_ib
 	m_allocator()
 {
 	m_state = MAPPING_STATE_UNMAPPED;
-	m_uid = uid;
 	m_fd = -1;
+	m_uid = uid;
 	m_addr = NULL;
 	m_size = 0;
 	m_ref = 0;
@@ -172,8 +172,13 @@ int mapping_t::unmap(void)
 	return rc;
 }
 
-uint32_t mapping_t::get_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx)
+uint32_t mapping_t::get_lkey(mem_buf_desc_t *desc, ib_ctx_handler *p_ib_ctx,
+			     void *addr, size_t len)
 {
+	NOT_IN_USE(desc);
+	NOT_IN_USE(addr);
+	NOT_IN_USE(len);
+
 	return m_allocator.find_lkey_by_ib_ctx(p_ib_ctx);
 }
 
@@ -187,16 +192,23 @@ bool mapping_t::memory_belongs(uintptr_t addr, size_t size)
 
 void mapping_t::get(void)
 {
+	lock();
 	++m_ref;
+	unlock();
 }
 
 void mapping_t::put(void)
 {
-	assert(m_ref > 0);
+	p_cache->lock();
+	lock();
+
 	--m_ref;
 	if (m_ref == 0) {
 		p_cache->release_mapping(this);
 	}
+
+	unlock();
+	p_cache->unlock();
 }
 
 int mapping_t::duplicate_fd(int fd, bool &rw)
@@ -312,26 +324,19 @@ quit:
 	if (mapping != NULL) {
 		mapping->get();
 
-                /* Mapping object may be unmapped, call mmap() in this case */
-                if (mapping->m_state == MAPPING_STATE_UNMAPPED) {
-                        rc = mapping->map(local_fd);
-                }
-
-                if (mapping->m_state == MAPPING_STATE_FAILED) {
-                        put_mapping(mapping);
-                        mapping = NULL;
-                }
+		/* Mapping object may be unmapped, call mmap() in this case */
+		if (mapping->m_state == MAPPING_STATE_UNMAPPED) {
+			rc = mapping->map(local_fd);
+		}
 	}
 
 	unlock();
-	return mapping;
-}
 
-void mapping_cache::put_mapping(mapping_t *mapping)
-{
-	lock();
-	mapping->put();
-	unlock();
+	if (mapping != NULL && mapping->m_state == MAPPING_STATE_FAILED) {
+		mapping->put();
+		mapping = NULL;
+	}
+	return mapping;
 }
 
 void mapping_cache::release_mapping(mapping_t *mapping)
