@@ -761,7 +761,9 @@ int cq_mgr_mlx5::poll_and_process_element_tx(uint64_t* p_cq_poll_sn)
 
 		*p_cq_poll_sn = m_n_global_sn = next_sn.global_sn;
 
-		cq_mgr::process_tx_buffer_list(buff);
+		if (likely(buff != NULL)) {
+			cq_mgr::process_tx_buffer_list(buff);
+		}
 		ret = 1;
 	}
 	else if (cqe_err) {
