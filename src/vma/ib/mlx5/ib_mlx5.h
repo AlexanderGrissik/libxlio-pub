@@ -60,6 +60,9 @@ extern "C" {
  * inside this layer
  */
 
+#ifndef DEVX_ST_SZ_BYTES
+#define DEVX_ST_SZ_BYTES(typ) (sizeof(struct mlx5_ifc_##typ##_bits) / 8)
+#endif
 
 /**
  * Get internal verbs information.
@@ -116,6 +119,163 @@ typedef struct vma_ib_mlx5_cq {
 	volatile uint32_t  *dbrec;
 	void               *uar;
 } vma_ib_mlx5_cq_t;
+
+/* TLS PRM structures */
+
+struct mlx5_ifc_tls_static_params_bits {
+	uint8_t const_2[0x2];
+	uint8_t tls_version[0x4];
+	uint8_t const_1[0x2];
+	uint8_t reserved_at_8[0x14];
+	uint8_t encryption_standard[0x4];
+
+	uint8_t reserved_at_20[0x20];
+
+	uint8_t initial_record_number[0x40];
+
+	uint8_t resync_tcp_sn[0x20];
+
+	uint8_t gcm_iv[0x20];
+
+	uint8_t implicit_iv[0x40];
+
+	uint8_t reserved_at_100[0x8];
+	uint8_t dek_index[0x18];
+
+	uint8_t reserved_at_120[0xe0];
+};
+
+/* WQE segments structures */
+
+typedef struct vma_mlx5_wqe_ctrl_seg {
+	__be32			opmod_idx_opcode;
+	__be32			qpn_ds;
+	uint8_t			signature;
+	uint8_t			rsvd[2];
+	uint8_t			fm_ce_se;
+	union {
+		__be32		general_id;
+		__be32		imm;
+		__be32		umr_mkey;
+		__be32		tis_tir_num;
+	};
+} vma_mlx5_wqe_ctrl_seg;
+
+typedef struct vma_mlx5_wqe_umr_ctrl_seg {
+	uint8_t		flags;
+	uint8_t		rsvd0[3];
+	__be16		xlt_octowords;
+	union {
+		__be16	xlt_offset;
+		__be16	bsf_octowords;
+	};
+	__be64		mkey_mask;
+	__be32		xlt_offset_47_16;
+	uint8_t		rsvd1[28];
+} vma_mlx5_wqe_umr_ctrl_seg;
+
+typedef struct mlx5_mkey_seg {
+	/* This is a two bit field occupying bits 31-30.
+	 * bit 31 is always 0,
+	 * bit 30 is zero for regular MRs and 1 (e.g free) for UMRs that do not have tanslation
+	 */
+	uint8_t status;
+	uint8_t pcie_control;
+	uint8_t flags;
+	uint8_t version;
+	__be32 qpn_mkey7_0;
+	uint8_t rsvd1[4];
+	__be32 flags_pd;
+	__be64 start_addr;
+	__be64 len;
+	__be32 bsfs_octo_size;
+	uint8_t rsvd2[16];
+	__be32 xlt_oct_size;
+	uint8_t rsvd3[3];
+	uint8_t log2_page_size;
+	uint8_t rsvd4[4];
+} mlx5_mkey_seg;
+
+typedef struct mlx5_wqe_tls_static_params_seg {
+	uint8_t ctx[DEVX_ST_SZ_BYTES(tls_static_params)];
+} mlx5_wqe_tls_static_params_seg;
+
+/* WQEs structures */
+
+typedef struct mlx5_wqe {
+	union {
+		struct vma_mlx5_wqe_ctrl_seg ctrl;
+		uint32_t data[4];
+	};
+} mlx5_wqe;
+
+typedef struct mlx5_eth_wqe {
+	struct mlx5_wqe ctrl;
+	struct mlx5_wqe_eth_seg eseg;
+	struct mlx5_wqe_data_seg dseg;
+} mlx5_eth_wqe;
+
+typedef struct mlx5_set_tls_static_params_wqe {
+	struct mlx5_wqe ctrl;
+	struct vma_mlx5_wqe_umr_ctrl_seg uctrl;
+	struct mlx5_mkey_seg mkc;
+	struct mlx5_wqe_tls_static_params_seg params;
+} mlx5_set_tls_static_params_wqe;
+
+/* WQEs sizes */
+#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
+#define TLS_SET_STATIC_PARAMS_WQEBBS \
+	(DIV_ROUND_UP(sizeof(mlx5_set_tls_static_params_wqe), MLX5_SEND_WQE_BB))
+
+/* WQE control segment fence flags */
+enum {
+	MLX5_FENCE_MODE_NONE = 0 << 5,
+	MLX5_FENCE_MODE_INITIATOR_SMALL = 1 << 5,
+	MLX5_FENCE_MODE_FENCE = 2 << 5,
+	MLX5_FENCE_MODE_STRONG_ORDERING = 3 << 5,
+	MLX5_FENCE_MODE_SMALL_AND_FENCE = 4 << 5,
+};
+
+/* UMR WQE control segment flags */
+enum {
+	MLX5_UMR_TRANSLATION_OFFSET_EN = (1 << 4),
+
+	MLX5_UMR_CHECK_NOT_FREE = (1 << 5),
+	MLX5_UMR_CHECK_FREE = (2 << 5),
+
+	MLX5_UMR_INLINE = (1 << 7),
+};
+
+/* WQE related sizes */
+enum {
+	MLX5_SEND_WQE_DS = 16,
+	//MLX5_SEND_WQE_BB = 64,  // Declared in mlx5dv.h
+};
+
+/* TLS static parameters opmode */
+enum {
+	MLX5_OPC_MOD_TLS_TIS_STATIC_PARAMS = 0x1,
+	MLX5_OPC_MOD_TLS_TIR_STATIC_PARAMS = 0x2,
+};
+
+/* TLS static parameters TLS version */
+enum {
+	MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2 = 0x2,
+};
+
+/* TLS static parameters encryption standard */
+enum {
+	MLX5E_ENCRYPTION_STANDARD_TLS = 0x1,
+};
+
+/* WQE offsets */
+#define MLX5_WQE_CTRL_DS_MASK 0x3f
+#define MLX5_WQE_CTRL_QPN_MASK 0xffffff00
+#define MLX5_WQE_CTRL_QPN_SHIFT 8
+#define MLX5_WQE_DS_UNITS 16
+#define MLX5_WQE_CTRL_OPCODE_MASK 0xff
+#define MLX5_WQE_CTRL_WQE_INDEX_MASK 0x00ffff00
+#define MLX5_WQE_CTRL_WQE_INDEX_SHIFT 8
 
 int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
 int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr, struct ibv_recv_wr **bad_wr);

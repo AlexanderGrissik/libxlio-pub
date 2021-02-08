@@ -169,7 +169,7 @@ void qp_mgr_eth_mlx5::init_sq()
 		qp_logpanic("vma_ib_mlx5_get_qp failed (errno=%d %m)", errno);
 	}
 
-	m_sq_wqes	 = (struct mlx5_wqe64 (*)[])(uintptr_t)m_mlx5_qp.sq.buf;
+	m_sq_wqes	 = (struct mlx5_eth_wqe(*)[])(uintptr_t)m_mlx5_qp.sq.buf;
 	m_sq_wqe_hot	 = &(*m_sq_wqes)[0];
 	m_sq_wqes_end	 = (uint8_t*)((uintptr_t)m_mlx5_qp.sq.buf + m_mlx5_qp.sq.wqe_cnt * m_mlx5_qp.sq.stride);
 	m_sq_wqe_counter = 0;
@@ -204,7 +204,7 @@ void qp_mgr_eth_mlx5::init_sq()
 	qp_logfunc("m_tx_num_wr=%d max_inline_data: %d m_sq_wqe_idx_to_wrid=%p",
 		    m_tx_num_wr, get_max_inline_data(), m_sq_wqe_idx_to_wrid);
 
-	memset((void *)(uintptr_t)m_sq_wqe_hot, 0, sizeof(struct mlx5_wqe64));
+	memset((void*)(uintptr_t)m_sq_wqe_hot, 0, sizeof(struct mlx5_eth_wqe));
 	m_sq_wqe_hot->ctrl.data[0] = htonl(MLX5_OPCODE_SEND);
 	m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | 4);
 	m_sq_wqe_hot->ctrl.data[2] = 0;
@@ -333,7 +333,7 @@ cq_mgr* qp_mgr_eth_mlx5::init_tx_cq_mgr()
 
 inline void qp_mgr_eth_mlx5::set_signal_in_next_send_wqe()
 {
-	volatile struct mlx5_wqe64 *wqe = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
+	volatile struct mlx5_eth_wqe* wqe = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
 	wqe->ctrl.data[2] = htonl(8);
 }
 
@@ -859,10 +859,10 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 #ifdef DEFINED_TSO
 int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp)
 {
-	struct mlx5_wqe_ctrl_seg *ctrl = NULL;
+	struct vma_mlx5_wqe_ctrl_seg *ctrl = NULL;
 	struct mlx5_wqe_eth_seg *eseg = NULL;
 
-	ctrl = (struct mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
+	ctrl = (struct vma_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
 
 	/* Configure ctrl segment
@@ -871,7 +871,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(vma_send_wr_opcode(*p_send_wqe)) & 0xff));
 	m_sq_wqe_hot->ctrl.data[2] = 0;
 	ctrl->fm_ce_se = (request_comp ? (uint8_t)MLX5_WQE_CTRL_CQ_UPDATE : 0);
-	ctrl->imm = 0;
+	ctrl->tis_tir_num = 0;
 
 	/* Configure eth segment
 	 * reset rsvd0, cs_flags, rsvd1, mss and rsvd2 fields
@@ -893,7 +893,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 		   m_sq_wqe_hot, m_sq_wqe_hot_index, m_sq_wqe_counter, (m_sq_wqe_counter&(m_tx_num_wr-1)), p_send_wqe->wr_id);
 	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
 
-	memset((void*)m_sq_wqe_hot, 0, sizeof(struct mlx5_wqe64));
+	memset((void*)m_sq_wqe_hot, 0, sizeof(struct mlx5_eth_wqe));
 
 	/* Fill Ethernet segment with header inline */
 	eseg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
@@ -920,7 +920,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 		   m_sq_wqe_hot, m_sq_wqe_hot_index, m_sq_wqe_counter, (m_sq_wqe_counter&(m_tx_num_wr-1)), p_send_wqe->wr_id);
 	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
 
-	memset((void*)(uintptr_t)m_sq_wqe_hot, 0, sizeof(struct mlx5_wqe64));
+	memset((void*)(uintptr_t)m_sq_wqe_hot, 0, sizeof(struct mlx5_eth_wqe));
 
 	// Fill Ethernet segment with header inline
 	eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot+sizeof(struct mlx5_wqe_ctrl_seg));
@@ -934,15 +934,148 @@ void qp_mgr_eth_mlx5::tls_context_setup(
 	const void *info, uint32_t tis_number,
 	uint32_t dek_id, uint32_t initial_tcp_sn)
 {
-	const struct tls12_crypto_info_aes_gcm_128 *crypto_info =
-		(const struct tls12_crypto_info_aes_gcm_128 *)info;
+	struct tls12_crypto_info_aes_gcm_128* crypto_info =
+		(struct tls12_crypto_info_aes_gcm_128*)info;
 	/* Fill UMR, doorbell */
 
-	/* XXX Remove me */
-	NOT_IN_USE(crypto_info);
-	NOT_IN_USE(tis_number);
-	NOT_IN_USE(dek_id);
-	NOT_IN_USE(initial_tcp_sn);
+	tls_tx_post_static_params_wqe(crypto_info, tis_number, dek_id, initial_tcp_sn);
+}
+
+inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
+	struct mlx5_wqe_tls_static_params_seg* params,
+	const struct tls12_crypto_info_aes_gcm_128* info,
+	uint32_t key_id, uint32_t resync_tcp_sn)
+{
+	unsigned char *initial_rn, *gcm_iv;
+	uint16_t salt_sz, rec_seq_sz;
+	const unsigned char *salt, *rec_seq;
+	uint8_t tls_version;
+	uint8_t* ctx;
+
+	ctx = params->ctx;
+
+	salt = info->salt;
+	rec_seq = info->rec_seq;
+	salt_sz = sizeof(info->salt);
+	rec_seq_sz = sizeof(info->rec_seq);
+
+	gcm_iv = DEVX_ADDR_OF(tls_static_params, ctx, gcm_iv);
+	initial_rn = DEVX_ADDR_OF(tls_static_params, ctx, initial_record_number);
+
+	memcpy(gcm_iv, salt, salt_sz);
+	memcpy(initial_rn, rec_seq, rec_seq_sz);
+
+	tls_version = MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2;
+
+	DEVX_SET(tls_static_params, ctx, tls_version, tls_version);
+	DEVX_SET(tls_static_params, ctx, const_1, 1);
+	DEVX_SET(tls_static_params, ctx, const_2, 2);
+	DEVX_SET(tls_static_params, ctx, encryption_standard, MLX5E_ENCRYPTION_STANDARD_TLS);
+	DEVX_SET(tls_static_params, ctx, resync_tcp_sn, resync_tcp_sn);
+	DEVX_SET(tls_static_params, ctx, dek_index, key_id);
+}
+
+inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
+	const struct tls12_crypto_info_aes_gcm_128* info,
+	uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn)
+{
+	struct mlx5_set_tls_static_params_wqe* wqe =
+			reinterpret_cast<struct mlx5_set_tls_static_params_wqe*>(m_sq_wqe_hot);
+	struct vma_mlx5_wqe_ctrl_seg* cseg = &wqe->ctrl.ctrl;
+	struct vma_mlx5_wqe_umr_ctrl_seg* ucseg = &wqe->uctrl;
+	struct mlx5_mkey_seg* mkcseg = &wqe->mkc;
+	struct mlx5_wqe_tls_static_params_seg* tspseg = &wqe->params;
+	uint8_t opmod = MLX5_OPC_MOD_TLS_TIS_STATIC_PARAMS;
+
+#define STATIC_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
+
+	/*
+	* SQ wrap around handling information
+	*
+	* UMR WQE has the size of 3 WQEBBs.
+	* The following are segments sizes the WQE contains.
+	*
+	* UMR WQE segments sizes:
+	* sizeof(wqe->ctrl) = 16[B]
+	* sizeof(wqe->uctrl) = 48[B]
+	* sizeof(wqe->mkc) = 64[B]
+	* sizeof(wqe->params) = 64[B]
+	*
+	* UMR WQEBBs to segments mapping:
+	* WQEBB1: [wqe->ctrl(16[B]), wqe->uctrl(48[B])] -> 64[B]
+	* WQEBB2: [wqe->mkc(64[B])]                     -> 64[B]
+	* WQEBB3: [wqe->params(64[B])]                  -> 64[B]
+	*
+	* There are 3 cases:
+	*     1. There is enough room in the SQ for 3 WQEBBs:
+	*        3 WQEBBs posted from m_sq_wqe_hot current location.
+	*     2. There is enough room in the SQ for 2 WQEBBs:
+	*        2 WQEBBs posted from m_sq_wqe_hot current location till m_sq_wqes_end.
+	*        1 WQEBB posted from m_sq_wqes beginning.
+	*     3. There is enough room in the SQ for 1 WQEBB:
+	*        1 WQEBB posted from m_sq_wqe_hot current location till m_sq_wqes_end.
+	*        2 WQEBBs posted from m_sq_wqes beginning.
+	* The case of 0 WQEBBs room left in the SQ shouldn't happen, m_sq_wqe_hot wrap around handling
+	* done when setting next m_sq_wqe_hot.
+	*
+	* In all the 3 cases, no need to change cseg and ucseg pointers, since they fit to
+	* one WQEBB and will be posted before m_sq_wqes_end.
+	*/
+
+	// XXX: We set inline_hdr_sz for every new hot wqe. This corrupts UMR WQE without memset().
+	memset(m_sq_wqe_hot, 0, sizeof(*m_sq_wqe_hot));
+	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | MLX5_OPCODE_UMR | (opmod << 24));
+	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | STATIC_PARAMS_DS_CNT);
+	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
+	cseg->tis_tir_num = htobe32(tis_number << 8);
+
+	ucseg->flags = MLX5_UMR_INLINE;
+	ucseg->bsf_octowords = htobe16(DEVX_ST_SZ_BYTES(tls_static_params) / 16);
+
+	int num_wqebbs = TLS_SET_STATIC_PARAMS_WQEBBS;
+	int num_wqebbs_top = 0;
+	int sq_wqebbs_room_left = \
+		(static_cast<int>(m_sq_wqes_end - reinterpret_cast<uint8_t*>(cseg)) / MLX5_SEND_WQE_BB);
+
+	/* Case 1:
+	* In this case we don't need to change
+	* the pointers of the different segments, because there is enough room in the SQ.
+	* Thus, no need to do special handling.
+	*/
+
+	if (unlikely(sq_wqebbs_room_left == 2)) {  // Case 2: Change tspseg pointer:
+		tspseg = reinterpret_cast<struct mlx5_wqe_tls_static_params_seg*>(m_sq_wqes);
+		num_wqebbs = 2;
+		num_wqebbs_top = 1;
+	} else if (unlikely(sq_wqebbs_room_left == 1)) {  // Case 3: Change mkcseg and tspseg pointers:
+		mkcseg = reinterpret_cast<struct mlx5_mkey_seg*>(m_sq_wqes);
+		tspseg = reinterpret_cast<struct mlx5_wqe_tls_static_params_seg*>(
+			reinterpret_cast<uint8_t*>(m_sq_wqes) + sizeof(*mkcseg));
+		num_wqebbs = 1;
+		num_wqebbs_top = 2;
+	}
+
+	memset(mkcseg, 0, sizeof(*mkcseg));
+	memset(tspseg, 0, sizeof(*tspseg));
+
+	tls_tx_fill_static_params_wqe(tspseg, info, key_id, resync_tcp_sn);
+	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+
+#ifdef DEFINED_TSO
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs, num_wqebbs_top);
+#else
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, num_wqebbs, num_wqebbs_top);
+#endif
+	dbg_dump_wqe((uint32_t*)m_sq_wqe_hot, sizeof(mlx5_set_tls_static_params_wqe));
+
+	// Preparing next WQE as Ethernet send WQE and index:
+	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
+	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
+	memset(m_sq_wqe_hot, 0, sizeof(mlx5_eth_wqe));
+
+	// Fill Ethernet segment with header inline:
+	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
+	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
 }
 
 //! Handle releasing of Tx buffers

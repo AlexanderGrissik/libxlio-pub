@@ -34,21 +34,13 @@
 #ifndef QP_MGR_ETH_MLX5_H
 #define QP_MGR_ETH_MLX5_H
 
+#include <linux/tls.h>
+
 #include "qp_mgr.h"
 #include "vma/util/sg_array.h"
 #include "vma/dev/dm_mgr.h"
 
 #if defined(DEFINED_DIRECT_VERBS)
-
-
-struct mlx5_wqe64 {
-	union {
-		struct mlx5_wqe_ctrl_seg ctrl;
-		uint32_t data[4];
-	} ctrl;
-	struct mlx5_wqe_eth_seg eseg;
-	struct mlx5_wqe_data_seg dseg;
-};
 
 class qp_mgr_eth_mlx5 : public qp_mgr_eth
 {
@@ -82,6 +74,13 @@ private:
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
+	inline void tls_tx_fill_static_params_wqe(
+		struct mlx5_wqe_tls_static_params_seg* params,
+		const struct tls12_crypto_info_aes_gcm_128* info,
+		uint32_t key_id, uint32_t resync_tcp_sn);
+	inline void tls_tx_post_static_params_wqe(
+		const struct tls12_crypto_info_aes_gcm_128* info,
+		uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn);
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);
 	inline int	fill_wqe_lso(vma_ibv_send_wr* pswr);
@@ -92,8 +91,8 @@ private:
 	inline int	fill_inl_segment(sg_array &sga, uint8_t *cur_seg, uint8_t* data_addr, int max_inline_len, int inline_len);
 	inline int	fill_ptr_segment(sg_array &sga, struct mlx5_wqe_data_seg* dp_seg, uint8_t* data_addr, int data_len, mem_buf_desc_t* buffer);
 
-	struct mlx5_wqe64	(*m_sq_wqes)[];
-	struct mlx5_wqe64*	m_sq_wqe_hot;
+	struct mlx5_eth_wqe	(*m_sq_wqes)[];
+	struct mlx5_eth_wqe*	m_sq_wqe_hot;
 	uint8_t*		m_sq_wqes_end;
 	enum {
 		MLX5_DB_METHOD_BF,
