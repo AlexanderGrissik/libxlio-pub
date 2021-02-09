@@ -57,11 +57,7 @@ extern u32_t lwip_zc_tx_size;
 #endif // DEFINED_TSO
 
 #if LWIP_3RD_PARTY_L3
-#if LWIP_TSO
 typedef err_t (*ip_output_fn)(struct pbuf *p, void* p_conn, u16_t flags);
-#else
-typedef err_t (*ip_output_fn)(struct pbuf *p, void* p_conn, int is_rexmit, u8_t is_dummy);
-#endif /* LWIP_TSO */
 void register_ip_output(ip_output_fn fn);
 #endif /* LWIP_3RD_PARTY_L3 */
 

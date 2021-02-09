@@ -988,11 +988,7 @@ tcp_send_empty_ack(struct tcp_pcb *pcb)
     opts += 3;
   }
 #endif 
-#if LWIP_TSO
   pcb->ip_output(p, pcb, 0);
-#else
-  pcb->ip_output(p, pcb, 0, 0);
-#endif /* LWIP_TSO */
   tcp_tx_pbuf_free(pcb, p);
 
   (void)opts; /* Fix warning -Wunused-but-set-variable */
@@ -1814,7 +1810,7 @@ tcp_output(struct tcp_pcb *pcb)
 static err_t
 tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
 {
-  /* zc_buf is only used to pass pointer to TCP header to ip_ouptut(). */
+  /* zc_buf is only used to pass pointer to TCP header to ip_output(). */
   struct pbuf zc_pbuf;
   struct pbuf *p;
   u16_t len;
@@ -1909,16 +1905,12 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
 
   TCP_STATS_INC(tcp.xmit);
 
-#if LWIP_TSO
   u16_t flags = 0;
   flags |= seg->flags & TF_SEG_OPTS_DUMMY_MSG;
   flags |= seg->flags & TF_SEG_OPTS_TSO;
   flags |= (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ? TCP_WRITE_REXMIT : 0);
   flags |= seg->flags & TF_SEG_OPTS_ZEROCOPY;
   pcb->ip_output(p, pcb, flags);
-#else
-  pcb->ip_output(p, pcb, seg->seqno < pcb->snd_nxt, LWIP_IS_DUMMY_SEGMENT(seg));
-#endif /* LWIP_TSO */
 
   return ERR_OK;
 }
@@ -1937,7 +1929,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
  * most other segment output functions.
  *
  * The pcb is given only when its valid and from an output context.
- * It is used with the external_ip_output function.
+ * It is used with the ip_output function.
  *
  * @param seqno the sequence number to use for the outgoing segment
  * @param ackno the acknowledge number to use for the outgoing segment
@@ -1975,12 +1967,7 @@ tcp_rst(u32_t seqno, u32_t ackno, u16_t local_port, u16_t remote_port, struct tc
 
   TCP_STATS_INC(tcp.xmit);
    /* Send output with hardcoded TTL since we have no access to the pcb */
-#if LWIP_TSO
   if(pcb) pcb->ip_output(p, pcb, 0);
-#else
-  if(pcb) pcb->ip_output(p, pcb, 0, 0);
-#endif /* LWIP_TSO */
-  /* external_ip_output(p, NULL, local_ip, remote_ip, TCP_TTL, 0, IP_PROTO_TCP) */;
   tcp_tx_pbuf_free(pcb, p);
   LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_rst: seqno %"U32_F" ackno %"U32_F".\n", seqno, ackno));
 }
@@ -2167,12 +2154,7 @@ tcp_keepalive(struct tcp_pcb *pcb)
   TCP_STATS_INC(tcp.xmit);
 
   /* Send output to IP */
-#if LWIP_TSO
   pcb->ip_output(p, pcb, 0);
-#else
-  pcb->ip_output(p, pcb, 0, 0);
-#endif /* LWIP_TSO */
-
   tcp_tx_pbuf_free(pcb, p);
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_keepalive: seqno %"U32_F" ackno %"U32_F".\n",
@@ -2281,12 +2263,7 @@ tcp_zero_window_probe(struct tcp_pcb *pcb)
   TCP_STATS_INC(tcp.xmit);
 
   /* Send output to IP */
-#if LWIP_TSO
   pcb->ip_output(p, pcb, 0);
-#else
-  pcb->ip_output(p, pcb, 0, 0);
-#endif /* LWIP_TSO */
-
   tcp_tx_pbuf_free(pcb, p);
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_zero_window_probe: seqno %"U32_F
