@@ -936,9 +936,9 @@ void qp_mgr_eth_mlx5::tls_context_setup(
 {
 	struct tls12_crypto_info_aes_gcm_128* crypto_info =
 		(struct tls12_crypto_info_aes_gcm_128*)info;
-	/* Fill UMR, doorbell */
 
-	tls_tx_post_static_params_wqe(crypto_info, tis_number, dek_id, initial_tcp_sn);
+	tls_tx_post_static_params_wqe(crypto_info, tis_number, dek_id, 0);
+	tls_tx_post_progress_params_wqe(tis_number, initial_tcp_sn);
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
@@ -1067,6 +1067,57 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, num_wqebbs, num_wqebbs_top);
 #endif
 	dbg_dump_wqe((uint32_t*)m_sq_wqe_hot, sizeof(mlx5_set_tls_static_params_wqe));
+
+	// Preparing next WQE as Ethernet send WQE and index:
+	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
+	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
+	memset(m_sq_wqe_hot, 0, sizeof(mlx5_eth_wqe));
+
+	// Fill Ethernet segment with header inline:
+	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
+	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
+}
+
+inline void qp_mgr_eth_mlx5::tls_tx_fill_progress_params_wqe(
+	struct mlx5_wqe_tls_progress_params_seg* params,
+	uint32_t tis_number, uint32_t next_record_tcp_sn)
+{
+	uint8_t* ctx = params->ctx;
+
+	params->tis_tir_num = htobe32(tis_number);
+
+	DEVX_SET(tls_progress_params, ctx, next_record_tcp_sn, next_record_tcp_sn);
+	DEVX_SET(tls_progress_params, ctx, record_tracker_state, MLX5E_TLS_PROGRESS_PARAMS_RECORD_TRACKER_STATE_START);
+	DEVX_SET(tls_progress_params, ctx, auth_state, MLX5E_TLS_PROGRESS_PARAMS_AUTH_STATE_NO_OFFLOAD);
+}
+
+inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
+	uint32_t tis_number, uint32_t next_record_tcp_sn)
+{
+	uint16_t num_wqebbs = TLS_SET_PROGRESS_PARAMS_WQEBBS;
+
+	struct mlx5_set_tls_progress_params_wqe* wqe =
+			reinterpret_cast<struct mlx5_set_tls_progress_params_wqe*>(m_sq_wqe_hot);
+	struct vma_mlx5_wqe_ctrl_seg* cseg = &wqe->ctrl.ctrl;
+	uint8_t opmod = MLX5_OPC_MOD_TLS_TIS_PROGRESS_PARAMS;
+
+	memset(wqe, 0, sizeof(*wqe));
+
+#define PROGRESS_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
+
+	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_SET_PSV | (opmod << 24));
+	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
+	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
+
+	tls_tx_fill_progress_params_wqe(&wqe->params, tis_number, next_record_tcp_sn);
+	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+
+#ifdef DEFINED_TSO
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs);
+#else
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, num_wqebbs);
+#endif
+	dbg_dump_wqe((uint32_t*)m_sq_wqe_hot, sizeof(mlx5_set_tls_progress_params_wqe));
 
 	// Preparing next WQE as Ethernet send WQE and index:
 	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];

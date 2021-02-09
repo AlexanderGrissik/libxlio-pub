@@ -145,6 +145,17 @@ struct mlx5_ifc_tls_static_params_bits {
 	uint8_t reserved_at_120[0xe0];
 };
 
+struct mlx5_ifc_tls_progress_params_bits {
+	uint8_t next_record_tcp_sn[0x20];
+
+	uint8_t hw_resync_tcp_sn[0x20];
+
+	uint8_t record_tracker_state[0x2];
+	uint8_t auth_state[0x2];
+	uint8_t reserved_at_44[0x4];
+	uint8_t hw_offset_record_number[0x18];
+};
+
 /* WQE segments structures */
 
 typedef struct vma_mlx5_wqe_ctrl_seg {
@@ -200,6 +211,11 @@ typedef struct mlx5_wqe_tls_static_params_seg {
 	uint8_t ctx[DEVX_ST_SZ_BYTES(tls_static_params)];
 } mlx5_wqe_tls_static_params_seg;
 
+typedef struct mlx5_wqe_tls_progress_params_seg {
+	__be32 tis_tir_num;
+	uint8_t ctx[DEVX_ST_SZ_BYTES(tls_progress_params)];
+} mlx5_wqe_tls_progress_params_seg;
+
 /* WQEs structures */
 
 typedef struct mlx5_wqe {
@@ -222,10 +238,32 @@ typedef struct mlx5_set_tls_static_params_wqe {
 	struct mlx5_wqe_tls_static_params_seg params;
 } mlx5_set_tls_static_params_wqe;
 
+typedef struct mlx5_set_tls_progress_params_wqe {
+	struct mlx5_wqe ctrl;
+	struct mlx5_wqe_tls_progress_params_seg params;
+} mlx5_set_tls_progress_params_wqe;
+
+typedef struct vma_mlx5_seg_get_psv {
+	uint8_t rsvd[19];
+	uint8_t num_psv;
+	__be32 l_key;
+	__be64 va;
+	__be32 psv_index[4];
+} vma_mlx5_seg_get_psv;
+
+typedef struct mlx5_get_tls_progress_params_wqe {
+	struct mlx5_wqe ctrl;
+	struct vma_mlx5_seg_get_psv psv;
+} mlx5_get_tls_progress_params_wqe;
+
 /* WQEs sizes */
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 #define TLS_SET_STATIC_PARAMS_WQEBBS \
 	(DIV_ROUND_UP(sizeof(mlx5_set_tls_static_params_wqe), MLX5_SEND_WQE_BB))
+#define TLS_SET_PROGRESS_PARAMS_WQEBBS \
+	(DIV_ROUND_UP(sizeof(mlx5_set_tls_progress_params_wqe), MLX5_SEND_WQE_BB))
+#define TLS_GET_PROGRESS_WQEBBS \
+	(DIV_ROUND_UP(sizeof(mlx5_get_tls_progress_params_wqe), MLX5_SEND_WQE_BB))
 
 /* WQE control segment fence flags */
 enum {
@@ -258,6 +296,12 @@ enum {
 	MLX5_OPC_MOD_TLS_TIR_STATIC_PARAMS = 0x2,
 };
 
+/* TLS progress parameters opmode */
+enum {
+	MLX5_OPC_MOD_TLS_TIS_PROGRESS_PARAMS = 0x1,
+	MLX5_OPC_MOD_TLS_TIR_PROGRESS_PARAMS = 0x2,
+};
+
 /* TLS static parameters TLS version */
 enum {
 	MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2 = 0x2,
@@ -268,6 +312,20 @@ enum {
 	MLX5E_ENCRYPTION_STANDARD_TLS = 0x1,
 };
 
+/* TLS progress parameters */
+
+enum {
+	MLX5E_TLS_PROGRESS_PARAMS_AUTH_STATE_NO_OFFLOAD = 0,
+	MLX5E_TLS_PROGRESS_PARAMS_AUTH_STATE_OFFLOAD = 1,
+	MLX5E_TLS_PROGRESS_PARAMS_AUTH_STATE_AUTHENTICATION = 2,
+};
+
+enum {
+	MLX5E_TLS_PROGRESS_PARAMS_RECORD_TRACKER_STATE_START = 0,
+	MLX5E_TLS_PROGRESS_PARAMS_RECORD_TRACKER_STATE_TRACKING = 1,
+	MLX5E_TLS_PROGRESS_PARAMS_RECORD_TRACKER_STATE_SEARCHING = 2,
+};
+
 /* WQE offsets */
 #define MLX5_WQE_CTRL_DS_MASK 0x3f
 #define MLX5_WQE_CTRL_QPN_MASK 0xffffff00
@@ -276,6 +334,14 @@ enum {
 #define MLX5_WQE_CTRL_OPCODE_MASK 0xff
 #define MLX5_WQE_CTRL_WQE_INDEX_MASK 0x00ffff00
 #define MLX5_WQE_CTRL_WQE_INDEX_SHIFT 8
+
+/*
+ * WQE opcode list.
+ */
+enum {
+	VMA_MLX5_OPCODE_SET_PSV = 0x20,
+	VMA_MLX5_OPCODE_GET_PSV = 0x21,
+};
 
 int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
 int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr, struct ibv_recv_wr **bad_wr);

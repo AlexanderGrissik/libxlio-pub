@@ -81,6 +81,11 @@ private:
 	inline void tls_tx_post_static_params_wqe(
 		const struct tls12_crypto_info_aes_gcm_128* info,
 		uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn);
+	inline void tls_tx_fill_progress_params_wqe(
+		struct mlx5_wqe_tls_progress_params_seg* params,
+		uint32_t tis_number, uint32_t next_record_tcp_sn);
+	inline void tls_tx_post_progress_params_wqe(
+		uint32_t tis_number, uint32_t next_record_tcp_sn);
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);
 	inline int	fill_wqe_lso(vma_ibv_send_wr* pswr);
