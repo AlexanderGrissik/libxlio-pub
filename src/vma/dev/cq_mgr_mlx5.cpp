@@ -47,6 +47,7 @@
 
 #define cq_logfunc    __log_info_func
 #define cq_logdbg     __log_info_dbg
+#define cq_logwarn    __log_info_warn
 #define cq_logerr     __log_info_err
 #define cq_logpanic   __log_info_panic
 #define cq_logfuncall __log_info_funcall
@@ -638,6 +639,11 @@ inline void cq_mgr_mlx5::cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc)
         wc->status = IBV_WC_WR_FLUSH_ERR;
     } else {
         wc->status = IBV_WC_GENERAL_ERR;
+        cq_logwarn("cqe: syndrome=0x%x vendor=0x%x hw=0x%x (type=0x%x) wqe_opcode_qpn=0x%x "
+                   "wqe_counter=0x%x",
+                   ecqe->syndrome, ecqe->vendor_err_synd, *((uint8_t *)&ecqe->rsvd1 + 16),
+                   *((uint8_t *)&ecqe->rsvd1 + 17), ntohl(ecqe->s_wqe_opcode_qpn),
+                   ntohs(ecqe->wqe_counter));
     }
 
     wc->vendor_err = ecqe->vendor_err_synd;
