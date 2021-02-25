@@ -644,18 +644,6 @@ int vma_get_socket_rings_fds(int fd, int *ring_fds, int ring_fds_sz)
 }
 
 extern "C"
-int vma_get_socket_tx_ring_fd(int sock_fd, struct sockaddr *to, socklen_t tolen)
-{
-	socket_fd_api* p_socket_object = fd_collection_get_sockfd(sock_fd);
-
-	if (!p_socket_object) {
-		errno = EINVAL;
-		return -1;
-	}
-	return p_socket_object->get_socket_tx_ring_fd(to, tolen);
-}
-
-extern "C"
 int vma_add_conf_rule(const char *config_line)
 {
 	srdr_logdbg("adding conf rule: %s", config_line);
@@ -1009,7 +997,6 @@ int getsockopt(int __fd, int __level, int __optname,
 		SET_EXTRA_API(thread_offload, vma_thread_offload, VMA_EXTRA_API_THREAD_OFFLOAD);
 		SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num, VMA_EXTRA_API_GET_SOCKET_RINGS_NUM);
 		SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds, VMA_EXTRA_API_GET_SOCKET_RINGS_FDS);
-		SET_EXTRA_API(get_socket_tx_ring_fd, vma_get_socket_tx_ring_fd, VMA_EXTRA_API_GET_SOCKET_TX_RING_FD);
 		SET_EXTRA_API(vma_add_ring_profile, vma_add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
 		SET_EXTRA_API(socketxtreme_free_vma_packets, enable_socketxtreme ? vma_socketxtreme_free_vma_packets : dummy_vma_socketxtreme_free_vma_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
 		SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, VMA_EXTRA_API_SOCKETXTREME_POLL);

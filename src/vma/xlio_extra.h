@@ -300,7 +300,6 @@ typedef enum {
 	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF     = (1 << 9),
 	VMA_EXTRA_API_GET_SOCKET_RINGS_NUM           = (1 << 10),
 	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 11),
-	VMA_EXTRA_API_GET_SOCKET_TX_RING_FD          = (1 << 12),
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 16),
 } vma_extra_api_mask;
 
@@ -488,19 +487,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * errno is set to: EINVAL - not a VMA offloaded fd + TBD
 	 */
 	int (*get_socket_rings_fds)(int fd, int *ring_fds, int ring_fds_sz);
-
-	/**
-	 * Returns the ring FD of the TX rings used by this socket.
-	 * should be used after connect or joining a MC group.
-	 * @param sock_fd - UDP socket fd
-	 * @param to - the destination the socket is connected to.
-	 * @param tolen - so len
-	 * @return ring fd on success -1 on failure (e.g. no ring, non offloaded fd)
-	 * @note @ref get_socket_rings_fds returns the RX ring fd
-	 * errno is set to: EINVAL - not a VMA offloaded fd
-	 * 		    ENODATA - no rings fds available
-	 */
-	int (*get_socket_tx_ring_fd)(int sock_fd, struct sockaddr *to, socklen_t tolen);
 
 	/**
 	 * Frees packets received by socketxtreme_poll().

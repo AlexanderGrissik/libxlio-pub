@@ -170,7 +170,6 @@ public:
 	}
 
 	virtual bool prepare_to_close(bool process_shutdown = false);
-	virtual int get_socket_tx_ring_fd(struct sockaddr *to, socklen_t tolen);
 	virtual void update_header_field(data_updater *updater);
 
 private:
