@@ -701,20 +701,6 @@ int vma_add_ring_profile(vma_ring_type_attr *profile, vma_ring_profile_key *res)
 	return 0;
 }
 
-extern "C"
-int vma_get_socket_netowrk_header(int __fd, void *ptr, uint16_t *len)
-{
-	srdr_logdbg_entry("fd=%d, ptr=%p len=%d", __fd, ptr, *len);
-
-	socket_fd_api* p_socket_object = fd_collection_get_sockfd(__fd);
-
-	if (p_socket_object) {
-		return p_socket_object->get_socket_network_ptr(ptr, *len);
-	}
-	errno = EINVAL;
-	return -1;
-}
-
 //-----------------------------------------------------------------------------
 //  replacement functions
 //-----------------------------------------------------------------------------
@@ -1025,7 +1011,6 @@ int getsockopt(int __fd, int __level, int __optname,
 		SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds, VMA_EXTRA_API_GET_SOCKET_RINGS_FDS);
 		SET_EXTRA_API(get_socket_tx_ring_fd, vma_get_socket_tx_ring_fd, VMA_EXTRA_API_GET_SOCKET_TX_RING_FD);
 		SET_EXTRA_API(vma_add_ring_profile, vma_add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
-		SET_EXTRA_API(get_socket_network_header, vma_get_socket_netowrk_header, VMA_EXTRA_API_GET_SOCKET_NETWORK_HEADER);
 		SET_EXTRA_API(socketxtreme_free_vma_packets, enable_socketxtreme ? vma_socketxtreme_free_vma_packets : dummy_vma_socketxtreme_free_vma_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
 		SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, VMA_EXTRA_API_SOCKETXTREME_POLL);
 		SET_EXTRA_API(socketxtreme_ref_vma_buff, enable_socketxtreme ? vma_socketxtreme_ref_vma_buff : dummy_vma_socketxtreme_ref_vma_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);

@@ -301,7 +301,6 @@ typedef enum {
 	VMA_EXTRA_API_GET_SOCKET_RINGS_NUM           = (1 << 10),
 	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 11),
 	VMA_EXTRA_API_GET_SOCKET_TX_RING_FD          = (1 << 12),
-	VMA_EXTRA_API_GET_SOCKET_NETWORK_HEADER      = (1 << 13),
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 16),
 } vma_extra_api_mask;
 
@@ -579,29 +578,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * @return 0 on success -1 on failure
 	 */
 	int (*vma_add_ring_profile)(struct vma_ring_type_attr *profile, int *key);
-
-	/**
-	 * get the socket's network header created by VMA
-	 * @param fd - the socket's fd
-	 * @param ptr - pointer to write the data to. can be NULL see notes
-	 * @param len - IN\OUT parameter
-	 * 	IN - len given by user
-	 * 	OUT- len used by header
-	 * @return 0 on success -1 on error
-	 * 	errno EINVAL - bad fd
-	 * 	errno ENOBUFS - ptr is too small
-	 * 	errno ENOTCONN - header no available since socket is not
-	 * 		ofloaded or not connected
-	 * @note this function should be called for connected socket
-	 * @note calling with ptr NULL will update the len with the size needed
-	 * 	by VMA so application will allocate the exact needed space
-	 * @note application can:
-	 * 	call twice once with ptr == NULL and get the size needed to allocate
-	 * 	and call again to get the data.
-	 * 	if application called with big enough buffer vma will update the
-	 * 	size actually used.
-	 */
-	int (*get_socket_network_header)(int fd, void *ptr, uint16_t *len);
 
 	/**
 	 * Used to identify which methods were initialized by VMA as part of vma_get_api().
