@@ -260,33 +260,6 @@ struct vma_ring_alloc_logic_attr {
 	uint32_t	reserved:30;
 };
 
-typedef enum {
-	VMA_MODIFY_RING_CQ_MODERATION = (1 << 0),
-	VMA_MODIFY_RING_CQ_ARM = (1 << 1),
-} vma_modify_ring_mask;
-
-struct vma_cq_moderation_attr {
-	uint32_t cq_moderation_count;
-	uint32_t cq_moderation_period_usec;
-};
-
-struct vma_cq_arm_attr {
-};
-
-/**
- * @param comp_mask - what fields should be read when processing this struct
- * 	see @ref vma_modify_ring_mask
- * @param ring_fd - ring fd
- */
-struct vma_modify_ring_attr {
-	uint32_t comp_bit_mask;
-	int ring_fd;
-	union {
-		struct vma_cq_moderation_attr cq_moderation;
-		struct vma_cq_arm_attr cq_arm;
-	};
-};
-
 struct vma_packet_queue_ring_attr {
 	uint32_t	comp_mask;
 };
@@ -399,7 +372,6 @@ typedef enum {
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 16),
 	VMA_EXTRA_API_REGISTER_MEMORY_ON_RING        = (1 << 17),
 	VMA_EXTRA_API_DEREGISTER_MEMORY_ON_RING      = (1 << 18),
-	VMA_EXTRA_API_MODIFY_RING                    = (1 << 19),
 } vma_extra_api_mask;
 
 /** 
@@ -732,15 +704,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * @note - this function doens't free the memory
 	 */
 	int (*deregister_memory_on_ring)(int fd, void *addr, size_t length);
-
-	/**
-	 * perform ring modifications
-	 *
-	 * @param mr_data ring modification parameters
-	 *
-	 * @return 0 on success -1 on failure 1 on busy
-	 */
-	int (*vma_modify_ring)(struct vma_modify_ring_attr *mr_data);
 
 	/**
 	 * Used to identify which methods were initialized by VMA as part of vma_get_api().

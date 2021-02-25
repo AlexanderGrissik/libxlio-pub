@@ -50,9 +50,6 @@
 #define RING_LOCK_AND_RUN(__lock__, __func_and_params__) 	\
 		__lock__.lock(); __func_and_params__; __lock__.unlock();
 
-#define RING_LOCK_RUN_AND_UPDATE_RET(__lock__, __func_and_params__) \
-		__lock__.lock(); ret = __func_and_params__; __lock__.unlock();
-
 #define RING_TRY_LOCK_RUN_AND_UPDATE_RET(__lock__, __func_and_params__) \
 		if (!__lock__.trylock()) { ret = __func_and_params__; __lock__.unlock(); } \
 		else { errno = EAGAIN; }
@@ -355,14 +352,6 @@ int ring_simple::request_notification(cq_type_t cq_type, uint64_t poll_sn)
 	}
 
 	return ret;
-}
-
-int ring_simple::ack_and_arm_cq(cq_type_t cq_type)
-{
-	if (CQT_RX == cq_type) {
-		return m_p_cq_mgr_rx->ack_and_request_notification();
-	}
-	return m_p_cq_mgr_tx->ack_and_request_notification();
 }
 
 int ring_simple::poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array /*NULL*/)

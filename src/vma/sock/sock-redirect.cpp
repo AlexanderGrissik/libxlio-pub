@@ -702,42 +702,6 @@ int vma_add_ring_profile(vma_ring_type_attr *profile, vma_ring_profile_key *res)
 }
 
 extern "C"
-int vma_modify_ring(struct vma_modify_ring_attr *mr_data)
-{
-	srdr_logfunc_entry("ring_fd=%d, mr_data=%p ", mr_data->ring_fd, mr_data);
-	int ret = -1;
-	cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(mr_data->ring_fd);
-	if (likely(p_cq_ch_info)) {
-		ring_simple* p_ring = dynamic_cast<ring_simple*>(p_cq_ch_info->get_ring());
-		if (likely(p_ring)) {
-			if (VMA_MODIFY_RING_CQ_ARM & mr_data->comp_bit_mask) {
-				if (RING_ETH_DIRECT == p_ring->get_type()) {
-					ret = p_ring->ack_and_arm_cq(CQT_TX);
-				} else {
-					vlog_printf(VLOG_ERROR, "Ring type [%d] is not supported\n",
-							p_ring->get_type());
-				}
-			} else if (VMA_MODIFY_RING_CQ_MODERATION & mr_data->comp_bit_mask) {
-				p_ring->modify_cq_moderation(mr_data->cq_moderation.cq_moderation_period_usec,
-						mr_data->cq_moderation.cq_moderation_count);
-				ret = 0;
-			} else {
-				vlog_printf(VLOG_ERROR, "comp_mask [0x%x] is not supported\n",
-						mr_data->comp_bit_mask);
-			}
-		} else {
-			vlog_printf(VLOG_ERROR, "could not find ring_simple,"
-					" got fd %d\n", mr_data->ring_fd);
-		}
-	} else {
-		vlog_printf(VLOG_ERROR, "could not find p_cq_ch_info, got fd "
-							"%d\n", mr_data->ring_fd);
-	}
-
-	return ret;
-}
-
-extern "C"
 int vma_get_socket_netowrk_header(int __fd, void *ptr, uint16_t *len)
 {
 	srdr_logdbg_entry("fd=%d, ptr=%p len=%d", __fd, ptr, *len);
@@ -1143,7 +1107,6 @@ int getsockopt(int __fd, int __level, int __optname,
 		SET_EXTRA_API(socketxtreme_ref_vma_buff, enable_socketxtreme ? vma_socketxtreme_ref_vma_buff : dummy_vma_socketxtreme_ref_vma_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);
 		SET_EXTRA_API(socketxtreme_free_vma_buff, enable_socketxtreme ? vma_socketxtreme_free_vma_buff : dummy_vma_socketxtreme_free_vma_buff, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF);
 		SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, VMA_EXTRA_API_DUMP_FD_STATS);
-		SET_EXTRA_API(vma_modify_ring, vma_modify_ring, VMA_EXTRA_API_MODIFY_RING);
 		*((vma_api_t**)__optval) = vma_api;
 		return 0;
 	}

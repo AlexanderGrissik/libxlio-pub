@@ -110,7 +110,6 @@ public:
 	struct ibv_comp_channel* get_tx_comp_event_channel() { return m_p_tx_comp_event_channel; }
 	int			get_ring_descriptors(vma_mlx_hw_device_data &data);
 	void			modify_cq_moderation(uint32_t period, uint32_t count);
-	int			ack_and_arm_cq(cq_type_t cq_type);
 	friend class cq_mgr;
 	friend class cq_mgr_mlx5;
 	friend class qp_mgr;
