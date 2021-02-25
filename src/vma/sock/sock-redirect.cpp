@@ -715,79 +715,6 @@ int vma_get_socket_netowrk_header(int __fd, void *ptr, uint16_t *len)
 	return -1;
 }
 
-extern "C"
-int vma_get_ring_direct_descriptors(int __fd,
-				    struct vma_mlx_hw_device_data *data)
-{
-	srdr_logdbg_entry("fd=%d, ptr=%p ", __fd, data);
-
-	cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(__fd);
-	if (p_cq_ch_info) {
-		ring_simple* p_ring = dynamic_cast<ring_simple *>(p_cq_ch_info->get_ring());
-		if (likely(p_ring)) {
-			return p_ring->get_ring_descriptors(*data);
-		} else {
-			vlog_printf(VLOG_ERROR, "could not find ring_simple,"
-					" got fd %d\n", __fd);
-			return -1;
-		}
-	} else {
-		vlog_printf(VLOG_ERROR, "could not find p_cq_ch_info, got fd "
-							"%d\n", __fd);
-		return -1;
-	}
-}
-
-extern "C"
-int vma_reg_mr_on_ring(int __fd, void *addr, size_t length, uint32_t *lkey)
-{
-	srdr_logdbg_entry("fd=%d, addr=%p length %zd key %p", __fd, addr, length, lkey);
-
-	if (!lkey) {
-		vlog_printf(VLOG_DEBUG, "key is null fd %d, addr %p, length %zd\n",
-				__fd, addr, length);
-		errno = EINVAL;
-		return -1;
-	}
-	cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(__fd);
-	if (p_cq_ch_info) {
-		ring* p_ring = p_cq_ch_info->get_ring();
-		if (likely(p_ring)) {
-			return p_ring->reg_mr(addr, length, *lkey);
-		} else {
-			vlog_printf(VLOG_ERROR, "could not find ring, got fd "
-					"%d\n", __fd);
-			return -1;
-		}
-	} else {
-		vlog_printf(VLOG_ERROR, "could not find p_cq_ch_info, got fd "
-							"%d\n", __fd);
-		return -1;
-	}
-}
-
-extern "C"
-int vma_dereg_mr_on_ring(int __fd, void *addr, size_t length)
-{
-	srdr_logdbg_entry("fd=%d, addr=%p ", __fd, addr);
-
-	cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(__fd);
-	if (p_cq_ch_info) {
-		ring* p_ring = p_cq_ch_info->get_ring();
-		if (likely(p_ring)) {
-			return p_ring->dereg_mr(addr, length);
-		} else {
-			vlog_printf(VLOG_ERROR, "could not find ring, got fd "
-					"%d\n", __fd);
-			return -1;
-		}
-	} else {
-		vlog_printf(VLOG_ERROR, "could not find p_cq_ch_info, got fd "
-							"%d\n", __fd);
-		return -1;
-	}
-}
-
 //-----------------------------------------------------------------------------
 //  replacement functions
 //-----------------------------------------------------------------------------
@@ -1099,9 +1026,6 @@ int getsockopt(int __fd, int __level, int __optname,
 		SET_EXTRA_API(get_socket_tx_ring_fd, vma_get_socket_tx_ring_fd, VMA_EXTRA_API_GET_SOCKET_TX_RING_FD);
 		SET_EXTRA_API(vma_add_ring_profile, vma_add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
 		SET_EXTRA_API(get_socket_network_header, vma_get_socket_netowrk_header, VMA_EXTRA_API_GET_SOCKET_NETWORK_HEADER);
-		SET_EXTRA_API(get_ring_direct_descriptors, vma_get_ring_direct_descriptors, VMA_EXTRA_API_GET_RING_DIRECT_DESCRIPTORS);
-		SET_EXTRA_API(register_memory_on_ring, vma_reg_mr_on_ring, VMA_EXTRA_API_REGISTER_MEMORY_ON_RING);
-		SET_EXTRA_API(deregister_memory_on_ring, vma_dereg_mr_on_ring, VMA_EXTRA_API_DEREGISTER_MEMORY_ON_RING);
 		SET_EXTRA_API(socketxtreme_free_vma_packets, enable_socketxtreme ? vma_socketxtreme_free_vma_packets : dummy_vma_socketxtreme_free_vma_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
 		SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, VMA_EXTRA_API_SOCKETXTREME_POLL);
 		SET_EXTRA_API(socketxtreme_ref_vma_buff, enable_socketxtreme ? vma_socketxtreme_ref_vma_buff : dummy_vma_socketxtreme_ref_vma_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);

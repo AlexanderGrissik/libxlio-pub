@@ -264,10 +264,6 @@ struct vma_packet_queue_ring_attr {
 	uint32_t	comp_mask;
 };
 
-struct vma_external_mem_attr {
-	uint32_t	comp_mask;
-};
-
 typedef enum {
 	// for future use
 	VMA_RING_ATTR_LAST
@@ -275,7 +271,6 @@ typedef enum {
 
 typedef enum {
 	VMA_RING_PACKET,
-	VMA_RING_EXTERNAL_MEM,
 } vma_ring_type;
 
 /**
@@ -289,68 +284,7 @@ struct vma_ring_type_attr {
 	vma_ring_type	ring_type;
 	union {
 		struct vma_packet_queue_ring_attr	ring_pktq;
-		struct vma_external_mem_attr		ring_ext;
 	};
-};
-
-typedef enum {
-	VMA_HW_PP_EN = (1 << 0),
-	VMA_HW_PP_BURST_EN = (1 << 3),
-} mlx_hw_device_cap;
-
-struct dev_data {
-	uint32_t vendor_id;
-	uint32_t vendor_part_id;
-	uint32_t device_cap; // mlx_hw_device_cap
-};
-
-struct hw_cq_data {
-	void *buf;
-	volatile uint32_t *dbrec;
-	uint32_t cq_size;
-	uint32_t cqe_size;
-	uint32_t cqn;
-	void *uar;
-	// for notifications
-	uint32_t *cons_idx;
-};
-
-struct hw_wq_data {
-	void *buf;
-	uint32_t wqe_cnt;
-	uint32_t stride;
-	volatile uint32_t *dbrec;
-	struct hw_cq_data cq_data;
-};
-
-struct hw_rq_data {
-	struct hw_wq_data wq_data;
-	// TBD do we need it
-	uint32_t *head;
-	uint32_t *tail;
-};
-
-struct hw_sq_data {
-	struct hw_wq_data wq_data;
-	uint32_t sq_num;
-	struct {
-		void *reg;
-		uint32_t size;
-		uint32_t offset;
-	} bf;
-};
-
-typedef enum {
-	DATA_VALID_DEV,
-	DATA_VALID_SQ,
-	DATA_VALID_RQ,
-} vma_mlx_hw_valid_data_mask;
-
-struct vma_mlx_hw_device_data {
-	uint32_t valid_mask; // see vma_mlx_hw_valid_data_mask
-	struct dev_data dev_data;
-	struct hw_sq_data sq_data;
-	struct hw_rq_data rq_data;
 };
 
 typedef enum {
@@ -368,10 +302,7 @@ typedef enum {
 	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 11),
 	VMA_EXTRA_API_GET_SOCKET_TX_RING_FD          = (1 << 12),
 	VMA_EXTRA_API_GET_SOCKET_NETWORK_HEADER      = (1 << 13),
-	VMA_EXTRA_API_GET_RING_DIRECT_DESCRIPTORS    = (1 << 14),
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 16),
-	VMA_EXTRA_API_REGISTER_MEMORY_ON_RING        = (1 << 17),
-	VMA_EXTRA_API_DEREGISTER_MEMORY_ON_RING      = (1 << 18),
 } vma_extra_api_mask;
 
 /** 
@@ -671,39 +602,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * 	size actually used.
 	 */
 	int (*get_socket_network_header)(int fd, void *ptr, uint16_t *len);
-
-	/**
-	 * get the HW descriptors created by VMA
-	 * @param fd - the ring fd
-	 * @param data - result see @ref vma_mlx_hw_device_data
-	 * @return -1 on failure 0 on success
-	 */
-	int (*get_ring_direct_descriptors)(int fd,
-					   struct vma_mlx_hw_device_data *data);
-
-	/**
-	 * register memory to use on a ring.
-	 * @param fd - the ring fd see @ref socketxtreme_get_socket_rings_fds
-	 * @param addr - the virtual address to register
-	 * @param length - hte length of addr
-	 * @param key - out parameter to use when accessing this memory
-	 * @return 0 on success, -1 on failure
-	 *
-	 * @note in vma_extra_api ring is associated with device, although you
-	 * can use the key in other rings using the same port we decided to leave
-	 * the ring fd as the bridge in the "extra" convention instead of
-	 * using an opaque ib_ctx or src ip (that can cause routing issues).
-	 */
-	int (*register_memory_on_ring)(int fd, void *addr, size_t length,
-				       uint32_t *key);
-
-	/**
-	 * deregister the addr that was previously registered in this ring
-	 * @return 0 on success, -1 on failure
-	 *
-	 * @note - this function doens't free the memory
-	 */
-	int (*deregister_memory_on_ring)(int fd, void *addr, size_t length);
 
 	/**
 	 * Used to identify which methods were initialized by VMA as part of vma_get_api().

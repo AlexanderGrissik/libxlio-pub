@@ -132,7 +132,6 @@ public:
 	int                 modify_qp_ratelimit(struct vma_rate_limit_t &rate_limit, uint32_t rl_changes);
 	static inline bool  is_lib_mlx5(const char* device_name) {return strstr(device_name, "mlx5");}
 	virtual void        dm_release_data(mem_buf_desc_t* buff) { NOT_IN_USE(buff); }
-	virtual bool        fill_hw_descriptors(vma_mlx_hw_device_data &data) {NOT_IN_USE(data);return false;};
 protected:
 	struct ibv_qp*      m_qp;
 	uint64_t*           m_rq_wqe_idx_to_wrid;

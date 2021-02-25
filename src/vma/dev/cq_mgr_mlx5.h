@@ -69,7 +69,6 @@ public:
 	void                        set_qp_rq(qp_mgr* qp);
 	virtual void                add_qp_tx(qp_mgr* qp);
 	virtual uint32_t            clean_cq();
-	virtual bool                fill_cq_hw_descriptors(struct hw_cq_data &data);
 	virtual void                get_cq_event(int count = 1) { vma_ib_mlx5_get_cq_event(&m_mlx5_cq, count); };
 
 protected:

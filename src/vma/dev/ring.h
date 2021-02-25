@@ -124,8 +124,6 @@ public:
         virtual bool		is_tso(void) = 0;
 #endif /* DEFINED_TSO */
 	virtual void*		get_ctx(void) = 0;
-	virtual int		reg_mr(void *addr, size_t length, uint32_t &lkey) { NOT_IN_USE(addr); NOT_IN_USE(length); NOT_IN_USE(lkey); return -1;};
-	virtual int		dereg_mr(void *addr, size_t length) { NOT_IN_USE(addr);NOT_IN_USE(length); return -1;};
 
 	virtual int		socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags) = 0;
 

@@ -808,25 +808,6 @@ void cq_mgr_mlx5::add_qp_tx(qp_mgr* qp)
 	cq_logfunc("qp_mgr=%p m_mlx5_cq.dbrec=%p m_mlx5_cq.cq_buf=%p", m_qp, m_mlx5_cq.dbrec, m_mlx5_cq.cq_buf);
 }
 
-bool cq_mgr_mlx5::fill_cq_hw_descriptors(struct hw_cq_data &data)
-{
-	cq_logdbg("Returning HW descriptors for CQ %p cqn %u cqe_cnt %u buf %p "
-		"dbrec %p cqe_size %u", m_p_ibv_cq, m_mlx5_cq.cq_num, m_mlx5_cq.cqe_count,
-		m_mlx5_cq.cq_buf, m_mlx5_cq.dbrec, m_mlx5_cq.cqe_size);
-
-	data.buf = m_mlx5_cq.cq_buf;
-	data.cons_idx = &m_mlx5_cq.cq_ci;
-	data.cq_size = m_mlx5_cq.cqe_count;
-	data.cqe_size = m_mlx5_cq.cqe_size;
-	data.cqn = m_mlx5_cq.cq_num;
-	data.dbrec = m_mlx5_cq.dbrec;
-
-	/* Not supported yet */
-	data.uar = NULL;
-
-	return true;
-}
-
 int cq_mgr_mlx5::poll_and_process_error_element_rx(struct mlx5_cqe64 *cqe, void* pv_fd_ready_array)
 {
 	vma_ibv_wc wce;

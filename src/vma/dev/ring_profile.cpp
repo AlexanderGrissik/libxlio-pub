@@ -42,8 +42,6 @@ ring_profile::ring_profile(const vma_ring_type_attr *ring_desc) {
 	case VMA_RING_PACKET:
 		m_ring_desc.ring_pktq.comp_mask = ring_desc->ring_pktq.comp_mask;
 		break;
-	case VMA_RING_EXTERNAL_MEM:
-		m_ring_desc.ring_ext.comp_mask = ring_desc->ring_ext.comp_mask;
 		break;
 	default:
 		break;
@@ -55,7 +53,6 @@ const char* ring_profile::get_vma_ring_type_str()
 {
 	switch (m_ring_desc.ring_type) {
 	case VMA_RING_PACKET:	return "VMA_PKTS_RING";
-	case VMA_RING_EXTERNAL_MEM:	return "VMA_EXTERNAL_MEM_RING";
 	default:		return "";
 	}
 };

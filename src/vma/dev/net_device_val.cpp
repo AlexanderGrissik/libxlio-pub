@@ -53,7 +53,6 @@
 #include "vma/dev/ib_ctx_handler_collection.h"
 #include "vma/dev/ring_tap.h"
 #include "vma/dev/ring_simple.h"
-#include "vma/dev/ring_eth_direct.h"
 #include "vma/dev/ring_slave.h"
 #include "vma/dev/ring_bond.h"
 #include "vma/sock/sock-redirect.h"
@@ -1375,19 +1374,6 @@ ring* net_device_val_eth::create_ring(resource_allocation_key *key)
 			nd_logerr("could not find ring profile %d",
 				  key->get_ring_profile_key());
 			return NULL;
-		}
-		try {
-			switch (prof->get_ring_type()) {
-			case VMA_RING_EXTERNAL_MEM:
-				ring = new ring_eth_direct(get_if_idx(),
-							   &prof->get_desc()->ring_ext);
-			break;
-			default:
-				nd_logdbg("Unknown ring type");
-				break;
-			}
-		} catch (vma_error &error) {
-			nd_logdbg("failed creating ring %s", error.message);
 		}
 	} else {
 		try {

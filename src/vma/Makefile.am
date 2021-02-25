@@ -68,7 +68,6 @@ libxlio_la_SOURCES := \
 	dev/dm_mgr.cpp \
 	dev/qp_mgr.cpp \
 	dev/qp_mgr_eth_mlx5.cpp \
-	dev/qp_mgr_eth_direct.cpp \
 	dev/gro_mgr.cpp \
 	dev/rfs.cpp \
 	dev/rfs_uc.cpp \
@@ -89,7 +88,6 @@ libxlio_la_SOURCES := \
 	dev/ring_slave.cpp \
 	dev/ring_simple.cpp \
 	dev/ring_tap.cpp \
-	dev/ring_eth_direct.cpp \
 	dev/ring_profile.cpp \
 	dev/ring_allocation_logic.cpp \
 	\
@@ -177,7 +175,6 @@ libxlio_la_SOURCES := \
 	dev/net_device_val.h \
 	dev/qp_mgr.h \
 	dev/qp_mgr_eth_mlx5.h \
-	dev/qp_mgr_eth_direct.h \
 	dev/rfs.h \
 	dev/rfs_mc.h \
 	dev/rfs_uc.h \
@@ -187,7 +184,6 @@ libxlio_la_SOURCES := \
 	dev/ring_slave.h \
 	dev/ring_simple.h \
 	dev/ring_tap.h \
-	dev/ring_eth_direct.h \
 	dev/ring_profile.h \
 	dev/ring_allocation_logic.h \
 	dev/wqe_send_handler.h \
