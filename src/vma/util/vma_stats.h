@@ -237,7 +237,6 @@ typedef struct {
 
 typedef enum {
 	RING_ETH = 0,
-	RING_ETH_CB,
 	RING_ETH_DIRECT,
 	RING_TAP,
 	RING_IB
@@ -245,7 +244,6 @@ typedef enum {
 
 static const char * const ring_type_str[] = {
 	"RING_ETH",
-	"RING_ETH_CB",
 	"RING_ETH_DIRECT",
 	"RING_TAP",
 	"RING_IB"
