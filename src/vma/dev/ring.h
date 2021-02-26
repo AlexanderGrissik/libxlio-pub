@@ -134,6 +134,16 @@ public:
 
 	inline int get_if_index() { return m_if_index; }
 
+	virtual void tls_context_setup(
+		const void *info, uint32_t tis_number,
+		uint32_t dek_id, uint32_t initial_tcp_sn)
+	{
+		NOT_IN_USE(info);
+		NOT_IN_USE(tis_number);
+		NOT_IN_USE(dek_id);
+		NOT_IN_USE(initial_tcp_sn);
+	}
+
 protected:
 	inline void set_parent(ring* parent) { m_parent = ( parent ? parent : this); }
 	inline void set_if_index(int if_index) { m_if_index = if_index; }

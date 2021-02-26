@@ -62,6 +62,11 @@ public:
 	virtual void	down();
 	virtual void    post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc); // Post for receive single mem_buf_desc
 	vma_ib_mlx5_qp_t    m_mlx5_qp;
+
+	void tls_context_setup(
+		const void *info, uint32_t tis_number,
+		uint32_t dek_id, uint32_t initial_tcp_sn);
+
 protected:
 	void		trigger_completion_for_all_sent_packets();
 	void		init_sq();

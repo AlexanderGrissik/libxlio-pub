@@ -109,6 +109,15 @@ public:
 
 	struct ibv_comp_channel* get_tx_comp_event_channel() { return m_p_tx_comp_event_channel; }
 	void			modify_cq_moderation(uint32_t period, uint32_t count);
+
+	void tls_context_setup(
+		const void *info, uint32_t tis_number,
+		uint32_t dek_id, uint32_t initial_tcp_sn)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_context_setup(info, tis_number, dek_id, initial_tcp_sn);
+	}
+
 	friend class cq_mgr;
 	friend class cq_mgr_mlx5;
 	friend class qp_mgr;

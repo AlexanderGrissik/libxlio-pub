@@ -33,6 +33,7 @@
 
 #if defined(DEFINED_DIRECT_VERBS)
 
+#include <linux/tls.h>
 #include <sys/mman.h>
 #include "cq_mgr_mlx5.h"
 #include "vma/util/utils.h"
@@ -928,6 +929,21 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	return 0;
 }
 #endif /* DEFINED_TSO */
+
+void qp_mgr_eth_mlx5::tls_context_setup(
+	const void *info, uint32_t tis_number,
+	uint32_t dek_id, uint32_t initial_tcp_sn)
+{
+	const struct tls12_crypto_info_aes_gcm_128 *crypto_info =
+		(const struct tls12_crypto_info_aes_gcm_128 *)info;
+	/* Fill UMR, doorbell */
+
+	/* XXX Remove me */
+	NOT_IN_USE(crypto_info);
+	NOT_IN_USE(tis_number);
+	NOT_IN_USE(dek_id);
+	NOT_IN_USE(initial_tcp_sn);
+}
 
 //! Handle releasing of Tx buffers
 // Single post send with SIGNAL of a dummy packet
