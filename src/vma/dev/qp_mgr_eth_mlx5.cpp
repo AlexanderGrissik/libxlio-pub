@@ -792,7 +792,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 	ctrl = (struct mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 
 	/* Do usual send operation in case payload less than mss */
-	if (unlikely(0 == pswr->tso.mss)) {
+	if (0 == pswr->tso.mss) {
                 ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(VMA_IBV_WR_SEND) & 0xff));
         }
 
