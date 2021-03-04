@@ -1,0 +1,124 @@
+---
+job: LIBVMA-PRO
+
+registry_host: harbor.mellanox.com
+registry_path: /swx-storage/libvma-pro
+registry_auth: swx-storage
+
+kubernetes:
+  cloud: swx-k8s
+  nodeSelector: 'beta.kubernetes.io/os=linux'
+
+volumes:
+  - {mountPath: /hpc/local/bin, hostPath: /hpc/local/bin}
+  - {mountPath: /hpc/local/oss/vma/, hostPath: /hpc/local/oss/vma/}
+  - {mountPath: /hpc/local/etc/modulefiles, hostPath: /hpc/local/etc/modulefiles}
+
+
+  - {mountPath: /var/run/docker.sock, hostPath: /var/run/docker.sock}
+  - {mountPath: /var/home/swx-jenkins/, hostPath: /labhome/swx-jenkins}
+
+env:
+  build_dockers: false
+  DOCKER_CLI_EXPERIMENTAL: enabled
+
+runs_on_dockers:
+  - {file: '.ci/Dockerfile_ubuntu20_04_ofed5', name: 'libvma_pro_ubuntu20_04_ofed5', tag: 'latest'}
+  #- {file: '.ci/Dockerfile_fedora32_ofed5', name: 'libvma_pro_fedora32_ofed5', tag: 'latest'}
+
+matrix:
+  axes:
+    arch:
+      - x86_64
+
+steps:
+  - name: Autogen
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      ./autogen.sh -s
+    always: |
+      mkdir -p $WORKSPACE/logs/
+    archiveArtifacts: 'logs/*.log'
+
+  - name: Build
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      $WORKSPACE/contrib/jenkins_tests/build.sh 
+    always: |
+      mkdir -p $WORKSPACE/logs/
+    archiveArtifacts: 'jenkins/build/*.log'
+
+  - name: Coverity
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/cov.sh"
+      $WORKSPACE/contrib/jenkins_tests/cov.sh
+    parallel: true
+    archiveArtifacts: 'logs/*'
+
+  - name: STYLE
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/style.sh"
+      $WORKSPACE/contrib/jenkins_tests/style.sh
+    parallel: true
+    archiveArtifacts: 'logs/*'
+
+  - name: Compiler
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/compiler.sh"
+      $WORKSPACE/contrib/jenkins_tests/compiler.sh
+    parallel: true
+    archiveArtifacts: 'logs/*'
+
+  - name: RPM
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/rpm.sh"
+      $WORKSPACE/contrib/jenkins_tests/rpm.sh
+    parallel: true
+    archiveArtifacts: 'logs/*'
+
+  - name: Running Tests
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/test.sh"
+      $WORKSPACE/contrib/jenkins_tests/test.sh
+    parallel: false
+    archiveArtifacts: 'logs/*'
+
+  - name: Running Gtest
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      echo "$WORKSPACE/contrib/jenkins_tests/gtest.sh"
+      $WORKSPACE/contrib/jenkins_tests/gtest.sh
+    parallel: false
+    archiveArtifacts: 'logs/*'
+
+  - name: VG
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      $WORKSPACE/contrib/jenkins_tests/vg.sh
+    parallel: false
+    archiveArtifacts: 'logs/*'
+
+  - name: TOOL
+    run: |
+      source $WORKSPACE/contrib/jenkins_tests/globals.sh
+      $WORKSPACE/contrib/jenkins_tests/tool.sh
+    parallel: false
+    archiveArtifacts: 'logs/*'
+
+
+pipeline_start:
+  run: |
+    printenv
+    echo "Start all"
+
+pipeline_stop:
+  run: |
+    printenv
+    echo All done
+
+failFast: false
