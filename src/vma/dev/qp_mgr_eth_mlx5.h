@@ -58,6 +58,7 @@ public:
 	void tls_context_setup(
 		const void *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn);
+	void tls_tx_post_dump_wqe(uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey);
 
 protected:
 	void		trigger_completion_for_all_sent_packets();

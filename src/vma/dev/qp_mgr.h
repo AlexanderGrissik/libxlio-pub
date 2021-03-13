@@ -142,6 +142,14 @@ public:
 		NOT_IN_USE(dek_id);
 		NOT_IN_USE(initial_tcp_sn);
 	}
+	virtual void tls_tx_post_dump_wqe(
+		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	{
+		NOT_IN_USE(tis_number);
+		NOT_IN_USE(addr);
+		NOT_IN_USE(len);
+		NOT_IN_USE(lkey);
+	}
 
 protected:
 	struct ibv_qp*      m_qp;

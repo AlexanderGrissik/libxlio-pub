@@ -117,6 +117,12 @@ public:
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_context_setup(info, tis_number, dek_id, initial_tcp_sn);
 	}
+	virtual void tls_tx_post_dump_wqe(
+		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_tx_post_dump_wqe(tis_number, addr, len, lkey);
+	}
 
 	friend class cq_mgr;
 	friend class cq_mgr_mlx5;

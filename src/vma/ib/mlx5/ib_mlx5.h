@@ -243,6 +243,11 @@ typedef struct mlx5_set_tls_progress_params_wqe {
 	struct mlx5_wqe_tls_progress_params_seg params;
 } mlx5_set_tls_progress_params_wqe;
 
+struct mlx5_dump_wqe {
+	struct mlx5_wqe ctrl;
+	struct mlx5_wqe_data_seg data;
+};
+
 typedef struct vma_mlx5_seg_get_psv {
 	uint8_t rsvd[19];
 	uint8_t num_psv;
@@ -264,6 +269,8 @@ typedef struct mlx5_get_tls_progress_params_wqe {
 	(DIV_ROUND_UP(sizeof(mlx5_set_tls_progress_params_wqe), MLX5_SEND_WQE_BB))
 #define TLS_GET_PROGRESS_WQEBBS \
 	(DIV_ROUND_UP(sizeof(mlx5_get_tls_progress_params_wqe), MLX5_SEND_WQE_BB))
+#define TLS_DUMP_WQEBBS \
+        (DIV_ROUND_UP(sizeof(struct mlx5_dump_wqe), MLX5_SEND_WQE_BB))
 
 /* WQE control segment fence flags */
 enum {
@@ -341,6 +348,7 @@ enum {
 enum {
 	VMA_MLX5_OPCODE_SET_PSV = 0x20,
 	VMA_MLX5_OPCODE_GET_PSV = 0x21,
+	VMA_MLX5_OPCODE_DUMP = 0x23,
 };
 
 int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
