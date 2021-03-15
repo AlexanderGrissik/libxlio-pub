@@ -1167,6 +1167,35 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
 	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
 }
 
+void qp_mgr_eth_mlx5::post_nop_fence(void)
+{
+	struct mlx5_wqe* wqe = reinterpret_cast<struct mlx5_wqe*>(m_sq_wqe_hot);
+	struct vma_mlx5_wqe_ctrl_seg* cseg = &wqe->ctrl;
+
+	memset(wqe, 0, sizeof(*wqe));
+
+	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | MLX5_OPCODE_NOP);
+	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | 0x01);
+	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
+
+	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+
+#ifdef DEFINED_TSO
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, 1);
+#else
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, 1);
+#endif
+
+	// Preparing next WQE as Ethernet send WQE and index:
+	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
+	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
+	memset(m_sq_wqe_hot, 0, sizeof(mlx5_eth_wqe));
+
+	// Fill Ethernet segment with header inline:
+	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
+	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
+}
+
 //! Handle releasing of Tx buffers
 // Single post send with SIGNAL of a dummy packet
 // NOTE: Since the QP is in ERROR state no packets will be sent on the wire!

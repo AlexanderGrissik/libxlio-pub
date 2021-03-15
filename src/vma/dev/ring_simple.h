@@ -123,6 +123,11 @@ public:
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_tx_post_dump_wqe(tis_number, addr, len, lkey);
 	}
+	void post_nop_fence(void)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->post_nop_fence();
+	}
 
 	friend class cq_mgr;
 	friend class cq_mgr_mlx5;

@@ -151,6 +151,7 @@ public:
 		NOT_IN_USE(len);
 		NOT_IN_USE(lkey);
 	}
+	virtual void post_nop_fence(void) {}
 
 protected:
 	inline void set_parent(ring* parent) { m_parent = ( parent ? parent : this); }
