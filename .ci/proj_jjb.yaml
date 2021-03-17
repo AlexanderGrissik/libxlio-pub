@@ -28,12 +28,60 @@
             description: "Regex to select job config file. Do not change it"
         - bool:
             name: "debug"
-            default: true
+            default: false
             description: "More info in pipeline"
+        - bool:
+            name: "do_build"
+            default: true
+            description: "This verifies different configuration using gcc compiler."
+        - bool:
+            name: "do_compiler"
+            default: true
+            description: "Check ability to be built under icc, clang."
+        - bool:
+            name: "do_package"
+            default: true
+            description: "Check tar, source and binary packages."
+        - bool:
+            name: "do_cppcheck"
+            default: true
+            description: "Run static analysis using cppcheck tool."
+        - bool:
+            name: "do_service"
+            default: true
+            description: "Verify service."
+        - bool:
+            name: "do_style"
+            default: false
+            description: "Analysis source code for coding style."
+        - bool:
+            name: "do_coverity"
+            default: true
+            description: "Launch coverity verification."
+        - bool:
+            name: "do_valgrind"
+            default: true
+            description: "Use valgrind."
+        - bool:
+            name: "do_test"
+            default: true
+            description: "Use runtime verification."
+        - bool:
+            name: "do_gtest"
+            default: true
+            description: "Use google tests."
+        - bool:
+            name: "do_blackduck"
+            default: true
+            description: "Run BlackDuck."
     triggers:
         - github-pull-request:
             cron: 'H/5 * * * *'
             trigger-phrase: '.*\bbot:retest\b.*'
+            status-context: "Mellanox Lab"
+            success-status: "[PASS]"
+            failure-status: "[FAIL]"
+            error-status:   "[FAIL]"
             status-add-test-results: true
             auth-id: '549927eb-7f38-4a8f-997a-81dd63605782'
             org-list: ["Mellanox"]
@@ -47,7 +95,7 @@
                 credentials-id: '6114d2a2-9b23-46d4-ab25-a13196894197'
                 branches: ['$sha1']
                 shallow-clone: true
-                #depth: 100
+                depth: 2
                 refspec: "+refs/pull/*:refs/remotes/origin/pr/*"
                 browser: githubweb
                 browser-url: "{jjb_git}"

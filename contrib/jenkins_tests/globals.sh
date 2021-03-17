@@ -1,6 +1,5 @@
 #!/bin/bash
 
-WORKSPACE=${WORKSPACE:=$abs_path}
 WORKSPACE=${WORKSPACE:=$(pwd)}
 BUILD_NUMBER=${BUILD_NUMBER:=0}
 
@@ -8,6 +7,10 @@ TARGET=${TARGET:=all}
 i=0
 if [ "$TARGET" == "all" -o "$TARGET" == "default" ]; then
 	target_list[$i]="default: "
+	i=$((i+1))
+fi
+if [ "$TARGET" == "all" -o "$TARGET" == "extra" ]; then
+	target_list[$i]="extra: --enable-tso --enable-nginx"
 	i=$((i+1))
 fi
 

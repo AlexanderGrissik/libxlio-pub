@@ -13,113 +13,315 @@ kubernetes:
 volumes:
   - {mountPath: /hpc/local/bin, hostPath: /hpc/local/bin}
   - {mountPath: /hpc/local/oss/vma/, hostPath: /hpc/local/oss/vma/}
+  - {mountPath: /auto/sw_tools/Commercial, hostPath: /auto/sw_tools/Commercial}
+  - {mountPath: /hpc/local/commercial, hostPath: /hpc/local/commercial}
   - {mountPath: /hpc/local/etc/modulefiles, hostPath: /hpc/local/etc/modulefiles}
-
-
-  - {mountPath: /var/run/docker.sock, hostPath: /var/run/docker.sock}
-  - {mountPath: /var/home/swx-jenkins/, hostPath: /labhome/swx-jenkins}
 
 env:
   build_dockers: false
-  DOCKER_CLI_EXPERIMENTAL: enabled
 
 runs_on_dockers:
-  - {file: '.ci/Dockerfile_ubuntu20_04_ofed5', name: 'libvma_pro_ubuntu20_04_ofed5', tag: 'latest'}
-  #- {file: '.ci/Dockerfile_fedora32_ofed5', name: 'libvma_pro_fedora32_ofed5', tag: 'latest'}
+  - {name: 'rhel8.3-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:mofed-5.2-0.5.3.0', arch: 'x86_64'}
+  - {name: 'sl15sp2-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/sles15sp2/builder:mofed-5.2-2.2.0.0', arch: 'x86_64'}
+  - {name: 'fc31-mofed-x86_64',    url: 'harbor.mellanox.com/swx-infra/x86_64/fedora31/builder:mofed-5.1-1.0.7.0', arch: 'x86_64'}
+
+  - {name: 'ub20.04-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/ubuntu20.04/builder:mofed-5.2-2.2.0.0', arch: 'x86_64'}
+#  - {name: 'ub20.04-mofed-aarch64', url: 'harbor.mellanox.com/swx-infra/aarch64/ubuntu20.04/builder:mofed-5.2-1.0.4.0', arch: 'aarch64'}
+#  - {name: 'ub20.04-mofed-ppc64le', url: 'harbor.mellanox.com/swx-infra/ppc64le/ubuntu20.04/builder:mofed-5.2-1.0.4.0', arch: 'ppc64le'}
+
+  - {name: 'rhel8.3-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', arch: 'x86_64'}
+  - {name: 'rhel8.3-inbox-aarch64', url: 'harbor.mellanox.com/hpcx/aarch64/rhel8.3/builder:inbox', arch: 'aarch64'}
+
+  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', arch: 'x86_64'}
+  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', arch: 'x86_64'}
+
+#  - {name: 'coverity', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'tool', arch: 'x86_64'}
+  - {name: 'blackduck', url: 'harbor.mellanox.com/toolbox/ngci-centos:7.9.2009.2', category: 'tool', arch: 'x86_64'}
+
+runs_on_agents:
+  - nodeLabel: 'r-aa-zorro014'
 
 matrix:
   axes:
+    flags:
+      - default
+      - extra
     arch:
       - x86_64
+      - aarch64
+      - ppc64le
+
+env:
+  jenkins_opt_artifacts: 'none'
 
 steps:
+  - name: Setup
+    run: |
+      set +x
+      echo
+      echo "======================================================"
+      echo "name: ${name}"
+      echo "arch: ${arch}"
+      echo "url: ${uri}"
+      echo "tag: ${tag}"
+      echo "flags: ${flags}"
+      echo "variant: ${variant}"
+      echo "======================================================"
+      echo
+    parallel: false
+
   - name: Autogen
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
       ./autogen.sh -s
-    always: |
-      mkdir -p $WORKSPACE/logs/
-    archiveArtifacts: 'logs/*.log'
+    parallel: false
 
   - name: Build
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      $WORKSPACE/contrib/jenkins_tests/build.sh 
-    always: |
-      mkdir -p $WORKSPACE/logs/
-    archiveArtifacts: 'jenkins/build/*.log'
+      [ "x${do_build}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_build=${action} ./contrib/test_jenkins.sh 
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
-  - name: Coverity
+  - name: Service
+    containerSelector:
+      - "{name: 'rhel8.3-mofed-x86_64', variant:1}"
+      - "{name: 'sl15sp2-mofed-x86_64', variant:1}"
+      - "{name: 'fc31-mofed-x86_64', variant:1}"
+      - "{name: 'ub20.04-mofed-x86_64', variant:1}"
+      - "{name: 'rhel8.3-inbox-x86_64', variant:1}"
+      - "{name: 'rhel8.3-inbox-aarch64', variant:1}"
+      - "{name: 'rhel7.6-mofed-x86_64', variant:1}"
+      - "{name: 'rhel7.6-inbox-x86_64', variant:1}"
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/cov.sh"
-      $WORKSPACE/contrib/jenkins_tests/cov.sh
-    parallel: true
-    archiveArtifacts: 'logs/*'
+      [ "x${do_service}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tool=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
-  - name: STYLE
+  - name: Package
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/style.sh"
-      $WORKSPACE/contrib/jenkins_tests/style.sh
-    parallel: true
-    archiveArtifacts: 'logs/*'
+      [ "x${do_package}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_rpm=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
+
+  - name: Style
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014'}"
+    run: |
+      [ "x${do_style}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_style=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
   - name: Compiler
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014'}"
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/compiler.sh"
-      $WORKSPACE/contrib/jenkins_tests/compiler.sh
-    parallel: true
-    archiveArtifacts: 'logs/*'
-
-  - name: RPM
-    run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/rpm.sh"
-      $WORKSPACE/contrib/jenkins_tests/rpm.sh
-    parallel: true
-    archiveArtifacts: 'logs/*'
-
-  - name: Running Tests
-    run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/test.sh"
-      $WORKSPACE/contrib/jenkins_tests/test.sh
+      [ "x${do_compiler}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_compiler=${action} ./contrib/test_jenkins.sh
     parallel: false
-    archiveArtifacts: 'logs/*'
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
-  - name: Running Gtest
+  - name: Coverity
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014'}"
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      echo "$WORKSPACE/contrib/jenkins_tests/gtest.sh"
-      $WORKSPACE/contrib/jenkins_tests/gtest.sh
+      [ "x${do_coverity}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cov=${action} ./contrib/test_jenkins.sh
     parallel: false
-    archiveArtifacts: 'logs/*'
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz,
+      jenkins/**/output/errors/**/*.html
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
-  - name: VG
+  - name: Test
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      $WORKSPACE/contrib/jenkins_tests/vg.sh
+      [ "x${do_test}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_run=${action} ./contrib/test_jenkins.sh
     parallel: false
-    archiveArtifacts: 'logs/*'
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
-  - name: TOOL
+  - name: Gtest
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
-      source $WORKSPACE/contrib/jenkins_tests/globals.sh
-      $WORKSPACE/contrib/jenkins_tests/tool.sh
+      [ "x${do_gtest}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_gtest=${action} ./contrib/test_jenkins.sh
     parallel: false
-    archiveArtifacts: 'logs/*'
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
 
+  - name: Valgrind
+    agentSelector:
+      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
+    run: |
+      [ "x${do_valgrind}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_vg=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz,
+      jenkins/**/vg/*valgrind*.log
+    archiveTap-onfail: |
+      jenkins/**/*.tap
+
+  - name: Artifacts
+    run: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    parallel: false
+    archiveArtifacts: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap: |
+      jenkins/**/*.tap
+
+  - name: Blackduck
+    enable: ${do_blackduck}
+    containerSelector: "{name: 'blackduck', category:'tool', variant:1}"
+    shell: action
+    module: ngci
+    run: NGCIBlackDuckScan
+    args:
+      projectName: "libvma"
+      projectVersion: "0.1.0"
+      projectSrcPath: "src"
+      attachArtifact: true
+      reportName: "BlackDuck report"
+      scanMode: "source"
+    env:
+      SPRING_APPLICATION_JSON: '{"blackduck.url":"https://blackduck.mellanox.com/","blackduck.api.token":"ODMwOWYwMzEtODA2ZC00MzBjLWI1ZDEtNmFiMjBkYzQzMzkwOjNmNjExN2M1LWE2ZmEtNDZlYS1hZjRiLTZlNDgwNjAwOTVjNw=="}'
 
 pipeline_start:
   run: |
     printenv
-    echo "Start all"
+    echo "Start"
 
 pipeline_stop:
   run: |
-    printenv
-    echo All done
+    echo "Finish"
 
 failFast: false
+
+taskName: '${flags}/${name}/${axis_index}'
