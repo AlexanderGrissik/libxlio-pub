@@ -2,11 +2,17 @@
 
 source $(dirname $0)/globals.sh
 
-do_check_filter "Checking for gtest ..." "on"
+echo "Checking for gtest ..."
+
+# Check dependencies
+if [ $(test -d ${install_dir} >/dev/null 2>&1 || echo $?) ]; then
+	echo "[SKIP] Not found ${install_dir} : build should be done before this stage"
+	exit 1
+fi
 
 if [ $(command -v ibdev2netdev >/dev/null 2>&1 || echo $?) ]; then
 	echo "[SKIP] ibdev2netdev tool does not exist"
-	exit 0
+	exit 1
 fi
 
 cd $WORKSPACE
@@ -35,13 +41,13 @@ set +eE
 ${WORKSPACE}/configure --prefix=$install_dir
 make -C tests/gtest
 
-eval "sudo pkill -9 vmad"
-eval "sudo ${install_dir}/sbin/vmad --console -v5 &"
+eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
+eval "${sudo_cmd} ${install_dir}/sbin/vmad --console -v5 &"
 
 eval "$timeout_exe env GTEST_TAP=2 LD_PRELOAD=$gtest_lib $gtest_app $gtest_opt"
 rc=$(($rc+$?))
 
-eval "sudo pkill -9 vmad"
+eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
 
 set -eE
 

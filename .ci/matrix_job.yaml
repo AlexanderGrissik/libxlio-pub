@@ -6,7 +6,8 @@ registry_path: /swx-storage/libvma-pro
 registry_auth: swx-storage
 
 kubernetes:
-  cloud: swx-k8s
+  privileged: false
+  cloud: swx-k8s-spray
   nodeSelector: 'beta.kubernetes.io/os=linux'
 
 volumes:

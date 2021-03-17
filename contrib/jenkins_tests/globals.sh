@@ -1,15 +1,8 @@
 #!/bin/bash
 
-WORKSPACE=${WORKSPACE:=$PWD}
-if [ -z "$BUILD_NUMBER" ]; then
-    echo Running interactive
-    BUILD_NUMBER=1
-    WS_URL=file://$WORKSPACE
-    JENKINS_RUN_TESTS=yes
-else
-    echo Running under jenkins
-    WS_URL=$JOB_URL/ws
-fi
+WORKSPACE=${WORKSPACE:=$abs_path}
+WORKSPACE=${WORKSPACE:=$(pwd)}
+BUILD_NUMBER=${BUILD_NUMBER:=0}
 
 TARGET=${TARGET:=all}
 i=0
@@ -37,7 +30,6 @@ csbuild_dir=${WORKSPACE}/${prefix}/csbuild
 vg_dir=${WORKSPACE}/${prefix}/vg
 style_dir=${WORKSPACE}/${prefix}/style
 tool_dir=${WORKSPACE}/${prefix}/tool
-
 
 nproc=$(grep processor /proc/cpuinfo|wc -l)
 make_opt="-j$(($nproc / 2 + 1))"
@@ -80,30 +72,6 @@ function do_archive()
     set +e
     eval $cmd >> /dev/null 2>&1
     set -e
-}
-
-function do_github_status()
-{
-    echo "Calling: github $1"
-    eval "local $1"
-
-    local token=""
-    if [ -z "$tokenfile" ]; then
-        tokenfile="$HOME/.mellanox-github"
-    fi
-
-    if [ -r "$tokenfile" ]; then
-        token="$(cat $tokenfile)"
-    else
-        echo Error: Unable to read tokenfile: $tokenfile
-        return
-    fi
-
-    curl \
-    -X POST \
-    -H "Content-Type: application/json" \
-    -d "{\"state\": \"$state\", \"context\": \"$context\",\"description\": \"$info\", \"target_url\": \"$target_url\"}" \
-    "https://api.github.com/repos/$repo/statuses/${sha1}?access_token=$token"
 }
 
 # Test if an environment module exists and load it if yes.
@@ -170,8 +138,15 @@ function do_check_env()
         echo "environment [NOT OK]"
         exit 1
     fi
-    if [ $(sudo pwd >/dev/null 2>&1 || echo $?) ]; then
-        echo "sudo does not work"
+
+    if [ "$(whoami)" == "root" ]; then
+        export sudo_cmd=""
+    else
+        export sudo_cmd="sudo"
+    fi
+
+    if [ $(${sudo_cmd} pwd >/dev/null 2>&1 || echo $?) ]; then
+        echo "${sudo_cmd} does not work"
         echo "environment [NOT OK]"
         exit 1
     fi
@@ -185,25 +160,6 @@ function do_check_env()
     fi
 
     echo "environment [OK]"
-}
-
-# Check if the unit should be proccesed
-# $1 - output message
-# $2 - [on|off] if on - skip this case if JENKINS_RUN_TESTS variable is OFF
-#
-function do_check_filter()
-{
-    local msg=$1
-    local filter=$2
-
-    if [ -n "$filter" -a "$filter" == "on" ]; then
-        if [ -z "$JENKINS_RUN_TESTS" -o "$JENKINS_RUN_TESTS" == "no" ]; then
-            echo "$msg [SKIP]"
-            exit 0
-        fi
-    fi
-
-    echo "$msg [OK]"
 }
 
 # Launch command and detect result of execution

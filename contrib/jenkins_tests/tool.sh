@@ -2,7 +2,13 @@
 
 source $(dirname $0)/globals.sh
 
-do_check_filter "Checking for tool ..." "off"
+echo "Checking for tool ..."
+
+# Check dependencies
+if [ $(test -d ${install_dir} >/dev/null 2>&1 || echo $?) ]; then
+	echo "[SKIP] Not found ${install_dir} : build should be done before this stage"
+	exit 1
+fi
 
 cd $WORKSPACE
 
@@ -22,35 +28,37 @@ function check_daemon()
     local service="vma"
 
     rm -rf ${out_log}
-    sudo pkill -9 vmad
+    eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
 
     if systemctl >/dev/null 2>&1; then
         echo "System has been booted with SystemD" >> ${out_log}
         service=${install_dir}/sbin/vma
     else
+        echo "System has been booted with SystemV" >> ${out_log}
         service=${install_dir}/etc/init.d/vma
     fi
 
     echo "daemon check output: ${service}" >> ${out_log}
-    if [ $(sudo ${service} start >>${out_log} 2>&1 || echo $?) ]; then
+    if [ $(${sudo_cmd} ${service} start >>${out_log} 2>&1 || echo $?) ]; then
         ret=1
     fi
     sleep 3
     if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
         ret=1
     fi
-    if [ $(sudo ${service} status >>${out_log} 2>&1 || echo $?) ]; then
+    if [ $(${sudo_cmd} ${service} status >>${out_log} 2>&1 || echo $?) ]; then
         ret=1
     fi
-    if [ $(sudo ${service} stop >>${out_log} 2>&1 || echo $?) ]; then
+    if [ $(${sudo_cmd} ${service} stop >>${out_log} 2>&1 || echo $?) ]; then
         ret=1
     fi
     sleep 3
-    if [ "0" == "$ret" -a "" != "$(pgrep vmad)" ]; then
+    # Under docker containers vmad can be a zombie after killing
+    if [ "0" == "$ret" -a "" != "$(ps aux | grep vmad | egrep -v 'grep|defunct')" ]; then
         ret=1
     fi
 
-    sudo pkill -9 vmad
+    eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
 
     echo "$ret"
 }
@@ -62,6 +70,7 @@ for tool in $tool_list; do
     test_id=$((test_id+1))
     test_exec="[ 0 = $(check_daemon "${tool_dir}/${tool}/output.log") ]"
     do_check_result "$test_exec" "$test_id" "$tool" "$tool_tap" "${tool_dir}/tool-${test_id}"
+    do_archive "${tool_dir}/${tool}/output.log"
     cd ${tool_dir}
 done
 

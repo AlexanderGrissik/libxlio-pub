@@ -2,7 +2,7 @@
 #
 # Testing script for VMA, to run from Jenkins CI
 #
-# Copyright (C) Mellanox Technologies Ltd. 2001-2021. ALL RIGHTS RESERVED.
+# Copyright (C) Mellanox Technologies Ltd. 2001-2020.  ALL RIGHTS RESERVED.
 #
 # See file LICENSE for terms.
 #
@@ -10,14 +10,12 @@
 # Environment variables set by Jenkins CI:
 #  - WORKSPACE         : path to working directory
 #  - BUILD_NUMBER      : jenkins build number
-#  - JOB_URL           : jenkins job url
-#  - JENKINS_RUN_TESTS : whether to run unit tests
 #  - TARGET            : target configuration
 #
 
 echo "======================================================"
 echo
-echo "# starting on host --------->  $(hostname) "
+echo "# starting on host --------->  $(hostname 2>/dev/null) "
 echo "# arguments called with ---->  ${@}        "
 echo "# path to me --------------->  ${0}        "
 echo "# parent path -------------->  ${0%/*}     "
@@ -26,19 +24,26 @@ echo
 
 PATH=${PATH}:/hpc/local/bin:/hpc/local/oss/vma/
 MODULEPATH=${MODULEPATH}:/hpc/local/etc/modulefiles
-env
+
+echo
 for f in autoconf automake libtool ; do $f --version | head -1 ; done
-echo "======================================================"
-
-source $(dirname $0)/jenkins_tests/globals.sh
-
-set -xe
-# check go/not go
-#
-do_check_env
+echo
 
 rel_path=$(dirname $0)
 abs_path=$(readlink -f $rel_path)
+
+echo
+echo "# rel_path ----------------->  ${rel_path}    "
+echo "# abs_path ----------------->  ${abs_path}       "
+echo
+
+source ${abs_path}/jenkins_tests/globals.sh
+
+echo
+echo "# WORKSPACE ---------------->  ${WORKSPACE}    "
+echo "# BUILD_NUMBER ------------->  ${BUILD_NUMBER} "
+echo "# TARGET ------------------->  ${TARGET}       "
+echo
 
 # Values: none, fail, always
 #
@@ -50,29 +55,42 @@ jenkins_opt_exit=${jenkins_opt_exit:="6"}
 
 # Test scenario list
 #
-jenkins_test_build=${jenkins_test_build:="yes"}
+jenkins_test_build=${jenkins_test_build:="no"}
 
-jenkins_test_compiler=${jenkins_test_compiler:="yes"}
-jenkins_test_rpm=${jenkins_test_rpm:="yes"}
-jenkins_test_cov=${jenkins_test_cov:="yes"}
-jenkins_test_cppcheck=${jenkins_test_cppcheck:="yes"}
-jenkins_test_csbuild=${jenkins_test_csbuild:="yes"}
-jenkins_test_run=${jenkins_test_run:="yes"}
-jenkins_test_gtest=${jenkins_test_gtest:="yes"}
-jenkins_test_vg=${jenkins_test_vg:="yes"}
+jenkins_test_compiler=${jenkins_test_compiler:="no"}
+jenkins_test_rpm=${jenkins_test_rpm:="no"}
+jenkins_test_cov=${jenkins_test_cov:="no"}
+jenkins_test_cppcheck=${jenkins_test_cppcheck:="no"}
+jenkins_test_csbuild=${jenkins_test_csbuild:="no"}
+jenkins_test_run=${jenkins_test_run:="no"}
+jenkins_test_gtest=${jenkins_test_gtest:="no"}
+jenkins_test_vg=${jenkins_test_vg:="no"}
 jenkins_test_style=${jenkins_test_style:="no"}
-jenkins_test_tool=${jenkins_test_tool:="yes"}
+jenkins_test_tool=${jenkins_test_tool:="no"}
 
+echo
+for var in ${!jenkins_test_@}; do
+   printf "%s%q\n" "$var=" "${!var}"
+done
+echo
 
-echo Starting on host: $(hostname)
+# check go/not go
+#
+do_check_env
+echo
+echo "======================================================"
+set -xe
 
 cd $WORKSPACE
 
-rm -rf ${WORKSPACE}/${prefix}
-rm -rf autom4te.cache
+if [ $BUILD_NUMBER -le 0 ]; then
+    rm -rf ${WORKSPACE}/${prefix}
+    rm -rf autom4te.cache
+fi
 
-./autogen.sh -s
-
+if [ ! -e configure ] && [ -e autogen.sh ]; then
+    ./autogen.sh -s
+fi
 
 for target_v in "${target_list[@]}"; do
     ret=0
@@ -203,12 +221,13 @@ for target_v in "${target_list[@]}"; do
     fi
     set -e
 
-    # Archive all logs in single file
-    do_archive "${WORKSPACE}/${prefix}/${target_name}/*.tap"
-
     if [ "$jenkins_opt_artifacts" == "always" ] || [ "$jenkins_opt_artifacts" == "fail" -a "$rc" -gt 0 ]; then
+
+        # Archive all logs in single file
+        do_archive "${WORKSPACE}/${prefix}/${target_name}/*.tap"
+
 	    set +x
-	    gzip "${jenkins_test_artifacts}.tar"
+	    gzip -f "${jenkins_test_artifacts}.tar"
 	    echo "======================================================"
 	    echo "Jenkins result for [${target_name}] target: return $rc"
 	    echo "Artifacts: ${jenkins_test_artifacts}.tar.gz"
