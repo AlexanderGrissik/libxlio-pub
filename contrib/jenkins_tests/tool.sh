@@ -24,13 +24,14 @@ function check_daemon()
     rm -rf ${out_log}
     sudo pkill -9 vmad
 
-    if type systemctl >/dev/null 2>&1; then
+    if systemctl >/dev/null 2>&1; then
+        echo "System has been booted with SystemD" >> ${out_log}
         service=${install_dir}/sbin/vma
     else
         service=${install_dir}/etc/init.d/vma
     fi
 
-    echo "daemon check output: ${service}" > ${out_log}
+    echo "daemon check output: ${service}" >> ${out_log}
     if [ $(sudo ${service} start >>${out_log} 2>&1 || echo $?) ]; then
         ret=1
     fi
