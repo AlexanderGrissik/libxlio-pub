@@ -521,3 +521,14 @@
    fun:__nl_error
    fun:nl_recvmsgs
 }
+###########################################################
+# libvma
+{
+   Param agent
+   Memcheck:Param
+   socketcall.sendto(msg)
+   fun:send
+   fun:_ZN5agent4sendEP9agent_msg
+   fun:_ZN5agent8progressEv
+   ...
+}
