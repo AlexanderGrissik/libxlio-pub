@@ -4,8 +4,8 @@ source $(dirname $0)/globals.sh
 
 echo "Checking for coverity ..."
 
-#do_module "tools/cov-8.7"
-PATH=${PATH}:/hpc/local/commercial/coverity/cov-2020.06/bin/
+do_module "tools/cov-latest"
+
 cd $WORKSPACE
 
 rm -rf $cov_dir
