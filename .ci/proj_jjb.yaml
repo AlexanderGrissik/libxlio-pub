@@ -26,10 +26,10 @@
             name: "conf_file"
             default: ".ci/matrix_job.yaml"
             description: "Regex to select job config file. Do not change it"
-        - bool:
-            name: "debug"
-            default: false
-            description: "More info in pipeline"
+        - string:
+            name: "DEBUG"
+            default: 0
+            description: "Enable debug prints and traces, valid values are 0-9."
         - bool:
             name: "do_build"
             default: true
@@ -70,6 +70,10 @@
             name: "do_gtest"
             default: true
             description: "Use google tests."
+        - bool:
+            name: "do_artifact"
+            default: true
+            description: "Collect artifacts."
         - bool:
             name: "do_blackduck"
             default: true

@@ -21,25 +21,25 @@ env:
   build_dockers: false
 
 runs_on_dockers:
-  - {name: 'rhel8.3-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:mofed-5.2-0.5.3.0', arch: 'x86_64'}
-  - {name: 'sl15sp2-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/sles15sp2/builder:mofed-5.2-2.2.0.0', arch: 'x86_64'}
-  - {name: 'fc31-mofed-x86_64',    url: 'harbor.mellanox.com/swx-infra/x86_64/fedora31/builder:mofed-5.1-1.0.7.0', arch: 'x86_64'}
+  - {name: 'rhel8.3-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:mofed-5.2-0.5.3.0', category: 'base', arch: 'x86_64'}
+  - {name: 'sl15sp2-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/sles15sp2/builder:mofed-5.2-2.2.0.0', category: 'base', arch: 'x86_64'}
+  - {name: 'fc31-mofed-x86_64',    url: 'harbor.mellanox.com/swx-infra/x86_64/fedora31/builder:mofed-5.1-1.0.7.0', category: 'base', arch: 'x86_64'}
 
-  - {name: 'ub20.04-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/ubuntu20.04/builder:mofed-5.2-2.2.0.0', arch: 'x86_64'}
-#  - {name: 'ub20.04-mofed-aarch64', url: 'harbor.mellanox.com/swx-infra/aarch64/ubuntu20.04/builder:mofed-5.2-1.0.4.0', arch: 'aarch64'}
-#  - {name: 'ub20.04-mofed-ppc64le', url: 'harbor.mellanox.com/swx-infra/ppc64le/ubuntu20.04/builder:mofed-5.2-1.0.4.0', arch: 'ppc64le'}
+  - {name: 'ub20.04-mofed-x86_64', url: 'harbor.mellanox.com/swx-infra/x86_64/ubuntu20.04/builder:mofed-5.2-2.2.0.0', category: 'base', arch: 'x86_64'}
+#  - {name: 'ub20.04-mofed-aarch64', url: 'harbor.mellanox.com/swx-infra/aarch64/ubuntu20.04/builder:mofed-5.2-1.0.4.0', category: 'base', arch: 'aarch64'}
+#  - {name: 'ub20.04-mofed-ppc64le', url: 'harbor.mellanox.com/swx-infra/ppc64le/ubuntu20.04/builder:mofed-5.2-1.0.4.0', category: 'base', arch: 'ppc64le'}
 
-  - {name: 'rhel8.3-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', arch: 'x86_64'}
-  - {name: 'rhel8.3-inbox-aarch64', url: 'harbor.mellanox.com/hpcx/aarch64/rhel8.3/builder:inbox', arch: 'aarch64'}
+  - {name: 'rhel8.3-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'base', arch: 'x86_64'}
+  - {name: 'rhel8.3-inbox-aarch64', url: 'harbor.mellanox.com/hpcx/aarch64/rhel8.3/builder:inbox', category: 'base', arch: 'aarch64'}
 
-  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', arch: 'x86_64'}
-  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', arch: 'x86_64'}
+  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', category: 'base', arch: 'x86_64'}
+  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', category: 'base', arch: 'x86_64'}
 
-#  - {name: 'coverity', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'tool', arch: 'x86_64'}
+  - {name: 'coverity', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'tool', arch: 'x86_64'}
   - {name: 'blackduck', url: 'harbor.mellanox.com/toolbox/ngci-centos:7.9.2009.2', category: 'tool', arch: 'x86_64'}
 
 runs_on_agents:
-  - nodeLabel: 'r-aa-zorro014'
+  - {nodeLabel: 'r-aa-zorro014', category: 'base'}
 
 matrix:
   axes:
@@ -76,6 +76,7 @@ steps:
     parallel: false
 
   - name: Build
+    enable: ${do_build}
     run: |
       [ "x${do_build}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_build=${action} ./contrib/test_jenkins.sh 
@@ -96,17 +97,11 @@ steps:
       jenkins/**/*.tap
 
   - name: Service
+    enable: ${do_service}
     containerSelector:
-      - "{name: 'rhel8.3-mofed-x86_64', variant:1}"
-      - "{name: 'sl15sp2-mofed-x86_64', variant:1}"
-      - "{name: 'fc31-mofed-x86_64', variant:1}"
-      - "{name: 'ub20.04-mofed-x86_64', variant:1}"
-      - "{name: 'rhel8.3-inbox-x86_64', variant:1}"
-      - "{name: 'rhel8.3-inbox-aarch64', variant:1}"
-      - "{name: 'rhel7.6-mofed-x86_64', variant:1}"
-      - "{name: 'rhel7.6-inbox-x86_64', variant:1}"
+      - "{category: 'base', variant:1}"
     agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
+      - "{category: 'base', variant:1}"
     run: |
       [ "x${do_service}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tool=${action} ./contrib/test_jenkins.sh
@@ -127,6 +122,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Package
+    enable: ${do_package}
     run: |
       [ "x${do_package}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_rpm=${action} ./contrib/test_jenkins.sh
@@ -147,6 +143,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Style
+    enable: ${do_style}
     agentSelector:
       - "{nodeLabel: 'r-aa-zorro014'}"
     run: |
@@ -169,6 +166,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Compiler
+    enable: ${do_compiler}
     agentSelector:
       - "{nodeLabel: 'r-aa-zorro014'}"
     run: |
@@ -191,8 +189,9 @@ steps:
       jenkins/**/*.tap
 
   - name: Coverity
-    agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014'}"
+    enable: ${do_coverity}
+    containerSelector:
+      - "{name: 'coverity', category: 'tool'}"
     run: |
       [ "x${do_coverity}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cov=${action} ./contrib/test_jenkins.sh
@@ -214,6 +213,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Test
+    enable: ${do_test}
     agentSelector:
       - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
@@ -236,6 +236,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Gtest
+    enable: ${do_gtest}
     agentSelector:
       - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
@@ -258,6 +259,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Valgrind
+    enable: ${do_valgrind}
     agentSelector:
       - "{nodeLabel: 'r-aa-zorro014', variant:1}"
     run: |
@@ -281,6 +283,7 @@ steps:
       jenkins/**/*.tap
 
   - name: Artifacts
+    enable: ${do_artifact}
     run: |
       if [ -d jenkins ]; then
         gzip -f ./jenkins/*.tar 2>/dev/null || true

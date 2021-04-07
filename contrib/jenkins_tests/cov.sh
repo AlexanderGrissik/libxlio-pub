@@ -4,7 +4,7 @@ source $(dirname $0)/globals.sh
 
 echo "Checking for coverity ..."
 
-do_module "tools/cov-latest"
+do_module "tools/cov-2020.06"
 
 cd $WORKSPACE
 
@@ -61,7 +61,7 @@ else
     echo ok 1 Coverity found no issues >> $coverity_tap
 fi
 
-module unload "tools/cov-8.7"
+module unload "tools/cov-2020.06"
 
 do_archive "$( find ${cov_build}/output -type f -name "*.txt" -or -name "*.html" -or -name "*.xml" )"
 
