@@ -73,7 +73,7 @@
 #define si_tcp_logfuncall           __log_info_funcall
 
 #define BLOCK_THIS_RUN(blocking, flags) (blocking && !(flags & MSG_DONTWAIT))
-#define TCP_SEG_COMPENSATION 64
+#define TCP_SEG_COMPENSATION 4
 
 
 tcp_seg_pool *g_tcp_seg_pool = NULL;
