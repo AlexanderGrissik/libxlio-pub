@@ -59,10 +59,6 @@
             default: true
             description: "Launch coverity verification."
         - bool:
-            name: "do_valgrind"
-            default: true
-            description: "Use valgrind."
-        - bool:
             name: "do_test"
             default: true
             description: "Use runtime verification."
@@ -70,6 +66,14 @@
             name: "do_gtest"
             default: true
             description: "Use google tests."
+        - bool:
+            name: "do_valgrind"
+            default: true
+            description: "Use valgrind."
+        - bool:
+            name: "do_commit"
+            default: true
+            description: "Use commit message check."
         - bool:
             name: "do_artifact"
             default: true

@@ -33,6 +33,7 @@ csbuild_dir=${WORKSPACE}/${prefix}/csbuild
 vg_dir=${WORKSPACE}/${prefix}/vg
 style_dir=${WORKSPACE}/${prefix}/style
 tool_dir=${WORKSPACE}/${prefix}/tool
+commit_dir=${WORKSPACE}/${prefix}/commit
 
 nproc=$(grep processor /proc/cpuinfo|wc -l)
 make_opt="-j$(($nproc / 2 + 1))"
