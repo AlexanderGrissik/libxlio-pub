@@ -251,12 +251,15 @@ steps:
         cd ..
         cd ./jenkins/${flags};
           for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+          for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
         cd ../..
       fi
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
       jenkins/**/*.tap
+    archiveJunit-onfail: |
+      jenkins/**/*.xml
 
   - name: Valgrind
     enable: ${do_valgrind}
@@ -292,6 +295,7 @@ steps:
         cd ..
         cd ./jenkins/${flags};
           for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+          for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
         cd ../..
       fi
     parallel: false
@@ -299,6 +303,8 @@ steps:
       jenkins/**/arch-*.tar.gz
     archiveTap: |
       jenkins/**/*.tap
+    archiveJunit: |
+      jenkins/**/*.xml
 
   - name: Blackduck
     enable: ${do_blackduck}
