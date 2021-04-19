@@ -6,6 +6,7 @@ As a contributor, here are the guidelines we would like you to follow:
  - [Commit Message Guidelines](#commit)
  - [Coding Rules](#rules)
  - [Unit tests](#tests)
+ - [Continuous Integration](#ci)
 
 
 ## <a name="submit"></a> Submission Guidelines
@@ -38,16 +39,33 @@ Before you submit your Pull Request (PR) consider the following guidelines:
      ```shell
      git commit -a -s
      ```
-8. Push your branch to GitHub:
+8. Once you have committed your changes, it is a good idea to use `git rebase`
+   (not `git merge`) to synchronize your work with the main repository.
+
+     ```shell
+     git fetch upstream
+     git rebase upstream/master
+     ```
+
+   This ensures that your working branch has the latest changes from master.
+9. Push your branch to GitHub:
     ```shell
     git push origin fix-branch
     ```
-9. Select `vNext` as a base for pull request.
-10. Address review feedback as described at [Reviewing a Pull Request](#review).
-11. Ask verification after passing continuous integration and getting review approval.
-12. Rebase your pull request on top of `vNext`.
-13. Pull request is moved to `vNext` by authority person.
-14. Update pull request in case regression report any issues related one.
+10. From within GitHub, open a new pull request that will present you with a [pull request template form](../.github/PULL_REQUEST_TEMPLATE.md)
+    that should be filled out. Select `vNext` as a base for pull request.
+    Feel free to post a comment in the pull request to ping reviewers if you are
+    awaiting an answer on something.
+11. Whenever a maintainer reviews a pull request they may request changes.
+    These may be small, such as fixing a typo, or may involve substantive changes.
+    Address review feedback as described at [Reviewing a Pull Request](#review).
+12. Every pull request is tested on the [Continuous Integration (CI) system](#ci) to
+    confirm that it works supported platforms. Ideally, the pull request will pass ("be green") on all of CI's platforms.
+    This means that all tests pass and there are no errors.
+13. Ask verification after passing continuous integration and getting review approval.
+14. Rebase your pull request on top of `vNext`.
+15. Pull request is moved to `vNext` by authority person.
+16. Update pull request in case regression report any issues related one.
 
 ### Reviewing a Pull Request
 
@@ -56,8 +74,8 @@ In doing a code review, you should make sure that:
 * The code is well-designed.
 * The functionality is good for the users of the code.
 * Any parallel programming is done safely.
-* The code isn’t more complex than it needs to be.
-* The developer isn’t implementing things they might need in the future but don’t know they need now.
+* The code isn't more complex than it needs to be.
+* The developer isn't implementing things they might need in the future but don't know they need now.
 * Code has appropriate unit tests.
 * Tests are well-designed.
 * The developer used clear names for everything.
@@ -70,12 +88,14 @@ Refer to good practices article from [Google](https://google.github.io/eng-pract
 
 ### <a name="patch"></a> Why Write Small Commit?
 
-* Reviewed more quickly. It’s easier for a reviewer to find five minutes several times to review small patches than to set aside a 30 minute block to review one large patch.
-* Reviewed more thoroughly. With large changes, reviewers and authors tend to get frustrated by large volumes of detailed commentary shifting back and forth—sometimes to the point where important points get missed or dropped.
-* Less likely to introduce bugs. Since you’re making fewer changes, it’s easier for you and your reviewer to reason effectively about the impact of the patch and see if a bug has been introduced.
-* Less wasted work if they are rejected. If you write a huge patch and then your reviewer says that the overall direction is wrong, you’ve wasted a lot of work.
+It is recommended to keep your changes grouped logically within individual commits. There is no limit to the number of commits in a pull request.
+
+* Reviewed more quickly. It's easier for a reviewer to find five minutes several times to review small patches than to set aside a 30 minute block to review one large patch.
+* Reviewed more thoroughly. With large changes, reviewers and authors tend to get frustrated by large volumes of detailed commentary shifting back and forth - sometimes to the point where important points get missed or dropped.
+* Less likely to introduce bugs. Since you're making fewer changes, it's easier for you and your reviewer to reason effectively about the impact of the patch and see if a bug has been introduced.
+* Less wasted work if they are rejected. If you write a huge patch and then your reviewer says that the overall direction is wrong, you've wasted a lot of work.
 * Easier to merge. Working on a large patch takes a long time, so you will have lots of conflicts when you merge, and you will have to merge frequently.
-* Easier to design well. It’s a lot easier to polish the design and code health of a small change than it is to refine all the details of a large change.
+* Easier to design well. It's a lot easier to polish the design and code health of a small change than it is to refine all the details of a large change.
 * Less blocking on reviews. Sending self-contained portions of your overall change allows you to continue coding while you wait for your current patch in review.
 * Simpler to roll back. A large patch will more likely touch files that get updated between the initial patch submission and a rollback patch, complicating the rollback (the intermediate patches will probably need to be rolled back too).
 
@@ -83,7 +103,7 @@ Refer to good practices article from [Google](https://google.github.io/eng-pract
 
 ### <a name="commit"></a> Commit Message Format
 
-There are following rules for commit message format.
+A good commit message should describe what changed and why. There are following rules for commit message format.
 
 Each commit message consists of a **header**, a **body**, and a **footer** separated by blank line.
 
@@ -158,3 +178,29 @@ or
 ```shell
 $ ./tests/gtest --if=ens2f0:ens2f1 --gtest_filter=tcp_sendfile.*
 ```
+
+
+## <a name="ci"></a> Continuous Integration
+The project uses Jenkins as a popular open source tool to perform continuous integration and build automation.  
+The [Continuous Integration (CI)](../.ci/README.md) scripts are located in [.ci](../.ci) folder.
+Jenkins behavior can be controlled by job_matrix.yaml file which has similar syntax/approach as Github actions.
+
+Some verification can be done locally. 
+```shell
+$ env WORKSPACE=<srcdir> TARGET=[default|extra] jenkins_test_build=yes <srcdir>/contrib/test_jenkins.sh
+```
+
+Specific options can be selected from following list:
+* jenkins_test_build=[yes|no]
+* jenkins_test_compiler=[yes|no]
+* jenkins_test_rpm=[yes|no]
+* jenkins_test_cov=[yes|no]
+* jenkins_test_cppcheck=[yes|no]
+* jenkins_test_csbuild=[yes|no]
+* jenkins_test_vg=[yes|no]
+* jenkins_test_style=[yes|no]
+* jenkins_test_gtest=[yes|no]
+* jenkins_test_tool=[yes|no]
+* jenkins_test_commit=[yes|no]
+
+Results are stored at $WORKSPACE/jenkins folder
