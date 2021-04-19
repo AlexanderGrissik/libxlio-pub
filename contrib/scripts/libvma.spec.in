@@ -184,11 +184,10 @@ fi
 %{_mandir}/man8/vma_stats.*
 
 %changelog
+* Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1
+- Bump version to 0.1.1
+
 * Sat Feb 20 2021 Igor Ivanov <igori@nvidia.com> 0.1.0-1
 - Initial version on top of VMA 9.2.2
 - Add send zero copy functionality
 - Tune for NGINX
-
-* Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1
-- Bump version to 0.1.1
-
