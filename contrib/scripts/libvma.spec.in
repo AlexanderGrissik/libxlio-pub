@@ -189,3 +189,6 @@ fi
 - Add send zero copy functionality
 - Tune for NGINX
 
+* Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1
+- Bump version to 0.1.1
+

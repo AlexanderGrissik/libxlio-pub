@@ -6,3 +6,16 @@ Added:
           that includes send zero copy functionality and nginx
           specific capabilities
 	
+Version 0.1.1-0:
+Date + Time 2020-04-19
+=============================================================
+Added:
+        - RM #2568298 Fix coverity scan 2020.06 issues
+        - RM #2497142 Move to google test 1.7 version
+        - RM #2583763 Extend CI ability
+        - RM #2563722 Remove MP-QP support from library as deprecated
+Fixed:
+        - RM #2233904 Improve ROCE LAG detection
+        - RM #2368612 Align rpm spec with last requirements
+        - RM #2130901 Fix issue in logic VMA_PROGRESS_ENGINE_WCE_MAX=0
+        - RM #2280628 Add missed TIMESTAMP option
