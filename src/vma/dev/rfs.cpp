@@ -114,7 +114,9 @@ rfs::rfs(flow_tuple *flow_spec_5t, ring_slave *p_ring, rfs_rule_filter* rule_fil
 	m_sinks_list = new pkt_rcvr_sink*[m_n_sinks_list_max_length];
 
 #if defined(DEFINED_NGINX)
-	m_flow_tag_id = 0;
+	if (safe_mce_sys().actual_nginx_workers_num > 0) {
+		m_flow_tag_id = 0;
+	}
 #endif
 
 	BULLSEYE_EXCLUDE_BLOCK_START

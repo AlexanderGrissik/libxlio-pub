@@ -352,6 +352,10 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 
 int init_child_process_for_nginx()
 {
+	if (safe_mce_sys().actual_nginx_workers_num <= 0) {
+		return 0;
+	}
+
 	DO_GLOBAL_CTORS();
 
 	srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());

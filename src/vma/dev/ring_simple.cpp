@@ -280,11 +280,12 @@ void ring_simple::create_resources()
 	ring_logdbg("ring attributes: m_tso:max_header_sz = %d", get_max_header_sz());
 #endif /* DEFINED_TSO */
 
-#if defined(DEFINED_NGINX)
-	m_flow_tag_enabled = 0;
-#else
 	m_flow_tag_enabled = m_p_ib_ctx->get_flow_tag_capability();
-#endif
+#if defined(DEFINED_NGINX)
+	if (safe_mce_sys().actual_nginx_workers_num > 0) {
+		m_flow_tag_enabled = false;
+	}
+#endif // DEFINED_NGINX
 	ring_logdbg("ring attributes: m_flow_tag_enabled = %d", m_flow_tag_enabled);
 
 	m_p_rx_comp_event_channel = ibv_create_comp_channel(m_p_ib_ctx->get_ibv_context()); // ODED TODO: Adjust the ibv_context to be the exact one in case of different devices

@@ -2450,12 +2450,18 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 			si_tcp_logdbg("socket bound only via OS");
 		}
 	}
-#if !defined(DEFINED_NGINX)
-	if (ret < 0) {
-		unlock_tcp_con();
-		return ret;
+#if defined(DEFINED_NGINX)
+	if (safe_mce_sys().actual_nginx_workers_num > 0) {
+		// TODO: consider adding  correct processing of this case
+	} else
+#endif  // DEFINED_NGINX
+	{
+		if (ret < 0) {
+			unlock_tcp_con();
+			return ret;
+		}
 	}
-#endif
+
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if(orig_os_api.getsockname(m_fd, &tmp_sin, &tmp_sin_len)) {
 		si_tcp_logerr("get sockname failed");
@@ -2556,19 +2562,23 @@ int sockinfo_tcp::listen(int backlog)
 	int orig_backlog = backlog;
 
 #if defined(DEFINED_NGINX)
-        backlog = 65535;
-#else
-	if (backlog > safe_mce_sys().sysctl_reader.get_listen_maxconn()) {
-		si_tcp_logdbg("truncating listen backlog=%d to the maximun=%d", backlog, safe_mce_sys().sysctl_reader.get_listen_maxconn());
-		backlog = safe_mce_sys().sysctl_reader.get_listen_maxconn();
+	if (safe_mce_sys().actual_nginx_workers_num > 0) {
+		// TODO: consider adding  correct processing of this case
+		backlog = 65535;
+	} else
+#endif  // DEFINED_NGINX
+	{
+		if (backlog > safe_mce_sys().sysctl_reader.get_listen_maxconn()) {
+			si_tcp_logdbg("truncating listen backlog=%d to the maximun=%d", backlog, safe_mce_sys().sysctl_reader.get_listen_maxconn());
+			backlog = safe_mce_sys().sysctl_reader.get_listen_maxconn();
+		} else if (backlog <= 0) {
+			si_tcp_logdbg("changing listen backlog=%d to the minimum=%d", backlog, 1);
+			backlog = 1;
+		}
+		if (backlog >= 5) {
+			backlog = 10 + 2 * backlog; // allow grace, inspired by Linux
+		}
 	}
-	else if (backlog <= 0) {
-		si_tcp_logdbg("changing listen backlog=%d to the minimum=%d", backlog, 1);
-		backlog = 1;
-	}
-	if (backlog >= 5)
-		backlog = 10 + 2 * backlog; // allow grace, inspired by Linux
-#endif
 
 	lock_tcp_con();
 
