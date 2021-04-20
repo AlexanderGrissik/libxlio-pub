@@ -6,7 +6,7 @@ BUILD_NUMBER=${BUILD_NUMBER:=0}
 TARGET=${TARGET:=all}
 i=0
 if [ "$TARGET" == "all" -o "$TARGET" == "default" ]; then
-	target_list[$i]="default: "
+	target_list[$i]="default: --disable-tso --disable-nginx"
 	i=$((i+1))
 fi
 if [ "$TARGET" == "all" -o "$TARGET" == "extra" ]; then

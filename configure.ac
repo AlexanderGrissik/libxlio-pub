@@ -332,7 +332,7 @@ fi
 #
 AC_ARG_ENABLE([tso],
     AS_HELP_STRING([--enable-tso],
-        [Enable TSO availability (default=no)]))
+        [Enable TSO availability (default=yes)]), [], [enable_tso=yes])
 AC_MSG_CHECKING(
     [for tso support])
 if test "x$enable_tso" = xyes -a "x$vma_cv_attribute_ex_OPCODE_TSO" = xyes; then
@@ -353,7 +353,7 @@ fi
 #
 AC_ARG_ENABLE([nginx],
     AC_HELP_STRING([--enable-nginx],
-        [Enable NGINX availability (default=no)]))
+        [Enable NGINX availability (default=yes)]), [], [enable_nginx=yes])
 AC_MSG_CHECKING(
     [for nginx support])
 if test "x$enable_nginx" = xyes; then
