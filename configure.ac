@@ -14,7 +14,7 @@ dnl===-----------------------------------------------------------------------===
 #
 define([vma_ver_major], 0)
 define([vma_ver_minor], 1)
-define([vma_ver_revision], 1)
+define([vma_ver_revision], 2)
 define([vma_ver_release], esyscmd([echo ${VMA_RELEASE:=0}]))
 
 
