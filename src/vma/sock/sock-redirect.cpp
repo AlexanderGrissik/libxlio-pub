@@ -352,6 +352,10 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 
 int init_child_process_for_nginx()
 {
+	if (!g_p_fd_collection_parent_process) {
+		return -1;
+	}
+
 	if (safe_mce_sys().actual_nginx_workers_num <= 0) {
 		return 0;
 	}
@@ -2712,8 +2716,15 @@ pid_t fork(void)
 		g_is_forked_child = true;
 		srdr_logdbg_exit("Child Process: returned with %d", pid);
 #if defined(DEFINED_NGINX)
-		g_p_fd_collection_size_parent_process = g_p_fd_collection->get_fd_map_size();
-		g_p_fd_collection_parent_process = g_p_fd_collection;
+		/* Library is fully initialized in case application
+		 * calls socket(), getsockopt(), epoll_create(), epoll_create1(), pipe()
+		 * In other cases global objects can be invalid.
+		 */
+		if (g_init_global_ctors_done) {
+			assert(g_p_fd_collection);
+			g_p_fd_collection_size_parent_process = g_p_fd_collection->get_fd_map_size();
+			g_p_fd_collection_parent_process = g_p_fd_collection;
+		}
 #endif  // DEFINED_NGINX
 		// Child's process - restart module
 		vlog_stop();
@@ -2736,8 +2747,11 @@ pid_t fork(void)
 		sock_redirect_main();
 
 #if defined(DEFINED_NGINX)
-		// Do this only for regular user, not allowed for root user. Root user will be handled in setuid call.
-		if (geteuid() != 0) {
+		/* Do this only for regular user, not allowed for root user.
+		 * Root user will be handled in setuid call.
+		 * g_p_fd_collection_size_parent_process and g_p_fd_collection_parent_process should be initialized
+		 */
+		if (geteuid() != 0 && g_init_global_ctors_done) {
 			int rc = init_child_process_for_nginx();
 			if (rc != 0) {
 				srdr_logerr("Failed to initialize child process with PID %d for Nginx", getpid());
@@ -2921,7 +2935,7 @@ extern "C"
 int setuid(uid_t uid)
 {
 	BULLSEYE_EXCLUDE_BLOCK_START
-		if (!orig_os_api.setuid) get_orig_funcs();
+	if (!orig_os_api.setuid) get_orig_funcs();
 	BULLSEYE_EXCLUDE_BLOCK_END
 
 	uid_t previous_uid = geteuid();
