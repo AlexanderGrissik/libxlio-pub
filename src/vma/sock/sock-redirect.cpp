@@ -352,15 +352,15 @@ void handle_close(int fd, bool cleanup, bool passthrough)
 
 int init_child_process_for_nginx()
 {
-	if (!g_p_fd_collection_parent_process) {
-		return -1;
-	}
-
 	if (safe_mce_sys().actual_nginx_workers_num <= 0) {
 		return 0;
 	}
 
 	DO_GLOBAL_CTORS();
+
+	if (!g_p_fd_collection_parent_process) {
+		return 0;
+	}
 
 	srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
 	for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {
