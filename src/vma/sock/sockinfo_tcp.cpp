@@ -4089,6 +4089,25 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
 				errno = EINVAL;
 			}
 			break;
+		case SO_VMA_PD:
+			if (__optlen && *__optlen >= sizeof(struct vma_pd_attr)) {
+				if (m_p_connected_dst_entry) {
+					ring* tx_ring = m_p_connected_dst_entry->get_ring();
+					if (tx_ring) {
+						ib_ctx_handler* p_ib_ctx_h = (ib_ctx_handler *)tx_ring->get_ctx();
+						if (p_ib_ctx_h) {
+							struct vma_pd_attr* pd_attr = (struct vma_pd_attr *)__optval;
+							pd_attr->flags = 0;
+							pd_attr->ib_pd = (void *)p_ib_ctx_h->get_ibv_pd();
+							ret = 0;
+						}
+					}
+				}
+			}
+			if (ret) {
+				errno = EINVAL;
+			}
+			break;
 		default:
 			ret = SOCKOPT_HANDLE_BY_OS;
 			break;

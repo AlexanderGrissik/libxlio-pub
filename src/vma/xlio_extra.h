@@ -53,6 +53,7 @@
 #define SO_VMA_RING_USER_MEMORY 2811
 #define SO_VMA_FLOW_TAG         2820
 #define SO_VMA_SHUTDOWN_RX      2821
+#define SO_VMA_PD               2822
 
 /*
  * Flags for Dummy send API
@@ -75,6 +76,20 @@ typedef enum {
 				But not in the context of VMA's callback itself. */
 } vma_recv_callback_retval_t;
 
+/**
+ * @brief Pass this structure as an argument into getsockopt() with @ref SO_VMA_PD
+ * 	to get protection domain information from ring used for current socket.
+ * 	This information can be available after setting connection for TX ring
+ * 	and bounding to device for RX ring.
+ * 	By default getting PD for TX ring.
+ *
+ * @param flags - to specify needed information.
+ * @param pd - protection domain (PD) for the RDMA device context
+ */
+struct vma_pd_attr {
+	uint32_t flags;
+	void*	 ib_pd;
+};
 
 /************ SocketXtreme API types definition start***************/
 
