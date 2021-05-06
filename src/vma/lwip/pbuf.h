@@ -67,8 +67,21 @@ typedef enum {
 /** indicates this is a custom pbuf: pbuf_free and pbuf_header handle such a
     a pbuf differently */
 #define PBUF_FLAG_IS_CUSTOM 0x02U
-/** indicates this pbuf is UDP multicast to be looped back */
-#define PBUF_FLAG_MCASTLOOP 0x04U
+
+/** Private data depending on type */
+enum {
+  PBUF_DESC_NONE = 0,
+  PBUF_DESC_FD,
+  PBUF_DESC_MAP
+};
+
+typedef struct {
+  int attr;
+  union {
+    int fd;
+    void *map;
+  };
+} pbuf_desc;
 
 struct pbuf {
   /** next pbuf in singly linked pbuf chain */
@@ -102,8 +115,8 @@ struct pbuf {
    */
   u16_t ref;
 
-  /** Private data, used by zerocopy to hold mapping's pointer */
-  void *priv;
+  /** Customer specific description */
+  pbuf_desc desc;
 };
 
 #if LWIP_SUPPORT_CUSTOM_PBUF

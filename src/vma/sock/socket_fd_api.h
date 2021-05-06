@@ -96,12 +96,13 @@ typedef struct vma_tx_call_attr {
 		} msg;
 	} attr;
 
-	void *priv;
+	pbuf_desc priv;
 
 	void clear(void) {
 		opcode = TX_UNDEF;
-		priv = NULL;
 		memset(&attr, 0, sizeof(attr));
+		memset(&priv, 0, sizeof(priv));
+		priv.attr = PBUF_DESC_NONE;
 	}
 
 	vma_tx_call_attr() {

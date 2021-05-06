@@ -62,7 +62,7 @@ public:
 #endif /* DEFINED_TSO */
 	ssize_t slow_send_neigh(const iovec* p_iov, size_t sz_iov, struct vma_rate_limit_t &rate_limit);
 
-	mem_buf_desc_t* get_buffer(pbuf_type type, void *priv, bool b_blocked = false);
+	mem_buf_desc_t* get_buffer(pbuf_type type, pbuf_desc *desc, bool b_blocked = false);
 	void put_buffer(mem_buf_desc_t * p_desc);
 
 protected:

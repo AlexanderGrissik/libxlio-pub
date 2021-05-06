@@ -1085,14 +1085,14 @@ void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio)
 }
 
 struct pbuf *
-tcp_tx_pbuf_alloc(struct tcp_pcb * pcb, u16_t length, pbuf_type type, void *priv, struct pbuf *p_buff)
+tcp_tx_pbuf_alloc(struct tcp_pcb * pcb, u16_t length, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
 {
 	struct pbuf * p;
 
 	if (!pcb->pbuf_alloc || pcb->pbuf_alloc->type != type) {
 
 		// pbuf_alloc is not valid, we should allocate a new pbuf.
-		p = external_tcp_tx_pbuf_alloc(pcb, type, priv, p_buff);
+		p = external_tcp_tx_pbuf_alloc(pcb, type, desc, p_buff);
 		if (!p) return NULL;
 
 		p->next = NULL;

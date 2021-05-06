@@ -190,7 +190,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			 */
 			pbuf_type type = (pbuf_type)p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.type;
 			mem_buf_desc_t *p_mem_buf_desc = get_buffer(type,
-						p_tcp_iov[0].p_desc->get_priv(),
+						&(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.desc),
 						is_set(attr.flags, VMA_TX_PACKET_BLOCK));
 			assert(p_mem_buf_desc != NULL);
 			p_tcp_iov[0].p_desc = p_mem_buf_desc;
@@ -214,7 +214,14 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			if (is_zerocopy) {
 				masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
-				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size, p_tcp_iov[i].p_desc->get_priv());
+				/* Do not check desc.attr for specific type because
+				 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
+				 * PBUF_DESC_NONE - map should be initialized to NULL in dst_entry_tcp::get_buffer()
+				 * PBUF_DESC_MAP - map should point on mapping object
+				 */
+				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr,
+						m_n_sysvar_user_huge_page_size,
+						p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.map);
 				/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
 			} else {
 				m_sge[i].lkey = i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey;
@@ -476,7 +483,7 @@ ssize_t dst_entry_tcp::pass_buff_to_neigh(const iovec * p_iov, size_t sz_iov, ui
 	return(dst_entry::pass_buff_to_neigh(p_iov, sz_iov));
 }
 
-mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, void *priv, bool b_blocked /*=false*/)
+mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc, bool b_blocked /*=false*/)
 {
 	mem_buf_desc_t** p_desc_list;
 
@@ -503,12 +510,19 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, void *priv, bool b_blo
 		} else {
 			p_mem_buf_desc->lwip_pbuf.pbuf.payload = NULL;
 		}
-		p_mem_buf_desc->lwip_pbuf.pbuf.priv = priv;
-		if (type == PBUF_ZEROCOPY && priv != NULL) {
-			mapping_t *mapping = (mapping_t *)priv;
-			g_zc_cache->lock();
-			mapping->get();
-			g_zc_cache->unlock();
+
+		/* Initialize pbuf description */
+		p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_NONE;
+		memset(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, 0, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
+		if (desc) {
+			memcpy(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, desc, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
+			if (p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY &&
+					(p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MAP)) {
+				mapping_t *mapping = (mapping_t *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.map;
+				g_zc_cache->lock();
+				mapping->get();
+				g_zc_cache->unlock();
+			}
 		}
 	}
 

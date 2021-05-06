@@ -2035,7 +2035,8 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
 		tx_arg.attr.msg.flags = MSG_ZEROCOPY;
-		tx_arg.priv = (void *)mapping;
+		tx_arg.priv.attr = PBUF_DESC_MAP;
+		tx_arg.priv.map = (void *)mapping;
 		totSent = p_socket_object->tx(tx_arg);
 
 		g_zc_cache->put_mapping(mapping);
@@ -2049,7 +2050,8 @@ fallback:
 			tx_arg.opcode = TX_FILE;
 			tx_arg.attr.msg.iov = piov;
 			tx_arg.attr.msg.sz_iov = 1;
-			tx_arg.priv = (void *)&in_fd;
+			tx_arg.priv.attr = PBUF_DESC_FD;
+			tx_arg.priv.fd = in_fd;
 			piov[0].iov_base = (void *)&cur_offset;
 			piov[0].iov_len = count;
 			totSent = p_socket_object->tx(tx_arg);

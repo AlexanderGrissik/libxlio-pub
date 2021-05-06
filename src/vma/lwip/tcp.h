@@ -66,7 +66,7 @@ void register_ip_output(ip_output_fn fn);
 #endif /* LWIP_3RD_PARTY_L3 */
 
 #if LWIP_3RD_PARTY_BUFS
-typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, void *priv, struct pbuf *p_buff);
+typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
 
 void register_tcp_tx_pbuf_alloc(tcp_tx_pbuf_alloc_fn fn);
 
@@ -533,7 +533,7 @@ err_t            tcp_shutdown(struct tcp_pcb *pcb, int shut_rx, int shut_tx);
 #define TCP_WRITE_ZEROCOPY  0x80
 
 err_t            tcp_write   (struct tcp_pcb *pcb, const void *dataptr, u32_t len,
-                              u16_t apiflags, void *priv);
+                              u16_t apiflags, pbuf_desc *desc);
 
 #define TCP_PRIO_MIN    1
 #define TCP_PRIO_NORMAL 64

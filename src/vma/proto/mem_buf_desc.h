@@ -207,11 +207,6 @@ public:
 	inline unsigned int lwip_pbuf_get_ref_count() const {
 		return lwip_pbuf.pbuf.ref;
 	}
-
-        inline void *get_priv(void) {
-		return lwip_pbuf.pbuf.priv;
-	}
-
 };
 
 typedef vma_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> descq_t;

@@ -935,7 +935,7 @@ retry_write:
 				goto err;
 			}
 
-			err = tcp_write(&m_pcb, tx_ptr, tx_size, apiflags, tx_arg.priv);
+			err = tcp_write(&m_pcb, tx_ptr, tx_size, apiflags, &tx_arg.priv);
 			if (unlikely(err != ERR_OK)) {
 				if (unlikely(err == ERR_CONN)) { // happens when remote drops during big write
 					si_tcp_logdbg("connection closed: tx'ed = %d", total_tx);
@@ -4698,15 +4698,17 @@ int sockinfo_tcp::free_buffs(uint16_t len)
 	return 0;
 }
 
-struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, void *priv, struct pbuf *p_buff)
+struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
 	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 	mem_buf_desc_t* p_desc = NULL;
 
 	if (likely(p_dst)) {
-		p_desc = p_dst->get_buffer(type, priv);
-		if (p_desc && (type == PBUF_ZEROCOPY) && priv == NULL) {
+		p_desc = p_dst->get_buffer(type, desc);
+		if (p_desc &&
+				(p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
+				(p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE)) {
 			/* Prepare error queue fields for send zerocopy */
 			if (p_buff) {
 				/* It is a special case that can happen as a result
