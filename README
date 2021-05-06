@@ -652,9 +652,11 @@ Disable GRO with a value of 0.
 Default value is 32
 
 XLIO_TCP_3T_RULES
-Use only 3 tuple rules for TCP, instead of using 5 tuple rules.
-This can improve performance for a server with listen socket which accept many
-connections.
+Use only 3 tuple rules for incoming TCP connections, instead of using 5 tuple
+rules. This can improve performance for a server with listen socket which
+accepts many connections.
+Outgoing TCP connections that are established with connect() syscall aren't
+affected by this option.
 Default: 0 (Disable)
 
 XLIO_UDP_3T_RULES

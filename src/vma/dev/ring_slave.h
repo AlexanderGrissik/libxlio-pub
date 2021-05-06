@@ -247,7 +247,7 @@ public:
     {
     }
 
-    bool attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
+    bool attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool force_5t = false);
     bool detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
 
     inline bool rx_process_buffer_no_flow_id(mem_buf_desc_t *p_rx_wc_buf_desc,
@@ -292,7 +292,7 @@ public:
     virtual int reclaim_recv_single_buffer(mem_buf_desc_t *rx_reuse) = 0;
     virtual void inc_cq_moderation_stats(size_t sz_data) = 0;
 
-    virtual bool attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
+    virtual bool attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool force_5t = false);
     virtual bool detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
 
 #ifdef DEFINED_UTLS

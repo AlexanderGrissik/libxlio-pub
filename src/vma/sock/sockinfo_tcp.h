@@ -237,6 +237,17 @@ public:
         return (m_sock_offload == TCP_SOCK_LWIP && !is_server() && m_conn_state != TCP_CONN_INIT);
     }
 
+    bool is_outgoing(void)
+    {
+        const bool is_listen_socket = is_server() || get_tcp_state(&m_pcb) == LISTEN;
+        /*
+         * Accepted (incoming) TCP sockets have m_parent pointing to
+         * listen socket. Therefore, excluding such sockets and listen
+         * sockets we can determine outgoing sockets.
+         */
+        return m_parent == NULL && !is_listen_socket;
+    }
+
     bool is_connected() { return m_sock_state == TCP_SOCK_CONNECTED_RDWR; }
 
     inline bool is_rtr()

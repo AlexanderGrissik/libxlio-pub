@@ -99,7 +99,7 @@ void ring_bond::print_val()
                 ((uintptr_t)this == (uintptr_t)m_parent ? 0 : m_parent), "bond");
 }
 
-bool ring_bond::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
+bool ring_bond::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool force_5t)
 {
     bool ret = true;
     struct flow_sink_t value = {flow_spec_5t, sink};
@@ -110,7 +110,7 @@ bool ring_bond::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
     m_rx_flows.push_back(value);
 
     for (uint32_t i = 0; i < m_recv_rings.size(); i++) {
-        bool step_ret = m_recv_rings[i]->attach_flow(flow_spec_5t, sink);
+        bool step_ret = m_recv_rings[i]->attach_flow(flow_spec_5t, sink, force_5t);
         ret = ret && step_ret;
     }
 

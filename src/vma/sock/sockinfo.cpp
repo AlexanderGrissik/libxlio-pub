@@ -733,7 +733,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
     // Attach tuple
     BULLSEYE_EXCLUDE_BLOCK_START
     unlock_rx_q();
-    if (!p_nd_resources->p_ring->attach_flow(flow_key, this)) {
+    if (!p_nd_resources->p_ring->attach_flow(flow_key, this, is_outgoing())) {
         lock_rx_q();
         si_logdbg("Failed to attach %s to ring %p", flow_key.to_str().c_str(),
                   p_nd_resources->p_ring);
@@ -753,7 +753,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
                     flow_tuple_with_local_if new_key(
                         flow_key.get_dst_ip(), flow_key.get_dst_port(), ip_address::any_addr(), 1,
                         flow_key.get_protocol(), flow_key.get_family(), flow_key.get_local_if());
-                    if (!p_nd_resources->p_ring->attach_flow(new_key, this)) {
+                    if (!p_nd_resources->p_ring->attach_flow(new_key, this, false)) {
                         lock_rx_q();
                         si_logerr("Failed to attach %s to ring %p", new_key.to_str().c_str(),
                                   p_nd_resources->p_ring);
@@ -1014,7 +1014,7 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
             // Attach tuple
             BULLSEYE_EXCLUDE_BLOCK_START
             unlock_rx_q();
-            if (!new_ring->attach_flow(flow_key, this)) {
+            if (!new_ring->attach_flow(flow_key, this, is_outgoing())) {
                 si_logerr("Failed to attach %s to ring %p", flow_key.to_str().c_str(), new_ring);
                 rx_del_ring_cb(new_ring);
                 rc = p_nd_resources->p_ndv->release_ring(new_key);
