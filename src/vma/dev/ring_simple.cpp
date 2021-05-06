@@ -862,6 +862,7 @@ mem_buf_desc_t* ring_simple::get_tx_buffers(pbuf_type type, uint32_t n_num_mem_b
 
 	head = pool->get_and_pop_back();
 	head->lwip_pbuf.pbuf.ref = 1;
+	head->lwip_pbuf.pbuf.type = type;
 	n_num_mem_bufs--;
 
 	mem_buf_desc_t* next = head;
