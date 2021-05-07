@@ -59,6 +59,7 @@ typedef enum {
 	MCE_SPEC_LL_7750,
 	MCE_SPEC_LL_MULTI_RING,
 	MCE_SPEC_NGINX_669,
+	MCE_SPEC_NGINX_DPU_670,
 
 	MCE_VMA__ALL /* last element */
 } vma_spec_t;

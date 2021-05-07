@@ -111,7 +111,8 @@ namespace vma_spec {
 	static const char *spec_names_rti[]       = {"rti", "784", NULL};
 	static const char *spec_names_7750[]      = {"7750", NULL};
 	static const char *spec_names_multi_ring[]      = {"multi_ring_latency", NULL};
-	static const char *spec_names_nginx[] = {"nginx669", "669", NULL};
+	static const char *spec_names_nginx[]     = {"nginx", "669", NULL};
+	static const char *spec_names_nginx_dpu[]  = {"nginx_dpu", "670", NULL};
 
 	// must be by order because "to_str" relies on that!
 	static const vma_spec_names specs[] = {
@@ -125,7 +126,8 @@ namespace vma_spec {
 		{MCE_SPEC_RTI_784,    		  	"RTI Logic",    		(const char ** )spec_names_rti},
 		{MCE_SPEC_LL_7750,    		  	"7750 Low Latency Profile", 	(const char ** )spec_names_7750},
 		{MCE_SPEC_LL_MULTI_RING,    	"Multi Ring Latency Profile",	 	(const char ** )spec_names_multi_ring},
-		{MCE_SPEC_NGINX_669,            "Nginx Profile",	 		(const char ** )spec_names_nginx},
+		{MCE_SPEC_NGINX_669,			"Nginx Profile",		(const char ** )spec_names_nginx},
+		{MCE_SPEC_NGINX_DPU_670,		"Nginx Profile for DPU",	(const char ** )spec_names_nginx_dpu},
 	};
 
 	// convert str to vVMA_spec_t; upon error - returns the given 'def_value'
@@ -815,6 +817,39 @@ void mce_sys_var::get_env_params()
 		cq_poll_batch_max = 128;  // MCE_DEFAULT_CQ_POLL_BATCH (16), Maximum CQEs to poll in one batch.
 		thread_mode = THREAD_MODE_SINGLE;  // MCE_DEFAULT_THREAD_MODE (THREAD_MODE_MULTI), Single threaded mode to reduce locking.
 		rx_poll_on_tx_tcp = true;  // MCE_DEFAULT_RX_POLL_ON_TX_TCP(false), Do polling on RX queue on TX operations, helpful to maintain TCP stack management.
+#ifdef DEFINED_TSO
+		enable_tso = true;  // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
+#endif // DEFINED_TSO
+		tx_num_wr = 4096;  // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
+		rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
+		timer_resolution_msec = 256;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
+		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
+		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
+		progress_engine_wce_max = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX (10000), Don't drain WCEs.
+		select_poll_num = 0;  // MCE_DEFAULT_SELECT_NUM_POLLS (100000),  Don't poll the hardware on RX (before sleeping in epoll/select, etc).
+		tcp_3t_rules = true;  // MCE_DEFAULT_TCP_3T_RULES(false), Use 3 tuple instead rules of 5 tuple rules.
+		break;
+
+	case MCE_SPEC_NGINX_DPU_670:
+		// The top part is different from NGINX SPEC
+		rx_poll_on_tx_tcp = false;  // MCE_DEFAULT_RX_POLL_ON_TX_TCP(false), Do polling on RX queue on TX operations, helpful to maintain TCP stack management.
+		rx_num_bufs = 87500; // MCE_DEFAULT_RX_NUM_BUFS (200000), Global RX data buffers allocated.
+		zc_num_bufs = 87500; // MCE_DEFAULT_ZC_NUM_BUFS (200000), Global ZC data buffers allocated.
+		tx_num_bufs = 87500; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated.
+		tx_bufs_batch_tcp = 2;  //MCE_DEFAULT_TX_BUFS_BATCH_TCP (16)
+		tx_num_segs_tcp = 175000;  // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP segments in the pool.
+
+		rx_bufs_batch = 8;  // MCE_DEFAULT_RX_BUFS_BATCH (64), RX buffers batch size.
+#ifdef DEFINED_TSO
+		tx_buf_size = 0;  // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
+		zc_tx_size = 32768;  // MCE_DEFAULT_ZC_TX_SIZE (32768), zero copy segment maximum size.
+#endif // DEFINED_TSO
+		progress_engine_interval_msec = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC (10), Disable internal thread CQ draining logic.
+		cq_moderation_period_usec = 1024;  // MCE_DEFAULT_CQ_MODERATION_PERIOD_USEC (50), CQ moderation threshold in time.
+		cq_moderation_count = 1024;  // MCE_DEFAULT_CQ_MODERATION_COUNT(48), CQ moderation threshold in WCEs.
+		cq_aim_interval_msec = 0;  // MCE_DEFAULT_CQ_AIM_INTERVAL_MSEC (250), Disable adaptive CQ moderation.
+		cq_poll_batch_max = 128;  // MCE_DEFAULT_CQ_POLL_BATCH (16), Maximum CQEs to poll in one batch.
+		thread_mode = THREAD_MODE_SINGLE;  // MCE_DEFAULT_THREAD_MODE (THREAD_MODE_MULTI), Single threaded mode to reduce locking.
 #ifdef DEFINED_TSO
 		enable_tso = true;  // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
 #endif // DEFINED_TSO
