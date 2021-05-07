@@ -213,18 +213,23 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			if (is_zerocopy) {
-				masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
-				/* Do not check desc.attr for specific type because
-				 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
-				 * PBUF_DESC_NONE - map should be initialized to NULL in dst_entry_tcp::get_buffer()
-				 * PBUF_DESC_MAP - map should point on mapping object
-				 */
-				m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr,
-						m_n_sysvar_user_huge_page_size,
-						p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.map);
-				/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
+				if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
+					/* PBUF_DESC_MKEY - value is provided by user */
+					m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mkey;
+				} else {
+					/* Do not check desc.attr for specific type because
+					 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
+					 * PBUF_DESC_NONE - map should be initialized to NULL in dst_entry_tcp::get_buffer()
+					 * PBUF_DESC_MAP - map should point on mapping object
+					 */
+					masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
+					m_sge[i].lkey = m_p_ring->get_tx_user_lkey(masked_addr,
+							m_n_sysvar_user_huge_page_size,
+							p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.map);
+					/* assert(mapping->memory_belongs(m_sge[i].addr, m_sge[i].length)); */
+				}
 			} else {
-				m_sge[i].lkey = i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey;
+				m_sge[i].lkey = (i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey);
 			}
 		}
 

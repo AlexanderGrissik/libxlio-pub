@@ -72,7 +72,8 @@ typedef enum {
 enum {
   PBUF_DESC_NONE = 0,
   PBUF_DESC_FD,
-  PBUF_DESC_MAP
+  PBUF_DESC_MAP,
+  PBUF_DESC_MKEY
 };
 
 typedef struct {
@@ -80,6 +81,7 @@ typedef struct {
   union {
     int fd;
     void *map;
+    u32_t mkey;
   };
 } pbuf_desc;
 

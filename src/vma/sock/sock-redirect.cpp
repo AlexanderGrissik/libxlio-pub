@@ -1852,6 +1852,21 @@ ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 		tx_arg.attr.msg.addr = (struct sockaddr *)(__CONST_SOCKADDR_ARG)__msg->msg_name;
 		tx_arg.attr.msg.len = (socklen_t)__msg->msg_namelen;
 
+		if (0 < __msg->msg_controllen) {
+			struct cmsghdr* cmsg = CMSG_FIRSTHDR((struct msghdr*)__msg);
+			if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_VMA_PD)) {
+				if ((tx_arg.attr.msg.flags & MSG_ZEROCOPY) &&
+						(__msg->msg_iovlen == ((cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(struct vma_pd_key)))) {
+					tx_arg.priv.attr = PBUF_DESC_MKEY;
+					tx_arg.priv.map = (void *)CMSG_DATA(cmsg);
+				} else {
+					errno = EINVAL;
+					return -1;
+				}
+			}
+
+		}
+
 		return p_socket_object->tx(tx_arg);
 	}
 

@@ -54,6 +54,7 @@
 #define SO_VMA_FLOW_TAG         2820
 #define SO_VMA_SHUTDOWN_RX      2821
 #define SO_VMA_PD               2822
+#define SCM_VMA_PD              SO_VMA_PD
 
 /*
  * Flags for Dummy send API
@@ -82,6 +83,10 @@ typedef enum {
  * 	This information can be available after setting connection for TX ring
  * 	and bounding to device for RX ring.
  * 	By default getting PD for TX ring.
+ * 	This case can be used with sendmsg(SCM_VMA_PD) when the data portion contains
+ * 	an array of the elements with datatype as struct vma_pd_key. Number of elements in this
+ * 	array should be equal to msg_iovlen value. Every data pointer in msg_iov has
+ * 	correspondent memory key.
  *
  * @param flags - to specify needed information.
  * @param pd - protection domain (PD) for the RDMA device context
@@ -89,6 +94,18 @@ typedef enum {
 struct vma_pd_attr {
 	uint32_t flags;
 	void*	 ib_pd;
+};
+
+/**
+ * @brief elements with this datatype can be passed into sendmsg(SCM_VMA_PD)
+ * as control message with correspondent pointer to data.
+ *
+ * @param flags - to specify needed information. By default mkey value is used.
+ * @param mkey - memory key
+ */
+struct vma_pd_key {
+	uint32_t flags;
+	uint32_t mkey;
 };
 
 /************ SocketXtreme API types definition start***************/

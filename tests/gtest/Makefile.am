@@ -115,6 +115,7 @@ gtest_SOURCES = \
 	vma/vma_ring.cc \
 	vma/vma_poll.cc \
 	vma/vma_sockopt.cc \
+	vma/vma_send_zc.cc \
 	\
 	vmad/vmad_base.cc \
 	vmad/vmad_bitmap.cc \
@@ -145,7 +146,7 @@ noinst_HEADERS = \
 	vmad/vmad_base.h
 
 gtest_DEPENDENCIES = \
-	libgtest.la
+	libgtest.la $(VERBS_LIBS)
 
 # This workaround allows to compile files located
 # at another directory.
