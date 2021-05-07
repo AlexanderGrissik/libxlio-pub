@@ -46,7 +46,7 @@
 /**
  * VMA Base class for tests
  */
-class vma_base : public testing::Test, public test_base {
+class vma_base : virtual public testing::Test, virtual public test_base {
 protected:
 	virtual void SetUp();
 	virtual void TearDown();

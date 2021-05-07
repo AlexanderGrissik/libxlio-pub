@@ -65,7 +65,7 @@ libgtest_la_SOURCES = \
 	googletest/src/gtest_main.cc
 
 # gtest
-gtest_LDADD = libgtest.la
+gtest_LDADD = libgtest.la  $(VERBS_LIBS)
 
 gtest_CPPFLAGS = \
 	-I$(top_srcdir)/ \
@@ -146,7 +146,7 @@ noinst_HEADERS = \
 	vmad/vmad_base.h
 
 gtest_DEPENDENCIES = \
-	libgtest.la $(VERBS_LIBS)
+	libgtest.la
 
 # This workaround allows to compile files located
 # at another directory.
