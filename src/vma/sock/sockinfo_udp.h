@@ -43,7 +43,7 @@
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
 
-#include "vma/vma_extra.h"
+#include "vma/xlio_extra.h"
 #include "vma/util/chunk_list.h"
 #include "vma/util/vma_stats.h"
 #include "vma/util/sys_vars.h"

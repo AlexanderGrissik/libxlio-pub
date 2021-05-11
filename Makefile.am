@@ -9,6 +9,7 @@ noinst_SCRIPTS = \
 EXTRA_DIST = \
 	contrib \
 	debian \
+	LICENSE \
 	CHANGES \
 	README
 
@@ -21,19 +22,19 @@ mydoc_DATA = README CHANGES
 install-exec-hook:
 	if systemctl >/dev/null 2>&1; then \
 		mkdir -p $(DESTDIR)$(prefix)/lib/systemd/system/; \
-		cp $(top_builddir)/contrib/scripts/vma.service $(DESTDIR)$(prefix)/lib/systemd/system/vma.service; \
-		chmod 644 $(DESTDIR)$(prefix)/lib/systemd/system/vma.service; \
+		cp $(top_builddir)/contrib/scripts/xlio.service $(DESTDIR)$(prefix)/lib/systemd/system/xlio.service; \
+		chmod 644 $(DESTDIR)$(prefix)/lib/systemd/system/xlio.service; \
 	else \
 		mkdir -p $(DESTDIR)/$(sysconfdir)/init.d; \
-		cp $(top_builddir)/contrib/scripts/vma.init $(DESTDIR)$(sysconfdir)/init.d/vma; \
-		chmod 755 $(DESTDIR)$(sysconfdir)/init.d/vma; \
+		cp $(top_builddir)/contrib/scripts/xlio.init $(DESTDIR)$(sysconfdir)/init.d/xlio; \
+		chmod 755 $(DESTDIR)$(sysconfdir)/init.d/xlio; \
 	fi
 
 uninstall-hook:
 	if systemctl >/dev/null 2>&1; then \
-		rm -rf $(DESTDIR)$(prefix)/lib/systemd/system/vma.service; \
+		rm -rf $(DESTDIR)$(prefix)/lib/systemd/system/xlio.service; \
 	else \
-		rm -rf $(DESTDIR)$(sysconfdir)/init.d/vma; \
+		rm -rf $(DESTDIR)$(sysconfdir)/init.d/xlio; \
 	fi
 
 install-all: install

@@ -71,7 +71,7 @@ typedef enum {
 	e_M = 1048576
 } units_t;
 
-#define MODULE_NAME				"vmastat"
+#define MODULE_NAME				"xliostat"
 #define log_msg(log_fmt, log_args...)		printf(MODULE_NAME  ": " log_fmt "\n", ##log_args)
 #define log_err(log_fmt, log_args...)		fprintf(stderr,MODULE_NAME ": " log_fmt "\n", ##log_args)
 #define log_system_err(log_fmt, log_args...)	fprintf(stderr,MODULE_NAME ": " log_fmt " (errno=%d %s)\n", ##log_args, errno, strerror(errno))
@@ -869,7 +869,7 @@ int print_app_name(int pid)
 void print_version(int pid)
 {
 	if (pid == -1) {
-		log_msg("Linked with VMA version: %d.%d.%d.%d", VMA_LIBRARY_MAJOR, VMA_LIBRARY_MINOR, VMA_LIBRARY_REVISION, VMA_LIBRARY_RELEASE);
+		log_msg("Linked with VMA version: %d.%d.%d.%d", PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR, PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE);
 		log_msg("Build Date: %s", __DATE__ " " __TIME__);
 	}
 	else {
@@ -882,10 +882,10 @@ void print_version(int pid)
 
 int check_vma_ver_compatability(version_info_t* p_stat_ver_info)
 {
-	return (p_stat_ver_info->vma_lib_maj == VMA_LIBRARY_MAJOR &&
-		p_stat_ver_info->vma_lib_min == VMA_LIBRARY_MINOR &&
-		p_stat_ver_info->vma_lib_rel == VMA_LIBRARY_RELEASE &&
-		p_stat_ver_info->vma_lib_rev == VMA_LIBRARY_REVISION);	
+	return (p_stat_ver_info->vma_lib_maj == PRJ_LIBRARY_MAJOR &&
+		p_stat_ver_info->vma_lib_min == PRJ_LIBRARY_MINOR &&
+		p_stat_ver_info->vma_lib_rel == PRJ_LIBRARY_RELEASE &&
+		p_stat_ver_info->vma_lib_rev == PRJ_LIBRARY_REVISION);	
 }
 
 void cleanup(sh_mem_info* p_sh_mem_info)
@@ -1164,7 +1164,7 @@ void clean_inactive_sh_ibj()
 	}
 	dirent = readdir(dir);
 	while (dirent != NULL && !user_params.forbid_cleaning) {
-		if(!strncmp("vmastat.", dirent->d_name, module_name_size)) {
+		if(!strncmp("xliostat.", dirent->d_name, module_name_size)) {
 			bool proccess_running = false;
 			proccess_running = check_if_process_running(dirent->d_name + pid_offset);
 			if (!proccess_running) {
@@ -1199,7 +1199,7 @@ char* look_for_vma_stat_active_sh_obj(char* app_name)
 	dirent = readdir(dir);
 	
 	while (dirent != NULL && !found) {
-		if(!strncmp("vmastat.", dirent->d_name, module_name_size)) {
+		if(!strncmp("xliostat.", dirent->d_name, module_name_size)) {
 			found = check_if_process_running(dirent->d_name + pid_offset);
 			if (app_name && found)
 				found = check_if_app_match(app_name, dirent->d_name + pid_offset);
@@ -1642,7 +1642,7 @@ int  init_print_process_stats(sh_mem_info_t & sh_mem_info)
 	sh_mem_t* sh_mem;
 	int pid = sh_mem_info.pid;
 
-	sprintf(sh_mem_info.filename_sh_stats, "%s/vmastat.%d", user_params.vma_stats_path.c_str(), pid);
+	sprintf(sh_mem_info.filename_sh_stats, "%s/xliostat.%d", user_params.vma_stats_path.c_str(), pid);
 	
 	if (user_params.write_auth)//S_IRUSR | S_IWUSR | S_IRGRP
 		sh_mem_info.fd_sh_stats = open(sh_mem_info.filename_sh_stats,
@@ -1672,8 +1672,8 @@ int  init_print_process_stats(sh_mem_info_t & sh_mem_info)
 	} else {
 		if (!check_vma_ver_compatability(&sh_mem->ver_info)) {
 			log_err("Version %d.%d.%d.%d is not compatible with VMA version %d.%d.%d.%d\n",
-					VMA_LIBRARY_MAJOR, VMA_LIBRARY_MINOR,
-					VMA_LIBRARY_REVISION, VMA_LIBRARY_RELEASE,
+					PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR,
+					PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE,
 					sh_mem->ver_info.vma_lib_maj, sh_mem->ver_info.vma_lib_min,
 					sh_mem->ver_info.vma_lib_rev, sh_mem->ver_info.vma_lib_rel);
 			version_check = 0;
@@ -1744,7 +1744,7 @@ void get_all_processes_pids(std::vector<int> &pids)
 	}
 
 	for( struct dirent *dirent = readdir(dir); dirent != NULL ; dirent = readdir(dir) ) {
-		if(!strncmp("vmastat.", dirent->d_name, MODULE_NAME_SIZE)) {
+		if(!strncmp("xliostat.", dirent->d_name, MODULE_NAME_SIZE)) {
 			char* pid_str = dirent->d_name + PID_OFFSET;
 			if (check_if_process_running(pid_str)) {
 				errno = 0;

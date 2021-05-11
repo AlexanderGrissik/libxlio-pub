@@ -38,7 +38,7 @@
 #include "vlogger/vlogger.h"
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/util/sys_vars.h"
-#include "vma_extra.h"
+#include "xlio_extra.h"
 
 #define CANDIDATE_STABILITY_ROUNDS 20
 #define RAL_STR_MAX_LENGTH 100

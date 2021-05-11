@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <vlogger/vlogger.h>
 
-#include "vma_extra.h"
+#include "xlio_extra.h"
 #include "vma/util/valgrind.h"
 
 #undef  MODULE_NAME

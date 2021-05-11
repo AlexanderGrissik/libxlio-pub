@@ -53,7 +53,7 @@
 #include <vma/proto/route_table_mgr.h>
 #include <vma/proto/vma_lwip.h>
 #include <vma/main.h>
-#include "vma/vma_extra.h"
+#include "vma/xlio_extra.h"
 
 #include <vma/sock/sockinfo_tcp.h>
 

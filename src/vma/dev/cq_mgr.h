@@ -43,7 +43,7 @@
 #include "vma/util/vma_stats.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/proto/vma_lwip.h"
-#include "vma/vma_extra.h"
+#include "vma/xlio_extra.h"
 
 
 class net_device_mgr;

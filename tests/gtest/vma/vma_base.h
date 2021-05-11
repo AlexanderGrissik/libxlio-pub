@@ -33,7 +33,7 @@
 #ifndef TESTS_GTEST_VMA_BASE_H_
 #define TESTS_GTEST_VMA_BASE_H_
 
-#include <vma_extra.h>
+#include <xlio_extra.h>
 
 /**
  * To enable vma tests you need to set below VMA_EXTRA_API_ENABLED to 1

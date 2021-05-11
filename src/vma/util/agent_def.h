@@ -63,9 +63,9 @@
 
 #define VMA_AGENT_VER   0x03
 
-#define VMA_AGENT_BASE_NAME "vma_agent"
+#define VMA_AGENT_BASE_NAME "xlioagent"
 #define VMA_AGENT_ADDR      "/var/run/" VMA_AGENT_BASE_NAME ".sock"
-#define VMA_AGENT_PATH      "/tmp/vma"
+#define VMA_AGENT_PATH      "/tmp/xlio"
 
 
 #pragma pack(push, 1)

@@ -478,7 +478,7 @@ static int get_seqno(struct rst_info *rst)
 		t_wait.tv_usec = (daemon_cfg.opt.retry_interval % 1000) * 1000;
 		gettimeofday(&t_end, NULL);
 
-		/* Account for wrapping of tv_usec, use libvma utils macro for timeradd() */
+		/* Account for wrapping of tv_usec, use utils macro for timeradd() */
 		tv_add(&t_end, &t_wait, &t_end);
 
 		do {

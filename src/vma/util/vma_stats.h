@@ -42,7 +42,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <vlogger/vlogger.h>
-#include <vma/vma_extra.h>
+#include <vma/xlio_extra.h>
 
 #define NUM_OF_SUPPORTED_CQS                        16
 #define NUM_OF_SUPPORTED_RINGS                      16

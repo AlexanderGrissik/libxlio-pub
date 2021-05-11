@@ -25,9 +25,9 @@ show_summary_title()
 {
     cat <<EOF
 
-Mellanox VMA library
+XLIO library
 ============================================================================
-Version: ${VMA_LIBRARY_MAJOR}.${VMA_LIBRARY_MINOR}.${VMA_LIBRARY_REVISION}.${VMA_LIBRARY_RELEASE}
+Version: ${PRJ_LIBRARY_MAJOR}.${PRJ_LIBRARY_MINOR}.${PRJ_LIBRARY_REVISION}.${PRJ_LIBRARY_RELEASE}
 Git: ${GIT_VER}
 
 EOF

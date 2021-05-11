@@ -1,12 +1,12 @@
 %{!?configure_options: %global configure_options %{nil}}
-%{!?use_rel: %global use_rel @VMA_LIBRARY_RELEASE@}
+%{!?use_rel: %global use_rel @PRJ_LIBRARY_RELEASE@}
 
 %{!?make_build: %global make_build %{__make} %{?_smp_mflags} %{?mflags} V=1}
 %{!?run_ldconfig: %global run_ldconfig %{?ldconfig}}
 %{!?_pkgdocdir: %global _pkgdocdir %{_docdir}/%{name}-%{version}}
 %global use_systemd %(if systemctl >/dev/null 2>&1; then echo -n '1'; else echo -n '0'; fi)
 
-Name: libvma
+Name: libxlio
 Version: @VERSION@
 Release: %{use_rel}%{?dist}
 Summary: A library for boosting TCP and UDP traffic (over RDMA hardware)
@@ -18,7 +18,7 @@ License: GPLv2 or BSD
 Url: https://github.com/Mellanox/%{name}
 Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
 
-# libvma currently supports only the following architectures
+# library currently supports only the following architectures
 ExclusiveArch: x86_64 ppc64le ppc64 aarch64
 
 BuildRequires: pkgconfig
@@ -35,43 +35,43 @@ BuildRequires: pkgconfig(libnl-route-3.0)
 BuildRequires: make
 
 %description
-libvma is a LD_PRELOAD-able library that boosts performance of TCP and
+libxlio is a LD_PRELOAD-able library that boosts performance of TCP and
 UDP traffic. It allows application written over standard socket API to
 handle fast path data traffic from user space over Ethernet and/or
 Infiniband with full network stack bypass and get better throughput,
 latency and packets/sec rate.
 
 No application binary change is required for that.
-libvma is supported by RDMA capable devices that support "verbs"
+library is supported by RDMA capable devices that support "verbs"
 IBV_QPT_RAW_PACKET QP for Ethernet and/or IBV_QPT_UD QP for IPoIB.
 
 %package devel
-Summary: Header files required to develop with libvma
+Summary: Header files required to develop with libxlio
 %if 0%{?rhl}%{?fedora} == 0
 Group: System Environment/Libraries
 %endif
 Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description devel
-This package includes headers for building programs with libvma's
+This package includes headers for building programs with libxlio's
 interfaces.
 
 %package utils
-Summary: Utilities used with libvma
+Summary: Utilities used with libxlio
 %if 0%{?rhl}%{?fedora} == 0
 Group: System Environment/Libraries
 %endif
 Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description utils
-This package contains the tool for collecting and analyzing libvma statistic.
+This package contains the tool for collecting and analyzing libxlio statistic.
 
 %prep
 %setup -q
 
 %build
 if [ ! -e configure ] && [ -e autogen.sh ]; then
-    VMA_RELEASE=%{use_rel} ./autogen.sh
+    PRJ_RELEASE=%{use_rel} ./autogen.sh
 fi
 
 %if %{use_rel} > 0
@@ -91,7 +91,7 @@ cp -f src/vma/.libs/%{name}.so %{name}-debug.so
 
 find $RPM_BUILD_ROOT%{_libdir} -name '*.la' -delete
 %if "%{use_systemd}" == "1"
-install -D -m 644 contrib/scripts/vma.service $RPM_BUILD_ROOT/%{_prefix}/lib/systemd/system/vma.service
+install -D -m 644 contrib/scripts/xlio.service $RPM_BUILD_ROOT/%{_prefix}/lib/systemd/system/xlio.service
 %endif
 
 %if %{use_rel} > 0
@@ -107,16 +107,16 @@ install -m 755 ./%{name}-debug.so $RPM_BUILD_ROOT/%{_libdir}/%{name}-debug.so
 if [ $1 = 1 ]; then
     if systemctl >/dev/null 2>&1; then
         %if 0%{?suse_version}
-        %service_add_post vma.service
+        %service_add_post xlio.service
         %else
-        %systemd_post vma.service
+        %systemd_post xlio.service
         %endif
     elif [ -e /sbin/chkconfig ]; then
-        /sbin/chkconfig --add vma
+        /sbin/chkconfig --add xlio
     elif [ -e /usr/sbin/update-rc.d ]; then
-        /usr/sbin/update-rc.d vma defaults
+        /usr/sbin/update-rc.d xlio defaults
     else
-        %{_libdir}/lsb/install_initd %{_sysconfdir}/init.d/vma
+        %{_libdir}/lsb/install_initd %{_sysconfdir}/init.d/xlio
     fi
 fi
 
@@ -124,19 +124,19 @@ fi
 if [ $1 = 0 ]; then
     if systemctl >/dev/null 2>&1; then
         %if 0%{?suse_version}
-        %service_del_preun vma.service
+        %service_del_preun xlio.service
         %else
-        %systemd_preun vma.service
+        %systemd_preun xlio.service
         %endif
     elif [ -e /sbin/chkconfig ]; then
-        %{_sysconfdir}/init.d/vma stop
-        /sbin/chkconfig --del vma
+        %{_sysconfdir}/init.d/xlio stop
+        /sbin/chkconfig --del xlio
     elif [ -e /usr/sbin/update-rc.d ]; then
-        %{_sysconfdir}/init.d/vma stop
-        /usr/sbin/update-rc.d -f vma remove
+        %{_sysconfdir}/init.d/xlio stop
+        /usr/sbin/update-rc.d -f xlio remove
     else
-        %{_sysconfdir}/init.d/vma stop
-        %{_libdir}/lsb/remove_initd %{_sysconfdir}/init.d/vma
+        %{_sysconfdir}/init.d/xlio stop
+        %{_libdir}/lsb/remove_initd %{_sysconfdir}/init.d/xlio
     fi
 fi
 
@@ -148,9 +148,9 @@ fi
 %endif
 if systemctl >/dev/null 2>&1; then
         %if 0%{?suse_version}
-        %service_del_postun vma.service
+        %service_del_postun xlio.service
         %else
-        %systemd_postun_with_restart vma.service
+        %systemd_postun_with_restart xlio.service
         %endif
 fi
 
@@ -159,29 +159,29 @@ fi
 %dir %{_pkgdocdir}
 %doc %{_pkgdocdir}/README
 %doc %{_pkgdocdir}/CHANGES
-%config(noreplace) %{_sysconfdir}/libvma.conf
-%{_sbindir}/vmad
+%config(noreplace) %{_sysconfdir}/libxlio.conf
+%{_sbindir}/xliod
 %if "%{use_systemd}" == "1"
-%{_prefix}/lib/systemd/system/vma.service
+%{_prefix}/lib/systemd/system/xlio.service
 %else
-%{_sysconfdir}/init.d/vma
+%{_sysconfdir}/init.d/xlio
 %endif
-%{_mandir}/man7/vma.*
-%{_mandir}/man8/vmad.*
+%{_mandir}/man7/xlio.*
+%{_mandir}/man8/xliod.*
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
-%license COPYING
+%license LICENSE
 %endif
 
 %files devel
 %dir %{_includedir}/mellanox
-%{_includedir}/mellanox/vma_extra.h
+%{_includedir}/mellanox/xlio_extra.h
 %if %{use_rel} > 0
 %{_libdir}/%{name}-debug.so
 %endif
 
 %files utils
-%{_bindir}/vma_stats
-%{_mandir}/man8/vma_stats.*
+%{_bindir}/xlio_stats
+%{_mandir}/man8/xlio_stats.*
 
 %changelog
 * Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1

@@ -35,7 +35,7 @@
 
 #include <tr1/unordered_map>
 #include "net_device_val.h"
-#include "vma_extra.h"
+#include "xlio_extra.h"
 
 #define START_RING_INDEX	1 // beneath it's not defined
 

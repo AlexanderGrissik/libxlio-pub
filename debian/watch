@@ -2,6 +2,6 @@
 version=4
 
 # GitHub hosted projects
-opts="filenamemangle=s%(?:.*?)?v?(\d[\d.]*)\.tar\.gz%libvma-$1.tar.gz%" \
-   https://github.com/mellanox/libvma/tags \
+opts="filenamemangle=s%(?:.*?)?v?(\d[\d.]*)\.tar\.gz%libxlio-$1.tar.gz%" \
+   https://github.com/mellanox-lab/libxlio/tags \
    (?:.*?/)?v?(\d[\d.]*)\.tar\.gz debian uupdate

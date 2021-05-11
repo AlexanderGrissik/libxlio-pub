@@ -36,7 +36,7 @@
 #include "config.h"
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
-#include "vma/vma_extra.h"
+#include "vma/xlio_extra.h"
 #include "vma/util/data_updater.h"
 #include "vma/util/sock_addr.h"
 #include "vma/util/vma_stats.h"
@@ -295,7 +295,7 @@ protected:
 		struct vma_buff_t*       last_buff_lst;
 	} m_socketxtreme;
 
-	// Callback function pointer to support VMA extra API (vma_extra.h)
+	// Callback function pointer to support VMA extra API (xlio_extra.h)
 	vma_recv_callback_t	m_rx_callback;
 	void*			m_rx_callback_context; // user context
 	struct vma_rate_limit_t m_so_ratelimit;

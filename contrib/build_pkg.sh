@@ -47,11 +47,11 @@ Example:
  * Prepare source package only
 contrib/build_pkg.sh -s
  * Prepare source package directly from github using tag or branch
-contrib/build_pkg.sh -s -i /tmp/libvma-9.0.2 -c 9.0.2
+contrib/build_pkg.sh -s -i /tmp/libxlio-1.0.0 -c 1.0.0
  * Pass none default configuration options
 contrib/build_pkg.sh -b -s -a "configure_options=--enable-tso"
  * Create release
-env VMA_RELEASE=1 contrib/build_pkg.sh -b -s -a "configure_options=--enable-tso"
+env PRJ_RELEASE=1 contrib/build_pkg.sh -b -s -a "configure_options=--enable-tso"
 EOF
             exit 1
             ;;
@@ -62,8 +62,8 @@ done
 opt_input=${opt_input:=$(pwd)}
 opt_output=${opt_output:=${opt_input}/pkg}
 
-pkg_name=libvma
-pkg_url="https://github.com/Mellanox/${pkg_name}"
+pkg_name=libxlio
+pkg_url="https://github.com/Mellanox-lab/${pkg_name}"
 pkg_dir=${opt_output}
 pkg_log=${pkg_dir}/build_pkg.log
 pkg_src="${pkg_name}*"

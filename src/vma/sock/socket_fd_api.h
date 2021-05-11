@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include <sys/socket.h>
-#include "vma/vma_extra.h"
+#include "vma/xlio_extra.h"
 
 #include <vma/dev/cq_mgr.h>
 #include <vma/dev/buffer_pool.h>

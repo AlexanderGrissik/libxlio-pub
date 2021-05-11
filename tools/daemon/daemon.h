@@ -63,7 +63,7 @@
 #include "utils/clock.h"
 
 
-#define MODULE_NAME             "vmad"
+#define MODULE_NAME             "xliod"
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1

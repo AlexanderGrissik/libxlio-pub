@@ -28,29 +28,29 @@ EXTRA_DIST = \
 	util/hash_map.inl \
 	dev/cq_mgr.inl \
 	dev/cq_mgr_mlx5.inl \
-	util/libvma.conf
+	util/libxlio.conf
 
-sysconf_DATA = util/libvma.conf
+sysconf_DATA = util/libxlio.conf
 otherincludedir = $(includedir)/mellanox
-otherinclude_HEADERS = vma_extra.h
+otherinclude_HEADERS = xlio_extra.h
 
 install-exec-hook:
-	rm -f $(DESTDIR)$(libdir)/libvma.la
-	rm -f $(DESTDIR)$(libdir)/libvma.a
+	rm -f $(DESTDIR)$(libdir)/libxlio.la
+	rm -f $(DESTDIR)$(libdir)/libxlio.a
 	rm -f $(DESTDIR)$(bindir)/state_machine_test
 	rm -f $(DESTDIR)$(bindir)/vlogger_test
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(libdir)/libvma.so*
+	rm -f $(DESTDIR)$(libdir)/libxlio.so*
 
-lib_LTLIBRARIES = libvma.la
+lib_LTLIBRARIES = libxlio.la
 
 AM_CPPFLAGS := \
 	-I$(top_srcdir)/src ${LIBNL_CFLAGS}
 
-libvma_la_LDFLAGS := -no-undefined -version-number @VMA_LIBRARY_MAJOR@:@VMA_LIBRARY_MINOR@:@VMA_LIBRARY_REVISION@ 
+libxlio_la_LDFLAGS := -no-undefined -version-number @PRJ_LIBRARY_MAJOR@:@PRJ_LIBRARY_MINOR@:@PRJ_LIBRARY_REVISION@ 
 
-libvma_la_LIBADD = \
+libxlio_la_LIBADD = \
 	-lrt -ldl -lpthread $(LIBNL_LIBS) $(VERBS_LIBS) $(DPCP_LIBS) \
 	$(top_builddir)/src/utils/libutils.la \
 	$(top_builddir)/src/vlogger/libvlogger.la \
@@ -60,7 +60,7 @@ libvma_la_LIBADD = \
 	$(top_builddir)/src/vma/infra/libinfra.la \
 	libconfig_parser.la
 	
-libvma_la_SOURCES := \
+libxlio_la_SOURCES := \
 	dev/allocator.cpp \
 	dev/buffer_pool.cpp \
 	dev/cq_mgr.cpp \
@@ -158,7 +158,7 @@ libvma_la_SOURCES := \
 	util/agent.cpp \
 	util/data_updater.cpp \
 	\
-	libvma.c \
+	libxlio.c \
 	main.cpp \
 	\
 	dev/allocator.h \
@@ -302,9 +302,9 @@ libvma_la_SOURCES := \
 	\
 	config_parser.h \
 	main.h \
-	vma_extra.h
+	xlio_extra.h
 
-libvma_la_DEPENDENCIES = \
+libxlio_la_DEPENDENCIES = \
 	$(top_builddir)/src/vlogger/libvlogger.la \
 	$(top_builddir)/src/state_machine/libstate_machine.la \
 	$(top_builddir)/src/stats/libstats.la \

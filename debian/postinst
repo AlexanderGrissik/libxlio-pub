@@ -3,11 +3,11 @@
 /sbin/ldconfig
 
 if systemctl >/dev/null 2>&1; then
-    systemctl --no-reload enable vma.service >/dev/null 2>&1 || true
+    systemctl --no-reload enable xlio.service >/dev/null 2>&1 || true
 elif [ -e /sbin/chkconfig ]; then
-    /sbin/chkconfig --add vma
+    /sbin/chkconfig --add xlio
 elif [ -e /usr/sbin/update-rc.d ]; then
-    /usr/sbin/update-rc.d vma defaults
+    /usr/sbin/update-rc.d xlio defaults
 else
-    /usr/lib/lsb/install_initd /etc/init.d/vma
+    /usr/lib/lsb/install_initd /etc/init.d/xlio
 fi

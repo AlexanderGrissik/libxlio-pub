@@ -12,40 +12,40 @@ dnl===-----------------------------------------------------------------------===
 
 # Update version number here:
 #
-define([vma_ver_major], 0)
-define([vma_ver_minor], 1)
-define([vma_ver_revision], 2)
-define([vma_ver_release], esyscmd([echo ${VMA_RELEASE:=0}]))
+define([prj_ver_major], 0)
+define([prj_ver_minor], 1)
+define([prj_ver_revision], 2)
+define([prj_ver_release], esyscmd([echo ${PRJ_RELEASE:=0}]))
 
 
 # Initialize autoconf and define the package name, version number and
 # email address for reporting bugs.
 #
-AC_INIT(libvma, [vma_ver_major.vma_ver_minor.vma_ver_revision], support@mellanox.com)
+AC_INIT(libxlio, [prj_ver_major.prj_ver_minor.prj_ver_revision], support@mellanox.com)
 
 # Definitions will be placed in this file rather than
 # in the DEFS variable
 #
 AC_CONFIG_HEADER([config.h])
 
-VMA_LIBRARY_MAJOR=vma_ver_major
-VMA_LIBRARY_MINOR=vma_ver_minor
-VMA_LIBRARY_REVISION=vma_ver_revision
-VMA_LIBRARY_RELEASE=vma_ver_release
+PRJ_LIBRARY_MAJOR=prj_ver_major
+PRJ_LIBRARY_MINOR=prj_ver_minor
+PRJ_LIBRARY_REVISION=prj_ver_revision
+PRJ_LIBRARY_RELEASE=prj_ver_release
 
-AC_DEFINE_UNQUOTED(VMA_LIBRARY_MAJOR, ${VMA_LIBRARY_MAJOR}, [VMA Major Version])
-AC_SUBST(VMA_LIBRARY_MAJOR)
-AC_DEFINE_UNQUOTED(VMA_LIBRARY_MINOR, ${VMA_LIBRARY_MINOR}, [VMA Minor Version])
-AC_SUBST(VMA_LIBRARY_MINOR)
-AC_DEFINE_UNQUOTED(VMA_LIBRARY_REVISION, ${VMA_LIBRARY_REVISION}, [VMA Revision])
-AC_SUBST(VMA_LIBRARY_REVISION)
-AC_DEFINE_UNQUOTED(VMA_LIBRARY_RELEASE, ${VMA_LIBRARY_RELEASE}, [VMA Release])
-AC_SUBST(VMA_LIBRARY_RELEASE)
+AC_DEFINE_UNQUOTED(PRJ_LIBRARY_MAJOR, ${PRJ_LIBRARY_MAJOR}, [Project Major Version])
+AC_SUBST(PRJ_LIBRARY_MAJOR)
+AC_DEFINE_UNQUOTED(PRJ_LIBRARY_MINOR, ${PRJ_LIBRARY_MINOR}, [Project Minor Version])
+AC_SUBST(PRJ_LIBRARY_MINOR)
+AC_DEFINE_UNQUOTED(PRJ_LIBRARY_REVISION, ${PRJ_LIBRARY_REVISION}, [Project Revision])
+AC_SUBST(PRJ_LIBRARY_REVISION)
+AC_DEFINE_UNQUOTED(PRJ_LIBRARY_RELEASE, ${PRJ_LIBRARY_RELEASE}, [Project Release])
+AC_SUBST(PRJ_LIBRARY_RELEASE)
 
 GIT_VER=`git describe --long --abbrev=40 --dirty --tags 2> /dev/null || echo ""`
 if test -n "$GIT_VER"; then GIT_VER=`echo $GIT_VER | sed -e 's/-dirty/+/' | sed s/.*-g//`; else  GIT_VER=""; fi
 
-AC_DEFINE_UNQUOTED(VMA_GIT_VERSION, "${GIT_VER}", [VMA Git Version])
+AC_DEFINE_UNQUOTED(PRJ_GIT_VERSION, "${GIT_VER}", [VMA Git Version])
 
 dateopt=""
     if test -n "$SOURCE_DATE_EPOCH" ; then
@@ -179,19 +179,6 @@ OS=`cat /etc/issue | awk '{ print $3}'`
 CFLAGS="-D_GNU_SOURCE -fPIC $CFLAGS"
 CXXFLAGS="-D_GNU_SOURCE -fPIC $CXXFLAGS"
 
-# gcov support
-#
-AC_MSG_CHECKING(
-    [for gcov support])
-AC_ARG_ENABLE([gcov],
-    AS_HELP_STRING([--enable-gcov],
-        [turn on code coverage analysis tools]),
-    [CFLAGS+=" --coverage -O0"; CXXFLAGS+=" --coverage -O0"; LIBS+=" -lgcov"; VMA_GCOV=1;
-     AC_MSG_RESULT([yes])],
-    [VMA_GCOV=0
-     AC_MSG_RESULT([no])]
-)
-
 # Performance time points support
 #
 AC_MSG_CHECKING(
@@ -286,11 +273,8 @@ DPCP_CAPABILITY_SETUP()
 #
 #PROF_RDTSC_SETUP()
 
-# VMA SocketXtreme configuration
+# SocketXtreme configuration
 #
-AC_ARG_ENABLE([vmapoll],,
-    AC_MSG_ERROR([--enable-vmapoll option is deprecated. Please use VMA_SOCKETXTREME=1 environment variable]))
-
 AC_ARG_ENABLE([socketxtreme],,
     AC_MSG_ERROR([--enable-socketxtreme option is deprecated. Please use VMA_SOCKETXTREME=1 environment variable]))
 
@@ -363,7 +347,7 @@ else
     AC_MSG_RESULT([no])
 fi
 
-AC_MSG_CHECKING([for md5 version of VMA statistics is])
+AC_MSG_CHECKING([for md5 version of library statistics is])
 STATS_PROTOCOL_VER=`md5sum ${srcdir}/src/vma/util/vma_stats.h | awk '{ print $1}'`
 AC_DEFINE_UNQUOTED(STATS_PROTOCOL_VER, "${STATS_PROTOCOL_VER}", [Stats Protocol Version])
 AC_SUBST(STATS_PROTOCOL_VER)
@@ -498,9 +482,9 @@ AC_CONFIG_FILES([
 		tools/Makefile
 		tools/daemon/Makefile
 		docs/man/Makefile
-		contrib/scripts/vma.init
-		contrib/scripts/vma.service
-		contrib/scripts/libvma.spec
+		contrib/scripts/xlio.init
+		contrib/scripts/xlio.service
+		contrib/scripts/libxlio.spec
 		debian/changelog
 		])
 
