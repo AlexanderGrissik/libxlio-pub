@@ -1,20 +1,18 @@
-[![GitHub version](https://badge.fury.io/gh/mellanox%2Flibvma.svg)](https://badge.fury.io/gh/mellanox%2Flibvma)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/8025/badge.svg)](https://scan.coverity.com/projects/libvma)
+# XLIO - Accelerated IO SW library
 
-### Introduction
-Mellanox's Messaging Accelerator (VMA) boosts performance for message-based and streaming applications such as those found in financial services market data environments and Web2.0 clusters. It allows application written over standard socket API
-to run over Ethernet and/or Infiniband from user-space with full network stack bypass. 
-  
-The [VMA architecture](https://github.com/Mellanox/libvma/wiki/Architecture) page includes additional information.  
+## Introduction
+XLIO boosts the performance of applications written over standard socket API such as 
+web serving, reverse proxying, caching, load balancing, media streaming, and more. Reduction of latency, increasing
+throughput and effective CPU utilization is achieved by full network stack bypass and direct access to
+accelerated network hardware.
+XLIO dynamically links with these applications at run-time, redirect standard socket API calls allowing them to be
+be accelerated without modification.
 
-### Download
-Get all download and installation information [here](https://github.com/Mellanox/libvma/wiki/Downloads).  
-or some quick instruction in order to [build VMA from source](https://github.com/Mellanox/libvma/wiki/Build-Instruction).  
-  
-### Technical Support
-Have a question? please open a [github issue](https://github.com/Mellanox/libvma/issues) or contact support@mellanox.com.  
+## License
+See [LICENSE](./LICENSE) file
 
-### Additional Information
-* Refer to the libvma [README](https://github.com/Mellanox/libvma/blob/master/README)
-* Messaging Accelerator [VMA](https://www.mellanox.com/products/software/accelerator-software/vma?mtag=vma) page
-* Check out the rest of the Wiki pages in this project
+## Information
+See [README](./README) file
+
+## Contribution
+[Contribution](./docs/contributing.md) guidelines for this project

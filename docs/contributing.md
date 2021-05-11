@@ -1,4 +1,4 @@
-# Contributing to libvma-pro
+# Contributing to libxlio
 
 As a contributor, here are the guidelines we would like you to follow:
 
@@ -26,7 +26,7 @@ A minimal reproduction step by step instruction allows us to quickly confirm a b
 
 Before you submit your Pull Request (PR) consider the following guidelines:
 
-1. Fork the `mellanox-lab/libvma-pro` repo.
+1. Fork the `mellanox-lab/libxlio` repo.
 2. Make your changes in a new git branch:
      ```shell
      git checkout -b fix-branch master

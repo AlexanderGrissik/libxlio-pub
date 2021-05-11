@@ -1,56 +1,35 @@
-Update: 12 Aug 2018
-
 Introduction
 ============
 
-Mellanox's Messaging Accelerator (VMA) is dynamically linked user space Linux
-library for transparently enhancing the performance of networking-heavy
-applications. It boosts performance for message-based and streaming applications
-such as those found in financial services market data environments and Web2.0
-clusters.
-It allows application written over standard socket API to run over Infiniband
-and/or Ethernet from user-space with full network stack bypass.
-The result is a reduction in latency by as much as 300%,
-an increase in application throughput by as much as 200%,
-higher packets rates and better CPU utilization as compared to applications
-running on standard Ethernet or InfiniBand interconnect networks.
+Accelerated IO SW library (XLIO) boosts the performance of applications written over standard socket API such as 
+web serving, reverse proxying, caching, load balancing, media streaming, and more. Reduction of latency, increasing
+throughput and effective CPU utilization is achieved by full network stack bypass and direct access to
+accelerated network hardware.
+XLIO dynamically links with these applications at run-time, redirect standard socket API calls allowing them to be
+be accelerated without modification.
 
-Build libvma from source
+Build library from source
 ========================
 
 Prerequisites:
-1. MLNX_OFED as described in the "Pre Installation" step of next section.
-2. Or, upstream kernel and userspace verbs libraries (libibverbs, libmlx4, libmlx5, librdmacm)
-3. Autoconf, Automake, libtool, unzip, patch, libnl-devel (netlink 1 or 3)
+1. rdma-core upstream kernel and userspace verbs libraries (libibverbs, libmlx4, libmlx5, librdmacm)
+2. Autoconf, Automake, libtool, unzip, patch, libnl-devel (netlink 1 or 3)
 
 Build:
 1. ./autogen.sh
-2. ./configure --with-ofed=/usr --prefix=/usr --libdir=/usr/lib64 --includedir=/usr/include --docdir=/usr/share/doc/libvma --sysconfdir=/etc
+2. ./configure --prefix=/usr
 3. make
 4. sudo make install
 
 
-Install libvma from rpm or debian
+Install library from rpm or debian
 =================================
 
-Pre Installation:
-1. If possible, install latest MLNX_OFED with the --vma option.
-   This will also install libvma, and you can skip to "Running" step.
-2. If installing over existing MLNX_OFED, add the following to
-   /etc/modprobe.d/mlnx.conf:
-   options ib_uverbs disable_raw_qp_enforcement=1
-   options mlx4_core fast_drop=1
-   options mlx4_core log_num_mgm_entry_size=-1
-   And restart openibd or rdma service depending on your system configuration
-
 Installing:
-Install the package as any other rpm or debian package [rpm -i libvma.X.Y.Z-R.rpm].
-The installation copies the VMA library to: /usr/lib[64]/libvma.so
-The VMA monitoring utility is installed at: /usr/bin/vma_stat
-The VMA extra socket API is located at: /usr/include/mellanox/vma_extra.h
-The installation location of the README and CHANGES, are as follows:
-- Redhat: /usr/share/doc/libvma-X.Y.Z-R/
-- SuSE:   /usr/share/doc/packages/libvma-X.Y.Z-R/
+Install the package as any other rpm or debian package [rpm -i libxlio.X.Y.Z-R.rpm].
+The installation copies the XLIO library to: /usr/lib[64]/libxlio.so
+The XLIO monitoring utility is installed at: /usr/bin/xlio_stats
+The XLIO extra socket API is located at: /usr/include/mellanox/xlio_extra.h
 
 Post Installation:
 When working over Infiniband, we recommend to manually add persistence
@@ -61,26 +40,26 @@ for the following system parameters:
    Add "net.ipv4.conf.all.force_igmp_version = 2" in file "/etc/sysctl.conf"
 
 Upgrading:
-Use rpm update procedure: # rpm -U libvma.X.Y.Z-R.rpm
+Use rpm update procedure: # rpm -U libxlio.X.Y.Z-R.rpm
 You can upgrade by uninstalling (rpm -e) the previously installed package
-before starting to install the new VMA rpm.
+before starting to install the new library rpm.
 
 Uninstalling:
 When uninstalling remember to uninstall (rpm -e) the package before you
 uninstall ofed.
 
 Running:
-Set the environment variable LD_PRELOAD to libvma.so and run your application.
-Example: # LD_PRELOAD=libvma.so iperf -uc 224.22.22.22 -t 5
+Set the environment variable LD_PRELOAD to libxlio.so and run your application.
+Example: # LD_PRELOAD=libxlio.so iperf -uc 224.22.22.22 -t 5
 
 
 
 Configuration Values
 ====================
 
-On default startup the VMA library logs to stderr the VMA version, the modified
+On default startup the XLIO library logs to stderr the version, the modified
 configuration parameters being used and their values.
-Please notice that except VMA_TRACELEVEL, VMA logs just those parameters whose value != default.
+Please notice that except VMA_TRACELEVEL, library logs just those parameters whose value != default.
 
 Example:
  VMA INFO: ---------------------------------------------------------------------------
@@ -101,7 +80,7 @@ Example:
  VMA DETAILS: Stats shared memory directory  /tmp/                      [VMA_STATS_SHMEM_DIR]
  VMA DETAILS: VMAD output directory          /tmp/vma/                  [VMA_VMAD_NOTIFY_DIR]
  VMA DETAILS: Stats FD Num (max)             100                        [VMA_STATS_FD_NUM]
- VMA DETAILS: Conf File                      /etc/libvma.conf           [VMA_CONFIG_FILE]
+ VMA DETAILS: Conf File                      /etc/libxlio.conf           [VMA_CONFIG_FILE]
  VMA DETAILS: Application ID                 VMA_DEFAULT_APPLICATION_ID [VMA_APPLICATION_ID]
  VMA DETAILS: Polling CPU idle usage         Disabled                   [VMA_CPU_USAGE_STATS]
  VMA DETAILS: SigIntr Ctrl-C Handle          Disabled                   [VMA_HANDLE_SIGINTR]
@@ -193,17 +172,17 @@ Example:
  VMA INFO: ---------------------------------------------------------------------------
 
 VMA_TRACELEVEL
-Logging level the VMA library will be using. Default is info
+Logging level the library will be using. Default is info
 Example: # VMA_TRACELEVEL=debug
 
 none
     Print no log at all
 panic
     Panic level logging, this would generally cause fatal behavior and an exception
-    will be thrown by the VMA library. Typically, this is caused by memory
+    will be thrown by the library. Typically, this is caused by memory
     allocation problems. This level is rarely used.
 error
-    Runtime ERRORs in the VMA.
+    Runtime ERRORs in the library.
     Typically, these can provide insight for the developer of wrong internal
     logic like: Errors from underlying OS or Infiniband verbs calls. internal
     double mapping/unmapping of objects.
@@ -216,12 +195,12 @@ warn
 info
     General information passed to the user of the application. Bring up
     configuration logging or some general info to help the user better
-    use the VMA library
+    use the library
 details
-    Complete VMA's configuration information.
-    Very high level insight of some of the critical decisions done in VMA.
+    Complete XLIO's configuration information.
+    Very high level insight of some of the critical decisions done in library.
 debug
-    High level insight to the operations done in the VMA. All socket API calls
+    High level insight to the operations done in the library. All socket API calls
     are logged and internal high level control channels log there activity.
 fine
     Low level run time logging of activity. This logging level includes basic
@@ -249,15 +228,15 @@ to a non terminal device (e.g. VMA_LOG_FILE is configured).
 Default value is 1 (Enabled)
 
 VMA_LOG_FILE
-Redirect all VMA logging to a specific user defined file.
+Redirect all logging to a specific user defined file.
 This is very useful when raising the VMA_TRACELEVEL
-VMA will replace a single '%d' appearing in the log file name with the pid of
-the process loaded with VMA. This can help in running multiple instances of VMA
+Library will replace a single '%d' appearing in the log file name with the pid of
+the process loaded with XLIO. This can help in running multiple instances of XLIO
 each with it's own log file name.
 Example:  VMA_LOG_FILE=/tmp/vma_log.txt
 
 VMA_SPEC
-VMA predefined specification profiles.
+XLIO predefined specification profiles.
 
 latency
     Optimized for use cases that are keen on latency. i.e. Ping-Pong tests.
@@ -307,42 +286,42 @@ multi_ring_latency
 
 VMA_STATS_FILE
 Redirect socket statistics to a specific user defined file.
-VMA will dump each socket's statistics into a file when closing the socket.
+Library will dump each socket's statistics into a file when closing the socket.
 Example:  VMA_STATS_FILE=/tmp/stats
 
 VMA_STATS_SHMEM_DIR
-Set the directory path for VMA to create the shared memory files for vma_stats.
+Set the directory path for the library to create the shared memory files for vma_stats.
 No files will be created when setting this value to empty string "".
 Default value is /tmp/
 
 VMA_VMAD_NOTIFY_DIR
-Set the directory path for VMA to write files used by vmad.
+Set the directory path for XLIO to write files used by vmad.
 Default value is /tmp/vma/
 Note: when used vmad must be run with --notify-dir directing the same folder.
 
 VMA_STATS_FD_NUM
-Max number of sockets monitored by VMA statistic mechanism.
+Max number of sockets monitored by XLIO statistic mechanism.
 Value range is 0 to 1024.
 Default value is 100
 
 VMA_CONFIG_FILE
-Sets the full path to the VMA configuration file.
-Default values is: /etc/libvma.conf
-Example: VMA_CONFIG_FILE=/tmp/libvma.conf
+Sets the full path to the XLIO configuration file.
+Default values is: /etc/libxlio.conf
+Example: VMA_CONFIG_FILE=/tmp/libxlio.conf
 
 VMA_APPLICATION_ID
-Specify a group of rules from libvma.conf for VMA to apply.
+Specify a group of rules from libxlio.conf for XLIO to apply.
 Example: 'VMA_APPLICATION_ID=iperf_server'.
 Default is "VMA_DEFAULT_APPLICATION_ID" (match only the '*' group rule)
 
 VMA_CPU_USAGE_STATS
-Calculate VMA CPU usage during polling HW loops.
-This information is available through VMA stats utility.
+Calculate XLIO CPU usage during polling HW loops.
+This information is available through XLIO stats utility.
 Default value is 0 (Disabled)
 
 VMA_HANDLE_SIGINTR
-When Enabled, VMA handler will be called when interrupt signal is sent to the process.
-VMA will also call to application's handler if exist.
+When Enabled, the library handler will be called when interrupt signal is sent to the process.
+XLIO will also call to application's handler if exist.
 Value range is 0 to 1
 Default value is 0 (Disabled)
 
@@ -360,7 +339,7 @@ Memory limit for zerocopy (mapping) cache in MB.
 Default value is 10240
 
 VMA_TX_SEGS_TCP
-Number of TCP LWIP segments allocation for each VMA process.
+Number of TCP LWIP segments allocation for each XLIO process.
 Default value is 1000000
 
 VMA_TX_BUFS
@@ -395,7 +374,7 @@ In older releases this parameter was called: VMA_MAX_INLINE
 Default VMA_TX_MAX_INLINE is 204
 
 VMA_TX_MC_LOOPBACK
-This parameter sets the initial value used by VMA internally to controls the
+This parameter sets the initial value used by XLIO internally to controls the
 multicast loopback packets behavior during transmission.
 An application that calls setsockopt() with IP_MULTICAST_LOOP will run over
 the initial value set by this parameter.
@@ -404,9 +383,9 @@ Default value is 1 (Enabled)
 
 VMA_TX_NONBLOCKED_EAGAINS
 Return value 'OK' on all send operation done on a non-blocked UDP sockets. This
-is the OS default behavior. The datagram sent is silently dropped inside VMA
+is the OS default behavior. The datagram sent is silently dropped inside XLIO
 or the network stack.
-When set Enabled (set to 1), VMA will return with error EAGAIN if it was unable
+When set Enabled (set to 1), the library will return with error EAGAIN if it was unable
 accomplish the send operation and the datagram was dropped.
 In both cases a dropped Tx statistical counter is incremented.
 Default value is 0 (Disabled)
@@ -459,7 +438,7 @@ Use a value of 0 for unlimited number of rings.
 Default value is 0 (no limit)
 
 VMA_RING_DEV_MEM_TX
-VMA can use the On Device Memory to store the egress packet if it does not fit into
+XLIO can use the On Device Memory to store the egress packet if it does not fit into
 the BF inline buffer. This improves application egress latency by reducing PCI transactions.
 Using VMA_RING_DEV_MEM_TX, the user can set the amount of On Device Memory buffer allocated
 for each TX ring.
@@ -483,10 +462,10 @@ Value range is 1-1024.
 Default value is 64
 
 VMA_RX_BYTES_MIN
-Minimum value in bytes that will be used per socket by VMA when applications
+Minimum value in bytes that will be used per socket by XLIO when applications
 call to setsockopt(SO_RCVBUF). If application tries to set a smaller value then
-configured in VMA_RX_BYTES_MIN, VMA will force this minimum limit value on the
-socket.VMA offloaded socket's receive max limit of ready bytes count. If the
+configured in VMA_RX_BYTES_MIN, XLIO will force this minimum limit value on the
+socket.XLIO offloaded socket's receive max limit of ready bytes count. If the
 application does not drain a sockets and the byte limit is reached, new
 received datagrams will be dropped.
 Monitor of the applications socket's usage of current, max and dropped bytes
@@ -515,8 +494,8 @@ Expected benefits: Throughput increase and CPU unload.
 Default value is 1 (Enable)
 
 VMA_RX_POLL_INIT
-VMA maps all UDP sockets as potential offloaded capable. Only after the
-ADD_MEMBERSHIP does the offload start to work and the CQ polling kicks in VMA.
+XLIO maps all UDP sockets as potential offloaded capable. Only after the
+ADD_MEMBERSHIP does the offload start to work and the CQ polling kicks in XLIO.
 This parameter control the polling count during this transition phase where the
 socket is a UDP unicast socket and no multicast addresses where added to it.
 Once the first ADD_MEMBERSHIP is called the above VMA_RX_POLL takes effect.
@@ -524,7 +503,7 @@ Value range is similar to the above VMA_RX_POLL
 Default value is 0
 
 VMA_RX_UDP_POLL_OS_RATIO
-The above parameter will define the ratio between VMA CQ poll and OS FD poll.
+The above parameter will define the ratio between XLIO CQ poll and OS FD poll.
 This will result in a single poll of the not-offloaded sockets every
 VMA_RX_UDP_POLL_OS_RATIO offloaded socket (CQ) polls. No matter if the CQ poll
 was a hit or miss. No matter if the socket is blocking or non-blocking.
@@ -554,7 +533,7 @@ Default value: 3
 
 VMA_RX_POLL_YIELD
 When an application is running with multiple threads, on a limited number of
-cores, there is a need for each thread polling inside the VMA (read, readv,
+cores, there is a need for each thread polling inside the XLIO (read, readv,
 recv & recvfrom) to yield the CPU to other polling thread so not to starve
 them from processing incoming packets.
 Default value is 0 (Disable)
@@ -588,10 +567,10 @@ Recommended value is 100-5000 (nsec)
 Default value is 0 (Disable)
 
 VMA_TCP_ABORT_ON_CLOSE
-This parameter controls how VMA performs socket close operation. If enabled,
-VMA sends RST segment and discards TCP state for the socket. Notice, in this
+This parameter controls how XLIO performs socket close operation. If enabled,
+XLIO sends RST segment and discards TCP state for the socket. Notice, in this
 scenario pending data segments may be unsent.
-If disabled, VMA sends pending data segments and then FIN segment.
+If disabled, XLIO sends pending data segments and then FIN segment.
 Default: 0 (Disable)
 
 VMA_RX_POLL_ON_TX_TCP
@@ -602,7 +581,7 @@ Default: 0 (Disable)
 VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME
 This parameter triggers dummy packet send from getsockname(), this
 will warm up the caches.
-For more information regarding dummy send, see VMA user manual document.
+For more information regarding dummy send, see XLIO user manual document.
 Default: 0 (Disable)
 
 VMA_GRO_STREAMS_MAX
@@ -626,7 +605,7 @@ Default: 1 (Enable)
 
 VMA_ETH_MC_L2_ONLY_RULES
 Use only L2 rules for Ethernet Multicast.
-All loopback traffic will be handled by VMA instead of OS.
+All loopback traffic will be handled by XLIO instead of OS.
 
 VMA_MC_FORCE_FLOWTAG
 Forces the use of flow tag acceleration for multicast flows where setsockopt(SO_REUSEADDR) is
@@ -649,9 +628,9 @@ Default value is 100000
 VMA_SELECT_POLL_OS_FORCE
 This flag forces to poll the OS file descriptors while user thread calls
 select(), poll() or epoll_wait() even when no offloaded sockets are mapped.
-Enabling this flag causes VMA to set VMA_SELECT_POLL_OS_RATIO and
+Enabling this flag causes XLIO to set VMA_SELECT_POLL_OS_RATIO and
 VMA_SELECT_SKIP_OS to 1. This will result in VMA_SELECT_POLL number of
-times VMA will poll the OS file descriptors, along side with offloaded
+times XLIO will poll the OS file descriptors, along side with offloaded
 sockets, if such sockets exists.
 Note that setting VMA_SELECT_SKIP_OS and VMA_SELECT_POLL_OS_RATIO
 directly will override the values these parameters gets while
@@ -662,7 +641,7 @@ Default value is 0
 
 VMA_SELECT_POLL_OS_RATIO
 This will enable polling of the OS file descriptors while user thread calls
-select() or poll() and the VMA is busy in the offloaded sockets polling loop.
+select() or poll() and the XLIO is busy in the offloaded sockets polling loop.
 This will result in a single poll of the not-offloaded sockets every
 VMA_SELECT_POLL_RATIO offloaded sockets (CQ) polls.
 When disabled, only offloaded sockets are polled.
@@ -671,23 +650,23 @@ Disable with 0
 Default value is 10
 
 VMA_SELECT_SKIP_OS
-Similar to VMA_RX_SKIP_OS, but in select() or poll() this will force the VMA
+Similar to VMA_RX_SKIP_OS, but in select() or poll() this will force the XLIO
 to check the non offloaded fd even though an offloaded socket has ready
 packets found while polling.
 Default value is 4
 
 VMA_PROGRESS_ENGINE_INTERVAL
-VMA Internal thread safe check that the CQ is drained at least once
+XLIO Internal thread safe check that the CQ is drained at least once
 every N milliseconds.
-This mechanism allows VMA to progress the TCP stack even when the application
-doesn't access its socket (so it doesn't provide a context to VMA).
+This mechanism allows the library to progress the TCP stack even when the application
+doesn't access its socket (so it doesn't provide a context to XLIO).
 If CQ was already drained by the application receive
 socket API calls then this thread goes back to sleep without any processing.
 Disable with 0
 Default value is 10 msec
 
 VMA_PROGRESS_ENGINE_WCE_MAX
-Each time VMA's internal thread starts it's CQ draining, it will stop when
+Each time XLIO's internal thread starts it's CQ draining, it will stop when
 reach this max value.
 The application is not limited by this value in the number of CQ elements
 it can ProcessId form calling any of the receive path socket APIs.
@@ -726,7 +705,7 @@ to achieve the desired interrupt rate for the current traffic rate.
 Default value is 5000
 
 VMA_CQ_POLL_BATCH_MAX
-Max size of the array while polling the CQs in the VMA
+Max size of the array while polling the CQs in the XLIO
 Default value is 16
 
 VMA_CQ_KEEP_QP_FULL
@@ -740,7 +719,7 @@ Default value is 1 (Enabled)
 
 VMA_QP_COMPENSATION_LEVEL
 Number of spare receive buffer CQ holds to allow for filling up QP while full
-receive buffers are being processes inside VMA.
+receive buffers are being processes inside XLIO.
 Default value is 256 buffers
 
 VMA_USER_HUGE_PAGE_SIZE
@@ -754,11 +733,11 @@ Value of 1 is for offloaded, 0 for not-offloaded.
 Default value is 1 (Enabled)
 
 VMA_TIMER_RESOLUTION_MSEC
-Control VMA internal thread wakeup timer resolution (in milliseconds)
+Control XLIO internal thread wakeup timer resolution (in milliseconds)
 Default value is 10 (milliseconds)
 
 VMA_TCP_TIMER_RESOLUTION_MSEC
-Control VMA internal TCP timer resolution (fast timer) (in milliseconds).
+Control XLIO internal TCP timer resolution (fast timer) (in milliseconds).
 Minimum value is the internal thread wakeup timer resolution (VMA_TIMER_RESOLUTION_MSEC).
 Default value is 100 (milliseconds)
 
@@ -799,9 +778,9 @@ Use value of 1 for enable.
 Default value is Disabled.
 
 VMA_EXCEPTION_HANDLING
-Mode for handling missing support or error cases in Socket API or functionality by VMA.
-Useful for quickly identifying VMA unsupported Socket API or features
-Use value of -2 to exit() on VMA startup failure.
+Mode for handling missing support or error cases in Socket API or functionality by XLIO.
+Useful for quickly identifying XLIO unsupported Socket API or features
+Use value of -2 to exit() on XLIO startup failure.
 Use value of -1 for just handling at DEBUG severity.
 Use value of 0 to log DEBUG message and try recovering via Kernel network stack (un-offloading the socket).
 Use value of 1 to log ERROR message and try recovering via Kernel network stack (un-offloading the socket).
@@ -817,12 +796,12 @@ To activate, use VMA_AVOID_SYS_CALLS_ON_TCP_FD=1.
 Default value is disabled
 
 VMA_INTERNAL_THREAD_AFFINITY
-Control which CPU core(s) the VMA internal thread is serviced on. The cpu set
+Control which CPU core(s) the XLIO internal thread is serviced on. The cpu set
 should be provided as *EITHER* a hexadecimal value that represents a bitmask. *OR* as a
 comma delimited of values (ranges are ok). Both the bitmask and comma delimited list
 methods are identical to what is supported by the taskset command. See the man page
 on taskset for additional information.
-Where value of -1 disables internal thread affinity setting by VMA
+Where value of -1 disables internal thread affinity setting by XLIO
 Bitmask Examples:
 0x00000001 - Run on processor 0.
 0x00000007 - Run on processors 1,2, and 3.
@@ -832,7 +811,7 @@ Comma Delimited Examples:
 Default value is -1 (Disabled).
 
 VMA_INTERNAL_THREAD_CPUSET
-Select a cpuset for VMA internal thread (see man page of cpuset).
+Select a cpuset for XLIO internal thread (see man page of cpuset).
 The value is the path to the cpuset (for example: /dev/cpuset/my_set), or an empty
 string to run it on the same cpuset the process runs on.
 Default value is an empty string.
@@ -861,9 +840,9 @@ due to SM lengthy handling of MFT configuration on the switch chips
 Default value is 0 (milliseconds)
 
 VMA_THREAD_MODE
-By default VMA is ready for multi-threaded applications, meaning it is thread safe.
+By default XLIO is ready for multi-threaded applications, meaning it is thread safe.
 If the users application is a single threaded one, then using this configuration
-parameter you can help eliminate VMA locks and get even better performance.
+parameter you can help eliminate XLIO locks and get even better performance.
 Single threaded application value is 0
 Multi threaded application using spin lock value is 1
 Multi threaded application using mutex lock value is 2
@@ -872,15 +851,15 @@ Default value is 1 (Multi with spin lock)
 
 VMA_BUFFER_BATCHING_MODE
 Batching of returning Rx buffers and pulling Tx buffers per socket.
-In case the value is 0 then VMA will not use buffer batching.
-In case the value is 1 then VMA will use buffer batching and will try to periodically reclaim unused buffers.
-In case the value is 2 then VMA will use buffer batching with no reclaim.
+In case the value is 0 then library will not use buffer batching.
+In case the value is 1 then library will use buffer batching and will try to periodically reclaim unused buffers.
+In case the value is 2 then library will use buffer batching with no reclaim.
 [future: other values are reserved]
 Default value is 1
 
 VMA_MEM_ALLOC_TYPE
 This replaces the VMA_HUGETBL parameter logic.
-VMA will try to allocate data buffers as configured:
+XLIO will try to allocate data buffers as configured:
 	0 - "ANON" - using malloc
 	1 - "CONTIG" - using contiguous pages
 	2 - "HUGEPAGES" - using huge pages.
@@ -894,11 +873,11 @@ OFED will also try to allocate QP & CQ memory accordingly:
 To override OFED use: (MLX_QP_ALLOC_TYPE, MLX_CQ_ALLOC_TYPE)
 Default value is 1 (Contiguous pages)
 
-The following VMA neigh parameters are for advanced users or Mellanox support only:
+The following XLIO neigh parameters are for advanced users or Mellanox support only:
 
 VMA_NEIGH_UC_ARP_QUATA
-VMA will send UC ARP in case neigh state is NUD_STALE.
-In case that neigh state is still NUD_STALE VMA will try
+XLIO will send UC ARP in case neigh state is NUD_STALE.
+In case that neigh state is still NUD_STALE XLIO will try
 VMA_NEIGH_UC_ARP_QUATA retries to send UC ARP again and then will send BC ARP.
 
 VMA_NEIGH_UC_ARP_DELAY_MSEC
@@ -913,7 +892,7 @@ This flag enables / disables BF (Blue Flame) usage of the ConnectX
 Default value is 1 (Enabled)
 
 VMA_FORK
-Control whether VMA should support fork. Setting this flag on will cause VMA to
+Control whether XLIO should support fork. Setting this flag on will cause XLIO to
 call ibv_fork_init() function. ibv_fork_init() initializes libibverbs's data
 structures to handle fork() function calls correctly and avoid data corruption.
 If ibv_fork_init() is not called or returns a non-zero status, then libibverbs
@@ -921,12 +900,12 @@ data structures are not fork()-safe and the effect of an application calling
 fork() is undefined.
 ibv_fork_init() works on Linux kernels 2.6.17 and higher which support the
 MADV_DONTFORK flag for madvise().
-Note that VMA's default with huge pages enabled (VMA_HUGETBL) you should use an
+Note that XLIO's default with huge pages enabled (VMA_HUGETBL) you should use an
 OFED stack version that support fork()ing of with huge pages (OFED 1.5 and higher).
 Default value is 0 (Disabled)
 
 VMA_CLOSE_ON_DUP2
-When this parameter is enabled, VMA will handle the duplicate fd (oldfd),
+When this parameter is enabled, XLIO will handle the duplicate fd (oldfd),
 as if it was closed (clear internal data structures) and only then,
 will forward the call to the OS.
 This is, in practice, a very rudimentary dup2 support.
@@ -934,7 +913,7 @@ It only supports the case, where dup2 is used to close file descriptors,
 Default value is 1 (Enabled)
 
 VMA_SOCKETXTREME
-When this parameter is enabled, VMA operates in SocketXtreme mode.
+When this parameter is enabled, XLIO operates in SocketXtreme mode.
 SocketXtreme mode brings latency down, eliminating copy operations and
 increasing throughput allowing applications to further utilize true kernel
 bypass architecture. An application should use a socket extension API named SocketXtreme.
@@ -942,16 +921,16 @@ Default value is 0 (Disabled)
 
 VMA_MTU
 Size of each Rx and Tx data buffer (Maximum Transfer Unit).
-This value sets the fragmentation size of the packets sent by the VMA library.
-If VMA_MTU is 0 then for each interface VMA will follow the actual MTU.
+This value sets the fragmentation size of the packets sent by the library.
+If VMA_MTU is 0 then for each interface XLIO will follow the actual MTU.
 If VMA_MTU is greater than 0 then this MTU value is applicable to all interfaces regardless of their actual MTU
 Default value is 0 (following interface actual MTU)
 
 VMA_MSS
 VMA_MSS define the max TCP payload size that can sent without IP fragmentation.
-Value of 0 will set VMA's TCP MSS to be aligned with VMA_MTU configuration
+Value of 0 will set XLIO's TCP MSS to be aligned with VMA_MTU configuration
 (leaving 40 bytes room for IP + TCP headers; "TCP MSS = VMA_MTU - 40").
-Other VMA_MSS values will force VMA's TCP MSS to that specific value.
+Other VMA_MSS values will force XLIO's TCP MSS to that specific value.
 Default value is 0 (following VMA_MTU)
 
 VMA_TCP_CC_ALGO
@@ -973,18 +952,18 @@ Maximum value is 65535.
 Default value is 32768.
 
 VMA_TCP_MAX_SYN_RATE
-Limit the number of TCP SYN packets that VMA will handle
+Limit the number of TCP SYN packets that XLIO will handle
 per second per listen socket.
-For example, in case you use 10 for this value than VMA will accept at most 10
+For example, in case you use 10 for this value than XLIO will accept at most 10
 (could be less) new connections per second per listen socket.
 Use a value of 0 for un-limiting the number of TCP SYN packets that can be handled.
 Value range is 0 to 100000.
 Default value is 0 (no limit)
 
 
-VMA Monitoring & Performance Counters
+XLIO Monitoring & Performance Counters
 =====================================
-The VMA internal performance counters include information per user
+The XLIO internal performance counters include information per user
 sockets and a global view on select() and epoll_wait() usage by the application.
 
 Use the 'vma_stats' included utility to view the per socket information and
@@ -996,25 +975,25 @@ Defaults:
         find_pid=enabled, directory="/tmp/", view=1, details=1, interval=1,
 
 Options:
-  -p, --pid=<pid>               Show VMA statistics for process with pid: <pid>
+  -p, --pid=<pid>               Show XLIO statistics for process with pid: <pid>
   -k, --directory=<directory>   Set shared memory directory path to <directory>
-  -n, --name=<application>      Show VMA statistics for application: <application>
-  -f, --find_pid                Find and show statistics for VMA instance running (default)
+  -n, --name=<application>      Show XLIO statistics for application: <application>
+  -f, --find_pid                Find and show statistics for XLIO instance running (default)
   -F, --forbid_clean            By setting this flag inactive shared objects would not be removed
   -i, --interval=<n>            Print report every <n> seconds
   -c, --cycles=<n>              Do <n> report print cycles and exit, use 0 value for infinite (default)
   -v, --view=<1|2|3|4|5>        Set view type:1- basic info,2- extra info,3- full info,4- mc groups,5- similar to 'netstat -tunaep'
   -d, --details=<1|2>           Set details mode:1- to see totals,2- to see deltas
   -z, --zero                    Zero counters
-  -l, --log_level=<level>       Set VMA log level to <level>(1 <= level <= 7)
+  -l, --log_level=<level>       Set XLIO log level to <level>(1 <= level <= 7)
   -S, --fd_dump=<fd> [<level>]  Dump statistics for fd number <fd> using log level <level>. use 0 value for all open fds
-  -D, --details_level=<level>   Set VMA log details level to <level>(0 <= level <= 3)
+  -D, --details_level=<level>   Set XLIO log details level to <level>(0 <= level <= 3)
   -s, --sockets=<list|range>    Log only sockets that match <list> or <range>, format: 4-16 or 1,9 (or combination)
   -V, --version                 Print version
   -h, --help                    Print this help message
 
 
-Use VMA_STATS_FILE to get internal VMA statistics like vma_stats provide.
+Use VMA_STATS_FILE to get internal XLIO statistics like vma_stats provide.
 If this parameter is set and the user application performed transmit or receive
 activity on a socket, then these values will be logs once the sockets are closed.
 
@@ -1068,13 +1047,13 @@ automatically to reach a desired rate of interrupts.
 Notes
 =====
 * Multicast loopback behavior:
-	There is a different behavior between IPoIB and VMA when dealing with
+	There is a different behavior between IPoIB and XLIO when dealing with
 	multicast packets at the same machine:
-	- When sending from VMA application to IPoIB application on the same
+	- When sending from XLIO application to IPoIB application on the same
 	machine the packet will never be accepted by the IPoIB side (even when
 	the loopback is enabled)
-	- When sending from IPoIB application to VMA application on the same
-	machine, the packet will always be accepted by the VMA side (even when
+	- When sending from IPoIB application to XLIO application on the same
+	machine, the packet will always be accepted by the XLIO side (even when
 	the loop is disabled
 
 
@@ -1084,11 +1063,11 @@ Troubleshooting
 * High log level:
 
   VMA WARNING: *************************************************************
-  VMA WARNING: * VMA is currently configured with high log level           *
+  VMA WARNING: * XLIO is currently configured with high log level           *
   VMA WARNING: * Application performance will decrease in this log level!  *
   VMA WARNING: * This log level is recommended for debugging purposes only *
   VMA WARNING: *************************************************************
-This warning message means that you are using VMA with high log level:
+This warning message means that you are using XLIO with high log level:
 VMA_TRACELEVEL variable value is set to 4 or more.
 In order to fix it - set VMA_TRACELEVEL to it's default value: 3
 
@@ -1098,13 +1077,11 @@ In order to fix it - set VMA_TRACELEVEL to it's default value: 3
 VMA_WARNING: ******************************************************************************
 VMA_WARNING: * Interface <Interface Name> will not be offloaded.
 VMA_WARNING: * Offloaded resources are restricted to root or user with CAP_NET_RAW privileges
-VMA_WARNING: * Read the CAP_NET_RAW and root access section in the VMA's User Manual for more information
+VMA_WARNING: * Read the CAP_NET_RAW and root access section in the XLIO's User Manual for more information
 VMA_WARNING: ******************************************************************************
-This warning message means that VMA tried to create a hardware QP resource
+This warning message means that XLIO tried to create a hardware QP resource
 while the kernel requires this operation to be performed only by privileged
 users. Run as user root or grant CAP_NET_RAW privileges to your user
-1. "setcap cap_net_raw=ep /usr/bin/sockperf"
-2. "chmod u+s </usr/lib64/libvma.so>"
 
 * Huge pages out of resource:
 
@@ -1122,15 +1099,15 @@ users. Run as user root or grant CAP_NET_RAW privileges to your user
   VMA WARNING: * Please refer to the memory allocation section in the VMA's  *
   VMA WARNING: * User Manual for more information			     *
   VMA WARNING: ***************************************************************
-This warning message means that you are using VMA with hugepages memory allocation,
+This warning message means that you are using XLIO with hugepages memory allocation,
 but not enough huge pages resources are available in the system.
-If you want VMA to take full advantage of the performance benefits of huge pages then
+If you want XLIO to take full advantage of the performance benefits of huge pages then
 you should restart the application after adding more hugepages resources in your
 system similar to the details in the warning message above or trying to free unused hupepages
 shared memory segments with the below script.
 
 NOTE: Use 'ipcs -m' and 'ipcrm -m shmid' to check and clean unused shared memory segments.
-Below is a short script to help you release VMAs unused huge pages resources:
+Below is a short script to help you release XLIO unused huge pages resources:
     for shmid in `ipcs -m | grep 0x00000000 | awk '{print $2}'`;
     do echo 'Clearing' $shmid; ipcrm -m $shmid;
     done;
@@ -1146,10 +1123,10 @@ Below is a short script to help you release VMAs unused huge pages resources:
  VMA WARNING: Read more about Bonding in the VMA's User Manual
  VMA WARNING: ******************************************************************************
 
-This warning message means that VMA has detected bonding device which is configured
-to work in mode which is not supported by VMA, this means that VMA will not support
+This warning message means that XLIO has detected bonding device which is configured
+to work in mode which is not supported by XLIO, this means that XLIO will not support
 high availability events for that interface.
-VMA currently supports just active-backup(#1) or 802.3ad(#4) and fail_over_mac = 1 or 0 mode.
+XLIO currently supports just active-backup(#1) or 802.3ad(#4) and fail_over_mac = 1 or 0 mode.
 In order to fix this issue please change the bonding configuration.
 
 Example:
@@ -1189,8 +1166,7 @@ OR
  VMA WARNING: bond0.10: vlan over bond while fail_over_mac=1 is not offloaded
  VMA WARNING: ******************************************************************
 
-This warning message means that VMA has detected bonding device which is configured with
+This warning message means that XLIO has detected bonding device which is configured with
 VLAN over it while fail_over_mac=1.
 This means that the bond will not be offloaded.
 In order to fix this issue please change the bonding configuration.
-
