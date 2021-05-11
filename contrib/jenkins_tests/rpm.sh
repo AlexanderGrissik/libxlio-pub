@@ -26,7 +26,7 @@ if [ -x /usr/bin/dpkg-buildpackage ]; then
 else
     echo "Build rpms"
     opt_rpm=1
-    rpmspec=${build_dir}/0/contrib/scripts/libvma.spec
+    rpmspec=${build_dir}/0/contrib/scripts/libxlio.spec
     rpmmacros="--define='_rpmdir ${rpm_dir}/rpm-dist' \
                --define='_srcrpmdir ${rpm_dir}/rpm-dist' \
                --define='_sourcedir ${rpm_dir}' \
@@ -57,8 +57,8 @@ fi
 
 if [ $opt_rpm -eq 0 ]; then
     cd ${rpm_dir}/deb-dist
-    tar xzvf ${rpm_dir}/libvma*.tar.gz
-    cd $(find . -maxdepth 1 -type d -name "libvma*")
+    tar xzvf ${rpm_dir}/libxlio*.tar.gz
+    cd $(find . -maxdepth 1 -type d -name "libxlio*")
 fi
 
 if [ $opt_srcrpm -eq 1 ]; then

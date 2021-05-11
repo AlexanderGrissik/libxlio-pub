@@ -25,14 +25,14 @@ function check_daemon()
 {
     local ret=0
     local out_log=$1
-    local service="vma"
+    local service="xlio"
 
     rm -rf ${out_log}
-    eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
+    eval "${sudo_cmd} pkill -SIGINT xliod 2>/dev/null || true"
 
     if systemctl >/dev/null 2>&1; then
-        service=${install_dir}/sbin/vmad
-        service_arg=${install_dir}/lib/systemd/system/vma.service
+        service=${install_dir}/sbin/xliod
+        service_arg=${install_dir}/lib/systemd/system/xlio.service
 
         echo "System has been booted with SystemD" >> ${out_log}
         echo "daemon check output: ${service}" >> ${out_log}
@@ -45,16 +45,16 @@ function check_daemon()
             ret=1
         fi
         sleep 3
-        if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
+        if [ "0" == "$ret" -a "" == "$(pgrep xliod)" ]; then
             ret=1
         fi
-        sudo pkill -9 vmad >>${out_log} 2>&1
+        sudo pkill -9 xliod >>${out_log} 2>&1
         sleep 3
-        if [ "0" == "$ret" -a "" != "$(pgrep vmad)" ]; then
+        if [ "0" == "$ret" -a "" != "$(pgrep xliod)" ]; then
             ret=1
         fi
     else
-        service=${install_dir}/etc/init.d/vma
+        service=${install_dir}/etc/init.d/xlio
         service_arg=""
 
         echo "System has been booted with SystemV" >> ${out_log}
@@ -64,7 +64,7 @@ function check_daemon()
             ret=1
         fi
         sleep 3
-        if [ "0" == "$ret" -a "" == "$(pgrep vmad)" ]; then
+        if [ "0" == "$ret" -a "" == "$(pgrep xliod)" ]; then
             ret=1
         fi
         if [ $(${sudo_cmd} ${service} status >>${out_log} 2>&1 || echo $?) ]; then
@@ -74,13 +74,13 @@ function check_daemon()
             ret=1
         fi
         sleep 3
-        # Under docker containers vmad can be a zombie after killing
-        if [ "0" == "$ret" -a "" != "$(ps aux | grep vmad | egrep -v 'grep|defunct')" ]; then
+        # Under docker containers xliod can be a zombie after killing
+        if [ "0" == "$ret" -a "" != "$(ps aux | grep xliod | egrep -v 'grep|defunct')" ]; then
             ret=1
         fi
     fi
 
-    eval "${sudo_cmd} pkill -SIGINT vmad 2>/dev/null || true"
+    eval "${sudo_cmd} pkill -SIGINT xliod 2>/dev/null || true"
 
     echo "$ret"
 }

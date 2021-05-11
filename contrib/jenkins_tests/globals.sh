@@ -48,7 +48,7 @@ function on_exit()
     rc=$((rc + $?))
     echo "[${0##*/}]..................exit code = $rc"
     pkill -9 sockperf
-    pkill -9 vma
+    pkill -9 xlio
 }
 
 function do_cmd()

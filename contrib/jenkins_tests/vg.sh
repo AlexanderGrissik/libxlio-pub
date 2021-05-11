@@ -28,7 +28,7 @@ if [ ! -z "$(do_get_ip 'eth' 'mlx5')" ]; then
 	test_ip_list="${test_ip_list} eth:$(do_get_ip 'eth' 'mlx5')"
 fi
 test_list="tcp:--tcp udp:"
-test_lib=${vg_dir}/install/lib/libvma.so
+test_lib=${vg_dir}/install/lib/libxlio.so
 test_app=sockperf
 test_app_path=${test_dir}/sockperf/install/bin/sockperf
 
@@ -58,7 +58,7 @@ for test_link in $test_ip_list; do
 			--errors-for-leak-kinds=definite --show-leak-kinds=definite,possible \
 			--undef-value-errors=yes --track-fds=yes --num-callers=32 \
 			--fullpath-after=${WORKSPACE} --gen-suppressions=all \
-			--suppressions=${WORKSPACE}/contrib/valgrind/valgrind_vma.supp \
+			--suppressions=${WORKSPACE}/contrib/valgrind/valgrind_xlio.supp \
 			"
 		eval "LD_PRELOAD=$test_lib \
 			valgrind --log-file=${vg_dir}/${test_name}-valgrind-sr.log $vg_args \
