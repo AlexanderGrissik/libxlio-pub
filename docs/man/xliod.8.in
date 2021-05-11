@@ -1,18 +1,18 @@
 .\" -*- groff -*-
 .\"
-.TH VMA 8 "#BUILD_DATE#" libvma "VMA(#VMA_LIBRARY_MAJOR#.#VMA_LIBRARY_MINOR#.#VMA_LIBRARY_REVISION#) User's Manual"
+.TH XLIO 8 "#BUILD_DATE#" libxlio "XLIO(#PRJ_LIBRARY_MAJOR#.#PRJ_LIBRARY_MINOR#.#PRJ_LIBRARY_REVISION#) User's Manual"
 .SH NAME
-vmad \- Mellanox's Messaging Accelerator (VMA) daemon.
+xliod \- Accelerated IO SW library (XLIO) daemon.
 
 .SH SYNOPSIS
-.B vmad
+.B xliod
 [\-\-console] [\-\-pid,-p \fInum\fP] [\-\-fid,-f \fInum\fP]
 [\-\-force-rst] [\-\-verbose,\-v \fIlevel\fP]
 
 .SH DESCRIPTION
-vmad is the daemon program for vma (7).
+xliod is the daemon program for xlio (7).
 
-vmad can be configured using command-line options
+xliod can be configured using command-line options
 
 The options are as follows:
 .sp
@@ -33,9 +33,9 @@ Output verbose level
 .TP
 
 .SH SEE ALSO
-.BR vma (7),
-.BR vma_stats (8)
+.BR xlio (7),
+.BR xlio_stats (8)
 
 .SH "AUTHORS"
 .TP
-Igor Ivanov <igori@mellanox.com>
+Igor Ivanov <igori@nvidia.com>
