@@ -44,7 +44,8 @@
 
 #include "vma/ib/base/verbs_extra.h"
 #include "vma/util/sysctl_reader.h"
-#include "vma/vma_extra.h"
+#include "vma/util/agent_def.h"
+#include "vma/xlio_extra.h"
 
 typedef enum {
 	MCE_SPEC_NONE = 0,
@@ -600,8 +601,8 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_LOG_FILE				("")
 #define MCE_DEFAULT_CONF_FILE				("/etc/libvma.conf")
 #define MCE_DEFAULT_STATS_FILE				("")
-#define MCE_DEFAULT_VMAD_FOLDER			(VMA_AGENT_PATH)
-#define MCE_DEFAULT_STATS_SHMEM_DIR			("/tmp/")
+#define MCE_DEFAULT_VMAD_FOLDER				(VMA_AGENT_PATH)
+#define MCE_DEFAULT_STATS_SHMEM_DIR			(VMA_AGENT_PATH)
 #define MCE_DEFAULT_LOG_DETAILS				(0)
 #define MCE_DEFAULT_LOG_COLORS				(true)
 #define MCE_DEFAULT_APP_ID				("VMA_DEFAULT_APPLICATION_ID")
