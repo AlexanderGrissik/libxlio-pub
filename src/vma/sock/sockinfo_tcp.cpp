@@ -890,7 +890,7 @@ retry_is_ready:
     }
     si_tcp_logfunc("tx: iov=%p niovs=%d", p_iov, sz_iov);
 
-    if (unlikely(m_sysvar_rx_poll_on_tx_tcp)) {
+    if (m_sysvar_rx_poll_on_tx_tcp) {
         rx_wait_helper(poll_count, false);
     }
 
