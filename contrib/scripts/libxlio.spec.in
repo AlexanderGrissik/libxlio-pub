@@ -184,9 +184,14 @@ fi
 %{_mandir}/man8/xlio_stats.*
 
 %changelog
+* Wed May 12 2021 Igor Ivanov <igori@nvidia.com> 0.1.3-1
+- Bump version to 0.1.3
+* Wed Apr 21 2021 Igor Ivanov <igori@nvidia.com> 0.1.2-1
+- Bump version to 0.1.2
 * Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1
 - Bump version to 0.1.1
-
+* Mon Apr 19 2021 Igor Ivanov <igori@nvidia.com> 0.1.1-1
+- Bump version to 0.1.1
 * Sat Feb 20 2021 Igor Ivanov <igori@nvidia.com> 0.1.0-1
 - Initial version on top of VMA 9.2.2
 - Add send zero copy functionality
