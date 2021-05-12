@@ -1,5 +1,5 @@
 ---
-job: LIBVMA-PRO
+job: LIBXLIO
 
 registry_host: harbor.mellanox.com
 registry_path: /swx-storage/libvma-pro

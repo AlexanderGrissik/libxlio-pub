@@ -111,8 +111,8 @@
 - project:
     name: proj_name
     jjb_email: 'lennyb@nvidia.com'
-    jjb_proj: 'LIBVMA-PRO'
-    jjb_git: 'https://github.com/Mellanox-lab/libvma-pro'
+    jjb_proj: 'LibXLIO'
+    jjb_git: 'https://github.com/Mellanox-lab/libxlio'
     jjb_owner: 'Lenny Verkhovsky'
     jobs:
         - "{jjb_proj}"
