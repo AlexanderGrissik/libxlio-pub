@@ -300,7 +300,7 @@ typedef enum {
 	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF     = (1 << 9),
 	VMA_EXTRA_API_GET_SOCKET_RINGS_NUM           = (1 << 10),
 	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 11),
-	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 16),
+	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 12),
 } vma_extra_api_mask;
 
 /** 
@@ -340,6 +340,13 @@ typedef vma_recv_callback_retval_t
  * VMA Extended Socket API
  */
 struct __attribute__ ((packed)) vma_api_t {
+
+	/**
+	 * Used to identify which methods were initialized by VMA as part of vma_get_api().
+	 * The value content is based on vma_extra_api_mask enum.
+	 */
+	uint64_t vma_extra_supported_mask;
+
 	/**
 	 * Register a received packet notification callback.
 	 * 
@@ -564,12 +571,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * @return 0 on success -1 on failure
 	 */
 	int (*vma_add_ring_profile)(struct vma_ring_type_attr *profile, int *key);
-
-	/**
-	 * Used to identify which methods were initialized by VMA as part of vma_get_api().
-	 * The value content is based on vma_extra_api_mask enum.
-	 */
-	uint64_t vma_extra_supported_mask;
 };
 
 /**
