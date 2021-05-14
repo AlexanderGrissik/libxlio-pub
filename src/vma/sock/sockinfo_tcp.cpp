@@ -2071,6 +2071,10 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 
 	if (total_iov_sz > 0) {
 		total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
+		if (total_rx < 0) {
+			unlock_tcp_con();
+			return total_rx;
+		}
 	}
 
 	/* Handle all control message requests */
