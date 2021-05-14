@@ -116,6 +116,7 @@ gtest_SOURCES = \
 	vma/vma_poll.cc \
 	vma/vma_sockopt.cc \
 	vma/vma_send_zc.cc \
+	vma/vma_recvfrom_zcopy.cc \
 	\
 	vmad/vmad_base.cc \
 	vmad/vmad_bitmap.cc \
