@@ -279,6 +279,7 @@ int epfd_info::add_fd(int fd, epoll_event *event)
 
 		// if the socket is ready, add it to ready events
 		uint32_t events = 0;
+		int errors;
 		if ((event->events & EPOLLIN) && temp_sock_fd_api->is_readable(NULL, NULL)) {
 			events |=  EPOLLIN;
 		}
@@ -287,6 +288,10 @@ int epfd_info::add_fd(int fd, epoll_event *event)
 			// Can't remove notification in VMA in case user decides to skip the OS using VMA params.
 			// Meaning: user will get 2 ready WRITE events on startup of socket
 			events |= EPOLLOUT;
+		}
+		if ((event->events & EPOLLERR) && temp_sock_fd_api->is_errorable(&errors)) {
+			if (errors & POLLERR)
+				events |= EPOLLERR;
 		}
 		if (events != 0) {
 			insert_epoll_event(temp_sock_fd_api, events);
