@@ -128,6 +128,7 @@ int test_base::event_wait(struct epoll_event *event)
 		goto err;
 	}
 
+	event->events = 0;
 	rc = epoll_wait(efd, event, 1, timeout);
 	if (rc < 0) {
 		log_error("failed epoll_wait() errno: %s\n", strerror(errno));
