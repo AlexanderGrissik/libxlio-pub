@@ -254,7 +254,7 @@ TEST_F(tcp_send_zc, ti_1_send_once) {
 		event.data.fd = m_fd;
 		rc = test_base::event_wait(&event);
 		EXPECT_LT(0, rc);
-		EXPECT_TRUE(EPOLLOUT | event.events);
+		EXPECT_TRUE(EPOLLOUT & event.events);
 
 		rc = do_recv_expected_completion(m_fd, lo, hi, 1);
 		EXPECT_EQ(1, rc);
@@ -374,7 +374,7 @@ TEST_F(tcp_send_zc, ti_2_few_send) {
 		event.data.fd = m_fd;
 		rc = test_base::event_wait(&event);
 		EXPECT_LT(0, rc);
-		EXPECT_TRUE(EPOLLOUT | event.events);
+		EXPECT_TRUE(EPOLLOUT & event.events);
 
 		rc = do_recv_expected_completion(m_fd, lo, hi, test_iter);
 		EXPECT_EQ(test_iter, rc);
@@ -499,7 +499,7 @@ TEST_F(tcp_send_zc, ti_3_large_send) {
 		event.data.fd = m_fd;
 		rc = test_base::event_wait(&event);
 		EXPECT_LT(0, rc);
-		EXPECT_TRUE(EPOLLOUT | event.events);
+		EXPECT_TRUE(EPOLLOUT & event.events);
 
 		rc = do_recv_expected_completion(m_fd, lo, hi, 1);
 		EXPECT_EQ(1, rc);
@@ -639,7 +639,7 @@ TEST_F(tcp_send_zc, ti_4_mass_send_check_every_call) {
 				event.data.fd = m_fd;
 				rc = test_base::event_wait(&event);
 				EXPECT_LT(0, rc);
-				EXPECT_TRUE(EPOLLOUT | event.events);
+				EXPECT_TRUE(EPOLLOUT & event.events);
 
 				rc = do_recv_expected_completion(m_fd, lo, hi, 1);
 				EXPECT_EQ(1, rc);
@@ -781,7 +781,7 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call) {
 			event.data.fd = m_fd;
 			rc = test_base::event_wait(&event);
 			EXPECT_LT(0, rc);
-			EXPECT_TRUE(EPOLLOUT | event.events);
+			EXPECT_TRUE(EPOLLOUT & event.events);
 
 			rc = do_recv_expected_completion(m_fd, lo, hi, test_call);
 			EXPECT_EQ(test_call, rc);
