@@ -277,12 +277,6 @@ else
     AC_MSG_RESULT([no])
 fi
 
-# DPCP Library support
-#
-if test "x$vma_cv_directverbs" == x3; then
-    DPCP_CAPABILITY_SETUP()
-fi
-
 # Control NGINX support
 #
 AC_ARG_ENABLE([nginx],
