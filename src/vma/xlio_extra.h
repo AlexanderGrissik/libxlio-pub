@@ -344,6 +344,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	/**
 	 * Used to identify which methods were initialized by VMA as part of vma_get_api().
 	 * The value content is based on vma_extra_api_mask enum.
+	 * Order of fields in this structure should not be changed to keep abi compatibility.
 	 */
 	uint64_t vma_extra_supported_mask;
 
@@ -575,6 +576,10 @@ struct __attribute__ ((packed)) vma_api_t {
 
 /**
  * Retrieve VMA extended API.
+ * This function can be called as an alternative to getsockopt() call
+ * when library is preloaded using LD_PRELOAD
+ * getsockopt() call should be used in case application loads library
+ * using dlopen()/dlsym().
  *
  * @return Pointer to the VMA Extended Socket API, of NULL if VMA not found. 
  */
