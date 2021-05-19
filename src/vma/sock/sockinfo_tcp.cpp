@@ -151,16 +151,16 @@ inline void sockinfo_tcp::init_pbuf_custom(mem_buf_desc_t *p_desc)
 }
 
 /* change default rx_wait impl to flow based one */
-inline int sockinfo_tcp::rx_wait(int &poll_count, bool is_blocking)
+inline int sockinfo_tcp::rx_wait(int &poll_count, bool blocking)
 {
         int ret_val = 0;
         unlock_tcp_con();
-        ret_val = rx_wait_helper(poll_count, is_blocking);
+        ret_val = rx_wait_helper(poll_count, blocking);
         lock_tcp_con();
         return ret_val;
 }
 
-inline int sockinfo_tcp::rx_wait_lockless(int & poll_count, bool is_blocking)
+inline int sockinfo_tcp::rx_wait_lockless(int & poll_count, bool blocking)
 {
 	if (m_timer_pending) {
 		m_tcp_con_lock.lock();
@@ -168,7 +168,7 @@ inline int sockinfo_tcp::rx_wait_lockless(int & poll_count, bool is_blocking)
 		m_tcp_con_lock.unlock();
 	}
 
-	return rx_wait_helper(poll_count, is_blocking);
+	return rx_wait_helper(poll_count, blocking);
 }
 
 inline void sockinfo_tcp::return_pending_rx_buffs()
@@ -659,14 +659,14 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
 }
 
 
-unsigned sockinfo_tcp::tx_wait(int & err, bool is_blocking)
+unsigned sockinfo_tcp::tx_wait(int & err, bool blocking)
 {
 	unsigned sz = tcp_sndbuf(&m_pcb);
 	int poll_count = 0;
 	si_tcp_logfunc("sz = %d rx_count=%d", sz, m_n_rx_pkt_ready_list_count);
 	err = 0;
 	while (is_rts() && (sz = tcp_sndbuf(&m_pcb)) == 0) {
-		err = rx_wait(poll_count, is_blocking);
+		err = rx_wait(poll_count, blocking);
 		//AlexV:Avoid from going to sleep, for the blocked socket of course, since
 		// progress engine may consume an arrived credit and it will not wakeup the
 		//transmit thread.
@@ -677,7 +677,7 @@ unsigned sockinfo_tcp::tx_wait(int & err, bool is_blocking)
 			errno = EINTR;
 			return 0;
 		}
-		if (is_blocking) {
+		if (blocking) {
 			/* force out TCP data to avoid spinning in this loop
 			 * in case data is not seen on rx
 			 */
@@ -1870,7 +1870,7 @@ err_t sockinfo_tcp::rx_drop_lwip_cb(void *arg, struct tcp_pcb *tpcb,
 	return ERR_CONN;
 }
 
-int sockinfo_tcp::handle_rx_error(bool is_blocking)
+int sockinfo_tcp::handle_rx_error(bool blocking)
 {
 	int ret = -1;
 
@@ -1896,7 +1896,7 @@ int sockinfo_tcp::handle_rx_error(bool is_blocking)
 		}
 	}
 
-	if ((errno == EBUSY || errno == EWOULDBLOCK) && !is_blocking) {
+	if ((errno == EBUSY || errno == EWOULDBLOCK) && !blocking) {
 		errno = EAGAIN;
 	}
 
@@ -4162,7 +4162,7 @@ int sockinfo_tcp::getpeername(sockaddr *__name, socklen_t *__namelen)
 	return 0;
 }
 
-int sockinfo_tcp::rx_wait_helper(int &poll_count, bool is_blocking)
+int sockinfo_tcp::rx_wait_helper(int &poll_count, bool blocking)
 {
 	int ret;
 	int n;
@@ -4206,7 +4206,7 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool is_blocking)
 	}
 
 	// if in blocking accept state skip poll phase and go to sleep directly
-        if (m_loops_timer.is_timeout() || !is_blocking) {
+        if (m_loops_timer.is_timeout() || !blocking) {
 		errno = EAGAIN;
 		return -1;
         }
@@ -4217,7 +4217,7 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool is_blocking)
 
 	m_p_socket_stats->counters.n_rx_poll_miss++;
 	// if we polling too much - go to sleep
-	si_tcp_logfuncall("%d: too many polls without data blocking=%d", m_fd, is_blocking);
+	si_tcp_logfuncall("%d: too many polls without data blocking=%d", m_fd, blocking);
 	if (g_b_exit) {
 		errno = EINTR;
 		return -1;

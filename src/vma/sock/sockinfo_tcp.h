@@ -342,13 +342,13 @@ private:
 	int wait_for_conn_ready();
 	static err_t connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err);
 	//tx
-	unsigned tx_wait(int & err, bool is_blocking);
+	unsigned tx_wait(int & err, bool blocking);
 
 	void abort_connection();
 	int handle_child_FIN(sockinfo_tcp* child_conn);
 
 	//rx
-	//int rx_wait(int &poll_count, bool is_blocking = true);
+	//int rx_wait(int &poll_count, bool blocking = true);
 	static err_t ack_recvd_lwip_cb(void *arg, struct tcp_pcb *tpcb, u16_t space);
 	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 	static err_t rx_drop_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
@@ -367,7 +367,7 @@ private:
 	 */
 	virtual void handle_ip_pktinfo(struct cmsg_state *) {};
 
-	int handle_rx_error(bool is_blocking);
+	int handle_rx_error(bool blocking);
 
 	/** Function prototype for tcp error callback functions. Called when the pcb
 	 * receives a RST or is unexpectedly closed for any other reason.
@@ -441,9 +441,9 @@ private:
 	//lock_spin_recursive m_rx_cq_lck;
 	/* pick all cqs that match given address */
 	virtual int	rx_verify_available_data();
-	inline int 	rx_wait(int & poll_count, bool is_blocking);
-	inline int 	rx_wait_lockless(int & poll_count, bool is_blocking);
-	int 		rx_wait_helper(int & poll_count, bool is_blocking);
+	inline int 	rx_wait(int & poll_count, bool blocking);
+	inline int 	rx_wait_lockless(int & poll_count, bool blocking);
+	int 		rx_wait_helper(int & poll_count, bool blocking);
 	void 		fit_rcv_wnd(bool force_fit);
 	void 		fit_snd_bufs(unsigned int new_max);
 	void 		fit_snd_bufs_to_nagle(bool disable_nagle);
