@@ -56,6 +56,10 @@
 #define SO_VMA_PD               2822
 #define SCM_VMA_PD              SO_VMA_PD
 
+enum {
+	CMSG_XLIO_IOCTL_USER_ALLOC = 2900
+};
+
 /*
  * Flags for Dummy send API
  */
@@ -293,14 +297,15 @@ typedef enum {
 	VMA_EXTRA_API_FREE_PACKETS                   = (1 << 2),
 	VMA_EXTRA_API_ADD_CONF_RULE                  = (1 << 3),
 	VMA_EXTRA_API_THREAD_OFFLOAD                 = (1 << 4),
-	VMA_EXTRA_API_DUMP_FD_STATS                  = (1 << 5),
-	VMA_EXTRA_API_SOCKETXTREME_POLL              = (1 << 6),
-	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS  = (1 << 7),
-	VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF      = (1 << 8),
-	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF     = (1 << 9),
-	VMA_EXTRA_API_GET_SOCKET_RINGS_NUM           = (1 << 10),
-	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 11),
+	VMA_EXTRA_API_GET_SOCKET_RINGS_NUM           = (1 << 5),
+	VMA_EXTRA_API_GET_SOCKET_RINGS_FDS           = (1 << 6),
+	VMA_EXTRA_API_SOCKETXTREME_POLL              = (1 << 7),
+	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS  = (1 << 8),
+	VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF      = (1 << 9),
+	VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF     = (1 << 10),
+	VMA_EXTRA_API_DUMP_FD_STATS                  = (1 << 11),
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 12),
+	VMA_EXTRA_API_IOCTL                          = (1 << 13),
 } vma_extra_api_mask;
 
 /** 
@@ -421,6 +426,34 @@ struct __attribute__ ((packed)) vma_api_t {
 	int (*thread_offload)(int offload, pthread_t tid);
 
 	/**
+	 * Returns the amount of rings that are associated with socket.
+	 *
+	 * @param fd File Descriptor number of the socket.
+	 * @return On success, return the amount of rings.
+	 *         On error, -1 is returned.
+	 *
+	 * errno is set to: EINVAL - not a VMA offloaded fd
+	 */
+	int (*get_socket_rings_num)(int fd);
+
+	/**
+	 * Returns FDs of the RX rings that are associated with the socket.
+	 *
+	 * This function gets socket FD + int array + array size and populates
+	 * the array with FD numbers of the rings that are associated
+	 * with the socket.
+	 *
+	 * @param fd File Descriptor number.
+	 * @param ring_fds Array of ring fds
+	 * @param ring_fds_sz Size of the array
+	 * @return On success, return the number populated array entries.
+	 *         On error, -1 is returned.
+	 *
+	 * errno is set to: EINVAL - not a VMA offloaded fd + TBD
+	 */
+	int (*get_socket_rings_fds)(int fd, int *ring_fds, int ring_fds_sz);
+
+	/**
 	 * socketxtreme_poll() polls for VMA completions
 	 *
 	 * @param fd File descriptor.
@@ -467,34 +500,6 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * * errno is set to: EOPNOTSUPP - socketXtreme was not enabled during configuration time.
 	 */
 	int (*socketxtreme_poll)(int fd, struct vma_completion_t* completions, unsigned int ncompletions, int flags);
-
-	/**
-	 * Returns the amount of rings that are associated with socket.
-	 *
-	 * @param fd File Descriptor number of the socket.
-	 * @return On success, return the amount of rings.
-	 * 	   On error, -1 is returned.
-	 *
-	 * errno is set to: EINVAL - not a VMA offloaded fd
-	 */
-	int (*get_socket_rings_num)(int fd);
-
-	/**
-	 * Returns FDs of the RX rings that are associated with the socket.
-	 *
-	 * This function gets socket FD + int array + array size and populates
-	 * the array with FD numbers of the rings that are associated
-	 * with the socket.
-	 *
-	 * @param fd File Descriptor number.
-	 * @param ring_fds Array of ring fds
-	 * @param ring_fds_sz Size of the array
-	 * @return On success, return the number populated array entries.
-	 * 	   On error, -1 is returned.
-	 *
-	 * errno is set to: EINVAL - not a VMA offloaded fd + TBD
-	 */
-	int (*get_socket_rings_fds)(int fd, int *ring_fds, int ring_fds_sz);
 
 	/**
 	 * Frees packets received by socketxtreme_poll().
@@ -572,6 +577,23 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * @return 0 on success -1 on failure
 	 */
 	int (*vma_add_ring_profile)(struct vma_ring_type_attr *profile, int *key);
+
+	/**
+	 * This function allows to communicate with library using extendable protocol
+	 * based on struct cmshdr.
+	 *
+	 * Ancillary data is a sequence of cmsghdr structures with appended data.
+	 * The sequence of cmsghdr structures should never be accessed directly.
+	 * Instead, use only the following macros: CMSG_ALIGN, CMSG_SPACE, CMSG_DATA,
+	 * CMSG_LEN.
+	 *
+	 * @param cmsg_hdr - point to control message
+	 * @param cmsg_len - the byte count of the ancillary data,
+	 *                   which contains the size of the structure header.
+	 *
+	 * @return -1 on failure and 0 on success
+	 */
+	int (*ioctl)(void *cmsg_hdr, size_t cmsg_len);
 };
 
 /**

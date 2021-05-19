@@ -72,6 +72,15 @@ typedef enum {
 	ALLOC_TYPE_REGISTER_MEMORY /* not allowed as a global parameter */
 } alloc_mode_t;
 
+enum {
+	IOCTL_USER_ALLOC_TX = (1 << 0),
+	IOCTL_USER_ALLOC_RX = (1 << 1),
+	IOCTL_USER_ALLOC_TX_ZC = (1 << 2)
+};
+
+typedef void* (*alloc_t)(size_t);
+typedef void (*free_t)(void*);
+
 typedef enum {
 	TS_CONVERSION_MODE_DISABLE = 0, // TS_CONVERSION_MODE_DISABLE must be the first enum
 	TS_CONVERSION_MODE_RAW,
@@ -443,6 +452,14 @@ public:
 #endif
 	uint32_t	tcp_send_buffer_size;
 	FILE *stats_file;
+	/* This field should be used to store and use data for VMA_EXTRA_API_IOCTL */
+	struct {
+		struct {
+			uint8_t flags;
+			alloc_t memalloc;
+			free_t memfree;
+		} user_alloc;
+	} m_ioctl;
 private:
 	void print_vma_load_failure_msg();
 	int list_to_cpuset(char *cpulist, cpu_set_t *cpu_set);
