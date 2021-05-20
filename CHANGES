@@ -1,3 +1,15 @@
+Version 0.1.4-1:
+Date + Time 2021-05-20
+=============================================================
+Added:
+        - RM #2658995 Add ioctl() extra api
+        - RM #2510071 Clean up extra API
+        - RM #2436876 Improve --enable-debug configuration option
+        - RM #2575576 Add zero copy send operation using external mkey
+Fixed:
+        - RM #1714768 Fix issue in vma_recvfrom_zcopy()
+        - RM #2628370 Fix incorrect error message for fork()
+
 Version 0.1.3-1:
 Date + Time 2021-05-12
 =============================================================
