@@ -262,6 +262,12 @@ public:
 	/* Proxy to support ULP. TODO Refactor. */
 	sockinfo_tcp_ops *get_ops(void) { return m_ops; }
 	void set_ops(sockinfo_tcp_ops *ops) { m_ops = ops; }
+	void reset_ops(void)
+	{
+		delete m_ops;
+		m_ops = new sockinfo_tcp_ops(this);
+		assert(m_ops != NULL);
+	}
 	sockinfo_tcp_ops *m_ops;
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
