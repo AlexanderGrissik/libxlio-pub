@@ -78,7 +78,7 @@ private:
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
 
 	inline void	set_signal_in_next_send_wqe();
-	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp);
+	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
 #ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(

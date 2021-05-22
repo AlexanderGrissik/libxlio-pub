@@ -1056,7 +1056,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	int max_count = 64;
 #endif
 	tcp_iovec lwip_iovec[max_count];
-	vma_send_attr attr = {(vma_wr_tx_packet_attr)0, 0, 0};
+	vma_send_attr attr = {(vma_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
 	int count = 0;
 	void *cur_end;
 
@@ -1115,8 +1115,6 @@ send_iov:
 	}
 
 #ifdef DEFINED_TSO
-	attr.flags = (vma_wr_tx_packet_attr)flags;
-	attr.mss = p_si_tcp->m_pcb.mss;
 	if (likely((p_dst->is_valid()))) {
 		p_dst->fast_send((struct iovec *)lwip_iovec, count, attr);
 	} else {

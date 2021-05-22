@@ -415,14 +415,14 @@ void ring_bond::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe,
 	}
 }
 
-void ring_bond::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr)
+void ring_bond::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn)
 {
 	mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t*)(p_send_wqe->wr_id);
 
 	auto_unlocker lock(m_lock_ring_tx);
 
 	if (is_active_member(p_mem_buf_desc->p_desc_owner, id)) {
-		m_xmit_rings[id]->send_lwip_buffer(id, p_send_wqe, attr);
+		m_xmit_rings[id]->send_lwip_buffer(id, p_send_wqe, attr, tisn);
 	} else {
 		ring_logfunc("active ring=%p, silent packet drop (%p), (HA event?)", m_xmit_rings[id], p_mem_buf_desc);
 		p_mem_buf_desc->p_next_desc = NULL;

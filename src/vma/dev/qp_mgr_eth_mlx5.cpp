@@ -856,7 +856,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 //! Send one RAW packet by MLX5 BlueFlame
 //
 #ifdef DEFINED_TSO
-int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp)
+int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn)
 {
 	struct vma_mlx5_wqe_ctrl_seg *ctrl = NULL;
 	struct mlx5_wqe_eth_seg *eseg = NULL;
@@ -870,7 +870,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(vma_send_wr_opcode(*p_send_wqe)) & 0xff));
 	m_sq_wqe_hot->ctrl.data[2] = 0;
 	ctrl->fm_ce_se = (request_comp ? (uint8_t)MLX5_WQE_CTRL_CQ_UPDATE : 0);
-	ctrl->tis_tir_num = 0;
+	ctrl->tis_tir_num = htobe32(tisn << 8);
 
 	/* Configure eth segment
 	 * reset rsvd0, cs_flags, rsvd1, mss and rsvd2 fields
@@ -901,14 +901,16 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	return 0;
 }
 #else
-int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp)
+int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn)
 {
 	// Set current WQE's ethernet segment checksum flags
+	struct vma_mlx5_wqe_ctrl_seg *ctrl = (struct vma_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot+sizeof(struct mlx5_wqe_ctrl_seg));
 	eth_seg->cs_flags = (uint8_t)(attr & (VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM) & 0xff);
 
 	m_sq_wqe_hot->ctrl.data[0] = htonl((m_sq_wqe_counter << 8) | (get_mlx5_opcode(vma_send_wr_opcode(*p_send_wqe)) & 0xff) );
-	m_sq_wqe_hot->ctrl.data[2] =  request_comp ? htonl(8) : 0 ;
+	m_sq_wqe_hot->ctrl.data[2] = request_comp ? htonl(8) : 0;
+	ctrl->tis_tir_num = htobe32(tisn << 8);
 
 	fill_wqe(p_send_wqe);
 	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = (uintptr_t)p_send_wqe->wr_id;
@@ -1252,7 +1254,7 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 		m_p_ring->m_tx_num_wr_free--;
 
 		set_signal_in_next_send_wqe();
-		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true);
+		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true, 0);
 	}
 }
 

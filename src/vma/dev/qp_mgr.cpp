@@ -522,7 +522,7 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
 		}
 		m_p_ring->m_tx_num_wr_free--;
 
-		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true);
+		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true, 0);
 		if (p_ah) {
 			IF_VERBS_FAILURE_EX(ibv_destroy_ah(p_ah), EIO)
 			{
@@ -588,9 +588,10 @@ void qp_mgr::post_recv_buffers(descq_t* p_buffers, size_t count)
 	}
 }
 
-inline int qp_mgr::send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp)
+inline int qp_mgr::send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn)
 {
 	NOT_IN_USE(attr);
+	NOT_IN_USE(tisn);
 	int ret = 0;
 	vma_ibv_send_wr *bad_wr = NULL;
 
@@ -613,7 +614,7 @@ inline int qp_mgr::send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_at
 	return ret;
 }
 
-int qp_mgr::send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr)
+int qp_mgr::send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn)
 {
 	mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t *)p_send_wqe->wr_id;
 	/* Control tx completions:
@@ -638,7 +639,7 @@ int qp_mgr::send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr)
 	RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_TX_VERBS_POST_SEND]);
 #endif //RDTSC_MEASURE_TX_SENDTO_TO_AFTER_POST_SEND
 
-	if (send_to_wire(p_send_wqe, attr, request_comp)) {
+	if (send_to_wire(p_send_wqe, attr, request_comp, tisn)) {
 #ifdef VMA_TIME_MEASURE
 		INC_ERR_TX_COUNT;
 #endif
