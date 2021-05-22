@@ -198,6 +198,14 @@ void print_full_stats(socket_stats_t* p_si_stats, mc_grp_info_t* p_mc_grp_info, 
 		fprintf(filename, "Sendfile: fallbacks %u / overflows %u\n", p_si_stats->counters.n_tx_sendfile_fallbacks, p_si_stats->counters.n_tx_sendfile_overflows);
 	}
 
+	if (p_si_stats->tls_counters.n_tls_tx_records || p_si_stats->tls_counters.n_tls_tx_bytes) {
+		fprintf(filename, "TLS Tx Offload: %u / %u [kilobytes/records]%s\n", p_si_stats->tls_counters.n_tls_tx_bytes/BYTES_TRAFFIC_UNIT, p_si_stats->tls_counters.n_tls_tx_records, post_fix);
+		b_any_activiy = true;
+	}
+	if (p_si_stats->tls_counters.n_tls_tx_resync || p_si_stats->tls_counters.n_tls_tx_resync_replay) {
+		fprintf(filename, "TLS Tx Resyncs: %u / %u [total/with data replay]%s\n", p_si_stats->tls_counters.n_tls_tx_resync, p_si_stats->tls_counters.n_tls_tx_resync_replay, post_fix);
+	}
+
 	if (b_any_activiy == false) {
 		fprintf(filename, "Rx and Tx where not active\n");
 	}

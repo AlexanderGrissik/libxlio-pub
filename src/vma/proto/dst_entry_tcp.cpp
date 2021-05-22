@@ -221,6 +221,8 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 				} else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
 					mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mdesc;
 					m_sge[i].lkey = mdesc->get_lkey(p_tcp_iov[i].p_desc, ib_ctx, (void*)m_sge[i].addr, m_sge[i].length);
+					if (m_sge[i].lkey == LKEY_USE_DEFAULT)
+						m_sge[i].lkey = m_p_ring->get_tx_lkey(m_id);
 				} else {
 					/* Do not check desc.attr for specific type because
 					 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY

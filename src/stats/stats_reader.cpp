@@ -236,6 +236,7 @@ void update_delta_ring_stat(ring_stats_t* p_curr_ring_stats, ring_stats_t* p_pre
 		p_prev_ring_stats->n_tx_byte_count = (p_curr_ring_stats->n_tx_byte_count - p_prev_ring_stats->n_tx_byte_count) / delay;
 		p_prev_ring_stats->n_tx_pkt_count = (p_curr_ring_stats->n_tx_pkt_count - p_prev_ring_stats->n_tx_pkt_count) / delay;
 		p_prev_ring_stats->n_tx_retransmits = (p_curr_ring_stats->n_tx_retransmits - p_prev_ring_stats->n_tx_retransmits) / delay;
+		p_prev_ring_stats->n_tx_tls_contexts = (p_curr_ring_stats->n_tx_tls_contexts - p_prev_ring_stats->n_tx_tls_contexts) / delay;
 		if (p_prev_ring_stats->n_type == RING_TAP) {
 			memcpy(p_prev_ring_stats->tap.s_tap_name, p_curr_ring_stats->tap.s_tap_name, sizeof(p_curr_ring_stats->tap.s_tap_name));
 			p_prev_ring_stats->tap.n_tap_fd = p_curr_ring_stats->tap.n_tap_fd;
@@ -298,6 +299,10 @@ void print_ring_stats(ring_instance_block_t* p_ring_inst_arr)
 
 			if (p_ring_stats->n_tx_retransmits) {
 				printf(FORMAT_STATS_64bit, "Retransmissions:", (unsigned long long int)p_ring_stats->n_tx_retransmits, post_fix);
+			}
+
+			if (p_ring_stats->n_tx_tls_contexts) {
+				printf(FORMAT_STATS_64bit, "TLS Context Setups:", (unsigned long long int)p_ring_stats->n_tx_tls_contexts, post_fix);
 			}
 
 			if (p_ring_stats->n_type == RING_TAP) {
@@ -1315,6 +1320,7 @@ void zero_ring_stats(ring_stats_t* p_ring_stats)
 	p_ring_stats->n_tx_pkt_count = 0;
 	p_ring_stats->n_tx_byte_count = 0;
 	p_ring_stats->n_tx_retransmits = 0;
+	p_ring_stats->n_tx_tls_contexts = 0;
 	if (p_ring_stats->n_type == RING_TAP) {
 		p_ring_stats->tap.n_vf_plugouts = 0;
 	}

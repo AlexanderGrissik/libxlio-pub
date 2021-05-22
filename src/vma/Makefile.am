@@ -142,6 +142,7 @@ libxlio_la_SOURCES := \
 	\
 	sock/sockinfo.cpp \
 	sock/sockinfo_udp.cpp \
+	sock/sockinfo_ulp.cpp \
 	sock/sockinfo_tcp.cpp \
 	sock/fd_collection.cpp \
 	sock/pipeinfo.cpp \
@@ -274,6 +275,7 @@ libxlio_la_SOURCES := \
 	sock/sockinfo.h \
 	sock/sockinfo_tcp.h \
 	sock/sockinfo_udp.h \
+	sock/sockinfo_ulp.h \
 	sock/sock-redirect.h \
 	\
 	util/chunk_list.h \

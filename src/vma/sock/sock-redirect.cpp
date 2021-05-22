@@ -1720,6 +1720,7 @@ ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 		tx_arg.attr.msg.flags = __flags;
 		tx_arg.attr.msg.addr = (struct sockaddr *)(__CONST_SOCKADDR_ARG)__msg->msg_name;
 		tx_arg.attr.msg.len = (socklen_t)__msg->msg_namelen;
+		tx_arg.attr.msg.hdr = __msg;
 
 		if (0 < __msg->msg_controllen) {
 			struct cmsghdr* cmsg = CMSG_FIRSTHDR((struct msghdr*)__msg);
@@ -1782,6 +1783,7 @@ int sendmmsg(int __fd, struct mmsghdr *__mmsghdr, unsigned int __vlen, int __fla
 			tx_arg.attr.msg.flags = __flags;
 			tx_arg.attr.msg.addr = (struct sockaddr *)(__SOCKADDR_ARG)__mmsghdr[i].msg_hdr.msg_name;
 			tx_arg.attr.msg.len = (socklen_t)__mmsghdr[i].msg_hdr.msg_namelen;
+			tx_arg.attr.msg.hdr = &__mmsghdr[i].msg_hdr;
 
 			int ret = p_socket_object->tx(tx_arg);
 			if (ret < 0){

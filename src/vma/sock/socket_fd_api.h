@@ -79,6 +79,10 @@ typedef enum {
 	TX_WRITE = 13, TX_WRITEV, TX_SEND, TX_SENDTO, TX_SENDMSG, TX_FILE, TX_UNDEF
 } tx_call_t;
 
+enum {
+	TX_FLAG_NO_PARTIAL_WRITE = 1 << 0,
+};
+
 /* This structure describes an attributes of send operation
  * Used attributes can depend on a type of operation
  * attr.file - is used by TX_FILE
@@ -93,9 +97,11 @@ typedef struct vma_tx_call_attr {
 			int flags;
 			struct sockaddr * addr;
 			socklen_t len;
+			const struct msghdr *hdr;
 		} msg;
 	} attr;
 
+	unsigned vma_flags;
 	pbuf_desc priv;
 
 	void clear(void) {
@@ -103,6 +109,7 @@ typedef struct vma_tx_call_attr {
 		memset(&attr, 0, sizeof(attr));
 		memset(&priv, 0, sizeof(priv));
 		priv.attr = PBUF_DESC_NONE;
+		vma_flags = 0;
 	}
 
 	vma_tx_call_attr() {

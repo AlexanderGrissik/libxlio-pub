@@ -168,6 +168,13 @@ typedef struct {
 } socket_counters_t;
 
 typedef struct {
+	uint32_t    n_tls_tx_records;
+	uint32_t    n_tls_tx_bytes;
+	uint32_t    n_tls_tx_resync;
+	uint32_t    n_tls_tx_resync_replay;
+} socket_tls_counters_t;
+
+typedef struct {
 	int         fd;
 	uint32_t                     inode;
 	uint32_t                     tcp_state;   // enum tcp_state
@@ -190,6 +197,7 @@ typedef struct {
 	uint32_t                     n_rx_zcopy_pkt_count;
 	uint64_t                     n_tx_ready_byte_count;
 	socket_counters_t            counters;
+	socket_tls_counters_t        tls_counters;
 	std::bitset<MC_TABLE_SIZE>   mc_grp_map;
 	ring_logic_t                 ring_alloc_logic_rx;
 	ring_logic_t                 ring_alloc_logic_tx;
@@ -206,6 +214,7 @@ typedef struct {
 		threadid_last_rx = threadid_last_tx = pid_t(0);
 		n_rx_ready_pkt_count = n_rx_ready_byte_count = n_rx_ready_byte_limit = n_rx_zcopy_pkt_count = n_tx_ready_byte_count = 0;
 		memset(&counters, 0, sizeof(counters));
+		memset(&tls_counters, 0, sizeof(tls_counters));
 		mc_grp_map.reset();
 		ring_user_id_rx = ring_user_id_tx = 0;
 		ring_alloc_logic_rx = ring_alloc_logic_tx = RING_LOGIC_PER_INTERFACE;
@@ -257,6 +266,7 @@ typedef struct {
 	uint64_t    n_tx_byte_count;
 	uint64_t    n_tx_retransmits;
 	void*       p_ring_master;
+	uint32_t    n_tx_tls_contexts;
 	ring_type_t n_type;
 	union {
 		struct {

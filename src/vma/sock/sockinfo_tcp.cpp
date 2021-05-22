@@ -72,7 +72,6 @@
 #define si_tcp_logfunc              __log_info_func
 #define si_tcp_logfuncall           __log_info_funcall
 
-#define BLOCK_THIS_RUN(blocking, flags) (blocking && !(flags & MSG_DONTWAIT))
 #define TCP_SEG_COMPENSATION 4
 
 
@@ -238,6 +237,9 @@ sockinfo_tcp::sockinfo_tcp(int fd):
 {
 	si_tcp_logfuncall("");
 
+	m_ops = new sockinfo_tcp_ops(this);
+	assert(m_ops != NULL); /* XXX */
+
 	m_accepted_conns.set_id("sockinfo_tcp (%p), fd = %d : m_accepted_conns", this, m_fd);
 	m_rx_pkt_ready_list.set_id("sockinfo_tcp (%p), fd = %d : m_rx_pkt_ready_list", this, m_fd);
 	m_rx_cb_dropped_list.set_id("sockinfo_tcp (%p), fd = %d : m_rx_cb_dropped_list", this, m_fd);
@@ -355,6 +357,9 @@ sockinfo_tcp::~sockinfo_tcp()
 		m_socket_options_list.pop_front();
 		delete(opt);
 	}
+
+	delete m_ops;
+	m_ops = NULL;
 
 	unlock_tcp_con();
 
@@ -743,6 +748,11 @@ void sockinfo_tcp::put_agent_msg(void *arg)
 
 ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
 {
+	return m_ops->tx(tx_arg);
+}
+
+ssize_t sockinfo_tcp::tcp_tx(vma_tx_call_attr_t &tx_arg)
+{
 	iovec* p_iov = tx_arg.attr.msg.iov;
 	ssize_t sz_iov = tx_arg.attr.msg.sz_iov;
 	struct sockaddr *__dst = tx_arg.attr.msg.addr;
@@ -832,6 +842,17 @@ retry_is_ready:
 		 * tx_arg.priv.
 		 */
 		apiflags |= VMA_TX_FILE;
+	}
+
+	if (!block_this_run && (tx_arg.vma_flags & TX_FLAG_NO_PARTIAL_WRITE)) {
+		tx_size = 0;
+		for (int i = 0; i < sz_iov; ++i)
+			tx_size += p_iov[i].iov_len;
+		if (unlikely(tcp_sndbuf(&m_pcb) < tx_size)) {
+			unlock_tcp_con();
+			errno = EAGAIN;
+			return -1;
+		}
 	}
 
 #ifdef DEFINED_TCP_TX_WND_AVAILABILITY
@@ -1046,7 +1067,20 @@ tx_packet_to_os:
 	return ret;
 }
 
-err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
+/*
+ * TODO Remove 'p' from the interface and use 'seg'.
+ * There are multiple places where ip_output() is used without allocating
+ * a tcp_seg object. Therefore, 'seg' may be NULL now. However, we can improve
+ * those places in such a way:
+ * - LwIP will always allocate a tcp_seg even to send a TCP header. The
+ *   allocation must be a fast operation.
+ * - ip_output() will accept only 'seg' without 'p'.
+ * - Segments with empty pbuf list will be supported.
+ * - tcp_seg contains a buffer for TCP header. This buffer will be used to hold
+ *   TCP header for segments with 0 payload.
+ * - The TCP/IP headers will be inlined into WQE.
+ */
+err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void* v_p_conn, uint16_t flags)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)v_p_conn)->my_container);
 	dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
@@ -1059,6 +1093,10 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags)
 	vma_send_attr attr = {(vma_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
 	int count = 0;
 	void *cur_end;
+
+	int rc = p_si_tcp->m_ops->postrouting(p, seg, attr);
+	if (rc != 0)
+		return ERR_RTE;
 
 	if (flags & TCP_WRITE_ZEROCOPY)
 		goto zc_fill_iov;
@@ -1141,7 +1179,7 @@ send_iov:
 	return ERR_OK;
 }
 
-err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, void* v_p_conn, uint16_t flags)
+err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void* v_p_conn, uint16_t flags)
 {
 	iovec iovec[64];
 	struct iovec* p_iovec = iovec;
@@ -1151,6 +1189,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, void* v_p_conn, uint16_t f
 	int count = 1;
 	vma_wr_tx_packet_attr attr;
 
+	NOT_IN_USE(seg);
 	//ASSERT_NOT_LOCKED(p_si_tcp->m_tcp_con_lock);
 
 	if (likely(!p->next)) { // We should hit this case 99% of cases
@@ -3642,9 +3681,16 @@ bool sockinfo_tcp::try_un_offloading() // un-offload the socket if possible
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-#define SOCKOPT_HANDLE_BY_OS -2
 int sockinfo_tcp::setsockopt(int __level, int __optname,
-                              __const void *__optval, socklen_t __optlen)
+                             __const void *__optval, socklen_t __optlen)
+{
+	return m_ops->setsockopt(__level, __optname, __optval, __optlen);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+#define SOCKOPT_HANDLE_BY_OS -2
+int sockinfo_tcp::tcp_setsockopt(int __level, int __optname,
+                                 __const void *__optval, socklen_t __optlen)
 {
 	//todo check optlen and set proper errno on failure
 	si_tcp_logfunc("level=%d, optname=%d", __level, __optname);
@@ -3714,6 +3760,20 @@ int sockinfo_tcp::setsockopt(int __level, int __optname,
 			unlock_tcp_con();
 			si_tcp_logdbg("(TCP_QUICKACK) value: %d", val);
 			break;
+		case TCP_ULP:
+#ifdef DEFINED_UTLS
+			if (__optval && __optlen >= 3 && strncmp((char*)__optval, "tls", 3) == 0) {
+				si_tcp_logdbg("(TCP_ULP) val: tls");
+				sockinfo_tcp_ulp_tls *ulp = sockinfo_tcp_ulp_tls::instance();
+				lock_tcp_con();
+				ret = ulp->attach(this);
+				unlock_tcp_con();
+				return ret;
+			}
+#endif /* DEFINED_UTLS */
+			errno = ENOPROTOOPT;
+			ret = -1;
+			break;
 		default:
 			ret = SOCKOPT_HANDLE_BY_OS;
 			supported = false;
@@ -3765,6 +3825,7 @@ int sockinfo_tcp::setsockopt(int __level, int __optname,
 		case SO_LINGER:
 			if (__optlen < sizeof(struct linger)) {
 				errno = EINVAL;
+				ret = -1;
 				break;
 			}
 			m_linger = *(struct linger*)__optval;
@@ -3774,6 +3835,7 @@ int sockinfo_tcp::setsockopt(int __level, int __optname,
 		{
 			if (__optlen < sizeof(struct timeval)) {
 				errno = EINVAL;
+				ret = -1;
 				break;
 			}
 			struct timeval* tv = (struct timeval*)__optval;
@@ -3839,6 +3901,7 @@ int sockinfo_tcp::setsockopt(int __level, int __optname,
 
 			if (!__optval) {
 				errno = EINVAL;
+				ret = -1;
 				break;
 			}
 			if (sizeof(struct vma_rate_limit_t) == __optlen) {
@@ -3850,6 +3913,7 @@ int sockinfo_tcp::setsockopt(int __level, int __optname,
 				rate_limit.typical_pkt_sz = 0;
 			} else {
 				errno = EINVAL;
+				ret = -1;
 				break;
 			}
 
@@ -4635,6 +4699,21 @@ int sockinfo_tcp::free_buffs(uint16_t len)
 {
 	tcp_recved(&m_pcb, len);
 	return 0;
+}
+
+mem_buf_desc_t* sockinfo_tcp::tcp_tx_mem_buf_alloc(pbuf_type type)
+{
+	dst_entry_tcp *p_dst = (dst_entry_tcp *)(m_p_connected_dst_entry);
+	mem_buf_desc_t *desc = NULL;
+
+	if (likely(p_dst)) {
+		/* Currently this method is called from TLS layer without locks */
+		m_tcp_con_lock.lock();
+		desc = p_dst->get_buffer(type, NULL);
+		m_tcp_con_lock.unlock();
+	}
+
+	return desc;
 }
 
 struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)

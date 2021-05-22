@@ -52,6 +52,8 @@ enum {
 	DATA_SOURCE_NR_MAX = 3,
 };
 
+#define LKEY_USE_DEFAULT ((uint32_t)-2)
+
 /* forward declarations */
 class ib_ctx_handler;
 class mem_buf_desc_t;

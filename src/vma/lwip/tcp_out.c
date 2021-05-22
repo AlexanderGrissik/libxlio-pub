@@ -988,7 +988,7 @@ tcp_send_empty_ack(struct tcp_pcb *pcb)
     opts += 3;
   }
 #endif 
-  pcb->ip_output(p, pcb, 0);
+  pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
 
   (void)opts; /* Fix warning -Wunused-but-set-variable */
@@ -1888,6 +1888,8 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   /* for zercopy, add a pbuf for tcp/l3/l2 headers, prepend it to the list of pbufs */
   if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
     p = &zc_pbuf;
+    /* Assign a unique type to distinguish pbuf on stack */
+    p->type = PBUF_ROM;
     p->payload = seg->tcphdr;
     p->next = seg->p;
     /* We don't support options */
@@ -1910,7 +1912,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   flags |= seg->flags & TF_SEG_OPTS_TSO;
   flags |= (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ? TCP_WRITE_REXMIT : 0);
   flags |= seg->flags & TF_SEG_OPTS_ZEROCOPY;
-  pcb->ip_output(p, pcb, flags);
+  pcb->ip_output(p, seg, pcb, flags);
 
   return ERR_OK;
 }
@@ -1967,7 +1969,7 @@ tcp_rst(u32_t seqno, u32_t ackno, u16_t local_port, u16_t remote_port, struct tc
 
   TCP_STATS_INC(tcp.xmit);
    /* Send output with hardcoded TTL since we have no access to the pcb */
-  if(pcb) pcb->ip_output(p, pcb, 0);
+  if(pcb) pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
   LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_rst: seqno %"U32_F" ackno %"U32_F".\n", seqno, ackno));
 }
@@ -2154,7 +2156,7 @@ tcp_keepalive(struct tcp_pcb *pcb)
   TCP_STATS_INC(tcp.xmit);
 
   /* Send output to IP */
-  pcb->ip_output(p, pcb, 0);
+  pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_keepalive: seqno %"U32_F" ackno %"U32_F".\n",
@@ -2263,7 +2265,7 @@ tcp_zero_window_probe(struct tcp_pcb *pcb)
   TCP_STATS_INC(tcp.xmit);
 
   /* Send output to IP */
-  pcb->ip_output(p, pcb, 0);
+  pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_zero_window_probe: seqno %"U32_F

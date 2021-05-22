@@ -117,11 +117,15 @@ public:
 	{
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_context_setup(info, tis_number, dek_id, initial_tcp_sn);
+		++m_p_ring_stat->n_tx_tls_contexts;
 	}
-	virtual void tls_tx_post_dump_wqe(
+	void tls_tx_post_dump_wqe(
 		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
+		if (lkey == LKEY_USE_DEFAULT) {
+			lkey = m_tx_lkey;
+		}
 		m_p_qp_mgr->tls_tx_post_dump_wqe(tis_number, addr, len, lkey);
 	}
 #endif /* DEFINED_UTLS */

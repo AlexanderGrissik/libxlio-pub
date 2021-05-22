@@ -47,6 +47,9 @@
 #include "vma/lwip/tcp_impl.h"
 
 #include "sockinfo.h"
+#include "sockinfo_ulp.h"
+
+#define BLOCK_THIS_RUN(blocking, flags) (blocking && !(flags & MSG_DONTWAIT))
 
 /**
  * Tcp socket states: rdma_offload or os_passthrough. in rdma_offload:
@@ -143,6 +146,7 @@ public:
 	virtual int fcntl64(int __cmd, unsigned long int __arg);
 	virtual int ioctl(unsigned long int __request, unsigned long int __arg);
 	virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
+	virtual int tcp_setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
 	virtual int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
 	int getsockopt_offload(int __level, int __optname, void *__optval, socklen_t *__optlen);
 	virtual int connect(const sockaddr*, socklen_t);
@@ -165,21 +169,35 @@ public:
 
 	struct tcp_pcb* get_syn_received_pcb(in_addr_t src_addr, in_port_t src_port, in_addr_t dest_addr, in_port_t dest_port);
 
+	inline unsigned sndbuf_available(void)
+	{
+		return tcp_sndbuf(&m_pcb);
+	}
+
+	inline unsigned get_mss(void)
+	{
+		return m_pcb.mss;
+	}
+
 	ssize_t tx(vma_tx_call_attr_t &tx_arg);
+	ssize_t tcp_tx(vma_tx_call_attr_t &tx_arg);
 	ssize_t rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov, int *p_flags, sockaddr *__from = NULL, socklen_t *__fromlen = NULL, struct msghdr *__msg = NULL);
-	static err_t ip_output(struct pbuf *p, void* v_p_conn, uint16_t flags);
-	static err_t ip_output_syn_ack(struct pbuf *p, void* v_p_conn, uint16_t flags);
+	static err_t ip_output(struct pbuf *p, struct tcp_seg *seg, void* v_p_conn, uint16_t flags);
+	static err_t ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void* v_p_conn, uint16_t flags);
 	static void tcp_state_observer(void* pcb_container, enum tcp_state new_state);
 	static uint16_t get_route_mtu(struct tcp_pcb *pcb);
 
 	virtual void update_header_field(data_updater *updater);
 	virtual bool rx_input_cb(mem_buf_desc_t* p_rx_pkt_mem_buf_desc_info, void* pv_fd_ready_array);
+	void abort_connection();
 
+	mem_buf_desc_t *tcp_tx_mem_buf_alloc(pbuf_type type);
 	static struct pbuf * tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buf);
 	static void tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff);
 	static void tcp_rx_pbuf_free(struct pbuf *p_buff);
 	static struct tcp_seg * tcp_seg_alloc(void* p_conn);
 	static void tcp_seg_free(void* p_conn, struct tcp_seg * seg);
+	uint32_t get_next_tcp_seqno(void) { return m_pcb.snd_lbb; }
 
 	mem_buf_desc_t* tcp_tx_zc_alloc(mem_buf_desc_t* p_desc);
 	static void tcp_tx_zc_callback(mem_buf_desc_t* p_desc);
@@ -229,6 +247,14 @@ public:
 	}
 
 	void handle_timer_expired(void* user_data);
+
+	ib_ctx_handler *get_ctx(void) { return m_p_connected_dst_entry->get_ctx(); }
+	ring *get_ring(void) { return m_p_connected_dst_entry->get_ring(); }
+
+	/* Proxy to support ULP. TODO Refactor. */
+	sockinfo_tcp_ops *get_ops(void) { return m_ops; }
+	void set_ops(sockinfo_tcp_ops *ops) { m_ops = ops; }
+	sockinfo_tcp_ops *m_ops;
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
 
@@ -344,7 +370,6 @@ private:
 	//tx
 	unsigned tx_wait(int & err, bool blocking);
 
-	void abort_connection();
 	int handle_child_FIN(sockinfo_tcp* child_conn);
 
 	//rx

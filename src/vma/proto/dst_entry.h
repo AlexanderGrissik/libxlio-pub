@@ -112,6 +112,7 @@ public:
 		return m_header.set_vlan_pcp(get_priority_by_tc_class(pcp)); }
 	inline header*	get_network_header() { return &m_header;}
 	inline ring*	get_ring() { return m_p_ring;}
+	inline ib_ctx_handler* get_ctx() { return m_p_ring->get_ctx(m_id); }
 protected:
 	ip_address 		m_dst_ip;
 	uint16_t 		m_dst_port;
