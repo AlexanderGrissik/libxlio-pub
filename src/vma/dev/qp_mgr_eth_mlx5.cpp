@@ -33,7 +33,6 @@
 
 #if defined(DEFINED_DIRECT_VERBS)
 
-#include <linux/tls.h>
 #include <sys/mman.h>
 #include "cq_mgr_mlx5.h"
 #include "vma/util/utils.h"
@@ -930,6 +929,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 }
 #endif /* DEFINED_TSO */
 
+#ifdef DEFINED_UTLS
 void qp_mgr_eth_mlx5::tls_context_setup(
 	const void *info, uint32_t tis_number,
 	uint32_t dek_id, uint32_t initial_tcp_sn)
@@ -1166,6 +1166,7 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
 	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
 	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
 }
+#endif /* DEFINED_UTLS */
 
 void qp_mgr_eth_mlx5::post_nop_fence(void)
 {

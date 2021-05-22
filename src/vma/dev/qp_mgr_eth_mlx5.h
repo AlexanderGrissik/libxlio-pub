@@ -34,11 +34,13 @@
 #ifndef QP_MGR_ETH_MLX5_H
 #define QP_MGR_ETH_MLX5_H
 
-#include <linux/tls.h>
-
 #include "qp_mgr.h"
 #include "vma/util/sg_array.h"
 #include "vma/dev/dm_mgr.h"
+
+#ifdef DEFINED_UTLS
+#include <linux/tls.h>
+#endif /* DEFINED_UTLS */
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -55,10 +57,12 @@ public:
 	virtual void    post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc); // Post for receive single mem_buf_desc
 	vma_ib_mlx5_qp_t    m_mlx5_qp;
 
+#ifdef DEFINED_UTLS
 	void tls_context_setup(
 		const void *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn);
 	void tls_tx_post_dump_wqe(uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey);
+#endif /* DEFINED_UTLS */
 	void post_nop_fence(void);
 
 protected:
@@ -76,6 +80,7 @@ private:
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
+#ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(
 		struct mlx5_wqe_tls_static_params_seg* params,
 		const struct tls12_crypto_info_aes_gcm_128* info,
@@ -88,6 +93,7 @@ private:
 		uint32_t tis_number, uint32_t next_record_tcp_sn);
 	inline void tls_tx_post_progress_params_wqe(
 		uint32_t tis_number, uint32_t next_record_tcp_sn);
+#endif /* DEFINED_UTLS */
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);
 	inline int	fill_wqe_lso(vma_ibv_send_wr* pswr);

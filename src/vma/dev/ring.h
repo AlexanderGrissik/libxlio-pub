@@ -134,6 +134,7 @@ public:
 
 	inline int get_if_index() { return m_if_index; }
 
+#ifdef DEFINED_UTLS
 	virtual void tls_context_setup(
 		const void *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn)
@@ -151,6 +152,7 @@ public:
 		NOT_IN_USE(len);
 		NOT_IN_USE(lkey);
 	}
+#endif /* DEFINED_UTLS */
 	virtual void post_nop_fence(void) {}
 
 protected:

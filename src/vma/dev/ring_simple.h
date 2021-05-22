@@ -110,6 +110,7 @@ public:
 	struct ibv_comp_channel* get_tx_comp_event_channel() { return m_p_tx_comp_event_channel; }
 	void			modify_cq_moderation(uint32_t period, uint32_t count);
 
+#ifdef DEFINED_UTLS
 	void tls_context_setup(
 		const void *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn)
@@ -123,6 +124,7 @@ public:
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_tx_post_dump_wqe(tis_number, addr, len, lkey);
 	}
+#endif /* DEFINED_UTLS */
 	void post_nop_fence(void)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
