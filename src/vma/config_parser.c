@@ -389,7 +389,7 @@ extern int libvma_yydebug;
      TCP = 264,
      UDP = 265,
      OS = 266,
-     VMA = 267,
+     XLIO = 267,
      SDP = 268,
      SA = 269,
      INT = 270,
@@ -416,7 +416,7 @@ extern int libvma_yydebug;
 #define TCP 264
 #define UDP 265
 #define OS 266
-#define VMA 267
+#define XLIO 267
 #define SDP 268
 #define SA 269
 #define INT 270
@@ -2190,7 +2190,7 @@ int __vma_parse_config_file (const char *fileName) {
 	/* coverity[toctou] */
 	libvma_yyin = fopen(fileName,"r");
 	if (!libvma_yyin) {
-		printf("libvma Error: Fail to open File:%s\n", fileName);
+		printf("Error: Fail to open File:%s\n", fileName);
 		return(1);
 	}
 	__instance_list.head = NULL;
@@ -2215,7 +2215,7 @@ int __vma_parse_config_line (const char *line) {
 	libvma_yyin = fmemopen((void*)line, strlen(line), "r");
 	
 	if (!libvma_yyin) {
-		printf("libvma Error: Fail to parse line:%s\n", line);
+		printf("Error: Fail to parse line:%s\n", line);
 		return(1);
 	}
 	

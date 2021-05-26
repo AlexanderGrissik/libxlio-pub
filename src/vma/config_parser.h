@@ -55,7 +55,7 @@ extern int libvma_yydebug;
      TCP = 264,
      UDP = 265,
      OS = 266,
-     VMA = 267,
+     XLIO = 267,
      SDP = 268,
      SA = 269,
      INT = 270,
@@ -82,7 +82,7 @@ extern int libvma_yydebug;
 #define TCP 264
 #define UDP 265
 #define OS 266
-#define VMA 267
+#define XLIO 267
 #define SDP 268
 #define SA 269
 #define INT 270

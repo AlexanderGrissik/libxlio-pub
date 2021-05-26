@@ -323,7 +323,7 @@ static void __vma_add_rule() {
 %token TCP "tcp"
 %token UDP "udp"
 %token OS "os"
-%token VMA "vma"
+%token XLIO "xlio"
 %token SDP "sdp"
 %token SA "sa"
 %token INT "integer value"
@@ -339,7 +339,7 @@ static void __vma_add_rule() {
 %token LEVEL "min-level"
 %token LINE "new line"
 %type <sval> NAME PROGRAM USER_DEFINED_ID_STR
-%type <ival> INT LOG DEST STDERR SYSLOG FILENAME APP_ID USE OS VMA SDP TCP UDP TCP_CLIENT TCP_SERVER UDP_SENDER UDP_RECEIVER UDP_CONNECT LEVEL LINE 
+%type <ival> INT LOG DEST STDERR SYSLOG FILENAME APP_ID USE OS XLIO SDP TCP UDP TCP_CLIENT TCP_SERVER UDP_SENDER UDP_RECEIVER UDP_CONNECT LEVEL LINE 
 %start config
 
 %{
@@ -408,7 +408,7 @@ use:
 
 transport:
  	  OS	{ __vma_rule.target_transport = TRANS_OS;	}
-	| VMA	{ __vma_rule.target_transport = TRANS_VMA;	}
+	| XLIO	{ __vma_rule.target_transport = TRANS_VMA;	}
 	| SDP	{ __vma_rule.target_transport = TRANS_SDP;	}
 	| SA	{ __vma_rule.target_transport = TRANS_SA;	}
 	| '*'	{ __vma_rule.target_transport = TRANS_ULP;	}

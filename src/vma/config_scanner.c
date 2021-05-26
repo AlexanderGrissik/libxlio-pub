@@ -1259,11 +1259,11 @@ case 16:
 YY_RULE_SETUP
 /* Line 181 of config_scanner.l */
 {
-	yylval.ival = VMA;
+	yylval.ival = XLIO;
 #ifdef DEBUG
-	printf("VMA\n");
+	printf("XLIO\n");
 #endif
-	return VMA;
+	return XLIO;
 }
 	YY_BREAK
 case 17:

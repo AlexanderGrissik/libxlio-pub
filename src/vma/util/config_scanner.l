@@ -178,12 +178,12 @@ os {
 	return OS;
 }
 
-vma {
-	yylval.ival = VMA;
+xlio {
+	yylval.ival = XLIO;
 #ifdef DEBUG
-	printf("VMA\n");
+	printf("XLIO\n");
 #endif
-	return VMA;
+	return XLIO;
 }
 
 sdp {
