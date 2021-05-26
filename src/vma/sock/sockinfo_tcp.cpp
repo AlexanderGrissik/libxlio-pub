@@ -572,7 +572,7 @@ void sockinfo_tcp::handle_socket_linger() {
 	memset(&elapsed, 0,sizeof(elapsed));
 	gettime(&start);
 	while ((tv_to_usec(&elapsed) <= linger_time_usec) && (m_pcb.unsent || m_pcb.unacked)) {
-                /* SOCKETXTREME WA: Don't call rx_wait() in order not to miss VMA events in socketxtreme_poll() flow.
+                /* SOCKETXTREME WA: Don't call rx_wait() in order not to miss events in socketxtreme_poll() flow.
 		 * TBD: find proper solution!
 		 * rx_wait(poll_cnt, false);
 		 * */
@@ -2501,7 +2501,7 @@ int sockinfo_tcp::prepareListen(){
 		/*It is legal application  behavior, listen was called without bind,
 		 * therefore need to call for bind() to get a random port from the OS
 		 */
-		si_tcp_logdbg("listen was called without bind - calling for VMA bind" );
+		si_tcp_logdbg("listen was called without bind - calling for bind" );
 
 		memset(&tmp_sin, 0, tmp_sin_len);
 		tmp_sin.sin_family = AF_INET;

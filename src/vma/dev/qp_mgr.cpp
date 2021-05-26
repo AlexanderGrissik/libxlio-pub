@@ -745,7 +745,7 @@ int qp_mgr_eth::prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr)
 	uint32_t tx_max_inline = safe_mce_sys().tx_max_inline;
 	m_max_inline_data = min(tmp_ibv_qp_attr.cap.max_inline_data, tx_max_inline);
 	qp_logdbg("requested max inline = %d QP, actual max inline = %d, "
-		"VMA max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
+		PRODUCT_NAME " max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
 		"max_recv_sge=%d, max_send_sge=%d",
 		tx_max_inline, tmp_ibv_qp_init_attr.cap.max_inline_data,
 		m_max_inline_data, tmp_ibv_qp_attr.cap.max_send_wr,
@@ -825,7 +825,7 @@ int qp_mgr_ib::prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr)
 	uint32_t tx_max_inline = safe_mce_sys().tx_max_inline;
 	m_max_inline_data = min(tmp_ibv_qp_attr.cap.max_inline_data, tx_max_inline);
 	qp_logdbg("requested max inline = %d QP, actual max inline = %d, "
-		"VMA max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
+		PRODUCT_NAME " max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
 		"max_recv_sge=%d, max_send_sge=%d",
 		tx_max_inline, tmp_ibv_qp_init_attr.cap.max_inline_data,
 		m_max_inline_data, tmp_ibv_qp_attr.cap.max_send_wr,

@@ -290,8 +290,8 @@ net_device_val::net_device_val(struct net_device_val_desc *desc) : m_lock("net_d
 	}
 
 	if (safe_mce_sys().mtu != 0 && (int)safe_mce_sys().mtu != get_mtu()) {
-		nd_logwarn("Mismatch between interface %s MTU=%d and VMA_MTU=%d."
-				"Make sure VMA_MTU and all offloaded interfaces MTUs match.",
+		nd_logwarn("Mismatch between interface %s MTU=%d and XLIO_MTU=%d."
+				"Make sure XLIO_MTU and all offloaded interfaces MTUs match.",
 				get_ifname(), get_mtu(), safe_mce_sys().mtu);
 	}
 
@@ -734,7 +734,7 @@ void net_device_val::verify_bonding_mode()
 			if (bond_xhp) {
 				m_bond_xmit_hash_policy = (bond_xmit_hash_policy)strtol(bond_xhp, NULL , 10);
 				if (m_bond_xmit_hash_policy < XHP_LAYER_2 || m_bond_xmit_hash_policy > XHP_ENCAP_3_4) {
-					vlog_printf(VLOG_WARNING,"VMA does not support xmit hash policy = %d\n", m_bond_xmit_hash_policy);
+					vlog_printf(VLOG_WARNING,"" PRODUCT_NAME " does not support xmit hash policy = %d\n", m_bond_xmit_hash_policy);
 					m_bond_xmit_hash_policy = XHP_LAYER_2;
 				}
 			}
@@ -746,11 +746,11 @@ void net_device_val::verify_bonding_mode()
 
 	if (m_bond == NO_BOND || m_bond_fail_over_mac > 1) {
 		vlog_printf(VLOG_WARNING,"******************************************************************************\n");
-		vlog_printf(VLOG_WARNING,"VMA doesn't support current bonding configuration of %s.\n", get_ifname_link());
+		vlog_printf(VLOG_WARNING,"" PRODUCT_NAME " doesn't support current bonding configuration of %s.\n", get_ifname_link());
 		vlog_printf(VLOG_WARNING,"The only supported bonding mode is \"802.3ad 4(#4)\" or \"active-backup(#1)\"\n");
 		vlog_printf(VLOG_WARNING,"with \"fail_over_mac=1\" or \"fail_over_mac=0\".\n");
 		vlog_printf(VLOG_WARNING,"The effect of working in unsupported bonding mode is undefined.\n");
-		vlog_printf(VLOG_WARNING,"Read more about Bonding in the VMA's User Manual\n");
+		vlog_printf(VLOG_WARNING,"Read more about Bonding in the " PRODUCT_NAME "'s User Manual\n");
 		vlog_printf(VLOG_WARNING,"******************************************************************************\n");
 	}
 }
@@ -1623,9 +1623,9 @@ bool net_device_val::verify_enable_ipoib(const char* interface_name)
 	if (validate_ipoib_prop(get_ifname(), m_flags, IPOIB_MODE_PARAM_FILE, "datagram", 8, filename, ifname)) {
 		vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 		vlog_printf(VLOG_WARNING,"* IPoIB mode of interface '%s' is \"connected\" !\n", get_ifname());
-		vlog_printf(VLOG_WARNING,"* Please change it to datagram: \"echo datagram > %s\" before loading your application with VMA library\n", filename);
-		vlog_printf(VLOG_WARNING,"* VMA doesn't support IPoIB in connected mode.\n");
-		vlog_printf(VLOG_WARNING,"* Please refer to VMA Release Notes for more information\n");
+		vlog_printf(VLOG_WARNING,"* Please change it to datagram: \"echo datagram > %s\" before loading your application with " PRODUCT_NAME " library\n", filename);
+		vlog_printf(VLOG_WARNING,"* " PRODUCT_NAME " doesn't support IPoIB in connected mode.\n");
+		vlog_printf(VLOG_WARNING,"* Please refer to " PRODUCT_NAME " Release Notes for more information\n");
 		vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 		return false;
 	}
@@ -1637,7 +1637,7 @@ bool net_device_val::verify_enable_ipoib(const char* interface_name)
 	if (validate_ipoib_prop(get_ifname(), m_flags, UMCAST_PARAM_FILE, "0", 1, filename, ifname)) { // Extract UMCAST flag (only for IB transport types)
 		vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 		vlog_printf(VLOG_WARNING,"* UMCAST flag is Enabled for interface %s !\n", get_ifname());
-		vlog_printf(VLOG_WARNING,"* Please disable it: \"echo 0 > %s\" before loading your application with VMA library\n", filename);
+		vlog_printf(VLOG_WARNING,"* Please disable it: \"echo 0 > %s\" before loading your application with " PRODUCT_NAME " library\n", filename);
 		vlog_printf(VLOG_WARNING,"* This option in no longer needed in this version\n");
 		vlog_printf(VLOG_WARNING,"* Please refer to Release Notes for more information\n");
 		vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
@@ -1755,11 +1755,11 @@ qp_failure:
 			// MLNX_OFED raw_qp_privliges file exist with bad value
 			vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 			vlog_printf(VLOG_WARNING,"* Interface %s will not be offloaded.\n", ifname);
-			vlog_printf(VLOG_WARNING,"* Working in this mode might causes VMA malfunction over Ethernet/InfiniBand interfaces\n");
+			vlog_printf(VLOG_WARNING,"* Working in this mode might causes " PRODUCT_NAME " malfunction over Ethernet/InfiniBand interfaces\n");
 			vlog_printf(VLOG_WARNING,"* WARNING: the following steps will restart your network interface!\n");
 			vlog_printf(VLOG_WARNING,"* 1. \"echo options ib_uverbs disable_raw_qp_enforcement=1 > /etc/modprobe.d/ib_uverbs.conf\"\n");
 			vlog_printf(VLOG_WARNING,"* 2. Restart openibd or rdma service depending on your system configuration\n");
-			vlog_printf(VLOG_WARNING,"* Read the RAW_PACKET QP root access enforcement section in the VMA's User Manual for more information\n");
+			vlog_printf(VLOG_WARNING,"* Read the RAW_PACKET QP root access enforcement section in the " PRODUCT_NAME "'s User Manual for more information\n");
 			vlog_printf(VLOG_WARNING,"******************************************************************************************************\n");
 		} else
 #endif /* DEFINED_VERBS_VERSION */
@@ -1767,12 +1767,12 @@ qp_failure:
 			vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 			vlog_printf(VLOG_WARNING,"* Interface %s will not be offloaded.\n", ifname);
 			vlog_printf(VLOG_WARNING,"* Offloaded resources are restricted to root or user with CAP_NET_RAW privileges\n");
-			vlog_printf(VLOG_WARNING,"* Read the CAP_NET_RAW and root access section in the VMA's User Manual for more information\n");
+			vlog_printf(VLOG_WARNING,"* Read the CAP_NET_RAW and root access section in the " PRODUCT_NAME "'s User Manual for more information\n");
 			vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 		} else {
 			vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 			vlog_printf(VLOG_WARNING,"* Interface %s will not be offloaded.\n", ifname);
-			vlog_printf(VLOG_WARNING,"* VMA was not able to create QP for this device (errno = %d).\n", err);
+			vlog_printf(VLOG_WARNING,"* " PRODUCT_NAME " was not able to create QP for this device (errno = %d).\n", err);
 			vlog_printf(VLOG_WARNING,"*******************************************************************************************************\n");
 		}
 	}

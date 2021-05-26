@@ -233,12 +233,12 @@ bool dst_entry::resolve_net_dev(bool is_connect)
 	cache_entry_subject<route_rule_table_key, route_val*>* p_ces = NULL;
 	
 	if (ZERONET_N(m_dst_ip.get_in_addr())) {
-		dst_logdbg("VMA does not offload zero net IP address");
+		dst_logdbg(PRODUCT_NAME " does not offload zero net IP address");
 		return ret_val;
 	}
 
 	if (LOOPBACK_N(m_dst_ip.get_in_addr())) {
-		dst_logdbg("VMA does not offload local loopback IP address");
+		dst_logdbg(PRODUCT_NAME " does not offload local loopback IP address");
 		return ret_val;
 	}
 	

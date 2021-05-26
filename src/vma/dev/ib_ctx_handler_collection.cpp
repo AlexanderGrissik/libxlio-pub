@@ -71,18 +71,18 @@ void check_flow_steering_log_num_mgm_entry_size()
 				(strlen(module_info) > 0)) {
 			if (module_info[0] == '0') {
 				vlog_printf(VLOG_WARNING, "***************************************************************************************\n");
-				vlog_printf(VLOG_WARNING, "* VMA will not operate properly while flow steering option is disabled                *\n");
-				vlog_printf(VLOG_WARNING, "* In order to enable flow steering please restart your VMA applications after running *\n");
+				vlog_printf(VLOG_WARNING, "* " PRODUCT_NAME " will not operate properly while flow steering option is disabled                *\n");
+				vlog_printf(VLOG_WARNING, "* In order to enable flow steering please restart your " PRODUCT_NAME " applications after running *\n");
 				vlog_printf(VLOG_WARNING, "* the following:                                                                      *\n");
 				vlog_printf(VLOG_WARNING, "* For your information the following steps will restart your network interface        *\n");
 				vlog_printf(VLOG_WARNING, "* 1. \"echo options mlx4_core log_num_mgm_entry_size=-1 > /etc/modprobe.d/mlnx.conf\"   *\n");
 				vlog_printf(VLOG_WARNING, "* 2. Restart openibd or rdma service depending on your system configuration           *\n");
-				vlog_printf(VLOG_WARNING, "* Read more about the Flow Steering support in the VMA's User Manual                  *\n");
+				vlog_printf(VLOG_WARNING, "* Read more about the Flow Steering support in the " PRODUCT_NAME "'s User Manual                  *\n");
 				vlog_printf(VLOG_WARNING, "***************************************************************************************\n");
 			} else {
 				vlog_printf(VLOG_DEBUG, "***************************************************************************************\n");
-				vlog_printf(VLOG_DEBUG, "* VMA will not operate properly while flow steering option is disabled                *\n");
-				vlog_printf(VLOG_DEBUG, "* Read more about the Flow Steering support in the VMA's User Manual                  *\n");
+				vlog_printf(VLOG_DEBUG, "* " PRODUCT_NAME " will not operate properly while flow steering option is disabled                *\n");
+				vlog_printf(VLOG_DEBUG, "* Read more about the Flow Steering support in the " PRODUCT_NAME "'s User Manual                  *\n");
 				vlog_printf(VLOG_DEBUG, "***************************************************************************************\n");
 			}
 		}
@@ -135,7 +135,7 @@ void ib_ctx_handler_collection::update_tbl(const char *ifa_name)
 	}
 	if (!num_devices) {
 		vlog_levels_t _level = ifa_name ? VLOG_DEBUG : VLOG_ERROR; // Print an error only during initialization.
-		vlog_printf(_level, "VMA does not detect IB capable devices\n");
+		vlog_printf(_level, PRODUCT_NAME " does not detect IB capable devices\n");
 		vlog_printf(_level, "No performance gain is expected in current configuration\n");
 	}
 

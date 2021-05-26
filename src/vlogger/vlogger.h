@@ -50,6 +50,7 @@
 
 #define TO_STR(a) TOSTR_HELPER(a)
 #define TOSTR_HELPER(a) #a
+#define PRODUCT_NAME "XLIO"
 
 #undef  MODULE_HDR
 #define MODULE_HDR	 	MODULE_NAME "%d:%s() "

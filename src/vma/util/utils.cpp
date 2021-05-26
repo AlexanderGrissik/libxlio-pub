@@ -177,10 +177,10 @@ void print_roce_lag_warnings(char* interface, char* disable_path /* = NULL */, c
 		vlog_printf(VLOG_WARNING,"* Unexpected behaviour may occur during runtime.\n");
 	} else {
 		vlog_printf(VLOG_WARNING,"* Interface %s will not be offloaded.\n", interface);
-		vlog_printf(VLOG_WARNING,"* VMA cannot offload the device while RoCE LAG is enabled.\n");
+		vlog_printf(VLOG_WARNING,"* " PRODUCT_NAME " cannot offload the device while RoCE LAG is enabled.\n");
 	}
 
-	vlog_printf(VLOG_WARNING,"* Please refer to VMA Release Notes for more info\n");
+	vlog_printf(VLOG_WARNING,"* Please refer to " PRODUCT_NAME " Release Notes for more info\n");
 
 	if (disable_path) {
 		vlog_printf(VLOG_WARNING,"* In order to disable RoCE LAG please use:\n");
@@ -1231,7 +1231,7 @@ int loops_timer::time_left_msec()
 	if ( m_timeout_msec == -1 )
 		return -1;
 
-	if (!ts_isset(&m_start)) { //VMA_RX_POLL==0
+	if (!ts_isset(&m_start)) {
 		gettime(&m_start);
 	}
 	timespec current;

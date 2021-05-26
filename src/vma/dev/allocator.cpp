@@ -205,8 +205,8 @@ bool vma_allocator::hugetlb_alloc(size_t sz_bytes)
 
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "**************************************************************\n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* NO IMMEDIATE ACTION NEEDED!                                 \n");
-	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* Not enough hugepage resources for VMA memory allocation.    \n");
-	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* VMA will continue working with regular memory allocation.   \n");
+	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* Not enough hugepage resources for " PRODUCT_NAME " memory allocation.    \n");
+	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* " PRODUCT_NAME " will continue working with regular memory allocation.   \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   * Optional:                                                   \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   *   1. Switch to a different memory allocation type           \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   *      (%s!= %d)                                              \n",
@@ -215,7 +215,7 @@ bool vma_allocator::hugetlb_alloc(size_t sz_bytes)
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   *      hugepages resources in the system:                     \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   *      \"echo 1000000000 > /proc/sys/kernel/shmmax\"          \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_INFO, "   *      \"echo 800 > /proc/sys/vm/nr_hugepages\"               \n");
-	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* Please refer to the memory allocation section in the VMA's  \n");
+	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* Please refer to the memory allocation section in the " PRODUCT_NAME "'s  \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "* User Manual for more information                            \n");
 	VLOG_PRINTF_ONCE_THEN_DEBUG(VLOG_WARNING, "**************************************************************\n");
 	return false;

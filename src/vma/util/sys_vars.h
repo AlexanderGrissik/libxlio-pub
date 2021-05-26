@@ -493,7 +493,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_LOG_DETAILS                           "XLIO_LOG_DETAILS"
 #define SYS_VAR_LOG_FILENAME                          "XLIO_LOG_FILE"
 #define SYS_VAR_STATS_FILENAME                        "XLIO_STATS_FILE"
-#define SYS_VAR_SERVICE_DIR                           "XLIO_VMAD_NOTIFY_DIR"
+#define SYS_VAR_SERVICE_DIR                           "XLIO_SERVICE_NOTIFY_DIR"
 #define SYS_VAR_STATS_SHMEM_DIRNAME                   "XLIO_STATS_SHMEM_DIR"
 #define SYS_VAR_CONF_FILENAME                         "XLIO_CONFIG_FILE"
 #define SYS_VAR_LOG_COLORS                            "XLIO_LOG_COLORS"

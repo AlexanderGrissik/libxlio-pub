@@ -649,7 +649,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 	// Protect against local loopback used as local_if & peer_ip
 	// rdma_cm will accept it but we don't want to offload it
 	if (flow_key.is_local_loopback()) {
-		si_logdbg("VMA does not offload local loopback IP address");
+		si_logdbg(PRODUCT_NAME " does not offload local loopback IP address");
 		return false;
 	}
 
@@ -1539,7 +1539,7 @@ int sockinfo::modify_ratelimit(dst_entry* p_dst_entry, struct vma_rate_limit_t &
 		}
 		return 0;
 	}
-	si_logwarn("VMA is not configured with TX ring allocation logic per "
+	si_logwarn(PRODUCT_NAME " is not configured with TX ring allocation logic per "
 		   "socket or user-id.");
 	return -1;
 }

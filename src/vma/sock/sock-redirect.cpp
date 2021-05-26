@@ -103,7 +103,7 @@ void assign_dlsym(T &ptr, const char *name) {
 #define DO_GLOBAL_CTORS() do { \
 	int __res = do_global_ctors(); \
 	if (__res) { \
-		vlog_printf(VLOG_ERROR, "%s vma failed to start errno: %s\n", \
+		vlog_printf(VLOG_ERROR, "%s " PRODUCT_NAME " failed to start errno: %s\n", \
 			__FUNCTION__, strerror(errno)); \
 		if (safe_mce_sys().exception_handling == vma_exception_handling::MODE_EXIT) { \
 			exit(-1); \
@@ -247,8 +247,8 @@ char* sprintf_sockaddr(char* buf, int buflen, const struct sockaddr* _addr, sock
 	return buf;
 }
 
-#define VMA_DBG_SEND_MCPKT_COUNTER_STR "VMA_DBG_SEND_MCPKT_COUNTER"
-#define VMA_DBG_SEND_MCPKT_MCGROUP_STR "VMA_DBG_SEND_MCPKT_MCGROUP"
+#define XLIO_DBG_SEND_MCPKT_COUNTER_STR "XLIO_DBG_SEND_MCPKT_COUNTER"
+#define XLIO_DBG_SEND_MCPKT_MCGROUP_STR "XLIO_DBG_SEND_MCPKT_MCGROUP"
 static int dbg_check_if_need_to_send_mcpkt_setting = -1; // 1-Init, 0-Disabled,  N>0-send mc packet on the Nth socket() call
 static int dbg_check_if_need_to_send_mcpkt_counter = 1;
 static int dbg_check_if_need_to_send_mcpkt_prevent_nested_calls = 0;
@@ -268,8 +268,8 @@ void dbg_send_mcpkt()
 	addr_in.sin_family = AF_INET;
 	addr_in.sin_port = INPORT_ANY;
 	addr_in.sin_addr.s_addr = INADDR_ANY;
-	if ((env_ptr = getenv(VMA_DBG_SEND_MCPKT_MCGROUP_STR)) == NULL) {
-		vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: Need to set '%s' parameter to dest ip (dot format)\n", __LINE__, VMA_DBG_SEND_MCPKT_MCGROUP_STR);
+	if ((env_ptr = getenv(XLIO_DBG_SEND_MCPKT_MCGROUP_STR)) == NULL) {
+		vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: Need to set '%s' parameter to dest ip (dot format)\n", __LINE__, XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
 		exit(2);
 	}
 	if (1 != inet_pton(AF_INET, env_ptr, &addr_in.sin_addr)) {
@@ -279,7 +279,7 @@ void dbg_send_mcpkt()
 
 	const char msgbuf[256] = "Hello Alex";
 
-	vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: Sending MC test packet to address: %d.%d.%d.%d [%s]\n", __LINE__, NIPQUAD(get_sa_ipv4_addr(p_addr)), VMA_DBG_SEND_MCPKT_MCGROUP_STR);
+	vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: Sending MC test packet to address: %d.%d.%d.%d [%s]\n", __LINE__, NIPQUAD(get_sa_ipv4_addr(p_addr)), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
 	if (sendto(fd, msgbuf, strlen(msgbuf), 0, p_addr, sizeof(struct sockaddr)) < 0)
 		vlog_printf(VLOG_ERROR, "sendto mc_packet failed! errno %d %s\n", errno, strerror(errno));
 	close(fd);
@@ -298,13 +298,13 @@ void dbg_check_if_need_to_send_mcpkt()
 
 		// Then we will read the user settings
 		char *env_ptr = NULL;
-		if ((env_ptr = getenv(VMA_DBG_SEND_MCPKT_COUNTER_STR)) != NULL) {
+		if ((env_ptr = getenv(XLIO_DBG_SEND_MCPKT_COUNTER_STR)) != NULL) {
 			dbg_check_if_need_to_send_mcpkt_setting = atoi(env_ptr);
 		}
 		if (dbg_check_if_need_to_send_mcpkt_setting > 0) {
 			vlog_printf(VLOG_WARNING, "send_mc_packet_test: *************************************************************\n");
-			vlog_printf(VLOG_WARNING, "send_mc_packet_test: Send test MC packet setting is: %d [%s]\n", dbg_check_if_need_to_send_mcpkt_setting, VMA_DBG_SEND_MCPKT_COUNTER_STR);
-			vlog_printf(VLOG_WARNING, "send_mc_packet_test: If you don't know what this means don't use '%s' VMA configuration parameter!\n", VMA_DBG_SEND_MCPKT_COUNTER_STR);
+			vlog_printf(VLOG_WARNING, "send_mc_packet_test: Send test MC packet setting is: %d [%s]\n", dbg_check_if_need_to_send_mcpkt_setting, XLIO_DBG_SEND_MCPKT_COUNTER_STR);
+			vlog_printf(VLOG_WARNING, "send_mc_packet_test: If you don't know what this means don't use '%s' " PRODUCT_NAME " configuration parameter!\n", XLIO_DBG_SEND_MCPKT_COUNTER_STR);
 			vlog_printf(VLOG_WARNING, "send_mc_packet_test: *************************************************************\n");
 		}
 	}
@@ -1044,7 +1044,7 @@ int getsockopt(int __fd, int __level, int __optname,
 	    __optlen && *__optlen >= sizeof(struct vma_api_t*)) {
 		static struct vma_api_t *vma_api = NULL;
 
-		srdr_logdbg("User request for VMA Extra API pointers");
+		srdr_logdbg("User request for " PRODUCT_NAME " Extra API pointers");
 
 		if (NULL == vma_api) {
 			bool enable_socketxtreme = safe_mce_sys().enable_socketxtreme;
@@ -2638,7 +2638,7 @@ pid_t fork(void)
 		sock_redirect_exit();
 
 		safe_mce_sys().get_env_params();
-		vlog_start("VMA", safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
+		vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
 		if (vma_rdma_lib_reset()) {
 			srdr_logerr("Child Process: rdma_lib_reset failed %d %s",
 					errno, strerror(errno));
@@ -2714,7 +2714,7 @@ int daemon(int __nochdir, int __noclose)
 		sock_redirect_exit();
 
 		safe_mce_sys().get_env_params();
-		vlog_start("VMA", safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
+		vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
 		if (vma_rdma_lib_reset()) {
 			srdr_logerr("Child Process: rdma_lib_reset failed %d %s",
 					errno, strerror(errno));
@@ -2771,10 +2771,10 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 				ret = orig_os_api.sigaction(SIGINT, &vma_action, NULL);
 
 				if (ret < 0) {
-					srdr_logdbg("Failed to register VMA SIGINT handler, calling to original sigaction handler\n");
+					srdr_logdbg("Failed to register SIGINT handler, calling to original sigaction handler\n");
 					break;
 				}
-				srdr_logdbg("Registered VMA SIGINT handler\n");
+				srdr_logdbg("Registered SIGINT handler\n");
 				g_act_prev = *act;
 			}
 			if (ret >= 0)

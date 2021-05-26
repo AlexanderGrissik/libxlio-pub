@@ -1804,7 +1804,7 @@ inline vma_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc_
 	return m_rx_callback(m_fd, nr_frags, iov, &pkt_info, m_rx_callback_context);
 }
 
-/* Update vma_completion with
+/* Update completion with
  * VMA_SOCKETXTREME_PACKET related data
  */
 inline void sockinfo_udp::fill_completion(mem_buf_desc_t* p_desc)

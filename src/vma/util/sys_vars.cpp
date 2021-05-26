@@ -87,7 +87,7 @@ mce_sys_var & safe_mce_sys() {return mce_sys_var::instance();}
 void mce_sys_var::print_vma_load_failure_msg()
 {
 	vlog_printf(VLOG_ERROR,"***************************************************************************\n");
-	vlog_printf(VLOG_ERROR,"* Failed loading VMA library! Try executing the application without VMA.  *\n");
+	vlog_printf(VLOG_ERROR,"* Failed loading " PRODUCT_NAME " library! Try executing the application without " PRODUCT_NAME ".  *\n");
 	vlog_printf(VLOG_ERROR,"* 'unset LD_PRELOAD' environment variable and rerun the application.      *\n");
 	vlog_printf(VLOG_ERROR,"***************************************************************************\n");
 }

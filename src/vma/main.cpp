@@ -237,7 +237,7 @@ void check_debug()
 {
 	if (safe_mce_sys().log_level >= VLOG_DEBUG) {
 		vlog_printf(VLOG_WARNING, "*************************************************************\n");
-		vlog_printf(VLOG_WARNING, "* VMA is currently configured with high log level           *\n");
+		vlog_printf(VLOG_WARNING, "* " PRODUCT_NAME " is currently configured with high log level          *\n");
 		vlog_printf(VLOG_WARNING, "* Application performance will decrease in this log level!  *\n");
 		vlog_printf(VLOG_WARNING, "* This log level is recommended for debugging purposes only *\n");
 		vlog_printf(VLOG_WARNING, "*************************************************************\n");
@@ -276,7 +276,7 @@ void check_locked_mem()
 		vlog_printf(VLOG_WARNING, "************************************************************************\n");
 		vlog_printf(VLOG_WARNING, "Your current max locked memory is: %ld. Please change it to unlimited.\n", rlim.rlim_max);
 		vlog_printf(VLOG_WARNING, "Set this user's default to `ulimit -l unlimited`.\n");
-		vlog_printf(VLOG_WARNING, "Read more about this topic in the VMA's User Manual.\n");
+		vlog_printf(VLOG_WARNING, "Read more about this topic in the " PRODUCT_NAME "'s User Manual.\n");
 		vlog_printf(VLOG_WARNING, "************************************************************************\n");
 	}
 }
@@ -383,7 +383,7 @@ void print_vma_global_settings()
 	vlog_printf(VLOG_INFO,"---------------------------------------------------------------------------\n");
 
 	if (safe_mce_sys().mce_spec != MCE_SPEC_NONE) {
-		vlog_printf(VLOG_INFO, FORMAT_STRING, "VMA Spec", vma_spec::to_str((vma_spec_t)safe_mce_sys().mce_spec), SYS_VAR_SPEC);
+		vlog_printf(VLOG_INFO, FORMAT_STRING, "Spec", vma_spec::to_str((vma_spec_t)safe_mce_sys().mce_spec), SYS_VAR_SPEC);
 
 		if (safe_mce_sys().mce_spec == MCE_SPEC_29WEST_LBM_29 || safe_mce_sys().mce_spec == MCE_SPEC_WOMBAT_FH_LBM_554) {
 			vlog_printf(VLOG_INFO, FORMAT_NUMBER, "Param 1:", safe_mce_sys().mce_spec_param1, SYS_VAR_SPEC_PARAM1);
@@ -582,7 +582,7 @@ void print_vma_global_settings()
 	}
 	switch (safe_mce_sys().lwip_mss) {
 	case MSS_FOLLOW_MTU:
-		VLOG_PARAM_NUMSTR("MSS", safe_mce_sys().lwip_mss, MCE_DEFAULT_MSS, SYS_VAR_MSS, "(follow VMA_MTU)");     break;
+		VLOG_PARAM_NUMSTR("MSS", safe_mce_sys().lwip_mss, MCE_DEFAULT_MSS, SYS_VAR_MSS, "(follow XLIO_MTU)");     break;
 	default:
 		VLOG_PARAM_NUMBER("MSS", safe_mce_sys().lwip_mss, MCE_DEFAULT_MSS, SYS_VAR_MSS);	break;
 	}
@@ -606,7 +606,7 @@ void prepare_fork()
                         vlog_printf(VLOG_DEBUG,"ibv_fork_init failed (errno=%d %m)\n", errno);
                         vlog_printf(VLOG_ERROR, "************************************************************************\n");
                         vlog_printf(VLOG_ERROR, "ibv_fork_init() failed! The effect of the application calling 'fork()' is undefined!\n");
-                        vlog_printf(VLOG_ERROR, "Read the fork section in the VMA's User Manual for more information\n");
+                        vlog_printf(VLOG_ERROR, "Read the fork section in the " PRODUCT_NAME "'s User Manual for more information\n");
                         vlog_printf(VLOG_ERROR, "************************************************************************\n");
                 }
                 else {
@@ -766,13 +766,13 @@ static void do_global_ctors_helper()
 
 	if (check_if_regular_file (safe_mce_sys().conf_filename))
 	{
-		vlog_printf(VLOG_WARNING,"FAILED to read VMA configuration file. %s is not a regular file.\n",
+		vlog_printf(VLOG_WARNING,"FAILED to read library configuration file. %s is not a regular file.\n",
 				safe_mce_sys().conf_filename);
 		if (strcmp (MCE_DEFAULT_CONF_FILE, safe_mce_sys().conf_filename))
-			vlog_printf(VLOG_INFO,"Please see README.txt section regarding VMA_CONFIG_FILE\n");
+			vlog_printf(VLOG_INFO,"Please see README section regarding %s\n", SYS_VAR_CONF_FILENAME);
 	}
 	else if (__vma_parse_config_file(safe_mce_sys().conf_filename))
-		vlog_printf(VLOG_DEBUG,"FAILED to read VMA configuration file: %s\n", safe_mce_sys().conf_filename);
+		vlog_printf(VLOG_DEBUG,"FAILED to read library configuration file: %s\n", safe_mce_sys().conf_filename);
 
 
 	// initialize LWIP tcp/ip stack
@@ -912,7 +912,7 @@ extern "C" int main_init(void)
 
 	g_init_global_ctors_done = false;
 
-	vlog_start("VMA", safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
+	vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename, safe_mce_sys().log_details, safe_mce_sys().log_colors);
 
 	print_vma_global_settings();
 
@@ -923,7 +923,7 @@ extern "C" int main_init(void)
 
 	if (*safe_mce_sys().stats_filename) {
 		if (check_if_regular_file (safe_mce_sys().stats_filename))
-			vlog_printf(VLOG_WARNING,"FAILED to create VMA statistics file. %s is not a regular file.\n", safe_mce_sys().stats_filename);
+			vlog_printf(VLOG_WARNING,"FAILED to create " PRODUCT_NAME " statistics file. %s is not a regular file.\n", safe_mce_sys().stats_filename);
 		else if (!(g_stats_file = fopen(safe_mce_sys().stats_filename, "w")))
 				vlog_printf(VLOG_WARNING," Couldn't open statistics file: %s\n", safe_mce_sys().stats_filename);
 	}

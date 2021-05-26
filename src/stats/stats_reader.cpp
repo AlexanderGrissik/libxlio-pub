@@ -71,7 +71,8 @@ typedef enum {
 	e_M = 1048576
 } units_t;
 
-#define MODULE_NAME				"xliostat"
+#define MODULE_NAME                             "xliostat"
+#define PRODUCT_NAME                            "XLIO"
 #define log_msg(log_fmt, log_args...)		printf(MODULE_NAME  ": " log_fmt "\n", ##log_args)
 #define log_err(log_fmt, log_args...)		fprintf(stderr,MODULE_NAME ": " log_fmt "\n", ##log_args)
 #define log_system_err(log_fmt, log_args...)	fprintf(stderr,MODULE_NAME ": " log_fmt " (errno=%d %s)\n", ##log_args, errno, strerror(errno))
@@ -145,7 +146,7 @@ FILE* g_stats_file = stdout;
 
 void usage(const char *argv0)
 {
-	printf("\nVMA Statistics\n");
+	printf("\n" PRODUCT_NAME " Statistics\n");
 	printf("Usage:\n");
 	printf("\t%s [-p pid] [-k directory] [-v view] [-d details] [-i interval] \n", argv0);
 	printf("\n");
@@ -153,19 +154,19 @@ void usage(const char *argv0)
 	printf("\tfind_pid=enabled, directory=\"%s\", view=1, details=1, interval=1, \n", MCE_DEFAULT_STATS_SHMEM_DIR);
 	printf("\n");
 	printf("Options:\n");
-	printf("  -p, --pid=<pid>\t\tShow VMA statistics for process with pid: <pid>\n");
+	printf("  -p, --pid=<pid>\t\tShow " PRODUCT_NAME " statistics for process with pid: <pid>\n");
 	printf("  -k, --directory=<directory>\tSet shared memory directory path to <directory>\n");
-	printf("  -n, --name=<application>\tShow VMA statistics for application: <application>\n");
-	printf("  -f, --find_pid\t\tFind and show statistics for VMA instance running (default)\n");
+	printf("  -n, --name=<application>\tShow " PRODUCT_NAME " statistics for application: <application>\n");
+	printf("  -f, --find_pid\t\tFind and show statistics for " PRODUCT_NAME " instance running (default)\n");
 	printf("  -F, --forbid_clean\t\tBy setting this flag inactive shared objects would not be removed\n");
 	printf("  -i, --interval=<n>\t\tPrint report every <n> seconds\n");
 	printf("  -c, --cycles=<n>\t\tDo <n> report print cycles and exit, use 0 value for infinite (default)\n");
 	printf("  -v, --view=<1|2|3|4|5>\tSet view type:1- basic info,2- extra info,3- full info,4- mc groups,5- similar to 'netstat -tunaep'\n");
 	printf("  -d, --details=<1|2>\t\tSet details mode:1- to see totals,2- to see deltas\t\t\n");
 	printf("  -z, --zero\t\t\tZero counters\n");
-	printf("  -l, --log_level=<level>\tSet VMA log level to <level>(one of: none/panic/error/warn/info/details/debug/fine/finer/all)\n");
+	printf("  -l, --log_level=<level>\tSet " PRODUCT_NAME " log level to <level>(one of: none/panic/error/warn/info/details/debug/fine/finer/all)\n");
 	printf("  -S, --fd_dump=<fd> [<level>]\tDump statistics for fd number <fd> using log level <level>. use 0 value for all open fds.\n");
-	printf("  -D, --details_level=<level>\tSet VMA log details level to <level>(0 <= level <= 3)\n");
+	printf("  -D, --details_level=<level>\tSet " PRODUCT_NAME " log details level to <level>(0 <= level <= 3)\n");
 	printf("  -s, --sockets=<list|range>\tLog only sockets that match <list> or <range>, format: 4-16 or 1,9 (or combination)\n");
 	printf("  -V, --version\t\t\tPrint version\n");
 	printf("  -h, --help\t\t\tPrint this help message\n");
@@ -813,7 +814,7 @@ void add_fd_to_array(int fd, in_addr_t mc_grp, mc_group_fds_t * mc_group_fds, in
 void print_mc_group_fds(mc_group_fds_t * mc_group_fds, int array_size)
 {
 	printf("\n");
-	printf("VMA Group Memberships Information\n");
+	printf(PRODUCT_NAME " Group Memberships Information\n");
 	printf("Group                fd number\n");
 	printf("------------------------------\n");
 	for (int i=0; i< array_size; i++) {
@@ -874,7 +875,7 @@ int print_app_name(int pid)
 void print_version(int pid)
 {
 	if (pid == -1) {
-		log_msg("Linked with VMA version: %d.%d.%d.%d", PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR, PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE);
+		log_msg("Linked with " PRODUCT_NAME " version: %d.%d.%d.%d", PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR, PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE);
 		log_msg("Build Date: %s", __DATE__ " " __TIME__);
 	}
 	else {
@@ -1010,9 +1011,9 @@ void stats_reader_handler(sh_mem_t* p_sh_mem, int pid)
 
 	if (user_params.fd_dump != STATS_FD_STATISTICS_DISABLED) {
 		if (user_params.fd_dump)
-			log_msg("Dumping Fd %d to VMA using log level = %s...", user_params.fd_dump, log_level::to_str(user_params.fd_dump_log_level));
+			log_msg("Dumping Fd %d to " PRODUCT_NAME " using log level = %s...", user_params.fd_dump, log_level::to_str(user_params.fd_dump_log_level));
 		else
-			log_msg("Dumping all Fd's to VMA using log level = %s...", log_level::to_str(user_params.fd_dump_log_level));
+			log_msg("Dumping all Fd's to " PRODUCT_NAME " using log level = %s...", log_level::to_str(user_params.fd_dump_log_level));
 		return;
 	}
 
@@ -1657,7 +1658,7 @@ int  init_print_process_stats(sh_mem_info_t & sh_mem_info)
 		sh_mem_info.fd_sh_stats = open(sh_mem_info.filename_sh_stats, O_RDONLY);
 	
 	if (sh_mem_info.fd_sh_stats < 0) {
-		log_err("VMA statistics data for process id %d not found\n", pid);
+		log_err(PRODUCT_NAME " statistics data for process id %d not found\n", pid);
 		return 1;
 	}
 	sh_mem_info.p_sh_stats = mmap(0, sizeof(sh_mem_t), PROT_READ, MAP_SHARED, sh_mem_info.fd_sh_stats, 0);
@@ -1677,7 +1678,7 @@ int  init_print_process_stats(sh_mem_info_t & sh_mem_info)
 		}
 	} else {
 		if (!check_vma_ver_compatability(&sh_mem->ver_info)) {
-			log_err("Version %d.%d.%d.%d is not compatible with VMA version %d.%d.%d.%d\n",
+			log_err("Version %d.%d.%d.%d is not compatible with " PRODUCT_NAME " version %d.%d.%d.%d\n",
 					PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR,
 					PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE,
 					sh_mem->ver_info.vma_lib_maj, sh_mem->ver_info.vma_lib_min,

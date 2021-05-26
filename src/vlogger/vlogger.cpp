@@ -46,8 +46,8 @@
 #include "vma/util/utils.h"
 #include "vma/util/sys_vars.h"
 
-#define VLOG_DEFAULT_MODULE_NAME "VMA"
-#define VMA_LOG_CB_ENV_VAR "VMA_LOG_CB_FUNC_PTR"
+#define VLOG_DEFAULT_MODULE_NAME "XLIO"
+#define XLIO_LOG_CB_ENV_VAR "XLIO_LOG_CB_FUNC_PTR"
 
 char         g_vlogger_module_name[VLOG_MODULE_MAX_LEN] = VLOG_DEFAULT_MODULE_NAME;
 int          g_vlogger_fd = -1;
@@ -82,16 +82,16 @@ namespace log_level
 
 	// must be by order because "to_str" relies on that!
 	static const level_names levels[] = {
-			{VLOG_NONE,    "NONE",    "\e[0;31m" /*Red*/,     (const char ** )log_names_none},
-			{VLOG_PANIC,   "PANIC",   "\e[0;31m" /*Red*/,     (const char ** )log_names_panic},
-			{VLOG_ERROR,   "ERROR",   "\e[0;31m" /*Red*/,     (const char ** )log_names_error},
+			{VLOG_NONE,    "NONE   ", "\e[0;31m" /*Red*/,     (const char ** )log_names_none},
+			{VLOG_PANIC,   "PANIC  ", "\e[0;31m" /*Red*/,     (const char ** )log_names_panic},
+			{VLOG_ERROR,   "ERROR  ", "\e[0;31m" /*Red*/,     (const char ** )log_names_error},
 			{VLOG_WARNING, "WARNING", "\e[2;35m" /*Magenta*/, (const char ** )log_names_warn},
-			{VLOG_INFO,    "INFO",    "\e[0m"    /*Default*/, (const char ** )log_names_info},
+			{VLOG_INFO,    "INFO   ", "\e[0m"    /*Default*/, (const char ** )log_names_info},
 			{VLOG_DETAILS, "DETAILS", "\e[0m"    /*Default*/, (const char ** )log_names_details},
-			{VLOG_DEBUG,   "DEBUG",   "\e[0m"    /*Default*/, (const char ** )log_names_debug},
-			{VLOG_FINE,    "FINE",    "\e[2m"    /*Grey*/,    (const char ** )log_names_fine},
-			{VLOG_FINER,   "FINER",   "\e[2m"    /*Grey*/,    (const char ** )log_names_finer},
-			{VLOG_ALL,     "ALL",     "\e[2m"    /*Grey*/,    (const char ** )log_names_all},
+			{VLOG_DEBUG,   "DEBUG  ", "\e[0m"    /*Default*/, (const char ** )log_names_debug},
+			{VLOG_FINE,    "FINE   ", "\e[2m"    /*Grey*/,    (const char ** )log_names_fine},
+			{VLOG_FINER,   "FINER  ", "\e[2m"    /*Grey*/,    (const char ** )log_names_finer},
+			{VLOG_ALL,     "ALL    ", "\e[2m"    /*Grey*/,    (const char ** )log_names_all},
 	};
 
 	// convert str to vlog_levels_t; upon error - returns the given 'def_value'
@@ -110,7 +110,7 @@ namespace log_level
 						return levels[i].level;
 					}
 					def_value = (vlog_levels_t)(VMA_MAX_DEFINED_LOG_LEVEL);
-					vlog_printf(VLOG_WARNING, "VMA trace level set to max level %s\n", to_str(def_value));
+					vlog_printf(VLOG_WARNING, "Trace level set to max level %s\n", to_str(def_value));
 					return def_value;
 				}
 				input_name++;
@@ -221,7 +221,7 @@ void printf_backtrace(void)
 static vma_log_cb_t vma_log_get_cb_func()
 {
 	vma_log_cb_t log_cb = NULL;
-	const char* const CB_STR = getenv(VMA_LOG_CB_ENV_VAR);
+	const char* const CB_STR = getenv(XLIO_LOG_CB_ENV_VAR);
 	if (!CB_STR || !*CB_STR) return NULL;
 
 	if (1 != sscanf(CB_STR, "%p", &log_cb)) return NULL;
@@ -284,7 +284,7 @@ void vlog_stop(void)
 		fclose(g_vlogger_file);
 
 	//fix for using LD_PRELOAD with LBM. Unset the pointer given by the parent process, so a child could get his own pointer without issues.
-	unsetenv(VMA_LOG_CB_ENV_VAR);
+	unsetenv(XLIO_LOG_CB_ENV_VAR);
 }
 
 void vlog_output(vlog_levels_t log_level, const char* fmt , ... )
