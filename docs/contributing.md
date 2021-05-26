@@ -53,7 +53,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     git push origin fix-branch
     ```
 10. From within GitHub, open a new pull request that will present you with a [pull request template form](../.github/PULL_REQUEST_TEMPLATE.md)
-    that should be filled out. Select `vNext` as a base for pull request.
+    that should be filled out. Select `master` as a base for pull request.
     Feel free to post a comment in the pull request to ping reviewers if you are
     awaiting an answer on something.
 11. Whenever a maintainer reviews a pull request they may request changes.
@@ -63,7 +63,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     confirm that it works supported platforms. Ideally, the pull request will pass ("be green") on all of CI's platforms.
     This means that all tests pass and there are no errors.
 13. Ask verification after passing continuous integration and getting review approval.
-14. Rebase your pull request on top of `vNext`.
+14. Rebase your pull request on top of `master`.
 15. Pull request is moved to `vNext` by authority person.
 16. Update pull request in case regression report any issues related one.
 
@@ -160,7 +160,7 @@ $ make -C tests/gtest
 
 Build specific tests:
 ```shell
-$ make -C tests/gtest CPPFLAGS="-DVMA_EXTRA_API_ENABLED=1"
+$ make -C tests/gtest CPPFLAGS="-DEXTRA_API_ENABLED=1"
 ```
 
 Display help:
@@ -170,13 +170,22 @@ $ ./tests/gtest --help
 
 All tests can be launched on single node that has two interfaces.
 
-Run tests:
+Run tests under OS:
 ```shell
 $ ./tests/gtest --addr=1.1.3.6:1.1.4.6
 ```
 or
 ```shell
 $ ./tests/gtest --if=ens2f0:ens2f1 --gtest_filter=tcp_sendfile.*
+```
+
+Run tests under XLIO:
+```shell
+$ LD_PRELOAD=libxlio.so ./tests/gtest --addr=1.1.3.6:1.1.4.6
+```
+or
+```shell
+$ LD_PRELOAD=libxlio.so ./tests/gtest --if=ens2f0:ens2f1 --gtest_filter=tcp_sendfile.*
 ```
 
 

@@ -40,7 +40,7 @@
 #include "udp/udp_base.h"
 #include "vma_base.h"
 
-#if defined(VMA_EXTRA_API_ENABLED) && (VMA_EXTRA_API_ENABLED == 1)
+#if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
 class vma_poll : public vma_base
 {
@@ -49,7 +49,7 @@ protected:
 	{
 		vma_base::SetUp();
 
-		SKIP_TRUE((getenv("VMA_SOCKETXTREME")), "This test requires VMA_SOCKETXTREME=1");
+		SKIP_TRUE((getenv("XLIO_SOCKETXTREME")), "This test requires XLIO_SOCKETXTREME=1");
 	}
 	void TearDown()
 	{
@@ -422,4 +422,4 @@ TEST_F(vma_poll, ti_4) {
 	}
 }
 
-#endif /* VMA_EXTRA_API_ENABLED */
+#endif /* EXTRA_API_ENABLED */

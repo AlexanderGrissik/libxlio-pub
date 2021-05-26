@@ -40,7 +40,7 @@
 #include "common/base.h"
 #include "common/cmn.h"
 
-#if defined(VMA_EXTRA_API_ENABLED) && (VMA_EXTRA_API_ENABLED == 1)
+#if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
 #ifdef SO_ZEROCOPY
 
@@ -715,4 +715,4 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 
 #endif /* SO_ZEROCOPY */
 
-#endif /* VMA_EXTRA_API_ENABLED */
+#endif /* EXTRA_API_ENABLED */

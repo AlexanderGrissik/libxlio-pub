@@ -1,6 +1,6 @@
 #!/bin/bash -El
 #
-# Testing script for VMA, to run from Jenkins CI
+# Testing script for XLIO, to run from Jenkins CI
 #
 # Copyright (C) Mellanox Technologies Ltd. 2001-2020.  ALL RIGHTS RESERVED.
 #
