@@ -1,3 +1,11 @@
+Version 1.0.0-1:
+Date + Time 2021-05-26
+=============================================================
+Added:
+        - RM #2647722 Add Tx TLS offload
+        - RM #2092860 Add TCP extra option support for Tx zero copy
+        - RM #2047225 RFC 6191 Reuse TIME-WAIT sockets
+
 Version 0.1.4-1:
 Date + Time 2021-05-20
 =============================================================
