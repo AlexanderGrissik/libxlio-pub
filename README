@@ -1,7 +1,7 @@
 Introduction
 ============
 
-Accelerated IO SW library (XLIO) boosts the performance of applications written over standard socket API such as 
+Accelerated IO SW library (XLIO) boosts the performance of applications written over standard socket API such as
 web serving, reverse proxying, caching, load balancing, media streaming, and more. Reduction of latency, increasing
 throughput and effective CPU utilization is achieved by full network stack bypass and direct access to
 accelerated network hardware.
@@ -59,7 +59,7 @@ Configuration Values
 
 On default startup the XLIO library logs to stderr the version, the modified
 configuration parameters being used and their values.
-Please notice that except VMA_TRACELEVEL, library logs just those parameters whose value != default.
+Please notice that except XLIO_TRACELEVEL, library logs just those parameters whose value != default.
 
 Example:
  VMA INFO: ---------------------------------------------------------------------------
@@ -77,11 +77,11 @@ Example:
  VMA DETAILS: Log Colors                     Enabled                    [VMA_LOG_COLORS]
  VMA DETAILS: Log File                                                  [VMA_LOG_FILE]
  VMA DETAILS: Stats File                                                [VMA_STATS_FILE]
- VMA DETAILS: Stats shared memory directory  /tmp/                      [VMA_STATS_SHMEM_DIR]
+ VMA DETAILS: Stats shared memory directory  /tmp/xlio                  [VMA_STATS_SHMEM_DIR]
  VMA DETAILS: VMAD output directory          /tmp/vma/                  [VMA_VMAD_NOTIFY_DIR]
  VMA DETAILS: Stats FD Num (max)             100                        [VMA_STATS_FD_NUM]
  VMA DETAILS: Conf File                      /etc/libxlio.conf           [VMA_CONFIG_FILE]
- VMA DETAILS: Application ID                 VMA_DEFAULT_APPLICATION_ID [VMA_APPLICATION_ID]
+ VMA DETAILS: Application ID                 XLIO_DEFAULT_APPLICATION_ID [VMA_APPLICATION_ID]
  VMA DETAILS: Polling CPU idle usage         Disabled                   [VMA_CPU_USAGE_STATS]
  VMA DETAILS: SigIntr Ctrl-C Handle          Disabled                   [VMA_HANDLE_SIGINTR]
  VMA DETAILS: SegFault Backtrace             Disabled                   [VMA_HANDLE_SIGSEGV]
@@ -171,9 +171,9 @@ Example:
  VMA DETAILS: Trig dummy send getsockname()  Disabled                   [VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME]
  VMA INFO: ---------------------------------------------------------------------------
 
-VMA_TRACELEVEL
+XLIO_TRACELEVEL
 Logging level the library will be using. Default is info
-Example: # VMA_TRACELEVEL=debug
+Example: # XLIO_TRACELEVEL=debug
 
 none
     Print no log at all
@@ -205,15 +205,15 @@ debug
 fine
     Low level run time logging of activity. This logging level includes basic
     Tx and Rx logging in the fast path and it will lower application
-    performance. It is recommended to use this level with VMA_LOG_FILE parameter.
+    performance. It is recommended to use this level with XLIO_LOG_FILE parameter.
 finer
     Very low level run time logging of activity!
     This logging level will DRASTICALLY lower application performance.
-    It is recommended to use this level with VMA_LOG_FILE parameter.
+    It is recommended to use this level with XLIO_LOG_FILE parameter.
 all
     today this level is identical to finer
 
-VMA_LOG_DETAILS
+XLIO_LOG_DETAILS
 Add details on each log line.
 0 = Basic log line
 1 = ThreadId
@@ -221,143 +221,143 @@ Add details on each log line.
 3 = Time + ProcessId + ThreadId [Time is in milli-seconds from start of process]
 Default value is 0
 
-VMA_LOG_COLORS
+XLIO_LOG_COLORS
 Use color scheme when logging. Red for errors, purple for warnings and dim for
-low level debugs. VMA_LOG_COLORS is automatically disabled when logging is direct
-to a non terminal device (e.g. VMA_LOG_FILE is configured).
+low level debugs. XLIO_LOG_COLORS is automatically disabled when logging is direct
+to a non terminal device (e.g. XLIO_LOG_FILE is configured).
 Default value is 1 (Enabled)
 
-VMA_LOG_FILE
+XLIO_LOG_FILE
 Redirect all logging to a specific user defined file.
-This is very useful when raising the VMA_TRACELEVEL
+This is very useful when raising the XLIO_TRACELEVEL
 Library will replace a single '%d' appearing in the log file name with the pid of
 the process loaded with XLIO. This can help in running multiple instances of XLIO
 each with it's own log file name.
-Example:  VMA_LOG_FILE=/tmp/vma_log.txt
+Example:  XLIO_LOG_FILE=/tmp/vma_log.txt
 
-VMA_SPEC
+XLIO_SPEC
 XLIO predefined specification profiles.
 
 latency
     Optimized for use cases that are keen on latency. i.e. Ping-Pong tests.
 
     Latency SPEC changes the following default configuration
-     VMA_RING_DEV_MEM_TX = 16384              (default: 0)
-     VMA_TX_WRE = 256                         (default: 2048)
-     VMA_TX_WRE_BATCHING = 4                  (default: 64)
-     VMA_RX_WRE = 256                         (default: 16000)
-     VMA_RX_WRE_BATCHING = 4                  (default: 64)
-     VMA_RX_POLL = -1                         (default: 100000)
-     VMA_TSO = Disable                        (default: Enable)
-     VMA_RX_PREFETCH_BYTES_BEFORE_POLL = 256  (default: 0)
-     VMA_GRO_STREAMS_MAX = 0                  (default: 32)
-     VMA_SELECT_POLL = -1                     (default: 100000)
-     VMA_SELECT_POLL_OS_FORCE = Enable        (default: Disabled)
-     VMA_SELECT_POLL_OS_RATIO = 1             (default: 10)
-     VMA_SELECT_SKIP_OS = 1                   (default: 4)
-     VMA_PROGRESS_ENGINE_INTERVAL = 100       (default: 10)
-     VMA_CQ_MODERATION_ENABLE = Disable       (default: Enabled)
-     VMA_CQ_AIM_MAX_COUNT = 128               (default: 560)
-     VMA_CQ_AIM_INTERVAL_MSEC = Disable       (default: 250)
-     VMA_CQ_KEEP_QP_FULL = Disable            (default: Enable)
-     VMA_TCP_NODELAY = Enable                 (default: Disable)
-     VMA_AVOID_SYS_CALLS_ON_TCP_FD = Enable   (default: Disable)
-     VMA_INTERNAL_THREAD_AFFINITY = 0         (default: -1)
-     VMA_THREAD_MODE = Single                 (default: Multi spin lock)
-     VMA_MEM_ALLOC_TYPE = 2                   (default: 1 (Contig Pages))
+     XLIO_RING_DEV_MEM_TX = 16384              (default: 0)
+     XLIO_TX_WRE = 256                         (default: 2048)
+     XLIO_TX_WRE_BATCHING = 4                  (default: 64)
+     XLIO_RX_WRE = 256                         (default: 16000)
+     XLIO_RX_WRE_BATCHING = 4                  (default: 64)
+     XLIO_RX_POLL = -1                         (default: 100000)
+     XLIO_TSO = Disable                        (default: Enable)
+     XLIO_RX_PREFETCH_BYTES_BEFORE_POLL = 256  (default: 0)
+     XLIO_GRO_STREAMS_MAX = 0                  (default: 32)
+     XLIO_SELECT_POLL = -1                     (default: 100000)
+     XLIO_SELECT_POLL_OS_FORCE = Enable        (default: Disabled)
+     XLIO_SELECT_POLL_OS_RATIO = 1             (default: 10)
+     XLIO_SELECT_SKIP_OS = 1                   (default: 4)
+     XLIO_PROGRESS_ENGINE_INTERVAL = 100       (default: 10)
+     XLIO_CQ_MODERATION_ENABLE = Disable       (default: Enabled)
+     XLIO_CQ_AIM_MAX_COUNT = 128               (default: 560)
+     XLIO_CQ_AIM_INTERVAL_MSEC = Disable       (default: 250)
+     XLIO_CQ_KEEP_QP_FULL = Disable            (default: Enable)
+     XLIO_TCP_NODELAY = Enable                 (default: Disable)
+     XLIO_AVOID_SYS_CALLS_ON_TCP_FD = Enable   (default: Disable)
+     XLIO_INTERNAL_THREAD_AFFINITY = 0         (default: -1)
+     XLIO_THREAD_MODE = Single                 (default: Multi spin lock)
+     XLIO_MEM_ALLOC_TYPE = 2                   (default: 1 (Contig Pages))
 
-    Example: VMA_SPEC=latency
+    Example: XLIO_SPEC=latency
 
 multi_ring_latency
      Optimized for use cases that are keen on latency where two applications communicate using send-only and receive-only TCP sockets
 
     Multi ring latency SPEC changes the following default configuration
-     VMA_MEM_ALLOC_TYPE = 2                    (default: 1 (Contig Pages))
-     VMA_SELECT_POLL = -1                      (default: 100000)
-     VMA_RX_POLL = -1                          (default: 100000)
-     VMA_RING_ALLOCATION_LOGIC_TX = 20         (default: Ring per interface)
-     VMA_RING_ALLOCATION_LOGIC_RX = 20         (default: Ring per interface)
-     VMA_SELECT_POLL_OS_RATIO = 0              (default: 10)
-     VMA_SELECT_SKIP_OS = 0                    (default: 4)
-     VMA_RX_POLL_ON_TX_TCP = true              (default: false)
-     VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME = true (default: false)
+     XLIO_MEM_ALLOC_TYPE = 2                    (default: 1 (Contig Pages))
+     XLIO_SELECT_POLL = -1                      (default: 100000)
+     XLIO_RX_POLL = -1                          (default: 100000)
+     XLIO_RING_ALLOCATION_LOGIC_TX = 20         (default: Ring per interface)
+     XLIO_RING_ALLOCATION_LOGIC_RX = 20         (default: Ring per interface)
+     XLIO_SELECT_POLL_OS_RATIO = 0              (default: 10)
+     XLIO_SELECT_SKIP_OS = 0                    (default: 4)
+     XLIO_RX_POLL_ON_TX_TCP = true              (default: false)
+     XLIO_TRIGGER_DUMMY_SEND_GETSOCKNAME = true (default: false)
 
-    Example: VMA_SPEC=multi_ring_latency
+    Example: XLIO_SPEC=multi_ring_latency
 
-VMA_STATS_FILE
+XLIO_STATS_FILE
 Redirect socket statistics to a specific user defined file.
 Library will dump each socket's statistics into a file when closing the socket.
-Example:  VMA_STATS_FILE=/tmp/stats
+Example:  XLIO_STATS_FILE=/tmp/stats
 
-VMA_STATS_SHMEM_DIR
+XLIO_STATS_SHMEM_DIR
 Set the directory path for the library to create the shared memory files for vma_stats.
 No files will be created when setting this value to empty string "".
 Default value is /tmp/
 
-VMA_VMAD_NOTIFY_DIR
+XLIO_VMAD_NOTIFY_DIR
 Set the directory path for XLIO to write files used by vmad.
 Default value is /tmp/vma/
 Note: when used vmad must be run with --notify-dir directing the same folder.
 
-VMA_STATS_FD_NUM
+XLIO_STATS_FD_NUM
 Max number of sockets monitored by XLIO statistic mechanism.
 Value range is 0 to 1024.
 Default value is 100
 
-VMA_CONFIG_FILE
+XLIO_CONFIG_FILE
 Sets the full path to the XLIO configuration file.
 Default values is: /etc/libxlio.conf
-Example: VMA_CONFIG_FILE=/tmp/libxlio.conf
+Example: XLIO_CONFIG_FILE=/tmp/libxlio.conf
 
-VMA_APPLICATION_ID
+XLIO_APPLICATION_ID
 Specify a group of rules from libxlio.conf for XLIO to apply.
-Example: 'VMA_APPLICATION_ID=iperf_server'.
-Default is "VMA_DEFAULT_APPLICATION_ID" (match only the '*' group rule)
+Example: 'XLIO_APPLICATION_ID=iperf_server'.
+Default is "XLIO_DEFAULT_APPLICATION_ID" (match only the '*' group rule)
 
-VMA_CPU_USAGE_STATS
+XLIO_CPU_USAGE_STATS
 Calculate XLIO CPU usage during polling HW loops.
 This information is available through XLIO stats utility.
 Default value is 0 (Disabled)
 
-VMA_HANDLE_SIGINTR
+XLIO_HANDLE_SIGINTR
 When Enabled, the library handler will be called when interrupt signal is sent to the process.
 XLIO will also call to application's handler if exist.
 Value range is 0 to 1
 Default value is 0 (Disabled)
 
-VMA_HANDLE_SIGSEGV
+XLIO_HANDLE_SIGSEGV
 When Enabled, print backtrace if segmentation fault happens.
 Value range is 0 to 1
 Default value is 0 (Disabled)
 
-VMA_ZC_BUFS
+XLIO_ZC_BUFS
 Number of global zerocopy data buffer elements allocation.
 Default value is 200000
 
-VMA_ZC_CACHE_THRESHOLD
+XLIO_ZC_CACHE_THRESHOLD
 Memory limit for zerocopy (mapping) cache in MB.
 Default value is 10240
 
-VMA_TX_SEGS_TCP
+XLIO_TX_SEGS_TCP
 Number of TCP LWIP segments allocation for each XLIO process.
 Default value is 1000000
 
-VMA_TX_BUFS
+XLIO_TX_BUFS
 Number of global Tx data buffer elements allocation.
 Default value is 200000
 
-VMA_TX_BUF_SIZE
+XLIO_TX_BUF_SIZE
 Size of Tx data buffer elements allocation.
 Can not be less then MTU (Maximum Transfer Unit) and greater than 0xFF00.
-Default value is calculated basing on VMA_MTU and VMA_MSS.
+Default value is calculated basing on XLIO_MTU and XLIO_MSS.
 
-VMA_TX_WRE
+XLIO_TX_WRE
 Number of Work Request Elements allocated in all transmit QP's.
 The number of QP's can change according to the number of network offloaded
 interfaces.
 Default value is 2048
 
-VMA_TX_WRE_BATCHING
+XLIO_TX_WRE_BATCHING
 The number of Tx Work Request Elements used until a completion signal is requested.
 Tuning this parameter allows a better control of the jitter encountered from the
 Tx CQE handling. Setting a high batching value results in high PPS and lower
@@ -365,15 +365,15 @@ average latency. Setting a low batching value results in lower latency std-dev.
 Value range is 1-64
 Default value is 64
 
-VMA_TX_MAX_INLINE
+XLIO_TX_MAX_INLINE
 Max send inline data set for QP.
 Data copied into the INLINE space is at least 32 bytes of headers and
 the rest can be user datagram payload.
-VMA_TX_MAX_INLINE=0 disables INLINEing on the Tx transmit path.
-In older releases this parameter was called: VMA_MAX_INLINE
-Default VMA_TX_MAX_INLINE is 204
+XLIO_TX_MAX_INLINE=0 disables INLINEing on the Tx transmit path.
+In older releases this parameter was called: XLIO_MAX_INLINE
+Default XLIO_TX_MAX_INLINE is 204
 
-VMA_TX_MC_LOOPBACK
+XLIO_TX_MC_LOOPBACK
 This parameter sets the initial value used by XLIO internally to controls the
 multicast loopback packets behavior during transmission.
 An application that calls setsockopt() with IP_MULTICAST_LOOP will run over
@@ -381,7 +381,7 @@ the initial value set by this parameter.
 Read more in 'Multicast loopback behavior' in notes section below
 Default value is 1 (Enabled)
 
-VMA_TX_NONBLOCKED_EAGAINS
+XLIO_TX_NONBLOCKED_EAGAINS
 Return value 'OK' on all send operation done on a non-blocked UDP sockets. This
 is the OS default behavior. The datagram sent is silently dropped inside XLIO
 or the network stack.
@@ -390,7 +390,7 @@ accomplish the send operation and the datagram was dropped.
 In both cases a dropped Tx statistical counter is incremented.
 Default value is 0 (Disabled)
 
-VMA_TX_PREFETCH_BYTES
+XLIO_TX_PREFETCH_BYTES
 Accelerate offloaded send operation by optimizing cache. Different values
 give optimized send rate on different machines. We recommend you tune this
 for your specific hardware.
@@ -398,8 +398,8 @@ Value range is 0 to MTU size
 Disable with a value of 0
 Default value is 256 bytes
 
-VMA_RING_ALLOCATION_LOGIC_TX
-VMA_RING_ALLOCATION_LOGIC_RX
+XLIO_RING_ALLOCATION_LOGIC_TX
+XLIO_RING_ALLOCATION_LOGIC_RX
 Ring allocation logic is used to separate the traffic to different rings.
 By default all sockets use the same ring for both RX and TX over the same interface.
 Even when specifying the logic to be per socket or thread, for different interfaces
@@ -416,55 +416,55 @@ The logic options are:
 31 - Ring per core - attach threads : attach each thread to a cpu core
 Default value is 0
 
-VMA_RING_MIGRATION_RATIO_TX
-VMA_RING_MIGRATION_RATIO_RX
+XLIO_RING_MIGRATION_RATIO_TX
+XLIO_RING_MIGRATION_RATIO_RX
 Ring migration ratio is used with the "ring per thread" logic in order to decide when
 it is beneficial to replace the socket's ring with the ring allocated for the current thread.
-Each VMA_RING_MIGRATION_RATIO iterations (of accessing the ring) we check the current
+Each XLIO_RING_MIGRATION_RATIO iterations (of accessing the ring) we check the current
 thread ID and see if our ring is matching the current thread.
 If not, we consider ring migration. If we keep accessing the ring from the same thread for some
 iterations, we migrate the socket to this thread ring.
 Use a value of -1 in order to disable migration.
 Default value is 100
 
-VMA_RING_LIMIT_PER_INTERFACE
+XLIO_RING_LIMIT_PER_INTERFACE
 Limit the number of rings that can be allocated per interface.
 For example, in ring allocation per socket logic, if the number of sockets using
 the same interface is larger than the limit, then several sockets will be sharing the
 same ring.
-[Note:VMA_RX_BUFS might need to be adjusted in order to have enough buffers for all
-rings in the system. Each ring consume VMA_RX_WRE buffers.]
+[Note:XLIO_RX_BUFS might need to be adjusted in order to have enough buffers for all
+rings in the system. Each ring consume XLIO_RX_WRE buffers.]
 Use a value of 0 for unlimited number of rings.
 Default value is 0 (no limit)
 
-VMA_RING_DEV_MEM_TX
+XLIO_RING_DEV_MEM_TX
 XLIO can use the On Device Memory to store the egress packet if it does not fit into
 the BF inline buffer. This improves application egress latency by reducing PCI transactions.
-Using VMA_RING_DEV_MEM_TX, the user can set the amount of On Device Memory buffer allocated
+Using XLIO_RING_DEV_MEM_TX, the user can set the amount of On Device Memory buffer allocated
 for each TX ring.
 The total size of the On Device Memory is limited to 256k for a single port HCA and to
 128k for dual port HCA.
 Default value is 0
 
-VMA_RX_BUFS
+XLIO_RX_BUFS
 Number Rx data buffer elements allocation for the processes. These data buffers
 may be used by all QPs on all HCAs
 Default value is 200000
 
-VMA_RX_WRE
+XLIO_RX_WRE
 Number of Work Request Elements allocated in all receive QP's.
 Default value is 16000
 
-VMA_RX_WRE_BATCHING
+XLIO_RX_WRE_BATCHING
 Number of Work Request Elements and RX buffers to batch before recycling.
 Batching decrease latency mean, but might increase latency STD.
 Value range is 1-1024.
 Default value is 64
 
-VMA_RX_BYTES_MIN
+XLIO_RX_BYTES_MIN
 Minimum value in bytes that will be used per socket by XLIO when applications
 call to setsockopt(SO_RCVBUF). If application tries to set a smaller value then
-configured in VMA_RX_BYTES_MIN, XLIO will force this minimum limit value on the
+configured in XLIO_RX_BYTES_MIN, XLIO will force this minimum limit value on the
 socket.XLIO offloaded socket's receive max limit of ready bytes count. If the
 application does not drain a sockets and the byte limit is reached, new
 received datagrams will be dropped.
@@ -472,7 +472,7 @@ Monitor of the applications socket's usage of current, max and dropped bytes
 and packet counters can be done with vma_stats.
 Default value is 65536
 
-VMA_RX_POLL
+XLIO_RX_POLL
 The number of times to poll on Rx path for ready packets before going to sleep
 (wait for interrupt in blocked mode) or return -1 (in non-blocked mode).
 This Rx polling is done when the application is working with direct blocked
@@ -483,7 +483,7 @@ Value range is -1, 0 to 100,000,000
 Where value of -1 is used for infinite polling
 Default value is 100000
 
-VMA_TSO
+XLIO_TSO
 With Segmentation Offload, or TCP Large Send, TCP can pass a buffer to be
 transmitted that is bigger than the maximum transmission unit (MTU) supported
 by the medium. Intelligent adapters implement large sends by using the
@@ -493,29 +493,29 @@ the sequence number and checksum fields creates TCP segment headers.
 Expected benefits: Throughput increase and CPU unload.
 Default value is 1 (Enable)
 
-VMA_RX_POLL_INIT
+XLIO_RX_POLL_INIT
 XLIO maps all UDP sockets as potential offloaded capable. Only after the
 ADD_MEMBERSHIP does the offload start to work and the CQ polling kicks in XLIO.
 This parameter control the polling count during this transition phase where the
 socket is a UDP unicast socket and no multicast addresses where added to it.
-Once the first ADD_MEMBERSHIP is called the above VMA_RX_POLL takes effect.
-Value range is similar to the above VMA_RX_POLL
+Once the first ADD_MEMBERSHIP is called the above XLIO_RX_POLL takes effect.
+Value range is similar to the above XLIO_RX_POLL
 Default value is 0
 
-VMA_RX_UDP_POLL_OS_RATIO
+XLIO_RX_UDP_POLL_OS_RATIO
 The above parameter will define the ratio between XLIO CQ poll and OS FD poll.
 This will result in a single poll of the not-offloaded sockets every
-VMA_RX_UDP_POLL_OS_RATIO offloaded socket (CQ) polls. No matter if the CQ poll
+XLIO_RX_UDP_POLL_OS_RATIO offloaded socket (CQ) polls. No matter if the CQ poll
 was a hit or miss. No matter if the socket is blocking or non-blocking.
 When disabled, only offloaded sockets are polled.
-This parameter replaces the two old parameters: VMA_RX_POLL_OS_RATIO and
-VMA_RX_SKIP_OS
+This parameter replaces the two old parameters: XLIO_RX_POLL_OS_RATIO and
+XLIO_RX_SKIP_OS
 Disable with 0
 Default value is 100
 
-VMA_HW_TS_CONVERSION
+XLIO_HW_TS_CONVERSION
 The above parameter defines the time stamp conversion method.
-The value of VMA_HW_TS_CONVERSION is determined by all devices - i.e if the hardware of
+The value of XLIO_HW_TS_CONVERSION is determined by all devices - i.e if the hardware of
 one device does not support the conversion, then it will be disabled for the other devices.
 Options = [0,1,2,3,4]:
 0 = Disabled
@@ -531,14 +531,14 @@ Options = [0,1,2,3,4]:
                                             if hardware does not supports).
 Default value: 3
 
-VMA_RX_POLL_YIELD
+XLIO_RX_POLL_YIELD
 When an application is running with multiple threads, on a limited number of
 cores, there is a need for each thread polling inside the XLIO (read, readv,
 recv & recvfrom) to yield the CPU to other polling thread so not to starve
 them from processing incoming packets.
 Default value is 0 (Disable)
 
-VMA_RX_PREFETCH_BYTES
+XLIO_RX_PREFETCH_BYTES
 Size of receive buffer to prefetch into cache while processing ingress packets.
 The default is a single cache line of 64 bytes which should be at least 32
 bytes to cover the IPoIB+IP+UDP headers and a small part of the users payload.
@@ -546,14 +546,14 @@ Increasing this can help improve performance for larger user payload sizes.
 Value range is 32 bytes to MTU size
 Default value is 256 bytes
 
-VMA_RX_PREFETCH_BYTES_BEFORE_POLL
-Same as the above VMA_RX_PREFETCH_BYTES, only that prefetch is done before
+XLIO_RX_PREFETCH_BYTES_BEFORE_POLL
+Same as the above XLIO_RX_PREFETCH_BYTES, only that prefetch is done before
 actually getting the packets.
 This benefit low pps traffic latency.
 Disable with 0.
 Default value is 0
 
-VMA_RX_CQ_DRAIN_RATE_NSEC
+XLIO_RX_CQ_DRAIN_RATE_NSEC
 Socket's receive path CQ drain logic rate control.
 When disabled (Default) the socket's receive path will first try to return a
 ready packet from the socket's receive ready packet queue. Only if that queue
@@ -566,36 +566,36 @@ sockets ready packet queue.
 Recommended value is 100-5000 (nsec)
 Default value is 0 (Disable)
 
-VMA_TCP_ABORT_ON_CLOSE
+XLIO_TCP_ABORT_ON_CLOSE
 This parameter controls how XLIO performs socket close operation. If enabled,
 XLIO sends RST segment and discards TCP state for the socket. Notice, in this
 scenario pending data segments may be unsent.
 If disabled, XLIO sends pending data segments and then FIN segment.
 Default: 0 (Disable)
 
-VMA_RX_POLL_ON_TX_TCP
+XLIO_RX_POLL_ON_TX_TCP
 This parameter enables/disables TCP RX polling during TCP TX operation for faster
 TCP ACK reception.
 Default: 0 (Disable)
 
-VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME
+XLIO_TRIGGER_DUMMY_SEND_GETSOCKNAME
 This parameter triggers dummy packet send from getsockname(), this
 will warm up the caches.
 For more information regarding dummy send, see XLIO user manual document.
 Default: 0 (Disable)
 
-VMA_GRO_STREAMS_MAX
+XLIO_GRO_STREAMS_MAX
 Control the number of TCP streams to perform GRO (generic receive offload) simultaneously.
 Disable GRO with a value of 0.
 Default value is 32
 
-VMA_TCP_3T_RULES
+XLIO_TCP_3T_RULES
 Use only 3 tuple rules for TCP, instead of using 5 tuple rules.
 This can improve performance for a server with listen socket which accept many
 connections.
 Default: 0 (Disable)
 
-VMA_UDP_3T_RULES
+XLIO_UDP_3T_RULES
 This parameter can be relevant in case application uses connected udp sockets.
 3 tuple rules are used in hardware flow steering rule when the parameter is enabled and
 5 tuple flow steering rule when it is disabled.
@@ -603,16 +603,16 @@ Enabling this option can reduce hardware flow steering resources.
 But when it is disabled application might see benefits in latency and cycles per packet.
 Default: 1 (Enable)
 
-VMA_ETH_MC_L2_ONLY_RULES
+XLIO_ETH_MC_L2_ONLY_RULES
 Use only L2 rules for Ethernet Multicast.
 All loopback traffic will be handled by XLIO instead of OS.
 
-VMA_MC_FORCE_FLOWTAG
+XLIO_MC_FORCE_FLOWTAG
 Forces the use of flow tag acceleration for multicast flows where setsockopt(SO_REUSEADDR) is
 set.
 Applicable if there are no other sockets opened for the same flow in system.
 
-VMA_SELECT_POLL
+XLIO_SELECT_POLL
 The duration in micro-seconds (usec) in which to poll the hardware on Rx path before
 going to sleep (pending an interrupt blocking on OS select(), poll() or epoll_wait().
 The max polling duration will be limited by the timeout the user is using when
@@ -625,37 +625,37 @@ Where value of -1 is used for infinite polling
 Where value of 0 is used for no polling (interrupt driven)
 Default value is 100000
 
-VMA_SELECT_POLL_OS_FORCE
+XLIO_SELECT_POLL_OS_FORCE
 This flag forces to poll the OS file descriptors while user thread calls
 select(), poll() or epoll_wait() even when no offloaded sockets are mapped.
-Enabling this flag causes XLIO to set VMA_SELECT_POLL_OS_RATIO and
-VMA_SELECT_SKIP_OS to 1. This will result in VMA_SELECT_POLL number of
+Enabling this flag causes XLIO to set XLIO_SELECT_POLL_OS_RATIO and
+XLIO_SELECT_SKIP_OS to 1. This will result in XLIO_SELECT_POLL number of
 times XLIO will poll the OS file descriptors, along side with offloaded
 sockets, if such sockets exists.
-Note that setting VMA_SELECT_SKIP_OS and VMA_SELECT_POLL_OS_RATIO
+Note that setting XLIO_SELECT_SKIP_OS and XLIO_SELECT_POLL_OS_RATIO
 directly will override the values these parameters gets while
-VMA_SELECT_POLL_OS_FORCE is enabled.
+XLIO_SELECT_POLL_OS_FORCE is enabled.
 Enable with 1
 Disable with 0
 Default value is 0
 
-VMA_SELECT_POLL_OS_RATIO
+XLIO_SELECT_POLL_OS_RATIO
 This will enable polling of the OS file descriptors while user thread calls
 select() or poll() and the XLIO is busy in the offloaded sockets polling loop.
 This will result in a single poll of the not-offloaded sockets every
-VMA_SELECT_POLL_RATIO offloaded sockets (CQ) polls.
+XLIO_SELECT_POLL_RATIO offloaded sockets (CQ) polls.
 When disabled, only offloaded sockets are polled.
-(See VMA_SELECT_POLL for more info)
+(See XLIO_SELECT_POLL for more info)
 Disable with 0
 Default value is 10
 
-VMA_SELECT_SKIP_OS
-Similar to VMA_RX_SKIP_OS, but in select() or poll() this will force the XLIO
+XLIO_SELECT_SKIP_OS
+Similar to XLIO_RX_SKIP_OS, but in select() or poll() this will force the XLIO
 to check the non offloaded fd even though an offloaded socket has ready
 packets found while polling.
 Default value is 4
 
-VMA_PROGRESS_ENGINE_INTERVAL
+XLIO_PROGRESS_ENGINE_INTERVAL
 XLIO Internal thread safe check that the CQ is drained at least once
 every N milliseconds.
 This mechanism allows the library to progress the TCP stack even when the application
@@ -665,50 +665,50 @@ socket API calls then this thread goes back to sleep without any processing.
 Disable with 0
 Default value is 10 msec
 
-VMA_PROGRESS_ENGINE_WCE_MAX
+XLIO_PROGRESS_ENGINE_WCE_MAX
 Each time XLIO's internal thread starts it's CQ draining, it will stop when
 reach this max value.
 The application is not limited by this value in the number of CQ elements
 it can ProcessId form calling any of the receive path socket APIs.
 Default value is 10000
 
-VMA_CQ_MODERATION_ENABLE
+XLIO_CQ_MODERATION_ENABLE
 Enable CQ interrupt moderation.
 Default value is 1 (Enabled)
 
-VMA_CQ_MODERATION_COUNT
+XLIO_CQ_MODERATION_COUNT
 Number of packets to hold before generating interrupt.
 Default value is 48
 
-VMA_CQ_MODERATION_PERIOD_USEC
+XLIO_CQ_MODERATION_PERIOD_USEC
 Period in micro-seconds for holding the packet before generating interrupt.
 Default value is 50
 
-VMA_CQ_AIM_MAX_COUNT
+XLIO_CQ_AIM_MAX_COUNT
 Maximum count value to use in the adaptive interrupt moderation algorithm.
 Default value is 560
 
-VMA_CQ_AIM_MAX_PERIOD_USEC
+XLIO_CQ_AIM_MAX_PERIOD_USEC
 Maximum period value to use in the adaptive interrupt moderation algorithm.
 Default value is 250
 
-VMA_CQ_AIM_INTERVAL_MSEC
+XLIO_CQ_AIM_INTERVAL_MSEC
 Frequency of interrupt moderation adaptation.
 Interval in milliseconds between adaptation attempts.
 Use value of 0 to disable adaptive interrupt moderation.
 Default value is 250
 
-VMA_CQ_AIM_INTERRUPTS_RATE_PER_SEC
+XLIO_CQ_AIM_INTERRUPTS_RATE_PER_SEC
 Desired interrupts rate per second for each ring (CQ).
 The count and period parameters for CQ moderation will change automatically
 to achieve the desired interrupt rate for the current traffic rate.
 Default value is 5000
 
-VMA_CQ_POLL_BATCH_MAX
+XLIO_CQ_POLL_BATCH_MAX
 Max size of the array while polling the CQs in the XLIO
 Default value is 16
 
-VMA_CQ_KEEP_QP_FULL
+XLIO_CQ_KEEP_QP_FULL
 If disabled (default), CQ will not try to compensate for each poll on the
 receive path. It will use a "debt" to remember how many WRE miss from each QP
 to fill it when buffers become available.
@@ -717,31 +717,31 @@ buffers are short it will re-post a recently completed buffer. This causes a pac
 drop and will be monitored in the vma_stats.
 Default value is 1 (Enabled)
 
-VMA_QP_COMPENSATION_LEVEL
+XLIO_QP_COMPENSATION_LEVEL
 Number of spare receive buffer CQ holds to allow for filling up QP while full
 receive buffers are being processes inside XLIO.
 Default value is 256 buffers
 
-VMA_USER_HUGE_PAGE_SIZE
+XLIO_USER_HUGE_PAGE_SIZE
 Size of huge pages used by user application for buffers provided as part
 of the TX Zero Copy socket API (sendmsg with MSG_ZEROCOPY flag)
 Default value is 2MB
 
-VMA_OFFLOADED_SOCKETS
+XLIO_OFFLOADED_SOCKETS
 Create all sockets as offloaded/not-offloaded by default.
 Value of 1 is for offloaded, 0 for not-offloaded.
 Default value is 1 (Enabled)
 
-VMA_TIMER_RESOLUTION_MSEC
+XLIO_TIMER_RESOLUTION_MSEC
 Control XLIO internal thread wakeup timer resolution (in milliseconds)
 Default value is 10 (milliseconds)
 
-VMA_TCP_TIMER_RESOLUTION_MSEC
+XLIO_TCP_TIMER_RESOLUTION_MSEC
 Control XLIO internal TCP timer resolution (fast timer) (in milliseconds).
-Minimum value is the internal thread wakeup timer resolution (VMA_TIMER_RESOLUTION_MSEC).
+Minimum value is the internal thread wakeup timer resolution (XLIO_TIMER_RESOLUTION_MSEC).
 Default value is 100 (milliseconds)
 
-VMA_TCP_CTL_THREAD
+XLIO_TCP_CTL_THREAD
 Do all TCP control flows in the internal thread.
 This feature should be kept disabled if using blocking poll/select (epoll is OK).
 Use value of 0 to disable.
@@ -749,7 +749,7 @@ Use value of 1 for waking up the thread when there is work to do.
 Use value of 2 for waiting for thread timer to expire.
 Default value is disabled
 
-VMA_TCP_TIMESTAMP_OPTION
+XLIO_TCP_TIMESTAMP_OPTION
 If set, enable TCP timestamp option.
 Currently, LWIP is not supporting RTTM and PAWS mechanisms.
 See RFC1323 for info.
@@ -758,7 +758,7 @@ Use value of 1 for enable.
 Use value of 2 for OS follow up.
 Disabled by default (enabling causing a slight performance degradation).
 
-VMA_TCP_NODELAY
+XLIO_TCP_NODELAY
 If set, disable the Nagle algorithm option for each TCP socket during initialization.
 This means that TCP segments are always sent as soon as possible, even if there is
 only a small amount of data.
@@ -768,7 +768,7 @@ Use value of 0 to disable.
 Use value of 1 for enable.
 Default value is Disabled.
 
-VMA_TCP_QUICKACK
+XLIO_TCP_QUICKACK
 If set, disable delayed acknowledge ability.
 This means that TCP responds after every packet.
 For more information on TCP_QUICKACK flag refer to TCP manual page.
@@ -777,7 +777,7 @@ Use value of 0 to disable.
 Use value of 1 for enable.
 Default value is Disabled.
 
-VMA_EXCEPTION_HANDLING
+XLIO_EXCEPTION_HANDLING
 Mode for handling missing support or error cases in Socket API or functionality by XLIO.
 Useful for quickly identifying XLIO unsupported Socket API or features
 Use value of -2 to exit() on XLIO startup failure.
@@ -788,14 +788,14 @@ Use value of 2 to log ERROR message and return API respectful error code.
 Use value of 3 to log ERROR message and abort application (throw vma_error exception).
 Default value is -1 (notice, that in the future the default value will be changed to 0)
 
-VMA_AVOID_SYS_CALLS_ON_TCP_FD
+XLIO_AVOID_SYS_CALLS_ON_TCP_FD
 For TCP fd, avoid system calls for the supported options of:
 ioctl, fcntl, getsockopt, setsockopt.
 Non-supported options will go to OS.
-To activate, use VMA_AVOID_SYS_CALLS_ON_TCP_FD=1.
+To activate, use XLIO_AVOID_SYS_CALLS_ON_TCP_FD=1.
 Default value is disabled
 
-VMA_INTERNAL_THREAD_AFFINITY
+XLIO_INTERNAL_THREAD_AFFINITY
 Control which CPU core(s) the XLIO internal thread is serviced on. The cpu set
 should be provided as *EITHER* a hexadecimal value that represents a bitmask. *OR* as a
 comma delimited of values (ranges are ok). Both the bitmask and comma delimited list
@@ -810,13 +810,13 @@ Comma Delimited Examples:
 0,1,7-10   - Run on processors 0,1,7,8,9 and 10.
 Default value is -1 (Disabled).
 
-VMA_INTERNAL_THREAD_CPUSET
+XLIO_INTERNAL_THREAD_CPUSET
 Select a cpuset for XLIO internal thread (see man page of cpuset).
 The value is the path to the cpuset (for example: /dev/cpuset/my_set), or an empty
 string to run it on the same cpuset the process runs on.
 Default value is an empty string.
 
-VMA_INTERNAL_THREAD_TCP_TIMER_HANDLING
+XLIO_INTERNAL_THREAD_TCP_TIMER_HANDLING
 Select the internal thread policy when handling TCP timers
 Use value of 0 for deferred handling. The internal thread will not handle TCP timers upon timer
 expiration (once every 100ms) in order to let application threads handling it first
@@ -824,7 +824,7 @@ Use value of 1 for immediate handling. The internal thread will try locking and 
 timer expiration (once every 100ms).  Application threads may be blocked till internal thread finishes handling TCP timers
 Default value is 0 (deferred handling)
 
-VMA_INTERNAL_THREAD_ARM_CQ
+XLIO_INTERNAL_THREAD_ARM_CQ
 Wakeup the internal thread for each packet that the CQ receive.
 Poll and process the packet and bring it to the socket layer.
 This can minimize latency in case of a busy application which is not available to
@@ -832,14 +832,14 @@ receive the packet when it arrived.
 However, this might decrease performance in case of high pps rate application.
 Default value is 0 (Disabled)
 
-VMA_WAIT_AFTER_JOIN_MSEC
+XLIO_WAIT_AFTER_JOIN_MSEC
 This parameter indicates the time of delay the first packet send after
 receiving the multicast JOINED event from the SM
 This is helpful to over come loss of first few packets of an outgoing stream
 due to SM lengthy handling of MFT configuration on the switch chips
 Default value is 0 (milliseconds)
 
-VMA_THREAD_MODE
+XLIO_THREAD_MODE
 By default XLIO is ready for multi-threaded applications, meaning it is thread safe.
 If the users application is a single threaded one, then using this configuration
 parameter you can help eliminate XLIO locks and get even better performance.
@@ -849,7 +849,7 @@ Multi threaded application using mutex lock value is 2
 Multi threaded application with more threads than cores using spin lock value is 3
 Default value is 1 (Multi with spin lock)
 
-VMA_BUFFER_BATCHING_MODE
+XLIO_BUFFER_BATCHING_MODE
 Batching of returning Rx buffers and pulling Tx buffers per socket.
 In case the value is 0 then library will not use buffer batching.
 In case the value is 1 then library will use buffer batching and will try to periodically reclaim unused buffers.
@@ -857,8 +857,8 @@ In case the value is 2 then library will use buffer batching with no reclaim.
 [future: other values are reserved]
 Default value is 1
 
-VMA_MEM_ALLOC_TYPE
-This replaces the VMA_HUGETBL parameter logic.
+XLIO_MEM_ALLOC_TYPE
+This replaces the XLIO_HUGETBL parameter logic.
 XLIO will try to allocate data buffers as configured:
 	0 - "ANON" - using malloc
 	1 - "CONTIG" - using contiguous pages
@@ -875,23 +875,23 @@ Default value is 1 (Contiguous pages)
 
 The following XLIO neigh parameters are for advanced users or Mellanox support only:
 
-VMA_NEIGH_UC_ARP_QUATA
+XLIO_NEIGH_UC_ARP_QUATA
 XLIO will send UC ARP in case neigh state is NUD_STALE.
 In case that neigh state is still NUD_STALE XLIO will try
-VMA_NEIGH_UC_ARP_QUATA retries to send UC ARP again and then will send BC ARP.
+XLIO_NEIGH_UC_ARP_QUATA retries to send UC ARP again and then will send BC ARP.
 
-VMA_NEIGH_UC_ARP_DELAY_MSEC
+XLIO_NEIGH_UC_ARP_DELAY_MSEC
 This parameter indicates number of msec to wait between every UC ARP.
 
-VMA_NEIGH_NUM_ERR_RETRIES
+XLIO_NEIGH_NUM_ERR_RETRIES
 This number indicates number of retries to restart neigh state machine in case neigh got ERROR event.
 Default value is 1
 
-VMA_BF
+XLIO_BF
 This flag enables / disables BF (Blue Flame) usage of the ConnectX
 Default value is 1 (Enabled)
 
-VMA_FORK
+XLIO_FORK
 Control whether XLIO should support fork. Setting this flag on will cause XLIO to
 call ibv_fork_init() function. ibv_fork_init() initializes libibverbs's data
 structures to handle fork() function calls correctly and avoid data corruption.
@@ -900,11 +900,11 @@ data structures are not fork()-safe and the effect of an application calling
 fork() is undefined.
 ibv_fork_init() works on Linux kernels 2.6.17 and higher which support the
 MADV_DONTFORK flag for madvise().
-Note that XLIO's default with huge pages enabled (VMA_HUGETBL) you should use an
+Note that XLIO's default with huge pages enabled (XLIO_HUGETBL) you should use an
 OFED stack version that support fork()ing of with huge pages (OFED 1.5 and higher).
 Default value is 0 (Disabled)
 
-VMA_CLOSE_ON_DUP2
+XLIO_CLOSE_ON_DUP2
 When this parameter is enabled, XLIO will handle the duplicate fd (oldfd),
 as if it was closed (clear internal data structures) and only then,
 will forward the call to the OS.
@@ -912,28 +912,28 @@ This is, in practice, a very rudimentary dup2 support.
 It only supports the case, where dup2 is used to close file descriptors,
 Default value is 1 (Enabled)
 
-VMA_SOCKETXTREME
+XLIO_SOCKETXTREME
 When this parameter is enabled, XLIO operates in SocketXtreme mode.
 SocketXtreme mode brings latency down, eliminating copy operations and
 increasing throughput allowing applications to further utilize true kernel
 bypass architecture. An application should use a socket extension API named SocketXtreme.
 Default value is 0 (Disabled)
 
-VMA_MTU
+XLIO_MTU
 Size of each Rx and Tx data buffer (Maximum Transfer Unit).
 This value sets the fragmentation size of the packets sent by the library.
-If VMA_MTU is 0 then for each interface XLIO will follow the actual MTU.
-If VMA_MTU is greater than 0 then this MTU value is applicable to all interfaces regardless of their actual MTU
+If XLIO_MTU is 0 then for each interface XLIO will follow the actual MTU.
+If XLIO_MTU is greater than 0 then this MTU value is applicable to all interfaces regardless of their actual MTU
 Default value is 0 (following interface actual MTU)
 
-VMA_MSS
-VMA_MSS define the max TCP payload size that can sent without IP fragmentation.
-Value of 0 will set XLIO's TCP MSS to be aligned with VMA_MTU configuration
-(leaving 40 bytes room for IP + TCP headers; "TCP MSS = VMA_MTU - 40").
-Other VMA_MSS values will force XLIO's TCP MSS to that specific value.
-Default value is 0 (following VMA_MTU)
+XLIO_MSS
+XLIO_MSS define the max TCP payload size that can sent without IP fragmentation.
+Value of 0 will set XLIO's TCP MSS to be aligned with XLIO_MTU configuration
+(leaving 40 bytes room for IP + TCP headers; "TCP MSS = XLIO_MTU - 40").
+Other XLIO_MSS values will force XLIO's TCP MSS to that specific value.
+Default value is 0 (following XLIO_MTU)
 
-VMA_TCP_CC_ALGO
+XLIO_TCP_CC_ALGO
 TCP congestion control algorithm.
 The default algorithm coming with LWIP is a variation of Reno/New-Reno.
 The new Cubic algorithm was adapted from FreeBsd implementation.
@@ -942,16 +942,16 @@ Use value of 1 for Cubic algorithm.
 Use value of 2 in order to disable the congestion algorithm.
 Default value is 0 (LWIP).
 
-VMA_TCP_SEND_BUFFER_SIZE
+XLIO_TCP_SEND_BUFFER_SIZE
 TCP send buffer size in bytes of LWIP.
 Default value is 1000000.
 
-VMA_ZC_TX_SIZE
+XLIO_ZC_TX_SIZE
 Determines the maximum segment size for zero copy buffers.
 Maximum value is 65535.
 Default value is 32768.
 
-VMA_TCP_MAX_SYN_RATE
+XLIO_TCP_MAX_SYN_RATE
 Limit the number of TCP SYN packets that XLIO will handle
 per second per listen socket.
 For example, in case you use 10 for this value than XLIO will accept at most 10
@@ -993,7 +993,7 @@ Options:
   -h, --help                    Print this help message
 
 
-Use VMA_STATS_FILE to get internal XLIO statistics like vma_stats provide.
+Use XLIO_STATS_FILE to get internal XLIO statistics like vma_stats provide.
 If this parameter is set and the user application performed transmit or receive
 activity on a socket, then these values will be logs once the sockets are closed.
 
@@ -1011,10 +1011,10 @@ VMA: [fd=10] Rx poll: 0 / 233020 (100.00%) [miss/hit]
 Looking good :)
 - No errors on transmit or receive on this socket (user fd=10)
 - All the traffic was offloaded. No packets transmitted or receive via the OS.
-- Just about no missed Rx polls (see VMA_RX_POLL & VMA_SELECT_POLL), meaning
+- Just about no missed Rx polls (see XLIO_RX_POLL & XLIO_SELECT_POLL), meaning
  the receiving thread did not get to a blocked state to cause a contexts
  switch and hurt latency.
-- No dropped packets caused by socket receive buffer limit (see VMA_RX_BYTES_MIN)
+- No dropped packets caused by socket receive buffer limit (see XLIO_RX_BYTES_MIN)
 
 Interrupt Moderation
 ====================
@@ -1026,20 +1026,20 @@ The adaptive interrupt moderation change this packet count and time period
 automatically to reach a desired rate of interrupts.
 
 
-1. Use VMA_RX_POLL=0 and VMA_SELECT_POLL=0 to work in interrupt driven mode.
+1. Use XLIO_RX_POLL=0 and XLIO_SELECT_POLL=0 to work in interrupt driven mode.
 
 2. Control the period and frame count parameters with:
-    VMA_CQ_MODERATION_COUNT - hold #count frames before interrupt
-    VMA_CQ_MODERATION_PERIOD_USEC - hold #usec before interrupt
+    XLIO_CQ_MODERATION_COUNT - hold #count frames before interrupt
+    XLIO_CQ_MODERATION_PERIOD_USEC - hold #usec before interrupt
 
 3. Control the adaptive algorithm with the following:
-    VMA_CQ_AIM_MAX_COUNT - max possible #count frames to hold
-    VMA_CQ_AIM_MAX_PERIOD_USEC - max possible #usec to hold
-    VMA_CQ_AIM_INTERRUPTS_RATE_PER_SEC - desired interrupt rate
-    VMA_CQ_AIM_INTERVAL_MSEC - frequency of adaptation
+    XLIO_CQ_AIM_MAX_COUNT - max possible #count frames to hold
+    XLIO_CQ_AIM_MAX_PERIOD_USEC - max possible #usec to hold
+    XLIO_CQ_AIM_INTERRUPTS_RATE_PER_SEC - desired interrupt rate
+    XLIO_CQ_AIM_INTERVAL_MSEC - frequency of adaptation
 
-4. Disable CQ moderation with VMA_CQ_MODERATION_ENABLE=0
-5. Disable Adaptive CQ moderation with VMA_CQ_AIM_INTERVAL_MSEC=0
+4. Disable CQ moderation with XLIO_CQ_MODERATION_ENABLE=0
+5. Disable Adaptive CQ moderation with XLIO_CQ_AIM_INTERVAL_MSEC=0
 
 
 
@@ -1068,17 +1068,17 @@ Troubleshooting
   VMA WARNING: * This log level is recommended for debugging purposes only *
   VMA WARNING: *************************************************************
 This warning message means that you are using XLIO with high log level:
-VMA_TRACELEVEL variable value is set to 4 or more.
-In order to fix it - set VMA_TRACELEVEL to it's default value: 3
+XLIO_TRACELEVEL variable value is set to 4 or more.
+In order to fix it - set XLIO_TRACELEVEL to it's default value: 3
 
 
 * CAP_NET_RAW and root access
 
-VMA_WARNING: ******************************************************************************
-VMA_WARNING: * Interface <Interface Name> will not be offloaded.
-VMA_WARNING: * Offloaded resources are restricted to root or user with CAP_NET_RAW privileges
-VMA_WARNING: * Read the CAP_NET_RAW and root access section in the XLIO's User Manual for more information
-VMA_WARNING: ******************************************************************************
+XLIO_WARNING: ******************************************************************************
+XLIO_WARNING: * Interface <Interface Name> will not be offloaded.
+XLIO_WARNING: * Offloaded resources are restricted to root or user with CAP_NET_RAW privileges
+XLIO_WARNING: * Read the CAP_NET_RAW and root access section in the XLIO's User Manual for more information
+XLIO_WARNING: ******************************************************************************
 This warning message means that XLIO tried to create a hardware QP resource
 while the kernel requires this operation to be performed only by privileged
 users. Run as user root or grant CAP_NET_RAW privileges to your user
@@ -1090,7 +1090,7 @@ users. Run as user root or grant CAP_NET_RAW privileges to your user
   VMA WARNING: * Not enough hugepage resources for VMA memory allocation.    *
   VMA WARNING: * VMA will continue working with regular memory allocation.   *
   VMA INFO   : * Optional: 1. Switch to a different memory allocation type   *
-  VMA_INFO   : * 	      (VMA_MEM_ALLOC_TYPE= 0 or 1)		     *	
+  XLIO_INFO   : * 	      (XLIO_MEM_ALLOC_TYPE= 0 or 1)		     *	
   VMA INFO   : *           2. Restart process after increasing the number of *
   VMA INFO   : *              hugepages resources in the system:             *
   VMA INFO   : * "cat /proc/meminfo |  grep -i HugePage"                     *

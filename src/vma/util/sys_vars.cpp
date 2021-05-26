@@ -149,7 +149,7 @@ namespace vma_spec {
 	// convert int to vVMA_spec_t; upon error - returns the given 'def_value'
 	vma_spec_t from_int(const int int_spec, vma_spec_t def_value)
 	{
-		if (int_spec >= MCE_SPEC_NONE && int_spec <= MCE_VMA__ALL) {
+		if (int_spec >= MCE_SPEC_NONE && int_spec <= MCE_SPEC_ALL) {
 			return static_cast<vma_spec_t>(int_spec);
 		}
 		return def_value; // not found. use given def_value
@@ -510,7 +510,7 @@ void mce_sys_var::get_env_params()
 	memset(stats_shmem_dirname, 0, sizeof(stats_shmem_dirname));
 	memset(vmad_notify_dir, 0, sizeof(vmad_notify_dir));
 	strcpy(stats_filename, MCE_DEFAULT_STATS_FILE);
-	strcpy(vmad_notify_dir, MCE_DEFAULT_VMAD_FOLDER);
+	strcpy(vmad_notify_dir, MCE_DEFAULT_SERVICE_FOLDER);
 	strcpy(stats_shmem_dirname, MCE_DEFAULT_STATS_SHMEM_DIR);
 	strcpy(conf_filename, MCE_DEFAULT_CONF_FILE);
 	strcpy(app_id, MCE_DEFAULT_APP_ID);
@@ -777,8 +777,8 @@ void mce_sys_var::get_env_params()
 	case MCE_SPEC_LL_7750:
 		tx_num_bufs               = 8192; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated
 		rx_num_bufs               = 204800; // MCE_DEFAULT_RX_NUM_BUFS (200000), RX data buffers used on all QPs on all HCAs
-		log_level                 = VLOG_WARNING; //VLOG_DEFAULT(VLOG_INFO) VMA_TRACELEVEL
-		stats_fd_num_max          = 1024; //MCE_DEFAULT_STATS_FD_NUM(100), max. number of sockets monitored by VMA stats
+		log_level                 = VLOG_WARNING; //VLOG_DEFAULT(VLOG_INFO)
+		stats_fd_num_max          = 1024; //MCE_DEFAULT_STATS_FD_NUM(100), max. number of sockets monitored by stats tool
 		strcpy(internal_thread_affinity_str, "0x3"); // MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR(-1), first 2 cores
 		rx_poll_num               = -1; //MCE_DEFAULT_RX_NUM_POLLS(100000), Infinite RX poll for ready packets (during read/recv)
 		select_poll_num           = -1;	//MCE_DEFAULT_SELECT_NUM_POLLS(100000), Infinite poll the hardware on RX (before sleeping in epoll/select, etc)
@@ -790,13 +790,13 @@ void mce_sys_var::get_env_params()
 		break;
 
 	case MCE_SPEC_LL_MULTI_RING:
-		mem_alloc_type           = ALLOC_TYPE_HUGEPAGES; //MCE_DEFAULT_MEM_ALLOC_TYPE (ALLOC_TYPE_CONTIG) VMA_MEM_ALLOC_TYPE
-		select_poll_num          = -1; //MCE_DEFAULT_SELECT_NUM_POLLS (100000) VMA_SELECT_POLL
-		rx_poll_num              = -1; //MCE_DEFAULT_RX_NUM_POLLS(100000) VMA_RX_POLL
-		ring_allocation_logic_tx = RING_LOGIC_PER_THREAD; //MCE_DEFAULT_RING_ALLOCATION_LOGIC_TX(RING_LOGIC_PER_INTERFACE) VMA_RING_ALLOCATION_LOGIC_TX
-		ring_allocation_logic_rx = RING_LOGIC_PER_THREAD; //MCE_DEFAULT_RING_ALLOCATION_LOGIC_RX(RING_LOGIC_PER_INTERFACE) VMA_RING_ALLOCATION_LOGIC_RX
-		select_poll_os_ratio     = 0; //MCE_DEFAULT_SELECT_POLL_OS_RATIO(10) VMA_SELECT_POLL_OS_RATIO
-		select_skip_os_fd_check  = 0; //MCE_DEFAULT_SELECT_SKIP_OS(4) VMA_SELECT_SKIP_OS
+		mem_alloc_type           = ALLOC_TYPE_HUGEPAGES; //MCE_DEFAULT_MEM_ALLOC_TYPE (ALLOC_TYPE_CONTIG)
+		select_poll_num          = -1; //MCE_DEFAULT_SELECT_NUM_POLLS (100000)
+		rx_poll_num              = -1; //MCE_DEFAULT_RX_NUM_POLLS(100000)
+		ring_allocation_logic_tx = RING_LOGIC_PER_THREAD; //MCE_DEFAULT_RING_ALLOCATION_LOGIC_TX(RING_LOGIC_PER_INTERFACE)
+		ring_allocation_logic_rx = RING_LOGIC_PER_THREAD; //MCE_DEFAULT_RING_ALLOCATION_LOGIC_RX(RING_LOGIC_PER_INTERFACE)
+		select_poll_os_ratio     = 0; //MCE_DEFAULT_SELECT_POLL_OS_RATIO(10)
+		select_skip_os_fd_check  = 0; //MCE_DEFAULT_SELECT_SKIP_OS(4)
 		rx_poll_on_tx_tcp        = true; //MCE_DEFAULT_RX_POLL_ON_TX_TCP (false)
 		trigger_dummy_send_getsockname = true; //MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME (false)
 		break;
@@ -891,7 +891,7 @@ void mce_sys_var::get_env_params()
 		read_env_variable_with_pid(conf_filename, sizeof(conf_filename), env_ptr);
 	}
 
-	if ((env_ptr = getenv(SYS_VAR_VMAD_DIR)) != NULL){
+	if ((env_ptr = getenv(SYS_VAR_SERVICE_DIR)) != NULL){
 		read_env_variable_with_pid(vmad_notify_dir, sizeof(vmad_notify_dir), env_ptr);
 	}
 
@@ -963,14 +963,14 @@ void mce_sys_var::get_env_params()
 	if ((env_ptr = getenv(SYS_VAR_TX_MAX_INLINE)) != NULL)
 		tx_max_inline = (uint32_t)atoi(env_ptr);
 	if (tx_max_inline > MAX_SUPPORTED_IB_INLINE_SIZE) {
-		vlog_printf(VLOG_WARNING,"VMA_TX_MAX_INLINE  must be smaller or equal to %d [%d]\n",
-				MAX_SUPPORTED_IB_INLINE_SIZE, tx_max_inline);
+		vlog_printf(VLOG_WARNING,"%s  must be smaller or equal to %d [%d]\n",
+				SYS_VAR_TX_MAX_INLINE, MAX_SUPPORTED_IB_INLINE_SIZE, tx_max_inline);
 		tx_max_inline = MAX_SUPPORTED_IB_INLINE_SIZE;
 	}
 	unsigned int cx4_max_tx_wre_for_inl = (16 * 1024 * 64) / (VMA_ALIGN(VMA_ALIGN(tx_max_inline - 12, 64) + 12, 64));
 	if (tx_num_wr > cx4_max_tx_wre_for_inl) {
-		vlog_printf(VLOG_WARNING,"For the given VMA_TX_MAX_INLINE [%d], VMA_TX_WRE [%d] must be smaller than %d\n",
-				tx_max_inline, tx_num_wr, cx4_max_tx_wre_for_inl);
+		vlog_printf(VLOG_WARNING,"For the given %s [%d], VMA_TX_WRE [%d] must be smaller than %d\n",
+				SYS_VAR_TX_MAX_INLINE, tx_max_inline, tx_num_wr, cx4_max_tx_wre_for_inl);
 		tx_num_wr = cx4_max_tx_wre_for_inl;
 	}
 
@@ -1057,11 +1057,13 @@ void mce_sys_var::get_env_params()
 	//The following 2 params were replaced by SYS_VAR_RX_UDP_POLL_OS_RATIO
 	if ((env_ptr = getenv(SYS_VAR_RX_POLL_OS_RATIO)) != NULL) {
 		rx_udp_poll_os_ratio = (uint32_t)atoi(env_ptr);
-		vlog_printf(VLOG_WARNING,"The parameter VMA_RX_POLL_OS_RATIO is no longer in use. Parameter VMA_RX_UDP_POLL_OS_RATIO was set to %d instead\n", rx_udp_poll_os_ratio);
+		vlog_printf(VLOG_WARNING,"The parameter %s is no longer in use. Parameter %s was set to %d instead\n",
+				SYS_VAR_RX_POLL_OS_RATIO, SYS_VAR_RX_UDP_POLL_OS_RATIO, rx_udp_poll_os_ratio);
 	}
 	if ((env_ptr = getenv(SYS_VAR_RX_SKIP_OS)) != NULL) {
 		rx_udp_poll_os_ratio = (uint32_t)atoi(env_ptr);
-		vlog_printf(VLOG_WARNING,"The parameter VMA_RX_SKIP_OS is no longer in use. Parameter VMA_RX_UDP_POLL_OS_RATIO was set to %d instead\n", rx_udp_poll_os_ratio);
+		vlog_printf(VLOG_WARNING,"The parameter %s is no longer in use. Parameter %s was set to %d instead\n",
+				SYS_VAR_RX_SKIP_OS, SYS_VAR_RX_UDP_POLL_OS_RATIO, rx_udp_poll_os_ratio);
 	}
 
 	if ((env_ptr = getenv(SYS_VAR_RX_POLL_YIELD)) != NULL)
@@ -1395,10 +1397,10 @@ void mce_sys_var::get_env_params()
 	if ((env_ptr = getenv(SYS_VAR_TCP_ABORT_ON_CLOSE)) != NULL)
 		tcp_abort_on_close = atoi(env_ptr) ? true : false;
 
-	if ((env_ptr = getenv(SYS_VAR_VMA_RX_POLL_ON_TX_TCP)) != NULL)
+	if ((env_ptr = getenv(SYS_VAR_RX_POLL_ON_TX_TCP)) != NULL)
 		rx_poll_on_tx_tcp = atoi(env_ptr) ? true : false;
 
-	if ((env_ptr = getenv(SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME)) != NULL)
+	if ((env_ptr = getenv(SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME)) != NULL)
 		trigger_dummy_send_getsockname = atoi(env_ptr) ? true : false;
 
 	if ((env_ptr = getenv(SYS_VAR_TCP_SEND_BUFFER_SIZE)) != NULL) {
@@ -1406,14 +1408,14 @@ void mce_sys_var::get_env_params()
 	}
 
 #ifdef VMA_TIME_MEASURE
-	if ((env_ptr = getenv(SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES)) != NULL) {
+	if ((env_ptr = getenv(SYS_VAR_TIME_MEASURE_NUM_SAMPLES)) != NULL) {
 		vma_time_measure_num_samples = (uint32_t)atoi(env_ptr);
 		if(vma_time_measure_num_samples > INST_SIZE){
-			vlog_printf(VLOG_WARNING, "The value of '%s' is bigger than %d. Time samples over %d will be dropped.\n", SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES, INST_SIZE, INST_SIZE);
+			vlog_printf(VLOG_WARNING, "The value of '%s' is bigger than %d. Time samples over %d will be dropped.\n", SYS_VAR_TIME_MEASURE_NUM_SAMPLES, INST_SIZE, INST_SIZE);
 		}
 	}
 
-	if ((env_ptr = getenv(SYS_VAR_VMA_TIME_MEASURE_DUMP_FILE)) != NULL){
+	if ((env_ptr = getenv(SYS_VAR_TIME_MEASURE_DUMP_FILE)) != NULL){
 		read_env_variable_with_pid(vma_time_measure_filename, sizeof(vma_time_measure_filename), env_ptr);
 	}
 #endif

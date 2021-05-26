@@ -397,7 +397,7 @@ void print_vma_global_settings()
 	VLOG_STR_PARAM_STRING("Log File", safe_mce_sys().log_filename, MCE_DEFAULT_LOG_FILE, SYS_VAR_LOG_FILENAME, safe_mce_sys().log_filename);
 	VLOG_STR_PARAM_STRING("Stats File", safe_mce_sys().stats_filename, MCE_DEFAULT_STATS_FILE, SYS_VAR_STATS_FILENAME, safe_mce_sys().stats_filename);
 	VLOG_STR_PARAM_STRING("Stats shared memory directory", safe_mce_sys().stats_shmem_dirname, MCE_DEFAULT_STATS_SHMEM_DIR, SYS_VAR_STATS_SHMEM_DIRNAME, safe_mce_sys().stats_shmem_dirname);
-	VLOG_STR_PARAM_STRING("VMAD output directory", safe_mce_sys().vmad_notify_dir, MCE_DEFAULT_VMAD_FOLDER, SYS_VAR_VMAD_DIR, safe_mce_sys().vmad_notify_dir);
+	VLOG_STR_PARAM_STRING("SERVICE output directory", safe_mce_sys().vmad_notify_dir, MCE_DEFAULT_SERVICE_FOLDER, SYS_VAR_SERVICE_DIR, safe_mce_sys().vmad_notify_dir);
 	VLOG_PARAM_NUMBER("Stats FD Num (max)", safe_mce_sys().stats_fd_num_max, MCE_DEFAULT_STATS_FD_NUM, SYS_VAR_STATS_FD_NUM);
 	VLOG_STR_PARAM_STRING("Conf File", safe_mce_sys().conf_filename, MCE_DEFAULT_CONF_FILE, SYS_VAR_CONF_FILENAME, safe_mce_sys().conf_filename);
 	VLOG_STR_PARAM_STRING("Application ID", safe_mce_sys().app_id, MCE_DEFAULT_APP_ID, SYS_VAR_APPLICATION_ID, safe_mce_sys().app_id);
@@ -588,12 +588,12 @@ void print_vma_global_settings()
 	}
 	VLOG_PARAM_NUMSTR("TCP CC Algorithm", safe_mce_sys().lwip_cc_algo_mod, MCE_DEFAULT_LWIP_CC_ALGO_MOD, SYS_VAR_TCP_CC_ALGO, lwip_cc_algo_str(safe_mce_sys().lwip_cc_algo_mod));
 	VLOG_PARAM_STRING("TCP abort on close", safe_mce_sys().tcp_abort_on_close, MCE_DEFAULT_TCP_ABORT_ON_CLOSE, SYS_VAR_TCP_ABORT_ON_CLOSE, safe_mce_sys().tcp_abort_on_close ? "Enabled " : "Disabled");
-	VLOG_PARAM_STRING("Polling Rx on Tx TCP", safe_mce_sys().rx_poll_on_tx_tcp, MCE_DEFAULT_RX_POLL_ON_TX_TCP, SYS_VAR_VMA_RX_POLL_ON_TX_TCP, safe_mce_sys().rx_poll_on_tx_tcp ? "Enabled " : "Disabled");
-	VLOG_PARAM_STRING("Trig dummy send getsockname()", safe_mce_sys().trigger_dummy_send_getsockname, MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME, SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME, safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
+	VLOG_PARAM_STRING("Polling Rx on Tx TCP", safe_mce_sys().rx_poll_on_tx_tcp, MCE_DEFAULT_RX_POLL_ON_TX_TCP, SYS_VAR_RX_POLL_ON_TX_TCP, safe_mce_sys().rx_poll_on_tx_tcp ? "Enabled " : "Disabled");
+	VLOG_PARAM_STRING("Trig dummy send getsockname()", safe_mce_sys().trigger_dummy_send_getsockname, MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME, SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME, safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
 
 #ifdef VMA_TIME_MEASURE
-	VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().vma_time_measure_num_samples, MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES, SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES);
-	VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().vma_time_measure_filename, MCE_DEFAULT_TIME_MEASURE_DUMP_FILE, SYS_VAR_VMA_TIME_MEASURE_DUMP_FILE, safe_mce_sys().vma_time_measure_filename);
+	VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().vma_time_measure_num_samples, MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES, SYS_VAR_TIME_MEASURE_NUM_SAMPLES);
+	VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().vma_time_measure_filename, MCE_DEFAULT_TIME_MEASURE_DUMP_FILE, SYS_VAR_TIME_MEASURE_DUMP_FILE, safe_mce_sys().vma_time_measure_filename);
 #endif
 
 	vlog_printf(VLOG_INFO,"---------------------------------------------------------------------------\n");

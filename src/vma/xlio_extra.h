@@ -408,10 +408,10 @@ struct __attribute__ ((packed)) vma_api_t {
 	int (*free_packets)(int s, struct vma_packet_t *pkts, size_t count);
 
 	/*
-	 * Add a libvma.conf rule to the top of the list.
+	 * Add a libxlio.conf rule to the top of the list.
 	 * This rule will not apply to existing sockets which already considered the conf rules.
 	 * (around connect/listen/send/recv ..)
-	 * @param config_line A char buffer with the exact format as defined in libvma.conf, and should end with '\0'.
+	 * @param config_line A char buffer with the exact format as defined in libxlio.conf, and should end with '\0'.
 	 * @return 0 on success, or error code on failure.
 	 */
 	int (*add_conf_rule)(const char *config_line);
@@ -419,7 +419,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	/*
 	 * Create sockets on pthread tid as offloaded/not-offloaded.
 	 * This does not affect existing sockets.
-	 * Offloaded sockets are still subject to libvma.conf rules.
+	 * Offloaded sockets are still subject to libxlio.conf rules.
 	 * @param offload 1 for offloaded, 0 for not-offloaded.
 	 * @return 0 on success, or error code on failure.
 	 */

@@ -55,6 +55,7 @@
  * VMA specific includes
  */
 #include "libvma.h"
+#include "vma/util/sys_vars.h"
 
 // debugging macros
 #define MODULE_NAME "match:"
@@ -601,7 +602,7 @@ transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id
 		}
 	}
 
-	if (strcmp("VMA_DEFAULT_APPLICATION_ID", app_id) && !b_found_app_id_match)
+	if (strcmp(MCE_DEFAULT_APP_ID, app_id) && !b_found_app_id_match)
 		match_logwarn("requested VMA_APPLICATION_ID does not exist in the configuration file");
 	
 	return target_family;

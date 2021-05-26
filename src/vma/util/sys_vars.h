@@ -61,7 +61,7 @@ typedef enum {
 	MCE_SPEC_NGINX_669,
 	MCE_SPEC_NGINX_DPU_670,
 
-	MCE_VMA__ALL /* last element */
+	MCE_SPEC_ALL /* last element */
 } vma_spec_t;
 
 typedef enum {
@@ -223,7 +223,7 @@ public:
 	}
 
 	static const char *getSysVar() {
-		return "VMA_EXCEPTION_HANDLING";
+		return "XLIO_EXCEPTION_HANDLING";
 	}
 
 	typedef enum {
@@ -485,327 +485,331 @@ private:
  
 extern mce_sys_var & safe_mce_sys();
 
-#define SYS_VAR_LOG_LEVEL				"VMA_TRACELEVEL"
-#define SYS_VAR_LOG_DETAILS				"VMA_LOG_DETAILS"
-#define SYS_VAR_LOG_FILENAME				"VMA_LOG_FILE"
-#define SYS_VAR_STATS_FILENAME				"VMA_STATS_FILE"
-#define SYS_VAR_VMAD_DIR				"VMA_VMAD_NOTIFY_DIR"
-#define SYS_VAR_STATS_SHMEM_DIRNAME			"VMA_STATS_SHMEM_DIR"
-#define SYS_VAR_CONF_FILENAME				"VMA_CONFIG_FILE"
-#define SYS_VAR_LOG_COLORS				"VMA_LOG_COLORS"
-#define SYS_VAR_APPLICATION_ID				"VMA_APPLICATION_ID"
-#define SYS_VAR_HANDLE_SIGINTR				"VMA_HANDLE_SIGINTR"
-#define SYS_VAR_HANDLE_SIGSEGV				"VMA_HANDLE_SIGSEGV"
-#define SYS_VAR_STATS_FD_NUM				"VMA_STATS_FD_NUM"
+/*
+ * This block consists of library specific configuration
+ * environment variables
+ */
+#define SYS_VAR_LOG_LEVEL                             "XLIO_TRACELEVEL"
+#define SYS_VAR_LOG_DETAILS                           "XLIO_LOG_DETAILS"
+#define SYS_VAR_LOG_FILENAME                          "XLIO_LOG_FILE"
+#define SYS_VAR_STATS_FILENAME                        "XLIO_STATS_FILE"
+#define SYS_VAR_SERVICE_DIR                           "XLIO_VMAD_NOTIFY_DIR"
+#define SYS_VAR_STATS_SHMEM_DIRNAME                   "XLIO_STATS_SHMEM_DIR"
+#define SYS_VAR_CONF_FILENAME                         "XLIO_CONFIG_FILE"
+#define SYS_VAR_LOG_COLORS                            "XLIO_LOG_COLORS"
+#define SYS_VAR_APPLICATION_ID                        "XLIO_APPLICATION_ID"
+#define SYS_VAR_HANDLE_SIGINTR                        "XLIO_HANDLE_SIGINTR"
+#define SYS_VAR_HANDLE_SIGSEGV                        "XLIO_HANDLE_SIGSEGV"
+#define SYS_VAR_STATS_FD_NUM                          "XLIO_STATS_FD_NUM"
 
-#define SYS_VAR_RING_ALLOCATION_LOGIC_TX                "VMA_RING_ALLOCATION_LOGIC_TX"
-#define SYS_VAR_RING_ALLOCATION_LOGIC_RX                "VMA_RING_ALLOCATION_LOGIC_RX"
-#define SYS_VAR_RING_MIGRATION_RATIO_TX                 "VMA_RING_MIGRATION_RATIO_TX"
-#define SYS_VAR_RING_MIGRATION_RATIO_RX                 "VMA_RING_MIGRATION_RATIO_RX"
-#define SYS_VAR_RING_LIMIT_PER_INTERFACE                "VMA_RING_LIMIT_PER_INTERFACE"
-#define SYS_VAR_RING_DEV_MEM_TX                         "VMA_RING_DEV_MEM_TX"
+#define SYS_VAR_RING_ALLOCATION_LOGIC_TX              "XLIO_RING_ALLOCATION_LOGIC_TX"
+#define SYS_VAR_RING_ALLOCATION_LOGIC_RX              "XLIO_RING_ALLOCATION_LOGIC_RX"
+#define SYS_VAR_RING_MIGRATION_RATIO_TX               "XLIO_RING_MIGRATION_RATIO_TX"
+#define SYS_VAR_RING_MIGRATION_RATIO_RX               "XLIO_RING_MIGRATION_RATIO_RX"
+#define SYS_VAR_RING_LIMIT_PER_INTERFACE              "XLIO_RING_LIMIT_PER_INTERFACE"
+#define SYS_VAR_RING_DEV_MEM_TX                       "XLIO_RING_DEV_MEM_TX"
 
-#define SYS_VAR_ZC_NUM_BUFS				"VMA_ZC_BUFS"
-#define SYS_VAR_ZC_CACHE_THRESHOLD			"VMA_ZC_CACHE_THRESHOLD"
-#define SYS_VAR_TX_NUM_SEGS_TCP				"VMA_TX_SEGS_TCP"
-#define SYS_VAR_TX_NUM_BUFS				"VMA_TX_BUFS"
+#define SYS_VAR_ZC_NUM_BUFS                           "XLIO_ZC_BUFS"
+#define SYS_VAR_ZC_CACHE_THRESHOLD                    "XLIO_ZC_CACHE_THRESHOLD"
+#define SYS_VAR_TX_NUM_SEGS_TCP                       "XLIO_TX_SEGS_TCP"
+#define SYS_VAR_TX_NUM_BUFS                           "XLIO_TX_BUFS"
 #ifdef DEFINED_TSO
-#define SYS_VAR_TX_BUF_SIZE				"VMA_TX_BUF_SIZE"
-#define SYS_VAR_ZC_TX_SIZE			"VMA_ZC_TX_SIZE"
+#define SYS_VAR_TX_BUF_SIZE                           "XLIO_TX_BUF_SIZE"
+#define SYS_VAR_ZC_TX_SIZE                            "XLIO_ZC_TX_SIZE"
 #endif /* DEFINED_TSO */
-#define SYS_VAR_TX_NUM_WRE				"VMA_TX_WRE"
-#define SYS_VAR_TX_NUM_WRE_TO_SIGNAL			"VMA_TX_WRE_BATCHING"
-#define SYS_VAR_TX_MAX_INLINE				"VMA_TX_MAX_INLINE"
-#define SYS_VAR_TX_MC_LOOPBACK				"VMA_TX_MC_LOOPBACK"
-#define SYS_VAR_TX_NONBLOCKED_EAGAINS			"VMA_TX_NONBLOCKED_EAGAINS"
-#define SYS_VAR_TX_PREFETCH_BYTES			"VMA_TX_PREFETCH_BYTES"
+#define SYS_VAR_TX_NUM_WRE                            "XLIO_TX_WRE"
+#define SYS_VAR_TX_NUM_WRE_TO_SIGNAL                  "XLIO_TX_WRE_BATCHING"
+#define SYS_VAR_TX_MAX_INLINE                         "XLIO_TX_MAX_INLINE"
+#define SYS_VAR_TX_MC_LOOPBACK                        "XLIO_TX_MC_LOOPBACK"
+#define SYS_VAR_TX_NONBLOCKED_EAGAINS                 "XLIO_TX_NONBLOCKED_EAGAINS"
+#define SYS_VAR_TX_PREFETCH_BYTES                     "XLIO_TX_PREFETCH_BYTES"
 
-#define SYS_VAR_RX_NUM_BUFS				"VMA_RX_BUFS"
-#define SYS_VAR_RX_NUM_WRE				"VMA_RX_WRE"
-#define SYS_VAR_RX_NUM_WRE_TO_POST_RECV			"VMA_RX_WRE_BATCHING"
-#define SYS_VAR_RX_NUM_POLLS				"VMA_RX_POLL"
-#define SYS_VAR_RX_NUM_POLLS_INIT			"VMA_RX_POLL_INIT"
-#define SYS_VAR_RX_UDP_POLL_OS_RATIO			"VMA_RX_UDP_POLL_OS_RATIO"
-#define SYS_VAR_HW_TS_CONVERSION_MODE			"VMA_HW_TS_CONVERSION"
-// The following 2 params were replaced by VMA_RX_UDP_POLL_OS_RATIO
-#define SYS_VAR_RX_POLL_OS_RATIO			"VMA_RX_POLL_OS_RATIO"
-#define SYS_VAR_RX_SKIP_OS				"VMA_RX_SKIP_OS"
-#define SYS_VAR_RX_POLL_YIELD				"VMA_RX_POLL_YIELD"
-#define SYS_VAR_RX_BYTE_MIN_LIMIT			"VMA_RX_BYTES_MIN"
-#define SYS_VAR_RX_PREFETCH_BYTES			"VMA_RX_PREFETCH_BYTES"
-#define SYS_VAR_RX_PREFETCH_BYTES_BEFORE_POLL		"VMA_RX_PREFETCH_BYTES_BEFORE_POLL"
-#define SYS_VAR_RX_CQ_DRAIN_RATE_NSEC			"VMA_RX_CQ_DRAIN_RATE_NSEC"
-#define SYS_VAR_GRO_STREAMS_MAX				"VMA_GRO_STREAMS_MAX"
-#define SYS_VAR_TCP_3T_RULES				"VMA_TCP_3T_RULES"
-#define SYS_VAR_UDP_3T_RULES				"VMA_UDP_3T_RULES"
-#define SYS_VAR_ETH_MC_L2_ONLY_RULES			"VMA_ETH_MC_L2_ONLY_RULES"
-#define SYS_VAR_MC_FORCE_FLOWTAG			"VMA_MC_FORCE_FLOWTAG"
+#define SYS_VAR_RX_NUM_BUFS                           "XLIO_RX_BUFS"
+#define SYS_VAR_RX_NUM_WRE                            "XLIO_RX_WRE"
+#define SYS_VAR_RX_NUM_WRE_TO_POST_RECV               "XLIO_RX_WRE_BATCHING"
+#define SYS_VAR_RX_NUM_POLLS                          "XLIO_RX_POLL"
+#define SYS_VAR_RX_NUM_POLLS_INIT                     "XLIO_RX_POLL_INIT"
+#define SYS_VAR_RX_UDP_POLL_OS_RATIO                  "XLIO_RX_UDP_POLL_OS_RATIO"
+#define SYS_VAR_HW_TS_CONVERSION_MODE                 "XLIO_HW_TS_CONVERSION"
+// The following 2 params were replaced by XLIO_RX_UDP_POLL_OS_RATIO
+#define SYS_VAR_RX_POLL_OS_RATIO                      "XLIO_RX_POLL_OS_RATIO"
+#define SYS_VAR_RX_SKIP_OS                            "XLIO_RX_SKIP_OS"
+#define SYS_VAR_RX_POLL_YIELD                         "XLIO_RX_POLL_YIELD"
+#define SYS_VAR_RX_BYTE_MIN_LIMIT                     "XLIO_RX_BYTES_MIN"
+#define SYS_VAR_RX_PREFETCH_BYTES                     "XLIO_RX_PREFETCH_BYTES"
+#define SYS_VAR_RX_PREFETCH_BYTES_BEFORE_POLL         "XLIO_RX_PREFETCH_BYTES_BEFORE_POLL"
+#define SYS_VAR_RX_CQ_DRAIN_RATE_NSEC                 "XLIO_RX_CQ_DRAIN_RATE_NSEC"
+#define SYS_VAR_GRO_STREAMS_MAX                       "XLIO_GRO_STREAMS_MAX"
+#define SYS_VAR_TCP_3T_RULES                          "XLIO_TCP_3T_RULES"
+#define SYS_VAR_UDP_3T_RULES                          "XLIO_UDP_3T_RULES"
+#define SYS_VAR_ETH_MC_L2_ONLY_RULES                  "XLIO_ETH_MC_L2_ONLY_RULES"
+#define SYS_VAR_MC_FORCE_FLOWTAG                      "XLIO_MC_FORCE_FLOWTAG"
 
-#define SYS_VAR_SELECT_CPU_USAGE_STATS			"VMA_CPU_USAGE_STATS"
-#define SYS_VAR_SELECT_NUM_POLLS			"VMA_SELECT_POLL"
-#define SYS_VAR_SELECT_POLL_OS_FORCE			"VMA_SELECT_POLL_OS_FORCE"
-#define SYS_VAR_SELECT_POLL_OS_RATIO			"VMA_SELECT_POLL_OS_RATIO"
-#define SYS_VAR_SELECT_SKIP_OS				"VMA_SELECT_SKIP_OS"
+#define SYS_VAR_SELECT_CPU_USAGE_STATS                "XLIO_CPU_USAGE_STATS"
+#define SYS_VAR_SELECT_NUM_POLLS                      "XLIO_SELECT_POLL"
+#define SYS_VAR_SELECT_POLL_OS_FORCE                  "XLIO_SELECT_POLL_OS_FORCE"
+#define SYS_VAR_SELECT_POLL_OS_RATIO                  "XLIO_SELECT_POLL_OS_RATIO"
+#define SYS_VAR_SELECT_SKIP_OS                        "XLIO_SELECT_SKIP_OS"
 
-#define SYS_VAR_CQ_MODERATION_ENABLE			"VMA_CQ_MODERATION_ENABLE"
-#define SYS_VAR_CQ_MODERATION_COUNT			"VMA_CQ_MODERATION_COUNT"
-#define SYS_VAR_CQ_MODERATION_PERIOD_USEC		"VMA_CQ_MODERATION_PERIOD_USEC"
-#define SYS_VAR_CQ_AIM_MAX_COUNT			"VMA_CQ_AIM_MAX_COUNT"
-#define SYS_VAR_CQ_AIM_MAX_PERIOD_USEC			"VMA_CQ_AIM_MAX_PERIOD_USEC"
-#define SYS_VAR_CQ_AIM_INTERVAL_MSEC			"VMA_CQ_AIM_INTERVAL_MSEC"
-#define SYS_VAR_CQ_AIM_INTERRUPTS_RATE_PER_SEC		"VMA_CQ_AIM_INTERRUPTS_RATE_PER_SEC"
+#define SYS_VAR_CQ_MODERATION_ENABLE                  "XLIO_CQ_MODERATION_ENABLE"
+#define SYS_VAR_CQ_MODERATION_COUNT                   "XLIO_CQ_MODERATION_COUNT"
+#define SYS_VAR_CQ_MODERATION_PERIOD_USEC             "XLIO_CQ_MODERATION_PERIOD_USEC"
+#define SYS_VAR_CQ_AIM_MAX_COUNT                      "XLIO_CQ_AIM_MAX_COUNT"
+#define SYS_VAR_CQ_AIM_MAX_PERIOD_USEC                "XLIO_CQ_AIM_MAX_PERIOD_USEC"
+#define SYS_VAR_CQ_AIM_INTERVAL_MSEC                  "XLIO_CQ_AIM_INTERVAL_MSEC"
+#define SYS_VAR_CQ_AIM_INTERRUPTS_RATE_PER_SEC        "XLIO_CQ_AIM_INTERRUPTS_RATE_PER_SEC"
 
-#define SYS_VAR_CQ_POLL_BATCH_MAX			"VMA_CQ_POLL_BATCH_MAX"
-#define SYS_VAR_PROGRESS_ENGINE_INTERVAL		"VMA_PROGRESS_ENGINE_INTERVAL"
-#define SYS_VAR_PROGRESS_ENGINE_WCE_MAX			"VMA_PROGRESS_ENGINE_WCE_MAX"
-#define SYS_VAR_CQ_KEEP_QP_FULL				"VMA_CQ_KEEP_QP_FULL"
-#define SYS_VAR_QP_COMPENSATION_LEVEL			"VMA_QP_COMPENSATION_LEVEL"
-#define SYS_VAR_USER_HUGE_PAGE_SIZE			"VMA_USER_HUGE_PAGE_SIZE"
-#define SYS_VAR_OFFLOADED_SOCKETS			"VMA_OFFLOADED_SOCKETS"
-#define SYS_VAR_TIMER_RESOLUTION_MSEC			"VMA_TIMER_RESOLUTION_MSEC"
-#define SYS_VAR_TCP_TIMER_RESOLUTION_MSEC		"VMA_TCP_TIMER_RESOLUTION_MSEC"
-#define SYS_VAR_TCP_CTL_THREAD				"VMA_TCP_CTL_THREAD"
-#define SYS_VAR_TCP_TIMESTAMP_OPTION			"VMA_TCP_TIMESTAMP_OPTION"
-#define SYS_VAR_TCP_NODELAY				"VMA_TCP_NODELAY"
-#define SYS_VAR_TCP_QUICKACK				"VMA_TCP_QUICKACK"
-#define SYS_VAR_VMA_EXCEPTION_HANDLING			(vma_exception_handling::getSysVar())
-#define SYS_VAR_AVOID_SYS_CALLS_ON_TCP_FD		"VMA_AVOID_SYS_CALLS_ON_TCP_FD"
-#define SYS_VAR_ALLOW_PRIVILEGED_SOCK_OPT		"VMA_ALLOW_PRIVILEGED_SOCK_OPT"
-#define SYS_VAR_WAIT_AFTER_JOIN_MSEC			"VMA_WAIT_AFTER_JOIN_MSEC"
-#define SYS_VAR_THREAD_MODE				"VMA_THREAD_MODE"
-#define SYS_VAR_BUFFER_BATCHING_MODE			"VMA_BUFFER_BATCHING_MODE"
-#define SYS_VAR_HUGETBL					"VMA_HUGETBL"
-#define SYS_VAR_MEM_ALLOC_TYPE				"VMA_MEM_ALLOC_TYPE"
-#define SYS_VAR_FORK					"VMA_FORK"
-#define SYS_VAR_BF					"VMA_BF"
-#define SYS_VAR_CLOSE_ON_DUP2				"VMA_CLOSE_ON_DUP2"
-#define SYS_VAR_MTU					"VMA_MTU"
-#define MCE_DEFAULT_MTU                                 (0)
+#define SYS_VAR_CQ_POLL_BATCH_MAX                     "XLIO_CQ_POLL_BATCH_MAX"
+#define SYS_VAR_PROGRESS_ENGINE_INTERVAL              "XLIO_PROGRESS_ENGINE_INTERVAL"
+#define SYS_VAR_PROGRESS_ENGINE_WCE_MAX               "XLIO_PROGRESS_ENGINE_WCE_MAX"
+#define SYS_VAR_CQ_KEEP_QP_FULL                       "XLIO_CQ_KEEP_QP_FULL"
+#define SYS_VAR_QP_COMPENSATION_LEVEL                 "XLIO_QP_COMPENSATION_LEVEL"
+#define SYS_VAR_USER_HUGE_PAGE_SIZE                   "XLIO_USER_HUGE_PAGE_SIZE"
+#define SYS_VAR_OFFLOADED_SOCKETS                     "XLIO_OFFLOADED_SOCKETS"
+#define SYS_VAR_TIMER_RESOLUTION_MSEC                 "XLIO_TIMER_RESOLUTION_MSEC"
+#define SYS_VAR_TCP_TIMER_RESOLUTION_MSEC             "XLIO_TCP_TIMER_RESOLUTION_MSEC"
+#define SYS_VAR_TCP_CTL_THREAD                        "XLIO_TCP_CTL_THREAD"
+#define SYS_VAR_TCP_TIMESTAMP_OPTION                  "XLIO_TCP_TIMESTAMP_OPTION"
+#define SYS_VAR_TCP_NODELAY                           "XLIO_TCP_NODELAY"
+#define SYS_VAR_TCP_QUICKACK                          "XLIO_TCP_QUICKACK"
+#define SYS_VAR_AVOID_SYS_CALLS_ON_TCP_FD             "XLIO_AVOID_SYS_CALLS_ON_TCP_FD"
+#define SYS_VAR_ALLOW_PRIVILEGED_SOCK_OPT             "XLIO_ALLOW_PRIVILEGED_SOCK_OPT"
+#define SYS_VAR_WAIT_AFTER_JOIN_MSEC                  "XLIO_WAIT_AFTER_JOIN_MSEC"
+#define SYS_VAR_THREAD_MODE                           "XLIO_THREAD_MODE"
+#define SYS_VAR_BUFFER_BATCHING_MODE                  "XLIO_BUFFER_BATCHING_MODE"
+#define SYS_VAR_HUGETBL                               "XLIO_HUGETBL"
+#define SYS_VAR_MEM_ALLOC_TYPE                        "XLIO_MEM_ALLOC_TYPE"
+#define SYS_VAR_FORK                                  "XLIO_FORK"
+#define SYS_VAR_BF                                    "XLIO_BF"
+#define SYS_VAR_CLOSE_ON_DUP2                         "XLIO_CLOSE_ON_DUP2"
+#define SYS_VAR_MTU                                   "XLIO_MTU"
 #if defined(DEFINED_NGINX)
-#define SYS_VAR_NGINX_WORKERS_NUM                      "VMA_NGINX_WORKERS_NUM"
-#define SYS_VAR_SRC_PORT_STRIDE                        "VMA_SRC_PORT_STRIDE"
+#define SYS_VAR_NGINX_WORKERS_NUM                     "XLIO_NGINX_WORKERS_NUM"
+#define SYS_VAR_SRC_PORT_STRIDE                       "XLIO_SRC_PORT_STRIDE"
 #endif
-#define SYS_VAR_TCP_MAX_SYN_RATE			"VMA_TCP_MAX_SYN_RATE"
-#define SYS_VAR_MSS					"VMA_MSS"
-#define SYS_VAR_TCP_CC_ALGO				"VMA_TCP_CC_ALGO"
-#define SYS_VAR_SPEC					"VMA_SPEC"
-#define SYS_VAR_SPEC_PARAM1				"VMA_SPEC_PARAM1"
-#define SYS_VAR_SPEC_PARAM2				"VMA_SPEC_PARAM2"
+#define SYS_VAR_TCP_MAX_SYN_RATE                      "XLIO_TCP_MAX_SYN_RATE"
+#define SYS_VAR_MSS                                   "XLIO_MSS"
+#define SYS_VAR_TCP_CC_ALGO                           "XLIO_TCP_CC_ALGO"
+#define SYS_VAR_SPEC                                  "XLIO_SPEC"
+#define SYS_VAR_SPEC_PARAM1                           "XLIO_SPEC_PARAM1"
+#define SYS_VAR_SPEC_PARAM2                           "XLIO_SPEC_PARAM2"
 
-#define SYS_VAR_IPOIB					"VMA_IPOIB"
-#define SYS_VAR_SOCKETXTREME				"VMA_SOCKETXTREME"
+#define SYS_VAR_IPOIB                                 "XLIO_IPOIB"
+#define SYS_VAR_SOCKETXTREME                          "XLIO_SOCKETXTREME"
 #ifdef DEFINED_TSO
-#define SYS_VAR_TSO					"VMA_TSO"
+#define SYS_VAR_TSO                                   "XLIO_TSO"
 #endif /* DEFINED_TSO */
 
-#define SYS_VAR_INTERNAL_THREAD_AFFINITY		"VMA_INTERNAL_THREAD_AFFINITY"
-#define SYS_VAR_INTERNAL_THREAD_CPUSET			"VMA_INTERNAL_THREAD_CPUSET"
-#define SYS_VAR_INTERNAL_THREAD_ARM_CQ			"VMA_INTERNAL_THREAD_ARM_CQ"
-#define SYS_VAR_INTERNAL_THREAD_TCP_TIMER_HANDLING	"VMA_INTERNAL_THREAD_TCP_TIMER_HANDLING"
+#define SYS_VAR_INTERNAL_THREAD_AFFINITY              "XLIO_INTERNAL_THREAD_AFFINITY"
+#define SYS_VAR_INTERNAL_THREAD_CPUSET                "XLIO_INTERNAL_THREAD_CPUSET"
+#define SYS_VAR_INTERNAL_THREAD_ARM_CQ                "XLIO_INTERNAL_THREAD_ARM_CQ"
+#define SYS_VAR_INTERNAL_THREAD_TCP_TIMER_HANDLING    "XLIO_INTERNAL_THREAD_TCP_TIMER_HANDLING"
 
-#define SYS_VAR_NETLINK_TIMER_MSEC			"VMA_NETLINK_TIMER"
+#define SYS_VAR_NETLINK_TIMER_MSEC                    "XLIO_NETLINK_TIMER"
 
-#define SYS_VAR_NEIGH_UC_ARP_QUATA			"VMA_NEIGH_UC_ARP_QUATA"
-#define SYS_VAR_NEIGH_UC_ARP_DELAY_MSEC			"VMA_NEIGH_UC_ARP_DELAY_MSEC"
-#define SYS_VAR_NEIGH_NUM_ERR_RETRIES			"VMA_NEIGH_NUM_ERR_RETRIES"
+#define SYS_VAR_NEIGH_UC_ARP_QUATA                    "XLIO_NEIGH_UC_ARP_QUATA"
+#define SYS_VAR_NEIGH_UC_ARP_DELAY_MSEC               "XLIO_NEIGH_UC_ARP_DELAY_MSEC"
+#define SYS_VAR_NEIGH_NUM_ERR_RETRIES                 "XLIO_NEIGH_NUM_ERR_RETRIES"
 
-#define SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES		"VMA_TIME_MEASURE_NUM_SAMPLES"
-#define SYS_VAR_VMA_TIME_MEASURE_DUMP_FILE		"VMA_TIME_MEASURE_DUMP_FILE"
-#define SYS_VAR_TCP_ABORT_ON_CLOSE			"VMA_TCP_ABORT_ON_CLOSE"
-#define SYS_VAR_VMA_RX_POLL_ON_TX_TCP			"VMA_RX_POLL_ON_TX_TCP"
-#define SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME	"VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME"
-#define SYS_VAR_TCP_SEND_BUFFER_SIZE			"VMA_TCP_SEND_BUFFER_SIZE"
+#define SYS_VAR_TIME_MEASURE_NUM_SAMPLES              "XLIO_TIME_MEASURE_NUM_SAMPLES"
+#define SYS_VAR_TIME_MEASURE_DUMP_FILE                "XLIO_TIME_MEASURE_DUMP_FILE"
+#define SYS_VAR_TCP_ABORT_ON_CLOSE                    "XLIO_TCP_ABORT_ON_CLOSE"
+#define SYS_VAR_RX_POLL_ON_TX_TCP                     "XLIO_RX_POLL_ON_TX_TCP"
+#define SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME        "XLIO_TRIGGER_DUMMY_SEND_GETSOCKNAME"
+#define SYS_VAR_TCP_SEND_BUFFER_SIZE                  "XLIO_TCP_SEND_BUFFER_SIZE"
 
-#define MCE_DEFAULT_TCP_SEND_BUFFER_SIZE		(1000000)
-#define MCE_DEFAULT_LOG_FILE				("")
-#define MCE_DEFAULT_CONF_FILE				("/etc/libvma.conf")
-#define MCE_DEFAULT_STATS_FILE				("")
-#define MCE_DEFAULT_VMAD_FOLDER				(VMA_AGENT_PATH)
-#define MCE_DEFAULT_STATS_SHMEM_DIR			(VMA_AGENT_PATH)
-#define MCE_DEFAULT_LOG_DETAILS				(0)
-#define MCE_DEFAULT_LOG_COLORS				(true)
-#define MCE_DEFAULT_APP_ID				("VMA_DEFAULT_APPLICATION_ID")
-#define MCE_DEFAULT_HANDLE_SIGINTR			(false)
-#define MCE_DEFAULT_HANDLE_SIGFAULT			(false)
-#define MCE_DEFAULT_STATS_FD_NUM			100
-#define MCE_DEFAULT_RING_ALLOCATION_LOGIC_TX            (RING_LOGIC_PER_INTERFACE)
-#define MCE_DEFAULT_RING_ALLOCATION_LOGIC_RX            (RING_LOGIC_PER_INTERFACE)
-#define MCE_DEFAULT_RING_MIGRATION_RATIO_TX             (100)
-#define MCE_DEFAULT_RING_MIGRATION_RATIO_RX             (100)
-#define MCE_DEFAULT_RING_LIMIT_PER_INTERFACE            (0)
-#define MCE_DEFAULT_RING_DEV_MEM_TX                     (0)
-#define MCE_DEFAULT_TCP_MAX_SYN_RATE                	(0)
-#define MCE_DEFAULT_ZC_NUM_BUFS				(200000)
-#define MCE_DEFAULT_ZC_CACHE_THRESHOLD			(10 * 1024) // 10GB
-#define MCE_DEFAULT_TX_NUM_SEGS_TCP			(1000000)
-#define MCE_DEFAULT_TX_NUM_BUFS				(200000)
+/*
+ * This block consists of default values for library specific
+ * configuration variables
+ */
+#define MCE_DEFAULT_TCP_SEND_BUFFER_SIZE              (1000000)
+#define MCE_DEFAULT_LOG_FILE                          ("")
+#define MCE_DEFAULT_CONF_FILE                         ("/etc/libxlio.conf")
+#define MCE_DEFAULT_STATS_FILE                        ("")
+#define MCE_DEFAULT_SERVICE_FOLDER                    (VMA_AGENT_PATH)
+#define MCE_DEFAULT_STATS_SHMEM_DIR                   (VMA_AGENT_PATH)
+#define MCE_DEFAULT_LOG_DETAILS                       (0)
+#define MCE_DEFAULT_LOG_COLORS                        (true)
+#define MCE_DEFAULT_APP_ID                            ("XLIO_DEFAULT_APPLICATION_ID")
+#define MCE_DEFAULT_HANDLE_SIGINTR                    (false)
+#define MCE_DEFAULT_HANDLE_SIGFAULT                   (false)
+#define MCE_DEFAULT_STATS_FD_NUM                      100
+#define MCE_DEFAULT_RING_ALLOCATION_LOGIC_TX          (RING_LOGIC_PER_INTERFACE)
+#define MCE_DEFAULT_RING_ALLOCATION_LOGIC_RX          (RING_LOGIC_PER_INTERFACE)
+#define MCE_DEFAULT_RING_MIGRATION_RATIO_TX           (100)
+#define MCE_DEFAULT_RING_MIGRATION_RATIO_RX           (100)
+#define MCE_DEFAULT_RING_LIMIT_PER_INTERFACE          (0)
+#define MCE_DEFAULT_RING_DEV_MEM_TX                   (0)
+#define MCE_DEFAULT_TCP_MAX_SYN_RATE                  (0)
+#define MCE_DEFAULT_ZC_NUM_BUFS                       (200000)
+#define MCE_DEFAULT_ZC_CACHE_THRESHOLD                (10 * 1024) // 10GB
+#define MCE_DEFAULT_TX_NUM_SEGS_TCP                   (1000000)
+#define MCE_DEFAULT_TX_NUM_BUFS	                      (200000)
 #ifdef DEFINED_TSO
-#define MCE_DEFAULT_TX_BUF_SIZE				(0)
-#define MCE_DEFAULT_ZC_TX_SIZE				(32768)
+#define MCE_DEFAULT_TX_BUF_SIZE                       (0)
+#define MCE_DEFAULT_ZC_TX_SIZE	                      (32768)
 #endif /* DEFINED_TSO */
-#define MCE_DEFAULT_TX_NUM_WRE				(2048)
-#define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL		(64)
-#define MCE_DEFAULT_TX_MAX_INLINE			(204) //+18(always inline ETH header) = 222
-#define MCE_DEFAULT_TX_BUILD_IP_CHKSUM			(true)
-#define MCE_DEFAULT_TX_MC_LOOPBACK			(true)
-#define MCE_DEFAULT_TX_NONBLOCKED_EAGAINS		(false)
-#define MCE_DEFAULT_TX_PREFETCH_BYTES			(256)
-#define MCE_DEFAULT_TX_BUFS_BATCH_UDP			(8)
-#define MCE_DEFAULT_TX_BUFS_BATCH_TCP			(16)
+#define MCE_DEFAULT_TX_NUM_WRE                        (2048)
+#define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL              (64)
+#define MCE_DEFAULT_TX_MAX_INLINE                     (204) //+18(always inline ETH header) = 222
+#define MCE_DEFAULT_TX_BUILD_IP_CHKSUM                (true)
+#define MCE_DEFAULT_TX_MC_LOOPBACK                    (true)
+#define MCE_DEFAULT_TX_NONBLOCKED_EAGAINS             (false)
+#define MCE_DEFAULT_TX_PREFETCH_BYTES                 (256)
+#define MCE_DEFAULT_TX_BUFS_BATCH_UDP                 (8)
+#define MCE_DEFAULT_TX_BUFS_BATCH_TCP                 (16)
 #ifdef DEFINED_TSO
-#define MCE_DEFAULT_TX_NUM_SGE				(4)
+#define MCE_DEFAULT_TX_NUM_SGE                        (4)
 #else
-#define MCE_DEFAULT_TX_NUM_SGE				(2)
+#define MCE_DEFAULT_TX_NUM_SGE                        (2)
 #endif
-#define MCE_DEFAULT_RX_NUM_BUFS				(200000)
-#define MCE_DEFAULT_RX_BUFS_BATCH			(64)
-#define MCE_DEFAULT_RX_NUM_WRE				(16000)
-#define MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV		(64)
-#define MCE_DEFAULT_RX_NUM_SGE				(1)
-#define MCE_DEFAULT_RX_NUM_POLLS			(100000)
-#define MCE_DEFAULT_RX_NUM_POLLS_INIT			(0)
-#define MCE_DEFAULT_RX_UDP_POLL_OS_RATIO		(100)
-#define MCE_DEFAULT_HW_TS_CONVERSION_MODE		(TS_CONVERSION_MODE_SYNC)
-#define MCE_DEFAULT_RX_POLL_YIELD			(0)
-#define MCE_DEFAULT_RX_BYTE_MIN_LIMIT			(65536)
-#define MCE_DEFAULT_RX_PREFETCH_BYTES			(256)
-#define MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL	(0)
-#define MCE_DEFAULT_RX_CQ_DRAIN_RATE			(MCE_RX_CQ_DRAIN_RATE_DISABLED)
-#define MCE_DEFAULT_GRO_STREAMS_MAX			(32)
-#define MCE_DEFAULT_TCP_3T_RULES			(false)
-#define MCE_DEFAULT_UDP_3T_RULES			(true)
-#define MCE_DEFAULT_ETH_MC_L2_ONLY_RULES		(false)
-#define MCE_DEFAULT_MC_FORCE_FLOWTAG			(false)
-#define MCE_DEFAULT_SELECT_NUM_POLLS			(100000)
-#define MCE_DEFAULT_SELECT_POLL_OS_FORCE		(0)
-#define MCE_DEFAULT_SELECT_POLL_OS_RATIO		(10)
-#define MCE_DEFAULT_SELECT_SKIP_OS			(4)
-#define MCE_DEFAULT_SELECT_CPU_USAGE_STATS		(false)
-
+#define MCE_DEFAULT_RX_NUM_BUFS                       (200000)
+#define MCE_DEFAULT_RX_BUFS_BATCH                     (64)
+#define MCE_DEFAULT_RX_NUM_WRE                        (16000)
+#define MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV           (64)
+#define MCE_DEFAULT_RX_NUM_SGE                        (1)
+#define MCE_DEFAULT_RX_NUM_POLLS                      (100000)
+#define MCE_DEFAULT_RX_NUM_POLLS_INIT                 (0)
+#define MCE_DEFAULT_RX_UDP_POLL_OS_RATIO              (100)
+#define MCE_DEFAULT_HW_TS_CONVERSION_MODE             (TS_CONVERSION_MODE_SYNC)
+#define MCE_DEFAULT_RX_POLL_YIELD                     (0)
+#define MCE_DEFAULT_RX_BYTE_MIN_LIMIT                 (65536)
+#define MCE_DEFAULT_RX_PREFETCH_BYTES                 (256)
+#define MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL     (0)
+#define MCE_DEFAULT_RX_CQ_DRAIN_RATE                  (MCE_RX_CQ_DRAIN_RATE_DISABLED)
+#define MCE_DEFAULT_GRO_STREAMS_MAX                   (32)
+#define MCE_DEFAULT_TCP_3T_RULES                      (false)
+#define MCE_DEFAULT_UDP_3T_RULES                      (true)
+#define MCE_DEFAULT_ETH_MC_L2_ONLY_RULES              (false)
+#define MCE_DEFAULT_MC_FORCE_FLOWTAG                  (false)
+#define MCE_DEFAULT_SELECT_NUM_POLLS                  (100000)
+#define MCE_DEFAULT_SELECT_POLL_OS_FORCE              (0)
+#define MCE_DEFAULT_SELECT_POLL_OS_RATIO              (10)
+#define MCE_DEFAULT_SELECT_SKIP_OS                    (4)
+#define MCE_DEFAULT_SELECT_CPU_USAGE_STATS            (false)
 #ifdef DEFINED_IBV_CQ_ATTR_MODERATE
-#define MCE_DEFAULT_CQ_MODERATION_ENABLE               (true)
+#define MCE_DEFAULT_CQ_MODERATION_ENABLE              (true)
 #else
-#define MCE_DEFAULT_CQ_MODERATION_ENABLE               (false)
+#define MCE_DEFAULT_CQ_MODERATION_ENABLE              (false)
 #endif
-
-#define MCE_DEFAULT_CQ_MODERATION_COUNT			(48)
-#define MCE_DEFAULT_CQ_MODERATION_PERIOD_USEC		(50)
-#define MCE_DEFAULT_CQ_AIM_MAX_COUNT			(560)
-#define MCE_DEFAULT_CQ_AIM_MAX_PERIOD_USEC		(250)
-#define MCE_DEFAULT_CQ_AIM_INTERVAL_MSEC		(250)
-#define MCE_DEFAULT_CQ_AIM_INTERRUPTS_RATE_PER_SEC	(5000)
-#define MCE_DEFAULT_CQ_POLL_BATCH			(16)
-#define MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC	(10)
-#define MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX		(10000)
-#define MCE_DEFAULT_CQ_KEEP_QP_FULL			(true)
-#define MCE_DEFAULT_QP_COMPENSATION_LEVEL		(256)
-#define MCE_DEFAULT_USER_HUGE_PAGE_SIZE                 (2*1024*1024)
-#define MCE_DEFAULT_INTERNAL_THREAD_ARM_CQ_ENABLED	(false)
-#define MCE_DEFAULT_QP_FORCE_MC_ATTACH			(false)
-#define MCE_DEFAULT_OFFLOADED_SOCKETS			(true)
-#define MCE_DEFAULT_TIMER_RESOLUTION_MSEC		(10)
-#define MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC		(100)
-#define MCE_DEFAULT_TCP_CTL_THREAD			(CTL_THREAD_DISABLE)
-#define MCE_DEFAULT_TCP_TIMESTAMP_OPTION		(TCP_TS_OPTION_DISABLE)
-#define MCE_DEFAULT_TCP_NODELAY 			(false)
-#define MCE_DEFAULT_TCP_QUICKACK			(false)
-#define MCE_DEFAULT_VMA_EXCEPTION_HANDLING	(vma_exception_handling::MODE_DEFAULT)
-#define MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD		(false)
-#define MCE_DEFAULT_ALLOW_PRIVILEGED_SOCK_OPT		(true)
-#define MCE_DEFAULT_WAIT_AFTER_JOIN_MSEC		(0)
-#define MCE_DEFAULT_THREAD_MODE				(THREAD_MODE_MULTI)
-#define MCE_DEFAULT_BUFFER_BATCHING_MODE		(BUFFER_BATCHING_WITH_RECLAIM)
+#define MCE_DEFAULT_CQ_MODERATION_COUNT	              (48)
+#define MCE_DEFAULT_CQ_MODERATION_PERIOD_USEC         (50)
+#define MCE_DEFAULT_CQ_AIM_MAX_COUNT                  (560)
+#define MCE_DEFAULT_CQ_AIM_MAX_PERIOD_USEC            (250)
+#define MCE_DEFAULT_CQ_AIM_INTERVAL_MSEC              (250)
+#define MCE_DEFAULT_CQ_AIM_INTERRUPTS_RATE_PER_SEC    (5000)
+#define MCE_DEFAULT_CQ_POLL_BATCH                     (16)
+#define MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC     (10)
+#define MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX           (10000)
+#define MCE_DEFAULT_CQ_KEEP_QP_FULL                   (true)
+#define MCE_DEFAULT_QP_COMPENSATION_LEVEL             (256)
+#define MCE_DEFAULT_USER_HUGE_PAGE_SIZE               (2*1024*1024)
+#define MCE_DEFAULT_INTERNAL_THREAD_ARM_CQ_ENABLED    (false)
+#define MCE_DEFAULT_QP_FORCE_MC_ATTACH                (false)
+#define MCE_DEFAULT_OFFLOADED_SOCKETS                 (true)
+#define MCE_DEFAULT_TIMER_RESOLUTION_MSEC             (10)
+#define MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC         (100)
+#define MCE_DEFAULT_TCP_CTL_THREAD                    (CTL_THREAD_DISABLE)
+#define MCE_DEFAULT_TCP_TIMESTAMP_OPTION              (TCP_TS_OPTION_DISABLE)
+#define MCE_DEFAULT_TCP_NODELAY                       (false)
+#define MCE_DEFAULT_TCP_QUICKACK                      (false)
+#define MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD         (false)
+#define MCE_DEFAULT_ALLOW_PRIVILEGED_SOCK_OPT         (true)
+#define MCE_DEFAULT_WAIT_AFTER_JOIN_MSEC              (0)
+#define MCE_DEFAULT_THREAD_MODE                       (THREAD_MODE_MULTI)
+#define MCE_DEFAULT_BUFFER_BATCHING_MODE              (BUFFER_BATCHING_WITH_RECLAIM)
 #ifndef VMA_IBV_ACCESS_ALLOCATE_MR
-#define MCE_DEFAULT_MEM_ALLOC_TYPE			(ALLOC_TYPE_HUGEPAGES)
+#define MCE_DEFAULT_MEM_ALLOC_TYPE                    (ALLOC_TYPE_HUGEPAGES)
 #else
-#define MCE_DEFAULT_MEM_ALLOC_TYPE			(ALLOC_TYPE_CONTIG)
+#define MCE_DEFAULT_MEM_ALLOC_TYPE                    (ALLOC_TYPE_CONTIG)
 #endif
-#define MCE_DEFAULT_FORK_SUPPORT			(true)
-#define MCE_DEFAULT_BF_FLAG				(true)
-#define MCE_DEFAULT_CLOSE_ON_DUP2			(true)
-#define MCE_DEFAULT_MTU					(0)
+#define MCE_DEFAULT_FORK_SUPPORT                      (true)
+#define MCE_DEFAULT_BF_FLAG                           (true)
+#define MCE_DEFAULT_CLOSE_ON_DUP2                     (true)
+#define MCE_DEFAULT_MTU	                              (0)
 #if defined(DEFINED_NGINX)
-// Nginx flow will be enabled by default for value greater than 0.
-#define MCE_DEFAULT_NGINX_WORKERS_NUM                  (0)
-#define MCE_DEFAULT_SRC_PORT_STRIDE                    (2)
+#define MCE_DEFAULT_NGINX_WORKERS_NUM                 (0) /* Nginx flow will be enabled by default for value greater than 0 */
+#define MCE_DEFAULT_SRC_PORT_STRIDE                   (2)
 #endif
-#define MCE_DEFAULT_MSS					(0)
-#define MCE_DEFAULT_LWIP_CC_ALGO_MOD			(0)
-#define MCE_DEFAULT_INTERNAL_THREAD_AFFINITY		(-1)
-#define MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR	("-1")
-#define MCE_DEFAULT_INTERNAL_THREAD_CPUSET		("")
-#define MCE_DEFAULT_INTERNAL_THREAD_TCP_TIMER_HANDLING	(INTERNAL_THREAD_TCP_TIMER_HANDLING_DEFERRED)
-#define MCE_DEFAULT_NETLINK_TIMER_MSEC			(10000)
+#define MCE_DEFAULT_MSS                               (0)
+#define MCE_DEFAULT_LWIP_CC_ALGO_MOD                  (0)
+#define MCE_DEFAULT_INTERNAL_THREAD_AFFINITY          (-1)
+#define MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR      ("-1")
+#define MCE_DEFAULT_INTERNAL_THREAD_CPUSET            ("")
+#define MCE_DEFAULT_INTERNAL_THREAD_TCP_TIMER_HANDLING (INTERNAL_THREAD_TCP_TIMER_HANDLING_DEFERRED)
+#define MCE_DEFAULT_NETLINK_TIMER_MSEC                (10000)
 
-#define MCE_DEFAULT_NEIGH_UC_ARP_QUATA			3
-#define MCE_DEFAULT_NEIGH_UC_ARP_DELAY_MSEC		10000
-#define MCE_DEFAULT_NEIGH_NUM_ERR_RETRIES		1
+#define MCE_DEFAULT_NEIGH_UC_ARP_QUATA                3
+#define MCE_DEFAULT_NEIGH_UC_ARP_DELAY_MSEC           10000
+#define MCE_DEFAULT_NEIGH_NUM_ERR_RETRIES             1
 
-#define MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES		(10000)
-#define MCE_DEFAULT_TIME_MEASURE_DUMP_FILE		"/tmp/VMA_inst.dump"
+#define MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES          (10000)
+#define MCE_DEFAULT_TIME_MEASURE_DUMP_FILE            "/tmp/xlio_inst.dump"
 
-#define MCE_MIN_NUM_SGE					(1)
-#define MCE_MAX_NUM_SGE					(32)
-#define MCE_MIN_RX_NUM_POLLS				(-1)
-#define MCE_MAX_RX_NUM_POLLS				(100000000)
-#define MCE_MIN_RX_PREFETCH_BYTES			(32) /* Just enough for headers (IPoIB+IP+UDP)*/
-#define MCE_MAX_RX_PREFETCH_BYTES			(2044)
-#define MCE_MAX_ZC_TX_SIZE				(65535)
-#define MCE_RX_CQ_DRAIN_RATE_DISABLED			(0)
-#define MCE_CQ_DRAIN_INTERVAL_DISABLED			(0)
-#define MCE_CQ_ADAPTIVE_MODERATION_DISABLED		(0)
-#define MCE_MIN_CQ_POLL_BATCH				(1)
-#define MCE_MAX_CQ_POLL_BATCH				(128)
-#define MCE_DEFAULT_IPOIB_FLAG				(1)
-#define MCE_DEFAULT_SOCKETXTREME			(false)
+#define MCE_MIN_NUM_SGE                               (1)
+#define MCE_MAX_NUM_SGE                               (32)
+#define MCE_MIN_RX_NUM_POLLS                          (-1)
+#define MCE_MAX_RX_NUM_POLLS                          (100000000)
+#define MCE_MIN_RX_PREFETCH_BYTES                     (32) /* Just enough for headers (IPoIB+IP+UDP)*/
+#define MCE_MAX_RX_PREFETCH_BYTES                     (2044)
+#define MCE_MAX_ZC_TX_SIZE                            (65535)
+#define MCE_RX_CQ_DRAIN_RATE_DISABLED                 (0)
+#define MCE_CQ_DRAIN_INTERVAL_DISABLED                (0)
+#define MCE_CQ_ADAPTIVE_MODERATION_DISABLED           (0)
+#define MCE_MIN_CQ_POLL_BATCH                         (1)
+#define MCE_MAX_CQ_POLL_BATCH                         (128)
+#define MCE_DEFAULT_IPOIB_FLAG                        (1)
+#define MCE_DEFAULT_SOCKETXTREME                      (false)
 #ifdef DEFINED_TSO
-#define MCE_DEFAULT_TSO					(true)
+#define MCE_DEFAULT_TSO                               (true)
 #endif /* DEFINED_TSO */
-#define MCE_DEFAULT_TCP_ABORT_ON_CLOSE			(false)
-#define MCE_DEFAULT_RX_POLL_ON_TX_TCP			(false)
-#define MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME	(false)
+#define MCE_DEFAULT_TCP_ABORT_ON_CLOSE                (false)
+#define MCE_DEFAULT_RX_POLL_ON_TX_TCP                 (false)
+#define MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME    (false)
+#define MCE_ALIGNMENT                                 ((unsigned long)63)
 
-#define MCE_ALIGNMENT					((unsigned long)63)
-#define RX_BUF_SIZE(mtu)				((mtu) + IPOIB_HDR_LEN + GRH_HDR_LEN) // RX buffers are larger in IB
-#define TX_BUF_SIZE(mtu)				((mtu) + 92) // Tx buffers are larger in Ethernet (they include L2 for RAW QP)
-#define NUM_TX_WRE_TO_SIGNAL_MAX			64
-#define NUM_RX_WRE_TO_POST_RECV_MAX			1024
-#define TCP_MAX_SYN_RATE_TOP_LIMIT			100000
-#define DEFAULT_MC_TTL					64
-#define IFTYPE_PARAM_FILE				"/sys/class/net/%s/type"
-#define IFADDR_MTU_PARAM_FILE				"/sys/class/net/%s/mtu"
-#define UMCAST_PARAM_FILE				"/sys/class/net/%s/umcast"
-#define IPOIB_MODE_PARAM_FILE				"/sys/class/net/%s/mode"
-#define VERBS_DEVICE_PORT_PARAM_FILE			"/sys/class/net/%s/dev_port"
-#define VERBS_DEVICE_ID_PARAM_FILE			"/sys/class/net/%s/dev_id"
-#define BONDING_MODE_PARAM_FILE				"/sys/class/net/%s/bonding/mode"
-#define BONDING_SLAVES_PARAM_FILE			"/sys/class/net/%s/bonding/slaves"
-#define BONDING_ACTIVE_SLAVE_PARAM_FILE			"/sys/class/net/%s/bonding/active_slave"
-#define BONDING_FAILOVER_MAC_PARAM_FILE			"/sys/class/net/%s/bonding/fail_over_mac"
-#define BONDING_XMIT_HASH_POLICY_PARAM_FILE		"/sys/class/net/%s/bonding/xmit_hash_policy"
-#define BONDING_ROCE_LAG_FILE				"/sys/class/net/%s/device/roce_lag_enable"
+
+/*
+ * This block consists of auxiliary constants
+ */
+#define RX_BUF_SIZE(mtu)                              ((mtu) + IPOIB_HDR_LEN + GRH_HDR_LEN) // RX buffers are larger in IB
+#define TX_BUF_SIZE(mtu)                              ((mtu) + 92) // Tx buffers are larger in Ethernet (they include L2 for RAW QP)
+#define NUM_TX_WRE_TO_SIGNAL_MAX                      64
+#define NUM_RX_WRE_TO_POST_RECV_MAX                   1024
+#define TCP_MAX_SYN_RATE_TOP_LIMIT                    100000
+#define DEFAULT_MC_TTL                                64
+#define IFTYPE_PARAM_FILE                             "/sys/class/net/%s/type"
+#define IFADDR_MTU_PARAM_FILE                         "/sys/class/net/%s/mtu"
+#define UMCAST_PARAM_FILE                             "/sys/class/net/%s/umcast"
+#define IPOIB_MODE_PARAM_FILE                         "/sys/class/net/%s/mode"
+#define VERBS_DEVICE_PORT_PARAM_FILE                  "/sys/class/net/%s/dev_port"
+#define VERBS_DEVICE_ID_PARAM_FILE                    "/sys/class/net/%s/dev_id"
+#define BONDING_MODE_PARAM_FILE                       "/sys/class/net/%s/bonding/mode"
+#define BONDING_SLAVES_PARAM_FILE                     "/sys/class/net/%s/bonding/slaves"
+#define BONDING_ACTIVE_SLAVE_PARAM_FILE               "/sys/class/net/%s/bonding/active_slave"
+#define BONDING_FAILOVER_MAC_PARAM_FILE               "/sys/class/net/%s/bonding/fail_over_mac"
+#define BONDING_XMIT_HASH_POLICY_PARAM_FILE           "/sys/class/net/%s/bonding/xmit_hash_policy"
+#define BONDING_ROCE_LAG_FILE                         "/sys/class/net/%s/device/roce_lag_enable"
 /* BONDING_SLAVE_STATE_PARAM_FILE is for kernel  > 3.14 or RH7.2 and higher */
-#define BONDING_SLAVE_STATE_PARAM_FILE			"/sys/class/net/%s/bonding_slave/state"
-#define L2_ADDR_FILE_FMT                                "/sys/class/net/%.*s/address"
-#define L2_BR_ADDR_FILE_FMT                                   "/sys/class/net/%.*s/broadcast"
-#define OPER_STATE_PARAM_FILE				"/sys/class/net/%s/operstate"
+#define BONDING_SLAVE_STATE_PARAM_FILE                "/sys/class/net/%s/bonding_slave/state"
+#define L2_ADDR_FILE_FMT                              "/sys/class/net/%.*s/address"
+#define L2_BR_ADDR_FILE_FMT                           "/sys/class/net/%.*s/broadcast"
+#define OPER_STATE_PARAM_FILE                         "/sys/class/net/%s/operstate"
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
-#define RAW_QP_PRIVLIGES_PARAM_FILE			"/sys/module/ib_uverbs/parameters/disable_raw_qp_enforcement"
+#define RAW_QP_PRIVLIGES_PARAM_FILE                   "/sys/module/ib_uverbs/parameters/disable_raw_qp_enforcement"
 #endif /* DEFINED_VERBS_VERSION */
-#define FLOW_STEERING_MGM_ENTRY_SIZE_PARAM_FILE		"/sys/module/mlx4_core/parameters/log_num_mgm_entry_size"
-#define VIRTUAL_DEVICE_FOLDER			"/sys/devices/virtual/net/%s/"
-#define BOND_DEVICE_FILE				"/proc/net/bonding/%s"
+#define FLOW_STEERING_MGM_ENTRY_SIZE_PARAM_FILE       "/sys/module/mlx4_core/parameters/log_num_mgm_entry_size"
+#define VIRTUAL_DEVICE_FOLDER                         "/sys/devices/virtual/net/%s/"
+#define BOND_DEVICE_FILE                              "/proc/net/bonding/%s"
+#define NETVSC_DEVICE_CLASS_FILE                      "/sys/class/net/%s/device/class_id"
+#define NETVSC_DEVICE_LOWER_FILE                      "/sys/class/net/%s/lower_%s/ifindex"
+#define NETVSC_DEVICE_UPPER_FILE                      "/sys/class/net/%s/upper_%s/ifindex"
+#define NETVSC_ID                                     "{f8615163-df3e-46c5-913f-f2d2f965ed0e}\n"
 
+#define MAX_STATS_FD_NUM                              1024
+#define MAX_WINDOW_SCALING                            14
 
-#define NETVSC_DEVICE_CLASS_FILE		"/sys/class/net/%s/device/class_id"
-#define NETVSC_DEVICE_LOWER_FILE		"/sys/class/net/%s/lower_%s/ifindex"
-#define NETVSC_DEVICE_UPPER_FILE		"/sys/class/net/%s/upper_%s/ifindex"
-#define NETVSC_ID               		"{f8615163-df3e-46c5-913f-f2d2f965ed0e}\n"
-
-#define MAX_STATS_FD_NUM				1024
-#define MAX_WINDOW_SCALING				14
-
-#define VIRTUALIZATION_FLAG				"hypervisor"
+#define VIRTUALIZATION_FLAG	                          "hypervisor"
 
 extern bool g_b_exit;
 extern bool g_is_forked_child;
