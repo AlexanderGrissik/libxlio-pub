@@ -227,8 +227,8 @@ TEST_F(vma_send_zc, ti_1) {
 
 	if (0 == pid) {  /* I am the child */
 		int opt_val = 1;
-		struct vma_pd_attr vma_pd_attr;
-		socklen_t op_len = (socklen_t)(sizeof(vma_pd_attr) - 1);
+		struct xlio_pd_attr xlio_pd_attr;
+		socklen_t op_len = (socklen_t)(sizeof(xlio_pd_attr) - 1);
 
 		barrier_fork(pid);
 
@@ -248,7 +248,7 @@ TEST_F(vma_send_zc, ti_1) {
 		ASSERT_EQ(0, rc);
 
 		errno = EOK;
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &vma_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
 		EXPECT_EQ(EINVAL, errno);
 		EXPECT_GT(0, rc);
 
@@ -309,14 +309,14 @@ TEST_F(vma_send_zc, ti_2) {
 
 	if (0 == pid) {  /* I am the child */
 		int opt_val = 1;
-		struct vma_pd_key vma_pd_key[1];
+		struct xlio_pd_key xlio_pd_key[1];
 		struct iovec vec[1];
 		struct msghdr msg = {};
-		int cmsg_len = sizeof(vma_pd_key);
+		int cmsg_len = sizeof(xlio_pd_key);
 		struct cmsghdr *cmsg;
 		char cbuf[CMSG_SPACE(cmsg_len)];
-		struct vma_pd_attr vma_pd_attr;
-		socklen_t op_len = (socklen_t)sizeof(vma_pd_attr);
+		struct xlio_pd_attr xlio_pd_attr;
+		socklen_t op_len = (socklen_t)sizeof(xlio_pd_attr);
 
 		barrier_fork(pid);
 
@@ -335,13 +335,13 @@ TEST_F(vma_send_zc, ti_2) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &vma_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
-		ASSERT_EQ(sizeof(vma_pd_attr), op_len);
-		ASSERT_TRUE(vma_pd_attr.ib_pd);
+		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
+		ASSERT_TRUE(xlio_pd_attr.ib_pd);
 
-		vma_pd_key[0].flags = 0;
-		vma_pd_key[0].mkey = 1111;
+		xlio_pd_key[0].flags = 0;
+		xlio_pd_key[0].mkey = 1111;
 
 		vec[0].iov_base = (void *)m_test_buf;
 		vec[0].iov_len = m_test_buf_size;
@@ -353,7 +353,7 @@ TEST_F(vma_send_zc, ti_2) {
 		cmsg->cmsg_level = SOL_SOCKET;
 		cmsg->cmsg_type = SCM_VMA_PD;
 		cmsg->cmsg_len = CMSG_LEN(cmsg_len);
-		memcpy(CMSG_DATA(cmsg), &vma_pd_key[0], sizeof(vma_pd_key[0]));
+		memcpy(CMSG_DATA(cmsg), &xlio_pd_key[0], sizeof(xlio_pd_key[0]));
 		msg.msg_controllen = cmsg->cmsg_len;
 
 		msg.msg_iov = vec;
@@ -436,16 +436,16 @@ TEST_F(vma_send_zc, ti_3_few_send) {
 		int opt_val = 1;
 		uint32_t lo, hi;
 		struct epoll_event event;
-		struct vma_pd_key vma_pd_key[1];
+		struct xlio_pd_key xlio_pd_key[1];
 		struct iovec vec[1];
 		struct msghdr msg = {};
-		int cmsg_len = sizeof(vma_pd_key);
+		int cmsg_len = sizeof(xlio_pd_key);
 		struct cmsghdr *cmsg;
 		char cbuf[CMSG_SPACE(cmsg_len)];
 		struct ibv_pd *ib_pd = NULL;
 		struct ibv_mr *ib_mr = NULL;
-		struct vma_pd_attr vma_pd_attr;
-		socklen_t op_len = (socklen_t)sizeof(vma_pd_attr);
+		struct xlio_pd_attr xlio_pd_attr;
+		socklen_t op_len = (socklen_t)sizeof(xlio_pd_attr);
 
 		barrier_fork(pid);
 
@@ -464,15 +464,15 @@ TEST_F(vma_send_zc, ti_3_few_send) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &vma_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
-		ASSERT_EQ(sizeof(vma_pd_attr), op_len);
-		ASSERT_TRUE(vma_pd_attr.ib_pd);
+		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
+		ASSERT_TRUE(xlio_pd_attr.ib_pd);
 
-		ib_pd = (struct ibv_pd *)vma_pd_attr.ib_pd;
+		ib_pd = (struct ibv_pd *)xlio_pd_attr.ib_pd;
 		ib_mr = ibv_reg_mr(ib_pd, (void *)m_test_buf, (size_t)m_test_buf_size, IBV_ACCESS_LOCAL_WRITE);
-		vma_pd_key[0].flags = 0;
-		vma_pd_key[0].mkey = ib_mr->lkey;
+		xlio_pd_key[0].flags = 0;
+		xlio_pd_key[0].mkey = ib_mr->lkey;
 
 		ptr = m_test_buf;
 		for (i = 0; i < test_iter; i++) {
@@ -486,7 +486,7 @@ TEST_F(vma_send_zc, ti_3_few_send) {
 			cmsg->cmsg_level = SOL_SOCKET;
 			cmsg->cmsg_type = SCM_VMA_PD;
 			cmsg->cmsg_len = CMSG_LEN(cmsg_len);
-			memcpy(CMSG_DATA(cmsg), &vma_pd_key[0], sizeof(vma_pd_key[0]));
+			memcpy(CMSG_DATA(cmsg), &xlio_pd_key[0], sizeof(xlio_pd_key[0]));
 			msg.msg_controllen = cmsg->cmsg_len;
 
 			msg.msg_iov = vec;
@@ -584,16 +584,16 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 		int opt_val = 1;
 		uint32_t lo, hi;
 		struct epoll_event event;
-		struct vma_pd_key vma_pd_key[(m_test_buf_size + (m_test_buf_chunk - 1)) / m_test_buf_chunk];
+		struct xlio_pd_key xlio_pd_key[(m_test_buf_size + (m_test_buf_chunk - 1)) / m_test_buf_chunk];
 		struct iovec vec[(m_test_buf_size + (m_test_buf_chunk - 1)) / m_test_buf_chunk];
 		struct msghdr msg = {};
-		int cmsg_len = sizeof(vma_pd_key);
+		int cmsg_len = sizeof(xlio_pd_key);
 		struct cmsghdr *cmsg;
 		char cbuf[CMSG_SPACE(cmsg_len)];
 		struct ibv_pd *ib_pd = NULL;
 		struct ibv_mr *ib_mr = NULL;
-		struct vma_pd_attr vma_pd_attr;
-		socklen_t op_len = (socklen_t)sizeof(vma_pd_attr);
+		struct xlio_pd_attr xlio_pd_attr;
+		socklen_t op_len = (socklen_t)sizeof(xlio_pd_attr);
 		int i = 0;
 
 		barrier_fork(pid);
@@ -618,19 +618,19 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &vma_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
-		ASSERT_EQ(sizeof(vma_pd_attr), op_len);
-		ASSERT_TRUE(vma_pd_attr.ib_pd);
+		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
+		ASSERT_TRUE(xlio_pd_attr.ib_pd);
 
-		ib_pd = (struct ibv_pd *)vma_pd_attr.ib_pd;
+		ib_pd = (struct ibv_pd *)xlio_pd_attr.ib_pd;
 		ib_mr = ibv_reg_mr(ib_pd, (void *)m_test_buf, (size_t)m_test_buf_size, IBV_ACCESS_LOCAL_WRITE);
 
 		while ((i * m_test_buf_chunk) < m_test_buf_size) {
 			vec[i].iov_base = (void *)((uintptr_t)m_test_buf + (i * m_test_buf_chunk));
 			vec[i].iov_len = sys_min(m_test_buf_chunk, (m_test_buf_size - i * m_test_buf_chunk));
-			vma_pd_key[i].flags = 0;
-			vma_pd_key[i].mkey = ib_mr->lkey;
+			xlio_pd_key[i].flags = 0;
+			xlio_pd_key[i].mkey = ib_mr->lkey;
 			i++;
 		}
 
@@ -641,7 +641,7 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 		cmsg->cmsg_level = SOL_SOCKET;
 		cmsg->cmsg_type = SCM_VMA_PD;
 		cmsg->cmsg_len = CMSG_LEN(cmsg_len);
-		memcpy(CMSG_DATA(cmsg), vma_pd_key, sizeof(vma_pd_key));
+		memcpy(CMSG_DATA(cmsg), xlio_pd_key, sizeof(xlio_pd_key));
 		msg.msg_controllen = cmsg->cmsg_len;
 
 		msg.msg_iov = vec;

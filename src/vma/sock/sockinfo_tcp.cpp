@@ -778,7 +778,7 @@ ssize_t sockinfo_tcp::tcp_tx(vma_tx_call_attr_t &tx_arg)
 	bool is_send_zerocopy = false;
 	void *tx_ptr = NULL;
 	__off64_t file_offset = 0;
-	struct vma_pd_key *pd_key_array = NULL;
+	struct xlio_pd_key *pd_key_array = NULL;
 
 	/* Let allow OS to process all invalid scenarios to avoid any
 	 * inconsistencies in setting errno values
@@ -878,7 +878,7 @@ retry_is_ready:
 	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 		is_send_zerocopy = tx_arg.opcode != TX_FILE;
-		pd_key_array = (tx_arg.priv.attr == PBUF_DESC_MKEY ? (struct vma_pd_key *)tx_arg.priv.map : NULL);
+		pd_key_array = (tx_arg.priv.attr == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
 	}
 
 	for (int i = 0; i < sz_iov; i++) {
@@ -4159,7 +4159,7 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
 			}
 			break;
 		case SO_VMA_PD:
-			if (__optlen && *__optlen >= sizeof(struct vma_pd_attr)) {
+			if (__optlen && *__optlen >= sizeof(struct xlio_pd_attr)) {
 				if (m_p_connected_dst_entry) {
 					ring* tx_ring = m_p_connected_dst_entry->get_ring();
 					if (tx_ring) {
@@ -4169,7 +4169,7 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
 						 */
 						ib_ctx_handler* p_ib_ctx_h = (ib_ctx_handler *)tx_ring->get_ctx(0);
 						if (p_ib_ctx_h) {
-							struct vma_pd_attr* pd_attr = (struct vma_pd_attr *)__optval;
+							struct xlio_pd_attr* pd_attr = (struct xlio_pd_attr *)__optval;
 							pd_attr->flags = 0;
 							pd_attr->ib_pd = (void *)p_ib_ctx_h->get_ibv_pd();
 							ret = 0;

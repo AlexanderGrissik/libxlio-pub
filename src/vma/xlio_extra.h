@@ -88,14 +88,14 @@ typedef enum {
  * 	and bounding to device for RX ring.
  * 	By default getting PD for TX ring.
  * 	This case can be used with sendmsg(SCM_VMA_PD) when the data portion contains
- * 	an array of the elements with datatype as struct vma_pd_key. Number of elements in this
+ * 	an array of the elements with datatype as struct xlio_pd_key. Number of elements in this
  * 	array should be equal to msg_iovlen value. Every data pointer in msg_iov has
  * 	correspondent memory key.
  *
  * @param flags - to specify needed information.
  * @param pd - protection domain (PD) for the RDMA device context
  */
-struct vma_pd_attr {
+struct xlio_pd_attr {
 	uint32_t flags;
 	void*	 ib_pd;
 };
@@ -107,7 +107,7 @@ struct vma_pd_attr {
  * @param flags - to specify needed information. By default mkey value is used.
  * @param mkey - memory key
  */
-struct vma_pd_key {
+struct xlio_pd_key {
 	uint32_t flags;
 	uint32_t mkey;
 };

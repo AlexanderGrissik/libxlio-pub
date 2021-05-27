@@ -1740,7 +1740,7 @@ ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 			struct cmsghdr* cmsg = CMSG_FIRSTHDR((struct msghdr*)__msg);
 			if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_VMA_PD)) {
 				if ((tx_arg.attr.msg.flags & MSG_ZEROCOPY) &&
-						(__msg->msg_iovlen == ((cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(struct vma_pd_key)))) {
+						(__msg->msg_iovlen == ((cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(struct xlio_pd_key)))) {
 					tx_arg.priv.attr = PBUF_DESC_MKEY;
 					tx_arg.priv.map = (void *)CMSG_DATA(cmsg);
 				} else {
