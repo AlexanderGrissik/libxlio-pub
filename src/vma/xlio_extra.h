@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_EXTRA_H
-#define VMA_EXTRA_H
+#ifndef XLIO_EXTRA_H
+#define XLIO_EXTRA_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -41,8 +41,8 @@
 /*
  * Flags for recvfrom_zcopy()
  */
-#define MSG_VMA_ZCOPY_FORCE	0x01000000 // don't fallback to bcopy
-#define	MSG_VMA_ZCOPY		0x00040000 // return: zero copy was done
+#define MSG_XLIO_ZCOPY_FORCE    0x01000000 // don't fallback to bcopy
+#define	MSG_XLIO_ZCOPY          0x00040000 // return: zero copy was done
 
 /*
  * Options for setsockopt()/getsockopt()
@@ -63,23 +63,23 @@ enum {
 /*
  * Flags for Dummy send API
  */
-#define VMA_SND_FLAGS_DUMMY MSG_SYN // equals to 0x400
+#define XLIO_SND_FLAGS_DUMMY MSG_SYN // equals to 0x400
 
 
 /* 
  * Return values for the receive packet notify callback function
  */
 typedef enum {
-	VMA_PACKET_DROP,     /* VMA will drop the received packet and recycle 
+	XLIO_PACKET_DROP,     /* VMA will drop the received packet and recycle 
 	                        the buffer if no other socket needs it */
 
-	VMA_PACKET_RECV,     /* VMA will queue the received packet on this socket ready queue.
+	XLIO_PACKET_RECV,     /* VMA will queue the received packet on this socket ready queue.
 	                        The application will read it with the usual recv socket APIs */
 
-	VMA_PACKET_HOLD      /* Application will handle the queuing of the received packet. The application
+	XLIO_PACKET_HOLD      /* Application will handle the queuing of the received packet. The application
 	                        must return the descriptor to VMA using the free_packet function
 				But not in the context of VMA's callback itself. */
-} vma_recv_callback_retval_t;
+} xlio_recv_callback_retval_t;
 
 /**
  * @brief Pass this structure as an argument into getsockopt() with @ref SO_VMA_PD
@@ -337,8 +337,8 @@ enum {
  *   is returned to VMA. User should copy these structures for later use 
  *   if working with zero copy logic.
  */
-typedef vma_recv_callback_retval_t 
-(*vma_recv_callback_t)(int fd, size_t sz_iov, struct iovec iov[],
+typedef xlio_recv_callback_retval_t 
+(*xlio_recv_callback_t)(int fd, size_t sz_iov, struct iovec iov[],
                         struct vma_info_t* vma_info, void *context);
 
 /**
@@ -363,7 +363,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * 
 	 * errno is set to: EINVAL - not VMA offloaded socket 
 	 */
-	int (*register_recv_callback)(int s, vma_recv_callback_t callback, void *context);
+	int (*register_recv_callback)(int s, xlio_recv_callback_t callback, void *context);
 	
 	/**
 	 * Zero-copy revcfrom implementation.
@@ -376,15 +376,15 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * 
 	 * This function attempts to receive a packet without doing data copy.
 	 * The flags argument can contain the usual flags of recvmsg(), and also the
-	 * MSG_VMA_ZCOPY_FORCE flag. If the latter is set, the function will not
+	 * MSG_XLIO_ZCOPY_FORCE flag. If the latter is set, the function will not
 	 * fall back to data copy. Otherwise, the function falls back to data copy
-	 * if zero-copy cannot be performed. If zero-copy is done then MSG_VMA_ZCOPY
+	 * if zero-copy cannot be performed. If zero-copy is done then MSG_XLIO_ZCOPY
 	 * flag is set upon exit.
 	 * 
-	 * If zero copy is performed (MSG_VMA_ZCOPY flag is returned), the buffer 
+	 * If zero copy is performed (MSG_XLIO_ZCOPY flag is returned), the buffer 
 	 * is filled with a xlio_recvfrom_zcopy_packets_t structure, holding as much fragments 
 	 * as `len' allows. The total size of all fragments is returned.
-	 * Otherwise the MSG_VMA_ZCOPY flag is not set and the buffer is filled
+	 * Otherwise the MSG_XLIO_ZCOPY flag is not set and the buffer is filled
 	 * with actual data and it's size is returned (same as recvfrom())
 	 * If no data was received the return value is zero.
 	 * 
@@ -618,4 +618,4 @@ static inline struct vma_api_t* vma_get_api()
 	return api_ptr;
 }
 
-#endif /* VMA_EXTRA_H */
+#endif /* XLIO_EXTRA_H */

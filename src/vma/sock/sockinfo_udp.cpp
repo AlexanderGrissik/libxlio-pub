@@ -1348,7 +1348,7 @@ wait:
 	 * If we got here, either the socket is not offloaded or rx_wait() returned 1.
 	 */
 os:
-	if (in_flags & MSG_VMA_ZCOPY_FORCE) {
+	if (in_flags & MSG_XLIO_ZCOPY_FORCE) {
 		// Enable the next non-blocked read to check the OS 
 		m_rx_udp_poll_os_ratio_counter = m_n_sysvar_rx_udp_poll_os_ratio;
 		errno = EIO;
@@ -1360,7 +1360,7 @@ os:
 	INC_GO_TO_OS_RX_COUNT;
 #endif
 
-	in_flags &= ~MSG_VMA_ZCOPY;
+	in_flags &= ~MSG_XLIO_ZCOPY;
 	ret = socket_fd_api::rx_os(call_type, p_iov, sz_iov, in_flags, __from, __fromlen, __msg);
 	*p_flags = in_flags;
 	save_stats_rx_os(ret);
@@ -1774,7 +1774,7 @@ int sockinfo_udp::rx_verify_available_data()
  *	Performs inspection by registered user callback
  *
  */
-inline vma_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc_t* p_desc)
+inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc_t* p_desc)
 {
 	vma_info_t pkt_info;
 
@@ -1847,10 +1847,10 @@ inline void sockinfo_udp::fill_completion(mem_buf_desc_t* p_desc)
  *	Performs packet processing for NON-SOCKETXTREME cases and store packet
  *	in ready queue.
  */
-inline void sockinfo_udp::update_ready(mem_buf_desc_t* p_desc, void* pv_fd_ready_array, vma_recv_callback_retval_t cb_ret)
+inline void sockinfo_udp::update_ready(mem_buf_desc_t* p_desc, void* pv_fd_ready_array, xlio_recv_callback_retval_t cb_ret)
 {
 	// In ZERO COPY case we let the user's application manage the ready queue
-	if (cb_ret != VMA_PACKET_HOLD) {
+	if (cb_ret != XLIO_PACKET_HOLD) {
 		m_lock_rcv.lock();
 		// Save rx packet info in our ready list
 		m_rx_pkt_ready_list.push_back(p_desc);
@@ -1979,8 +1979,8 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 
 	process_timestamps(p_desc);
 
-	vma_recv_callback_retval_t cb_ret = VMA_PACKET_RECV;
-	if (m_rx_callback && ((cb_ret = inspect_by_user_cb(p_desc)) == VMA_PACKET_DROP)) {
+	xlio_recv_callback_retval_t cb_ret = XLIO_PACKET_RECV;
+	if (m_rx_callback && ((cb_ret = inspect_by_user_cb(p_desc)) == XLIO_PACKET_DROP)) {
 		si_udp_logfunc("rx packet discarded - by user callback");
 		return false;
 	}

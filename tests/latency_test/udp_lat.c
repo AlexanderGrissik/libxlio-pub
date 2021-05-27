@@ -824,7 +824,7 @@ int set_mcgroups_fromfile(char *mcg_filename)
 }
 
 #ifdef  USING_VMA_EXTRA_API
-extern vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct vma_info_t* vma_info, void *context);
+extern xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct vma_info_t* vma_info, void *context);
 #endif
 
 /* returns the new socket fd
@@ -1056,7 +1056,7 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 		ret = vma_api->recvfrom_zcopy(fd, pkt_buf, max_buff_size,
 		                                  &flags, (struct sockaddr*)recvfrom_addr, &size);
 		if (ret >= 2) {
-			if (flags & MSG_VMA_ZCOPY) {
+			if (flags & MSG_XLIO_ZCOPY) {
 				// zcopy
 				struct xlio_recvfrom_zcopy_packet_t *pkt;
 				
@@ -1122,7 +1122,7 @@ void warmup()
 }
 
 #ifdef  USING_VMA_EXTRA_API
-vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
+xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 	int fd, size_t iov_sz, struct iovec iov[], struct vma_info_t* vma_info, void *context)
 {
 	if (iov_sz) {};
@@ -1132,7 +1132,7 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 	if (vma_info->struct_sz < sizeof(struct vma_info_t)) {
 		log_msg("VMA's info struct is not something we can handle so un-register the application's callback function");
 		vma_api->register_recv_callback(fd, NULL, &fd);
-		return VMA_PACKET_RECV;
+		return XLIO_PACKET_RECV;
 	}
 
 	int recvsize     = iov[0].iov_len;
@@ -1145,7 +1145,7 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 	}
 /*
 	if ("rule to check if packet should be dropped")
-		return VMA_PACKET_DROP;
+		return XLIO_PACKET_DROP;
 */
 
 /*
@@ -1154,7 +1154,7 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 		struct iovec* my_iov = calloc(iov_sz, sizeof(struct iovec));
 		memcpy(my_iov, iov, sizeof(struct iovec)*iov_sz);
 		myapp_queue_task_new_rcv_pkt(my_iov, iov_sz, vma_info->pkt_desc_id);
-		return VMA_PACKET_HOLD;
+		return XLIO_PACKET_HOLD;
 	}
 */
 	/* This does the server_recev_then_send all in the VMA's callback */
@@ -1162,7 +1162,7 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 		if (recvbuf[1] != CLIENT_MASK) {
 			if (user_params.mc_loop_disable)
 				log_err("got != CLIENT_MASK");
-			return VMA_PACKET_DROP;
+			return XLIO_PACKET_DROP;
 		}
 		recvbuf[1] = SERVER_MASK;
 	}
@@ -1179,7 +1179,7 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 		print_activity_info(packet_counter);
 	}
 
-	return VMA_PACKET_DROP;
+	return XLIO_PACKET_DROP;
 }
 #endif
 

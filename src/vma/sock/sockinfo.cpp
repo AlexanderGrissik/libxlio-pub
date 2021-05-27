@@ -1515,7 +1515,7 @@ void sockinfo::destructor_helper()
 }
 
 
-int sockinfo::register_callback(vma_recv_callback_t callback, void *context)
+int sockinfo::register_callback(xlio_recv_callback_t callback, void *context)
 {
 	m_rx_callback = callback;
 	m_rx_callback_context = context;

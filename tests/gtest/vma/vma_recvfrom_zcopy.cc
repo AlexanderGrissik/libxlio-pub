@@ -180,7 +180,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1) {
 
 		rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size, &flags, NULL, NULL);
 		EXPECT_EQ(m_test_buf_size, rc);
-		EXPECT_TRUE(flags & MSG_VMA_ZCOPY);
+		EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 
 		close(m_fd);
 
@@ -270,7 +270,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once) {
 
 		rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
 		EXPECT_EQ(m_test_buf_size, rc);
-		EXPECT_TRUE(flags & MSG_VMA_ZCOPY);
+		EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 		vma_packets = (struct xlio_recvfrom_zcopy_packets_t *)buf;
 		EXPECT_EQ(1, vma_packets->n_packet_num);
 		vma_packet = (struct xlio_recvfrom_zcopy_packet_t *)(buf + sizeof(struct xlio_recvfrom_zcopy_packets_t));
@@ -409,7 +409,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data) {
 
 						rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
 						EXPECT_LT(0, rc);
-						EXPECT_TRUE(flags & MSG_VMA_ZCOPY);
+						EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 						total_len += rc;
 						vma_packets = (struct xlio_recvfrom_zcopy_packets_t *)ptr;
 						for (n = 0; n < (int)vma_packets->n_packet_num; n++) {

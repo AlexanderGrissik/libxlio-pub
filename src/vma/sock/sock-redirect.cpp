@@ -426,7 +426,7 @@ int init_child_process_for_nginx()
 //-----------------------------------------------------------------------------
 
 extern "C"
-int vma_register_recv_callback(int __fd, vma_recv_callback_t __callback, void *__context)
+int vma_register_recv_callback(int __fd, xlio_recv_callback_t __callback, void *__context)
 {
 	srdr_logfunc_entry("fd=%d", __fd);
 
@@ -452,7 +452,7 @@ int vma_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *__flags,
 		struct iovec piov[1];
 		piov[0].iov_base = __buf;
 		piov[0].iov_len = __nbytes;
-		*__flags |= MSG_VMA_ZCOPY;
+		*__flags |= MSG_XLIO_ZCOPY;
 		return p_socket_object->rx(RX_RECVFROM, piov, 1, __flags, __from, __fromlen);
 
 	}
@@ -1241,7 +1241,7 @@ int getsockname(int __fd, struct sockaddr *__name, socklen_t *__namelen)
 			char buf[264] = {0};
 			struct iovec msg_iov = {&buf, sizeof(buf)};
 			struct msghdr msg = {NULL, 0, &msg_iov, 1, NULL, 0, 0};
-			int ret_send = sendmsg(__fd, &msg, VMA_SND_FLAGS_DUMMY);
+			int ret_send = sendmsg(__fd, &msg, XLIO_SND_FLAGS_DUMMY);
 			srdr_logdbg("Triggered dummy message for socket fd=%d (ret_send=%d)", __fd, ret_send);
 			NOT_IN_USE(ret_send);
 		}

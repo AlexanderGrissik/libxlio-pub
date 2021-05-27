@@ -15,9 +15,9 @@
 
 extern struct config_t		config;
 
-typedef vma_recv_callback_retval_t (*vma_recv_callback_t)(int fd, size_t sz_iov, struct iovec iov[],
+typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_iov, struct iovec iov[],
                                                           struct vma_info_t* vma_info, void *context);
-vma_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
+xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
                                                               int fd,
                                                               size_t iov_sz,
                                                               struct iovec iov[],
@@ -129,7 +129,7 @@ void free_packet(void* packet_id, int fd){
   free(vma_packet);
 }
 
-vma_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
+xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
                                                               int fd,
                                                               size_t iov_sz,
                                                               struct iovec iov[],
@@ -142,17 +142,17 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
 		
 	if (strcmp(iov[0].iov_base, "recv") == 0) {
 		printf("VMA's info struct is not something we recognize so un register the application's callback function\n");
-		printf("VMA extra API filtered to VMA_PACKET_RECV\n");
-		return VMA_PACKET_RECV;
+		printf("VMA extra API filtered to XLIO_PACKET_RECV\n");
+		return XLIO_PACKET_RECV;
 	}
 	
 	if (strcmp(iov[0].iov_base, "drop") == 0){
-		printf("VMA extra API filtered to VMA_PACKET_DROP\n");
-		return VMA_PACKET_DROP;
+		printf("VMA extra API filtered to XLIO_PACKET_DROP\n");
+		return XLIO_PACKET_DROP;
 	}
 	
 	if (strcmp(iov[0].iov_base, "hold") == 0){
-		printf("VMA extra API filtered to VMA_PACKET_HOLD\n");
+		printf("VMA extra API filtered to XLIO_PACKET_HOLD\n");
 
 		/* In hold case we check pending_packet,free its holding buffer if its valid and then fill it with new packet data,
 		   so each packet will be freed in the next callback */
@@ -165,11 +165,11 @@ vma_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
 		memcpy (p_pending_packet->vma_info, vma_info, sizeof(struct vma_info_t));
 		p_pending_packet->valid = 1;
 		
-		return VMA_PACKET_HOLD;
+		return XLIO_PACKET_HOLD;
 	}
-	printf("VMA extra API filtered to VMA_PACKET_RECV\n");
+	printf("VMA extra API filtered to XLIO_PACKET_RECV\n");
 	
-	return VMA_PACKET_RECV;
+	return XLIO_PACKET_RECV;
 }
 
 

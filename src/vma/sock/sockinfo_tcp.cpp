@@ -1761,7 +1761,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 		p_curr_desc = p_curr_desc->p_next_desc;
 	}
 		
-	vma_recv_callback_retval_t callback_retval = VMA_PACKET_RECV;
+	xlio_recv_callback_retval_t callback_retval = XLIO_PACKET_RECV;
 	
 	if (conn->m_rx_callback && !conn->m_vma_thr && !conn->m_n_rx_pkt_ready_list_count) {
 		mem_buf_desc_t *tmp;
@@ -1793,7 +1793,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 		callback_retval = conn->m_rx_callback(conn->m_fd, nr_frags, iov, &pkt_info, conn->m_rx_callback_context);
 	}
 	
-	if (callback_retval == VMA_PACKET_DROP) {
+	if (callback_retval == XLIO_PACKET_DROP) {
 		conn->m_rx_cb_dropped_list.push_back(p_first_desc);
 
 	// In ZERO COPY case we let the user's application manage the ready queue
@@ -1839,7 +1839,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 			}
 		}
 		else {
-			if (callback_retval == VMA_PACKET_RECV) {
+			if (callback_retval == XLIO_PACKET_RECV) {
 				// Save rx packet info in our ready list
 				conn->m_rx_pkt_ready_list.push_back(p_first_desc);
 				conn->m_n_rx_pkt_ready_list_count++;
@@ -1858,7 +1858,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 		}
 		io_mux_call::update_fd_array(conn->m_iomux_ready_fd_array, conn->m_fd);
 
-		if (callback_retval != VMA_PACKET_HOLD) {
+		if (callback_retval != XLIO_PACKET_HOLD) {
 			//OLG: Now we should wakeup all threads that are sleeping on this socket.
 			conn->do_wakeup();
 		} else {
@@ -1870,7 +1870,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 	* RCVBUFF Accounting: tcp_recved here(stream into the 'internal' buffer) only if the user buffer is not 'filled'
 	*/
 	rcv_buffer_space = max(0, conn->m_rcvbuff_max - conn->m_rcvbuff_current - (int)conn->m_pcb.rcv_wnd_max_desired);
-	if (callback_retval == VMA_PACKET_DROP) {
+	if (callback_retval == XLIO_PACKET_DROP) {
 		bytes_to_tcp_recved = (int)p->tot_len;
 	} else {
 		bytes_to_tcp_recved = min(rcv_buffer_space, (int)p->tot_len);
@@ -2057,7 +2057,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 	* The packet might not be 'acked' (tcp_recved) 
 	* 
 	*/
-	if (!(in_flags & (MSG_PEEK | MSG_VMA_ZCOPY))) {
+	if (!(in_flags & (MSG_PEEK | MSG_XLIO_ZCOPY))) {
 		m_rcvbuff_current -= total_rx;
 
 		// data that was not tcp_recved should do it now.

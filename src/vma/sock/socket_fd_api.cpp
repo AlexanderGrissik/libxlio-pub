@@ -297,7 +297,7 @@ ssize_t socket_fd_api::tx_os(const tx_call_t call_type,
 	return (ssize_t) -1;
 }
 
-int socket_fd_api::register_callback(vma_recv_callback_t callback, void *context)
+int socket_fd_api::register_callback(xlio_recv_callback_t callback, void *context)
 {
 	NOT_IN_USE(callback);
 	NOT_IN_USE(context);
