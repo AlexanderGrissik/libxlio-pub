@@ -1805,11 +1805,11 @@ inline vma_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc_
 }
 
 /* Update completion with
- * VMA_SOCKETXTREME_PACKET related data
+ * XLIO_SOCKETXTREME_PACKET related data
  */
 inline void sockinfo_udp::fill_completion(mem_buf_desc_t* p_desc)
 {
-	struct vma_completion_t *completion;
+	struct xlio_socketxtreme_completion_t *completion;
 
 	/* Try to process socketxtreme_poll() completion directly */
 	m_socketxtreme.completion = m_p_rx_ring->get_comp();
@@ -1830,13 +1830,13 @@ inline void sockinfo_udp::fill_completion(mem_buf_desc_t* p_desc)
 
 	for(mem_buf_desc_t *tmp_p = p_desc; tmp_p; tmp_p = tmp_p->p_next_desc) {
 		completion->packet.total_len        += tmp_p->rx.sz_payload;
-		completion->packet.buff_lst          = (struct vma_buff_t*)tmp_p;
-		completion->packet.buff_lst->next    = (struct vma_buff_t*)tmp_p->p_next_desc;
+		completion->packet.buff_lst          = (struct xlio_buff_t*)tmp_p;
+		completion->packet.buff_lst->next    = (struct xlio_buff_t*)tmp_p->p_next_desc;
 		completion->packet.buff_lst->payload = p_desc->rx.frag.iov_base;
 		completion->packet.buff_lst->len     = p_desc->rx.frag.iov_len;
 	}
 
-	NOTIFY_ON_EVENTS(this, VMA_SOCKETXTREME_PACKET);
+	NOTIFY_ON_EVENTS(this, XLIO_SOCKETXTREME_PACKET);
 
 	save_stats_rx_offload(completion->packet.total_len);
 	m_socketxtreme.completion = NULL;

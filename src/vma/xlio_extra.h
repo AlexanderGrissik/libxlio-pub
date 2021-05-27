@@ -114,17 +114,17 @@ struct vma_pd_key {
 
 /************ SocketXtreme API types definition start***************/
 
-typedef enum {
-    VMA_SOCKETXTREME_PACKET 			= (1ULL << 32), /* New packet is available */
-    VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED	= (1ULL << 33)  /* New connection is auto accepted by server */
-} vma_socketxtreme_events_t;
+enum {
+    XLIO_SOCKETXTREME_PACKET 			= (1ULL << 32), /* New packet is available */
+    XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED	= (1ULL << 33)  /* New connection is auto accepted by server */
+};
 
 /*
  * Represents  VMA buffer
  * Used in SocketXtreme extended API.
  */
-struct vma_buff_t {
-	struct vma_buff_t*	next;		/* next buffer (for last buffer next == NULL) */
+struct xlio_buff_t {
+	struct xlio_buff_t*	next;		/* next buffer (for last buffer next == NULL) */
 	void*		payload;		/* pointer to data */
 	uint16_t	len;			/* data length */
 };
@@ -133,10 +133,10 @@ struct vma_buff_t {
  * Represents one VMA packet
  * Used in SocketXtreme extended API.
  */
-struct vma_packet_desc_t {
+struct xlio_socketxtreme_packet_desc_t {
 	size_t			num_bufs;	/* number of packet's buffers */
 	uint16_t		total_len;	/* total data length */
-	struct vma_buff_t*	buff_lst;	/* list of packet's buffers */
+	struct xlio_buff_t*	buff_lst;	/* list of packet's buffers */
 	struct timespec 	hw_timestamp;	/* packet hw_timestamp */
 };
 
@@ -144,10 +144,10 @@ struct vma_packet_desc_t {
  * Represents VMA Completion.
  * Used in SocketXtreme extended API.
  */
-struct vma_completion_t {
-	/* Packet is valid in case VMA_SOCKETXTREME_PACKET event is set
+struct xlio_socketxtreme_completion_t {
+	/* Packet is valid in case XLIO_SOCKETXTREME_PACKET event is set
 	 */
-	struct vma_packet_desc_t packet;
+	struct xlio_socketxtreme_packet_desc_t packet;
 	/* Set of events
 	 */
 	uint64_t events;
@@ -158,11 +158,11 @@ struct vma_completion_t {
 	 */
 	uint64_t                 user_data;
 	/* Source address (in network byte order) set for:
-	 * VMA_SOCKETXTREME_PACKET and VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED events
+	 * XLIO_SOCKETXTREME_PACKET and XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED events
 	 */
 	struct sockaddr_in       src;
 	/* Connected socket's parent/listen socket fd number.
-	 * Valid in case VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is set.
+	 * Valid in case XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is set.
 	 */
 	int 			listen_fd;
 };
@@ -468,38 +468,38 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * The `fd` can represent a ring, socket or epoll file descriptor.
 	 *
 	 * VMA completions are indicated for incoming packets and/or for other events.
-	 * If VMA_SOCKETXTREME_PACKET flag is enabled in vma_completion_t.events field
+	 * If XLIO_SOCKETXTREME_PACKET flag is enabled in xlio_socketxtreme_completion_t.events field
 	 * the completion points to incoming packet descriptor that can be accesses
-	 * via vma_completion_t.packet field.
+	 * via xlio_socketxtreme_completion_t.packet field.
 	 * Packet descriptor points to VMA buffers that contain data scattered
 	 * by HW, so the data is deliver to application with zero copy.
 	 * Notice: after application finished using the returned packets
-	 * and their buffers it must free them using socketxtreme_free_vma_packets(),
-	 * socketxtreme_free_vma_buff() functions.
+	 * and their buffers it must free them using socketxtreme_free_packets(),
+	 * socketxtreme_free_buff() functions.
 	 *
-	 * If VMA_SOCKETXTREME_PACKET flag is disabled vma_completion_t.packet field is
+	 * If XLIO_SOCKETXTREME_PACKET flag is disabled xlio_socketxtreme_completion_t.packet field is
 	 * reserved.
 	 *
-	 * In addition to packet arrival event (indicated by VMA_SOCKETXTREME_PACKET flag)
-	 * VMA also reports VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event and standard
-	 * epoll events via vma_completion_t.events field.
-	 * VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is reported when new connection is
+	 * In addition to packet arrival event (indicated by XLIO_SOCKETXTREME_PACKET flag)
+	 * VMA also reports XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event and standard
+	 * epoll events via xlio_socketxtreme_completion_t.events field.
+	 * XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is reported when new connection is
 	 * accepted by the server.
 	 * When working with socketxtreme_poll() new connections are accepted
 	 * automatically and accept(listen_socket) must not be called.
-	 * VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is reported for the new
-	 * connected/child socket (vma_completion_t.user_data refers to child socket)
+	 * XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED event is reported for the new
+	 * connected/child socket (xlio_socketxtreme_completion_t.user_data refers to child socket)
 	 * and EPOLLIN event is not generated for the listen socket.
 	 * For events other than packet arrival and new connection acceptance
-	 * vma_completion_t.events bitmask composed using standard epoll API
+	 * xlio_socketxtreme_completion_t.events bitmask composed using standard epoll API
 	 * events types.
 	 * Notice: the same completion can report multiple events, for example
-	 * VMA_SOCKETXTREME_PACKET flag can be enabled together with EPOLLOUT event,
+	 * XLIO_SOCKETXTREME_PACKET flag can be enabled together with EPOLLOUT event,
 	 * etc...
 	 *
 	 * * errno is set to: EOPNOTSUPP - socketXtreme was not enabled during configuration time.
 	 */
-	int (*socketxtreme_poll)(int fd, struct vma_completion_t* completions, unsigned int ncompletions, int flags);
+	int (*socketxtreme_poll)(int fd, struct xlio_socketxtreme_completion_t* completions, unsigned int ncompletions, int flags);
 
 	/**
 	 * Frees packets received by socketxtreme_poll().
@@ -517,22 +517,22 @@ struct __attribute__ ((packed)) vma_api_t {
 	 *   reference count and only buffers with reference count zero are deallocated.
 	 *   Notice:
 	 *   - Application can increase buffer reference count,
-	 *     in order to hold the buffer even after socketxtreme_free_vma_packets()
-	 *     was called for the buffer, using socketxtreme_ref_vma_buff().
+	 *     in order to hold the buffer even after socketxtreme_free_packets()
+	 *     was called for the buffer, using socketxtreme_ref_buff().
 	 *   - Application is responsible to free buffers, that
-	 *     couldn't be deallocated during socketxtreme_free_vma_packets() due to
-	 *     non zero reference count, using socketxtreme_free_vma_buff() function.
+	 *     couldn't be deallocated during socketxtreme_free_packets() due to
+	 *     non zero reference count, using socketxtreme_free_buff() function.
 	 *
 	 * errno is set to: EINVAL - NULL pointer is provided.
 	 *                  EOPNOTSUPP - socketXtreme was not enabled during configuration time.
 	 */
-	int (*socketxtreme_free_vma_packets)(struct vma_packet_desc_t *packets, int num);
+	int (*socketxtreme_free_packets)(struct xlio_socketxtreme_packet_desc_t *packets, int num);
 
 	/* This function increments the reference count of the buffer.
 	 * This function should be used in order to hold the buffer
-	 * even after socketxtreme_free_vma_packets() call.
+	 * even after socketxtreme_free_packets() call.
 	 * When buffer is not needed any more it should be freed via
-	 * socketxtreme_free_vma_buff().
+	 * socketxtreme_free_buff().
 	 *
 	 * @param buff Buffer to update.
 	 * @return On success, return buffer's reference count after the change
@@ -541,7 +541,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * errno is set to: EINVAL - NULL pointer is provided.
 	 *                  EOPNOTSUPP - socketXtreme was not enabled during configuration time.
 	 */
-	int (*socketxtreme_ref_vma_buff)(struct vma_buff_t *buff);
+	int (*socketxtreme_ref_buff)(struct xlio_buff_t *buff);
 
 	/* This function decrements the buff reference count.
 	 * When buff's reference count reaches zero, the buff is
@@ -556,7 +556,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * errno is set to: EINVAL - NULL pointer is provided.
 	 *                  EOPNOTSUPP - socketXtreme was not enabled during configuration time.
 	 */
-	int (*socketxtreme_free_vma_buff)(struct vma_buff_t *buff);
+	int (*socketxtreme_free_buff)(struct xlio_buff_t *buff);
 
 	/*
 	 * Dump fd statistics using VMA logger.

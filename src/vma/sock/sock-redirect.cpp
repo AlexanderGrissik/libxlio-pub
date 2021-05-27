@@ -475,7 +475,7 @@ int vma_recvfrom_zcopy_free_packets(int __fd, struct xlio_recvfrom_zcopy_packet_
 	return -1;
 }
 
-static int dummy_vma_socketxtreme_poll(int fd, struct vma_completion_t* completions, unsigned int ncompletions, int flags)
+static int dummy_vma_socketxtreme_poll(int fd, struct xlio_socketxtreme_completion_t* completions, unsigned int ncompletions, int flags)
 {
 	NOT_IN_USE(fd);
         NOT_IN_USE(completions);
@@ -488,7 +488,7 @@ static int dummy_vma_socketxtreme_poll(int fd, struct vma_completion_t* completi
 }
 
 extern "C"
-int vma_socketxtreme_poll(int fd, struct vma_completion_t* completions, unsigned int ncompletions, int flags)
+int vma_socketxtreme_poll(int fd, struct xlio_socketxtreme_completion_t* completions, unsigned int ncompletions, int flags)
 {
 	int ret_val = -1;
 	cq_channel_info* cq_ch_info = NULL;
@@ -522,7 +522,7 @@ int vma_socketxtreme_poll(int fd, struct vma_completion_t* completions, unsigned
 	}
 }
 
-static int dummy_vma_socketxtreme_free_vma_packets(struct vma_packet_desc_t *packets, int num)
+static int dummy_vma_socketxtreme_free_packets(struct xlio_socketxtreme_packet_desc_t *packets, int num)
 {
 	NOT_IN_USE(packets);
 	NOT_IN_USE(num);
@@ -533,7 +533,7 @@ static int dummy_vma_socketxtreme_free_vma_packets(struct vma_packet_desc_t *pac
 }
 
 extern "C"
-int vma_socketxtreme_free_vma_packets(struct vma_packet_desc_t *packets, int num)
+int vma_socketxtreme_free_packets(struct xlio_socketxtreme_packet_desc_t *packets, int num)
 {
 	mem_buf_desc_t* desc = NULL;
 	socket_fd_api* p_socket_object = NULL;
@@ -568,7 +568,7 @@ err:
 	return -1;
 }
 
-static int dummy_vma_socketxtreme_ref_vma_buff(vma_buff_t *buff)
+static int dummy_vma_socketxtreme_ref_buff(xlio_buff_t *buff)
 {
 	NOT_IN_USE(buff);
 	VLOG_PRINTF_ONCE_THEN_ALWAYS(VLOG_WARNING, VLOG_DEBUG,
@@ -578,7 +578,7 @@ static int dummy_vma_socketxtreme_ref_vma_buff(vma_buff_t *buff)
 }
 
 extern "C"
-int vma_socketxtreme_ref_vma_buff(vma_buff_t *buff)
+int vma_socketxtreme_ref_buff(xlio_buff_t *buff)
 {
 	int ret_val = 0;
 	mem_buf_desc_t* desc = NULL;
@@ -594,7 +594,7 @@ int vma_socketxtreme_ref_vma_buff(vma_buff_t *buff)
 	return ret_val;
 }
 
-static int dummy_vma_socketxtreme_free_vma_buff(vma_buff_t *buff)
+static int dummy_vma_socketxtreme_free_buff(xlio_buff_t *buff)
 {
 	NOT_IN_USE(buff);
 	VLOG_PRINTF_ONCE_THEN_ALWAYS(VLOG_WARNING, VLOG_DEBUG,
@@ -604,7 +604,7 @@ static int dummy_vma_socketxtreme_free_vma_buff(vma_buff_t *buff)
 }
 
 extern "C"
-int vma_socketxtreme_free_vma_buff(vma_buff_t *buff)
+int vma_socketxtreme_free_buff(xlio_buff_t *buff)
 {
 	int ret_val = 0;
 	mem_buf_desc_t* desc = NULL;
@@ -1061,9 +1061,9 @@ int getsockopt(int __fd, int __level, int __optname,
                         SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num, VMA_EXTRA_API_GET_SOCKET_RINGS_NUM);
                         SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds, VMA_EXTRA_API_GET_SOCKET_RINGS_FDS);
                         SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, VMA_EXTRA_API_SOCKETXTREME_POLL);
-			SET_EXTRA_API(socketxtreme_free_vma_packets, enable_socketxtreme ? vma_socketxtreme_free_vma_packets : dummy_vma_socketxtreme_free_vma_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
-			SET_EXTRA_API(socketxtreme_ref_vma_buff, enable_socketxtreme ? vma_socketxtreme_ref_vma_buff : dummy_vma_socketxtreme_ref_vma_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);
-			SET_EXTRA_API(socketxtreme_free_vma_buff, enable_socketxtreme ? vma_socketxtreme_free_vma_buff : dummy_vma_socketxtreme_free_vma_buff, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF);
+			SET_EXTRA_API(socketxtreme_free_packets, enable_socketxtreme ? vma_socketxtreme_free_packets : dummy_vma_socketxtreme_free_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
+			SET_EXTRA_API(socketxtreme_ref_buff, enable_socketxtreme ? vma_socketxtreme_ref_buff : dummy_vma_socketxtreme_ref_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);
+			SET_EXTRA_API(socketxtreme_free_buff, enable_socketxtreme ? vma_socketxtreme_free_buff : dummy_vma_socketxtreme_free_buff, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF);
 			SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, VMA_EXTRA_API_DUMP_FD_STATS);
                         SET_EXTRA_API(add_ring_profile, add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
 			SET_EXTRA_API(ioctl, vma_ioctl, VMA_EXTRA_API_IOCTL);

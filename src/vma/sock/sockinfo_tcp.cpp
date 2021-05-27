@@ -1801,10 +1801,10 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 	else {
 		if (conn->is_socketxtreme()) {
 			/* Update vma_completion with
-			 * VMA_SOCKETXTREME_PACKET related data
+			 * XLIO_SOCKETXTREME_PACKET related data
 			 */
-			struct vma_completion_t *completion;
-			struct vma_buff_t *buf_lst;
+			struct xlio_socketxtreme_completion_t *completion;
+			struct xlio_buff_t *buf_lst;
 
 			if (conn->m_socketxtreme.completion) {
 				completion = conn->m_socketxtreme.completion;
@@ -1815,7 +1815,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 			}
 
 			if (!buf_lst) {
-				completion->packet.buff_lst = (struct vma_buff_t*)p_first_desc;
+				completion->packet.buff_lst = (struct xlio_buff_t*)p_first_desc;
 				completion->packet.total_len = p->tot_len;
 				completion->src = p_first_desc->rx.src;
 				completion->packet.num_bufs = p_first_desc->rx.n_frags;
@@ -1824,7 +1824,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
         	                        completion->packet.hw_timestamp = p_first_desc->rx.timestamps.hw;
 	                        }
 
-				NOTIFY_ON_EVENTS(conn, VMA_SOCKETXTREME_PACKET);
+				NOTIFY_ON_EVENTS(conn, XLIO_SOCKETXTREME_PACKET);
 				conn->save_stats_rx_offload(completion->packet.total_len);
 			}
 			else {
@@ -2883,7 +2883,7 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
 	}
 
 	/* Update vma_completion with
-	 * VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED related data
+	 * XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED related data
 	 */
 	if (likely(child->m_parent)) {
 		if (child->m_socketxtreme.completion) {
@@ -2893,10 +2893,10 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
 			child->m_socketxtreme.ec.completion.src = parent->m_socketxtreme.ec.completion.src;
 			child->m_socketxtreme.ec.completion.listen_fd = child->m_parent->get_fd();
 		}
-		NOTIFY_ON_EVENTS(child, VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED);
+		NOTIFY_ON_EVENTS(child, XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED);
 	}
 	else {
-		vlog_printf(VLOG_ERROR, "VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED: can't find listen socket for new connected socket with [fd=%d]",
+		vlog_printf(VLOG_ERROR, "XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED: can't find listen socket for new connected socket with [fd=%d]",
 				child->get_fd());
 	}
 

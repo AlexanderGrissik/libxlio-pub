@@ -367,7 +367,7 @@ int ring_simple::poll_and_process_element_tx(uint64_t* p_cq_poll_sn)
 	return ret;
 }
 
-int ring_simple::socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags)
+int ring_simple::socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags)
 {
 	int ret = 0;
 	int i = 0;

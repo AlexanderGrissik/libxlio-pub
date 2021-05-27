@@ -60,7 +60,7 @@ protected:
 /**
  * @test vma_poll.ti_1
  * @brief
- *    Check TCP connection acceptance (VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED)
+ *    Check TCP connection acceptance (XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED)
  * @details
  */
 TEST_F(vma_poll, ti_1) {
@@ -103,7 +103,7 @@ TEST_F(vma_poll, ti_1) {
 		exit(testing::Test::HasFailure());
 	} else {  /* I am the parent */
 		int _vma_ring_fd = -1;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		int fd_peer;
 		struct sockaddr peer_addr;
 
@@ -125,7 +125,7 @@ TEST_F(vma_poll, ti_1) {
 		rc = 0;
 		while (rc == 0 && !child_fork_exit()) {
 			rc = vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
-			if (vma_comps.events & VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
 				EXPECT_EQ(fd, (int)vma_comps.listen_fd);
 				fd_peer = (int)vma_comps.user_data;
 				EXPECT_LE(0, fd_peer);
@@ -146,7 +146,7 @@ TEST_F(vma_poll, ti_1) {
 /**
  * @test vma_poll.ti_2
  * @brief
- *    Check TCP connection data receiving (VMA_SOCKETXTREME_PACKET)
+ *    Check TCP connection data receiving (XLIO_SOCKETXTREME_PACKET)
  * @details
  */
 TEST_F(vma_poll, ti_2) {
@@ -184,7 +184,7 @@ TEST_F(vma_poll, ti_2) {
 		exit(testing::Test::HasFailure());
 	} else {  /* I am the parent */
 		int _vma_ring_fd = -1;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		int fd_peer;
 		struct sockaddr peer_addr;
 
@@ -213,7 +213,7 @@ TEST_F(vma_poll, ti_2) {
 				rc = 0;
 				break;
 			}
-			if (vma_comps.events & VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
 				EXPECT_EQ(fd, (int)vma_comps.listen_fd);
 				fd_peer = (int)vma_comps.user_data;
 				EXPECT_LE(0, fd_peer);
@@ -222,7 +222,7 @@ TEST_F(vma_poll, ti_2) {
 						fd_peer, sys_addr2str((struct sockaddr_in *)&peer_addr));
 				rc = 0;
 			}
-			if (vma_comps.events & VMA_SOCKETXTREME_PACKET) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
 				EXPECT_EQ(1, vma_comps.packet.num_bufs);
 				EXPECT_LE(0, (int)vma_comps.user_data);
 				EXPECT_EQ(sizeof(msg), vma_comps.packet.total_len);
@@ -282,7 +282,7 @@ TEST_F(vma_poll, ti_3) {
 		exit(testing::Test::HasFailure());
 	} else {  /* I am the parent */
 		int _vma_ring_fd = -1;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		int fd_peer = -1;
 		struct sockaddr peer_addr;
 		const char *user_data = "This is a data";
@@ -312,7 +312,7 @@ TEST_F(vma_poll, ti_3) {
 				rc = 0;
 				break;
 			}
-			if (vma_comps.events & VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
 				EXPECT_EQ(fd, (int)vma_comps.listen_fd);
 				fd_peer = (int)vma_comps.user_data;
 				memcpy(&peer_addr, &vma_comps.src, sizeof(peer_addr));
@@ -326,7 +326,7 @@ TEST_F(vma_poll, ti_3) {
 				log_trace("Set data: %p\n", user_data);
 				rc = 0;
 			}
-			if (vma_comps.events & VMA_SOCKETXTREME_PACKET) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
 				EXPECT_EQ(1, vma_comps.packet.num_bufs);
 				EXPECT_EQ((uintptr_t)user_data, (uintptr_t)vma_comps.user_data);
 				EXPECT_EQ(sizeof(msg), vma_comps.packet.total_len);
@@ -347,7 +347,7 @@ TEST_F(vma_poll, ti_3) {
 /**
  * @test vma_poll.ti_4
  * @brief
- *    Check UDP connection data receiving (VMA_SOCKETXTREME_PACKET)
+ *    Check UDP connection data receiving (XLIO_SOCKETXTREME_PACKET)
  * @details
  */
 TEST_F(vma_poll, ti_4) {
@@ -380,7 +380,7 @@ TEST_F(vma_poll, ti_4) {
 		exit(testing::Test::HasFailure());
 	} else {  /* I am the parent */
 		int _vma_ring_fd = -1;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		int fd_peer = -1;
 
 		fd = udp_base::sock_create_nb();
@@ -404,7 +404,7 @@ TEST_F(vma_poll, ti_4) {
 				rc = 0;
 				break;
 			}
-			if (vma_comps.events & VMA_SOCKETXTREME_PACKET) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
 				EXPECT_EQ(1, vma_comps.packet.num_bufs);
 				EXPECT_LE(0, (int)vma_comps.user_data);
 				EXPECT_EQ(sizeof(msg), vma_comps.packet.total_len);

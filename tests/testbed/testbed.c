@@ -724,8 +724,8 @@ static int _proc_engine(void)
 		int id;
 		int fd;
 #if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
-		struct vma_packet_desc_t vma_packet;
-		struct vma_buff_t *vma_buf;
+		struct xlio_socketxtreme_packet_desc_t vma_packet;
+		struct xlio_buff_t *vma_buf;
 		int vma_buf_offset;
 #endif /* VMA_ZCOPY_ENABLED */
 		int msg_len;
@@ -844,7 +844,7 @@ static int _proc_engine(void)
 				conn->vma_buf_offset = 0;
 				n = 1;
 			} else if (conn->vma_buf && !conn->vma_buf->next) {
-				_vma_api->socketxtreme_free_vma_packets(&conn->vma_packet, 1);
+				_vma_api->socketxtreme_free_packets(&conn->vma_packet, 1);
 				conn->vma_buf = NULL;
 				conn->vma_buf_offset = 0;
 				conn = NULL;
@@ -852,11 +852,11 @@ static int _proc_engine(void)
 			}
 		}
 		while (0 == n) {
-			struct vma_completion_t vma_comps;
+			struct xlio_socketxtreme_completion_t vma_comps;
 			n = _vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if (n > 0) {
 				event = (uint32_t)vma_comps.events;
-				if (vma_comps.events & VMA_SOCKETXTREME_PACKET) {
+				if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
 					event |= EPOLLIN;
 #if defined(UDP_ENABLED) && (UDP_ENABLED == 1)
 					if (vma_comps.packet.buff_lst->len >= sizeof(struct msg_header)) {
@@ -1010,8 +1010,8 @@ static int _proc_receiver(void)
 		int id;
 		int fd;
 #if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
-		struct vma_packet_desc_t vma_packet;
-		struct vma_buff_t *vma_buf;
+		struct xlio_socketxtreme_packet_desc_t vma_packet;
+		struct xlio_buff_t *vma_buf;
 		int vma_buf_offset;
 #endif /* VMA_ZCOPY_ENABLED */
 		int msg_len;
@@ -1102,7 +1102,7 @@ static int _proc_receiver(void)
 				conn->vma_buf_offset = 0;
 				n = 1;
 			} else if (conn->vma_buf && !conn->vma_buf->next) {
-				_vma_api->socketxtreme_free_vma_packets(&conn->vma_packet, 1);
+				_vma_api->socketxtreme_free_packets(&conn->vma_packet, 1);
 				conn->vma_buf = NULL;
 				conn->vma_buf_offset = 0;
 				conn = NULL;
@@ -1110,11 +1110,11 @@ static int _proc_receiver(void)
 			}
 		}
 		while (0 == n) {
-			struct vma_completion_t vma_comps;
+			struct xlio_socketxtreme_completion_t vma_comps;
 			n = _vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if (n > 0) {
 				event = (uint32_t)vma_comps.events;
-				if (vma_comps.events & VMA_SOCKETXTREME_PACKET) {
+				if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
 					event |= EPOLLIN;
 #if defined(UDP_ENABLED) && (UDP_ENABLED == 1)
 					if (vma_comps.packet.buff_lst->len >= sizeof(struct msg_header)) {
@@ -1524,7 +1524,7 @@ static int _tcp_client_init(struct sockaddr_in *addr)
 #if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
 	while (0 == rc) {
 		uint32_t event;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		rc = _vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 		if (rc > 0) {
 			event = (uint32_t)vma_comps.events;
@@ -1597,11 +1597,11 @@ static int _tcp_server_init(int fd)
 #if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
 	while (0 == rc) {
 		uint32_t event;
-		struct vma_completion_t vma_comps;
+		struct xlio_socketxtreme_completion_t vma_comps;
 		rc = _vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 		if (rc > 0) {
 			event = (uint32_t)vma_comps.events;
-			if (vma_comps.events & VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
+			if (vma_comps.events & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
 				fd = vma_comps.user_data;
 				in_len = sizeof(in_addr);
 				memcpy(&in_addr, &vma_comps.src, in_len);

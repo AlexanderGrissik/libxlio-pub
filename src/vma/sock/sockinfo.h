@@ -292,8 +292,8 @@ protected:
 		 * Current design support single event for socket at a particular time
 		 */
 		struct ring_ec ec;
-		struct vma_completion_t* completion;
-		struct vma_buff_t*       last_buff_lst;
+		struct xlio_socketxtreme_completion_t* completion;
+		struct xlio_buff_t*       last_buff_lst;
 	} m_socketxtreme;
 
 	// Callback function pointer to support VMA extra API (xlio_extra.h)

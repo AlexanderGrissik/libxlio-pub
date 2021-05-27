@@ -906,7 +906,7 @@ bool ring_bond::is_tso(void)
 }
 #endif /* DEFINED_TSO */
 
-int ring_bond::socketxtreme_poll(struct vma_completion_t *, unsigned int, int)
+int ring_bond::socketxtreme_poll(struct xlio_socketxtreme_completion_t *, unsigned int, int)
 {
 	return 0;
 }

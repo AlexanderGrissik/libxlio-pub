@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 		char msg[1024];
 	} conns;
 #if defined(VMA_API) && (VMA_API == 1)
-	struct vma_completion_t *vma_comps;
+	struct xlio_socketxtreme_completion_t *vma_comps;
 #endif /* VMA_API */
 	int flag;
 	struct sockaddr_in addr;
@@ -252,8 +252,8 @@ int main(int argc, char *argv[])
 
 #if defined(VMA_API) && (VMA_API == 1)
 			event = vma_comps[j].events;
-			event |= ( event & VMA_SOCKETXTREME_PACKET ? EPOLLIN : 0);
-			fd = (event & VMA_SOCKETXTREME_NEW_CONNECTION_ACCEPTED ? vma_comps[j].listen_fd : vma_comps[j].user_data);
+			event |= ( event & XLIO_SOCKETXTREME_PACKET ? EPOLLIN : 0);
+			fd = (event & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED ? vma_comps[j].listen_fd : vma_comps[j].user_data);
 #else
 			event = events[j].events;
 			fd = events[j].data.fd;
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 				assert(sizeof(conns.msg) > vma_comps[j].packet.total_len);
 				memcpy(conns.msg, vma_comps[j].packet.buff_lst->payload, vma_comps[j].packet.total_len);
 				ret = vma_comps[j].packet.total_len;
-				_vma_api->socketxtreme_free_vma_packets(&vma_comps[j].packet, 1);
+				_vma_api->socketxtreme_free_packets(&vma_comps[j].packet, 1);
 #else
 				ret = recv(fd, conns.msg, sizeof(conns.msg), 0);
 #endif /* VMA_API */

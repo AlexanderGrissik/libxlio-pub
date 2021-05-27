@@ -61,7 +61,7 @@ public:
 	virtual int request_notification(cq_type_t cq_type, uint64_t poll_sn) { NOT_IN_USE(cq_type); NOT_IN_USE(poll_sn); return 0; }
 	virtual void adapt_cq_moderation() {}
 
-	virtual int socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags) {
+	virtual int socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags) {
 		NOT_IN_USE(vma_completions);
 		NOT_IN_USE(ncompletions);
 		NOT_IN_USE(flags);
@@ -100,7 +100,7 @@ private:
 	bool is_socketxtreme(void) { return false; }
 	void put_ec(struct ring_ec *ec) { NOT_IN_USE(ec); }
 	void del_ec(struct ring_ec *ec) { NOT_IN_USE(ec); }
-	struct vma_completion_t *get_comp(void) { return NULL; }
+	struct xlio_socketxtreme_completion_t *get_comp(void) { return NULL; }
 
 	/* These fields are NETVSC mode specific */
 	int              m_tap_fd; /* file descriptor of tap device */

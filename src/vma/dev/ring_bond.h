@@ -89,7 +89,7 @@ public:
 	virtual uint32_t        get_tx_lkey(ring_user_id_t id) { return m_xmit_rings[id]->get_tx_lkey(id); }
         virtual bool		is_tso(void);
 #endif /* DEFINED_TSO */
-	int 			socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags);
+	int 			socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags);
 	virtual void    slave_create(int if_index) = 0;
 	virtual void    slave_destroy(int if_index);
 protected:
@@ -137,7 +137,7 @@ private:
 	bool is_socketxtreme(void) { return false; }
 	void put_ec(struct ring_ec *ec) { NOT_IN_USE(ec); }
 	void del_ec(struct ring_ec *ec) { NOT_IN_USE(ec); }
-	struct vma_completion_t *get_comp(void) { return NULL; }
+	struct xlio_socketxtreme_completion_t *get_comp(void) { return NULL; }
 
 	net_device_val::bond_type m_type;
 	net_device_val::bond_xmit_hash_policy m_xmit_hash_policy;

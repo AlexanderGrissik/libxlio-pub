@@ -73,7 +73,7 @@ public:
 	bool			reclaim_recv_buffers_no_lock(mem_buf_desc_t* rx_reuse_lst); // No locks
 	virtual int		reclaim_recv_single_buffer(mem_buf_desc_t* rx_reuse); // No locks
 	virtual void		mem_buf_rx_release(mem_buf_desc_t* p_mem_buf_desc);
-	virtual int 		socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags);	
+	virtual int 		socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags);	
 	virtual int		drain_and_proccess();
 	virtual int		wait_for_notification_and_process_element(int cq_channel_fd, uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
 	// Tx completion handling at the qp_mgr level is just re listing the desc+data buffer in the free lists
@@ -193,7 +193,7 @@ private:
 		return ec;
 	}
 
-	struct vma_completion_t *get_comp(void)
+	struct xlio_socketxtreme_completion_t *get_comp(void)
 	{
 		return m_socketxtreme.completion;
 	}
@@ -212,7 +212,7 @@ private:
 		/* This completion is introduced to process events directly w/o
 		 * storing them in the queue of event completion elements
 		 */
-		struct vma_completion_t* completion;
+		struct xlio_socketxtreme_completion_t* completion;
 
 		/* This flag is enabled in case socketxtreme_poll() call is done */
 		bool                     active;

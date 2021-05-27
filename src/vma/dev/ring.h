@@ -59,8 +59,8 @@ typedef int ring_user_id_t;
 /* Ring event completion */
 struct ring_ec {
 	struct list_head list;
-	struct vma_completion_t completion;
-	struct vma_buff_t*      last_buff_lst;
+	struct xlio_socketxtreme_completion_t completion;
+	struct xlio_buff_t*      last_buff_lst;
 
 	inline void clear()
 	{
@@ -125,12 +125,12 @@ public:
 #endif /* DEFINED_TSO */
 	virtual ib_ctx_handler*	get_ctx(ring_user_id_t id) = 0;
 
-	virtual int		socketxtreme_poll(struct vma_completion_t *vma_completions, unsigned int ncompletions, int flags) = 0;
+	virtual int		socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags) = 0;
 
 	virtual bool is_socketxtreme(void) = 0;
 	virtual void put_ec(struct ring_ec *ec) = 0;
 	virtual void del_ec(struct ring_ec *ec) = 0;
-	virtual struct vma_completion_t *get_comp(void) = 0;
+	virtual struct xlio_socketxtreme_completion_t *get_comp(void) = 0;
 
 	inline int get_if_index() { return m_if_index; }
 
