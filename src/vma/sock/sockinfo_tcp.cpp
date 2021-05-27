@@ -5134,6 +5134,7 @@ void tcp_timers_collection::handle_timer_expired(void* user_data)
 		p_sock = dynamic_cast<sockinfo_tcp*>(iter->handler);
 		iter->handler->handle_timer_expired(iter->user_data);
 		if (p_sock && p_sock->is_destroyable_lock()) {
+			g_p_fd_collection->remove_pending_sockfd(p_sock);
 			p_sock->clean_obj();
 		}
 		iter = iter->next;

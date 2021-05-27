@@ -142,6 +142,11 @@ void fd_collection::clear()
 
 	lock();
 
+	while (!m_pendig_to_remove_lst.empty()) {
+		socket_fd_api *p_sfd_api = m_pendig_to_remove_lst.get_and_pop_back();
+		p_sfd_api->clean_obj();
+	}
+
 	/* Clean up all left overs sockinfo
 	 */
 	for (fd = 0; fd < m_n_fd_map_size; ++fd) {
@@ -537,6 +542,7 @@ int fd_collection::del_sockfd(int fd, bool b_cleanup /*=false*/)
 			//This will be done from fd_col timer handler.
 			if (m_p_sockfd_map[fd] == p_sfd_api) {
 				m_p_sockfd_map[fd] = NULL;
+				m_pendig_to_remove_lst.push_front(p_sfd_api);
 			}
 
 			unlock();
