@@ -297,7 +297,7 @@ out:
 }
 
 ssize_t dst_entry_tcp::slow_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr,
-		struct vma_rate_limit_t &rate_limit, int flags /*= 0*/,
+		struct xlio_rate_limit_t &rate_limit, int flags /*= 0*/,
 		socket_fd_api* sock /*= 0*/, tx_call_t call_type /*= 0*/)
 {
 	ssize_t ret_val = -1;
@@ -436,7 +436,7 @@ out:
 	return ret;
 }
 
-ssize_t dst_entry_tcp::slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct vma_rate_limit_t &rate_limit, bool b_blocked /*= true*/, bool is_rexmit /*= false*/, int flags /*= 0*/, socket_fd_api* sock /*= 0*/, tx_call_t call_type /*= 0*/)
+ssize_t dst_entry_tcp::slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct xlio_rate_limit_t &rate_limit, bool b_blocked /*= true*/, bool is_rexmit /*= false*/, int flags /*= 0*/, socket_fd_api* sock /*= 0*/, tx_call_t call_type /*= 0*/)
 {
 	ssize_t ret_val = -1;
 
@@ -465,7 +465,7 @@ ssize_t dst_entry_tcp::slow_send(const iovec* p_iov, size_t sz_iov, bool is_dumm
 }
 #endif /* DEFINED_TSO */
 
-ssize_t dst_entry_tcp::slow_send_neigh( const iovec* p_iov, size_t sz_iov, struct vma_rate_limit_t &rate_limit)
+ssize_t dst_entry_tcp::slow_send_neigh( const iovec* p_iov, size_t sz_iov, struct xlio_rate_limit_t &rate_limit)
 {
 	ssize_t ret_val = -1;
 

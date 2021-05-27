@@ -94,7 +94,7 @@ int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp, uint32_t underly_qpn 
 int priv_ibv_query_qp_state(struct ibv_qp *qp);
 
 // change  ib rate limit
-int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, struct vma_rate_limit_t &rate_limit, uint32_t rl_changes);
+int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, struct xlio_rate_limit_t &rate_limit, uint32_t rl_changes);
 
 // Modify cq moderation
 void priv_ibv_modify_cq_moderation(struct ibv_cq* cq, uint32_t period, uint32_t count);

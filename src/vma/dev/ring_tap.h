@@ -68,7 +68,7 @@ public:
 		return 0;
 	}
 
-	virtual int modify_ratelimit(struct vma_rate_limit_t &rate_limit) { NOT_IN_USE(rate_limit); return 0; }
+	virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) { NOT_IN_USE(rate_limit); return 0; }
 	void inc_cq_moderation_stats(size_t sz_data) { NOT_IN_USE(sz_data); }
 	virtual uint32_t get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) { NOT_IN_USE(p_mapping); NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-1; }
 	virtual uint32_t get_underly_qpn() { return -1; }

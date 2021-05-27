@@ -299,7 +299,7 @@ protected:
 	// Callback function pointer to support VMA extra API (xlio_extra.h)
 	vma_recv_callback_t	m_rx_callback;
 	void*			m_rx_callback_context; // user context
-	struct vma_rate_limit_t m_so_ratelimit;
+	struct xlio_rate_limit_t m_so_ratelimit;
 	void*			m_fd_context; // Context data stored with socket
 	uint32_t		m_flow_tag_id;	// Flow Tag for this socket
 	bool			m_flow_tag_enabled; // for this socket
@@ -359,7 +359,7 @@ protected:
 
 	void			shutdown_rx();
 	void 			destructor_helper();
-	int 			modify_ratelimit(dst_entry* p_dst_entry, struct vma_rate_limit_t &rate_limit);
+	int 			modify_ratelimit(dst_entry* p_dst_entry, struct xlio_rate_limit_t &rate_limit);
 
 	void            move_descs(ring* p_ring, descq_t *toq, descq_t *fromq, bool own);
 	void            pop_descs_rx_ready(descq_t *cache, ring* p_ring = NULL);

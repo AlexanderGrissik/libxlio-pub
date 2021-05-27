@@ -255,7 +255,7 @@ int priv_ibv_query_burst_supported(struct ibv_qp *qp, uint8_t port_num)
 #ifdef	DEFINED_IBV_QP_SUPPORT_BURST
 	if (priv_ibv_modify_qp_from_err_to_init_raw(qp, port_num) == 0) {
 		if (priv_ibv_modify_qp_from_init_to_rts(qp, 0) == 0) {
-			struct vma_rate_limit_t rate = {1000, 100, 100};
+			struct xlio_rate_limit_t rate = {1000, 100, 100};
 			if (priv_ibv_modify_qp_ratelimit(qp, rate, RL_RATE | RL_BURST_SIZE | RL_PKT_SIZE) == 0){
 				return 0;
 			}
@@ -360,7 +360,7 @@ int vma_rdma_lib_reset() {
 }
 
 // be advised that this method will change packet pacing value and also change state to RTS
-int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, struct vma_rate_limit_t &rate_limit, uint32_t rl_changes)
+int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, struct xlio_rate_limit_t &rate_limit, uint32_t rl_changes)
 {
 #ifdef DEFINED_IBV_PACKET_PACING_CAPS
 	vma_ibv_rate_limit_attr qp_attr;

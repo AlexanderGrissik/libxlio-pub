@@ -78,14 +78,14 @@ public:
 
 	virtual void 	notify_cb();
 
-	virtual bool 	prepare_to_send(struct vma_rate_limit_t &rate_limit, bool skip_rules=false, bool is_connect=false);
+	virtual bool 	prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_rules=false, bool is_connect=false);
 #ifdef DEFINED_TSO
         virtual ssize_t fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr) = 0;
 	virtual ssize_t slow_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr,
-			struct vma_rate_limit_t &rate_limit, int flags = 0,
+			struct xlio_rate_limit_t &rate_limit, int flags = 0,
 			socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF) = 0;
 #else
-	virtual ssize_t slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct vma_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF) = 0 ;
+	virtual ssize_t slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct xlio_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF) = 0 ;
 	virtual ssize_t fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked = true, bool is_rexmit = false) = 0;
 #endif /* DEFINED_TSO */
 
@@ -99,7 +99,7 @@ public:
 	inline in_addr_t get_src_addr() const {
 		return m_pkt_src_ip;
 	}
-	int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
+	int		modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
 	bool		update_ring_alloc_logic(int fd, lock_base & socket_lock, resource_allocation_key & ring_alloc_logic);
 
 	virtual transport_type_t get_obs_transport_type() const;

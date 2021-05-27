@@ -511,7 +511,7 @@ bool dst_entry::offloaded_according_to_rules()
 	return ret_val;
 }
 
-bool dst_entry::prepare_to_send(struct vma_rate_limit_t &rate_limit, bool skip_rules, bool is_connect)
+bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_rules, bool is_connect)
 {
 	bool resolved = false;
 	m_slow_path_lock.lock();
@@ -782,7 +782,7 @@ void dst_entry::return_buffers_pool()
 				 m_p_zc_mem_buf_desc_list != NULL);
 }
 
-int dst_entry::modify_ratelimit(struct vma_rate_limit_t &rate_limit)
+int dst_entry::modify_ratelimit(struct xlio_rate_limit_t &rate_limit)
 {
 	if (m_p_ring) {
 		return m_p_ring->modify_ratelimit(rate_limit);

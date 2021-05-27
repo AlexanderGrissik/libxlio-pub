@@ -112,7 +112,7 @@ sockinfo::sockinfo(int fd):
 	m_p_socket_stats->ring_user_id_tx =
 			ring_allocation_logic_tx(get_fd(), m_ring_alloc_log_tx, this).calc_res_key_by_logic();
 	m_rx_reuse_buff.n_buff_num = 0;
-	memset(&m_so_ratelimit, 0, sizeof(vma_rate_limit_t));
+	memset(&m_so_ratelimit, 0, sizeof(xlio_rate_limit_t));
 	set_flow_tag(m_fd + 1);
 
 	atomic_set(&m_zckey, 0);
@@ -546,13 +546,13 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
 			}
 		break;
 		case SO_MAX_PACING_RATE:
-			if (*__optlen == sizeof(struct vma_rate_limit_t)) {
-				*(struct vma_rate_limit_t*)__optval = m_so_ratelimit;
-				*__optlen = sizeof(struct vma_rate_limit_t);
+			if (*__optlen == sizeof(struct xlio_rate_limit_t)) {
+				*(struct xlio_rate_limit_t*)__optval = m_so_ratelimit;
+				*__optlen = sizeof(struct xlio_rate_limit_t);
 				si_logdbg("(SO_MAX_PACING_RATE) value: %d, %d, %d",
-					  (*(struct vma_rate_limit_t*)__optval).rate,
-					  (*(struct vma_rate_limit_t*)__optval).max_burst_sz,
-					  (*(struct vma_rate_limit_t*)__optval).typical_pkt_sz);
+					  (*(struct xlio_rate_limit_t*)__optval).rate,
+					  (*(struct xlio_rate_limit_t*)__optval).max_burst_sz,
+					  (*(struct xlio_rate_limit_t*)__optval).typical_pkt_sz);
 			} else if (*__optlen == sizeof(uint32_t)) {
 				*(uint32_t*)__optval = KB_TO_BYTE(m_so_ratelimit.rate);
 				*__optlen = sizeof(uint32_t);
@@ -1522,7 +1522,7 @@ int sockinfo::register_callback(vma_recv_callback_t callback, void *context)
 	return 0;
 }
 
-int sockinfo::modify_ratelimit(dst_entry* p_dst_entry, struct vma_rate_limit_t &rate_limit)
+int sockinfo::modify_ratelimit(dst_entry* p_dst_entry, struct xlio_rate_limit_t &rate_limit)
 {
 	if (m_ring_alloc_log_tx.get_ring_alloc_logic() == RING_LOGIC_PER_SOCKET ||
 	    m_ring_alloc_log_tx.get_ring_alloc_logic() == RING_LOGIC_PER_USER_ID) {

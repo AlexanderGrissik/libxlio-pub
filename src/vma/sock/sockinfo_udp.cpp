@@ -762,10 +762,10 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 				break;
 			case SO_MAX_PACING_RATE:
 				if (__optval) {
-					struct vma_rate_limit_t val;
+					struct xlio_rate_limit_t val;
 
-					if (sizeof(struct vma_rate_limit_t) == __optlen) {
-						val = *(struct vma_rate_limit_t*)__optval; // value is in Kbits per second
+					if (sizeof(struct xlio_rate_limit_t) == __optlen) {
+						val = *(struct xlio_rate_limit_t*)__optval; // value is in Kbits per second
 					} else if (sizeof(uint32_t) == __optlen) {
 						// value is in bytes per second
 						val.rate = BYTE_TO_KB(*(uint32_t*)__optval); // value is in bytes per second

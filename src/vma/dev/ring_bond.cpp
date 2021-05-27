@@ -870,7 +870,7 @@ ring_user_id_t ring_bond::generate_id(const address_t src_mac, const address_t d
 	return user_id % m_bond_rings.size();
 }
 
-int ring_bond::modify_ratelimit(struct vma_rate_limit_t &rate_limit) {
+int ring_bond::modify_ratelimit(struct xlio_rate_limit_t &rate_limit) {
 	for (uint32_t i = 0; i < m_bond_rings.size(); i++) {
 		if (m_bond_rings[i]) {
 			m_bond_rings[i]->modify_ratelimit(rate_limit);

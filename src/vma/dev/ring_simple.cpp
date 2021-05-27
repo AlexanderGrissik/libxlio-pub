@@ -1052,7 +1052,7 @@ bool ring_simple::is_up() {
 	return m_up;
 }
 
-int ring_simple::modify_ratelimit(struct vma_rate_limit_t &rate_limit)
+int ring_simple::modify_ratelimit(struct xlio_rate_limit_t &rate_limit)
 {
 	if (!m_p_ib_ctx->is_packet_pacing_supported(rate_limit.rate)) {
 		ring_logwarn("Packet pacing is not supported for this device");

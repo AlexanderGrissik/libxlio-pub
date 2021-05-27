@@ -99,7 +99,7 @@ qp_mgr::qp_mgr(struct qp_mgr_desc *desc, const uint32_t tx_num_wr):
 	m_ibv_rx_sg_array = new ibv_sge[m_n_sysvar_rx_num_wr_to_post_recv];
 	m_ibv_rx_wr_array = new ibv_recv_wr[m_n_sysvar_rx_num_wr_to_post_recv];
 
-	memset(&m_rate_limit, 0, sizeof(struct vma_rate_limit_t));
+	memset(&m_rate_limit, 0, sizeof(struct xlio_rate_limit_t));
 
 	qp_logfunc("");
 }
@@ -865,7 +865,7 @@ void qp_mgr_ib::update_pkey_index()
 #endif /* DEFINED_IBV_QP_INIT_SOURCE_QPN */
 }
 
-uint32_t qp_mgr::is_ratelimit_change(struct vma_rate_limit_t &rate_limit)
+uint32_t qp_mgr::is_ratelimit_change(struct xlio_rate_limit_t &rate_limit)
 {
 	uint32_t rl_changes = 0;
 
@@ -882,7 +882,7 @@ uint32_t qp_mgr::is_ratelimit_change(struct vma_rate_limit_t &rate_limit)
 	return rl_changes;
 }
 
-int qp_mgr::modify_qp_ratelimit(struct vma_rate_limit_t &rate_limit, uint32_t rl_changes)
+int qp_mgr::modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t rl_changes)
 {
 	int ret;
 

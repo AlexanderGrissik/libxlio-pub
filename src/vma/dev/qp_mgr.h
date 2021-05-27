@@ -128,8 +128,8 @@ public:
 	void                release_rx_buffers();
 	void                release_tx_buffers();
 	virtual void        trigger_completion_for_all_sent_packets();
-	uint32_t            is_ratelimit_change(struct vma_rate_limit_t &rate_limit);
-	int                 modify_qp_ratelimit(struct vma_rate_limit_t &rate_limit, uint32_t rl_changes);
+	uint32_t            is_ratelimit_change(struct xlio_rate_limit_t &rate_limit);
+	int                 modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t rl_changes);
 	static inline bool  is_lib_mlx5(const char* device_name) {return strstr(device_name, "mlx5");}
 	virtual void        dm_release_data(mem_buf_desc_t* buff) { NOT_IN_USE(buff); }
 
@@ -196,7 +196,7 @@ protected:
 	// generating packet IDs
 	uint16_t            m_n_ip_id_base;
 	uint16_t            m_n_ip_id_offset;
-	struct vma_rate_limit_t m_rate_limit;
+	struct xlio_rate_limit_t m_rate_limit;
 
 	int             configure(struct qp_mgr_desc *desc);
 	virtual int     prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr) = 0;

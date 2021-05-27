@@ -94,7 +94,7 @@ public:
 	inline void 		convert_hw_time_to_system_time(uint64_t hwtime, struct timespec* systime) { m_p_ib_ctx->convert_hw_time_to_system_time(hwtime, systime); }
 	inline uint32_t		get_qpn() const { return (m_p_l2_addr ? ((IPoIB_addr *)m_p_l2_addr)->get_qpn() : 0); }
 	virtual uint32_t	get_underly_qpn() { return m_p_qp_mgr->get_underly_qpn(); }
-	virtual int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
+	virtual int		modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
 	virtual int		get_tx_channel_fd() const { return m_p_tx_comp_event_channel ? m_p_tx_comp_event_channel->fd : -1; };
 	virtual uint32_t 	get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL);
         virtual uint32_t	get_max_inline_data();

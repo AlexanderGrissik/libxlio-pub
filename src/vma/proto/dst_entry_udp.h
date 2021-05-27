@@ -46,10 +46,10 @@ public:
 #ifdef DEFINED_TSO
         ssize_t fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr);
 	ssize_t slow_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr,
-			struct vma_rate_limit_t &rate_limit, int flags = 0,
+			struct xlio_rate_limit_t &rate_limit, int flags = 0,
 			socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
 #else
-	virtual ssize_t 	slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct vma_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
+	virtual ssize_t 	slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct xlio_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
 	virtual ssize_t 	fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked = true, bool is_rexmit = false);
 #endif /* DEFINED_TSO */
 

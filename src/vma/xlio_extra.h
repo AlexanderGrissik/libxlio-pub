@@ -212,7 +212,7 @@ struct __attribute__ ((packed)) vma_info_t {
 	struct timespec		sw_timestamp;
 };
 
-struct vma_rate_limit_t {
+struct xlio_rate_limit_t {
 	uint32_t rate;				/* rate limit in Kbps */
 	uint32_t max_burst_sz;			/* maximum burst size in bytes */
 	uint16_t typical_pkt_sz;		/* typical packet size in bytes */

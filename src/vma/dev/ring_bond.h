@@ -77,7 +77,7 @@ public:
 	virtual bool		is_active_member(ring_slave* rng, ring_user_id_t id);
 	virtual ring_user_id_t	generate_id(const address_t src_mac, const address_t dst_mac, uint16_t eth_proto, uint16_t encap_proto, uint32_t src_ip, uint32_t dst_ip, uint16_t src_port, uint16_t dst_port);
 	virtual bool 		get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe);
-	virtual int		modify_ratelimit(struct vma_rate_limit_t &rate_limit);
+	virtual int		modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
 	/* XXX TODO We have to support ring_bond for zerocopy. */
 	virtual uint32_t        get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) { NOT_IN_USE(p_mapping), NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-1; }
         virtual uint32_t	get_max_inline_data();

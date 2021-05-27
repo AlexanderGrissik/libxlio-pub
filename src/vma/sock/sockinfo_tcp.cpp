@@ -3969,15 +3969,15 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname,
 			si_tcp_logdbg("(SO_BINDTODEVICE) interface=%s", (char*)__optval);
 			break;
 		case SO_MAX_PACING_RATE: {
-			struct vma_rate_limit_t rate_limit;
+			struct xlio_rate_limit_t rate_limit;
 
 			if (!__optval) {
 				errno = EINVAL;
 				ret = -1;
 				break;
 			}
-			if (sizeof(struct vma_rate_limit_t) == __optlen) {
-				rate_limit = *(struct vma_rate_limit_t*)__optval; // value is in Kbits per second
+			if (sizeof(struct xlio_rate_limit_t) == __optlen) {
+				rate_limit = *(struct xlio_rate_limit_t*)__optval; // value is in Kbits per second
 			} else if (sizeof(uint32_t) == __optlen) {
 				// value is in bytes per second
 				rate_limit.rate = BYTE_TO_KB(*(uint32_t*)__optval); // value is in bytes per second

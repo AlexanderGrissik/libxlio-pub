@@ -54,13 +54,13 @@ public:
 #ifdef DEFINED_TSO
 	ssize_t fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr);
 	ssize_t slow_send(const iovec* p_iov, const ssize_t sz_iov, vma_send_attr attr,
-			struct vma_rate_limit_t &rate_limit, int flags = 0,
+			struct xlio_rate_limit_t &rate_limit, int flags = 0,
 			socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
 #else
 	virtual ssize_t fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked = true, bool is_rexmit = false);
-	ssize_t slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct vma_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
+	ssize_t slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, struct xlio_rate_limit_t &rate_limit, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
 #endif /* DEFINED_TSO */
-	ssize_t slow_send_neigh(const iovec* p_iov, size_t sz_iov, struct vma_rate_limit_t &rate_limit);
+	ssize_t slow_send_neigh(const iovec* p_iov, size_t sz_iov, struct xlio_rate_limit_t &rate_limit);
 
 	mem_buf_desc_t* get_buffer(pbuf_type type, pbuf_desc *desc, bool b_blocked = false);
 	void put_buffer(mem_buf_desc_t * p_desc);
