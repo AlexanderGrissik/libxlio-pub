@@ -45,7 +45,7 @@ AC_SUBST(PRJ_LIBRARY_RELEASE)
 GIT_VER=`git describe --long --abbrev=40 --dirty --tags 2> /dev/null || echo ""`
 if test -n "$GIT_VER"; then GIT_VER=`echo $GIT_VER | sed -e 's/-dirty/+/' | sed s/.*-g//`; else  GIT_VER=""; fi
 
-AC_DEFINE_UNQUOTED(PRJ_GIT_VERSION, "${GIT_VER}", [VMA Git Version])
+AC_DEFINE_UNQUOTED(PRJ_GIT_VERSION, "${GIT_VER}", [Product Git Version])
 
 dateopt=""
     if test -n "$SOURCE_DATE_EPOCH" ; then
@@ -214,7 +214,7 @@ fi
 AC_MSG_RESULT($ac_cv_ofed_path)
 
 VERBS_CAPABILITY_SETUP()
-OPT_VMA_LOGGING()
+OPT_CAPABILITY_SETUP()
 PROF_IBPROF_SETUP()
 DPCP_CAPABILITY_SETUP()
 UTLS_CAPABILITY_SETUP()
@@ -223,11 +223,6 @@ UTLS_CAPABILITY_SETUP()
 # Note: uncomment setup to activate this ability
 #
 #PROF_RDTSC_SETUP()
-
-# SocketXtreme configuration
-#
-AC_ARG_ENABLE([socketxtreme],,
-    AC_MSG_ERROR([--enable-socketxtreme option is deprecated. Please use VMA_SOCKETXTREME=1 environment variable]))
 
 # Thread locking control
 #

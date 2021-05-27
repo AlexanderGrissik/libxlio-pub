@@ -106,10 +106,10 @@ namespace log_level
 					 * a user requests level that is reduced during compilation
 					 * or requested one if the level is in valid range
 					 */
-					if (levels[i].level <= VMA_MAX_DEFINED_LOG_LEVEL) {
+					if (levels[i].level <= MAX_DEFINED_LOG_LEVEL) {
 						return levels[i].level;
 					}
-					def_value = (vlog_levels_t)(VMA_MAX_DEFINED_LOG_LEVEL);
+					def_value = (vlog_levels_t)(MAX_DEFINED_LOG_LEVEL);
 					vlog_printf(VLOG_WARNING, "Trace level set to max level %s\n", to_str(def_value));
 					return def_value;
 				}
