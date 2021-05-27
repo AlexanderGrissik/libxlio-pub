@@ -141,7 +141,7 @@ void ring_alloc_logic_attr::set_ring_alloc_logic(ring_logic_t logic)
 	}
 }
 
-void ring_alloc_logic_attr::set_ring_profile_key(vma_ring_profile_key profile)
+void ring_alloc_logic_attr::set_ring_profile_key(xlio_ring_profile_key profile)
 {
 	if (m_ring_profile_key != profile) {
 		m_ring_profile_key = profile;

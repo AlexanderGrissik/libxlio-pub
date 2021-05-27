@@ -51,15 +51,15 @@ class vma_sockopt : public vma_base {};
 TEST_F(vma_sockopt, ti_1) {
 	int rc = EOK;
 	int fd = UNDEFINED_VALUE;
-	struct vma_ring_alloc_logic_attr profile;
+	struct xlio_ring_alloc_logic_attr profile;
 	int user_id = 100;
 
-	memset(&profile, 0, sizeof(struct vma_ring_alloc_logic_attr));
+	memset(&profile, 0, sizeof(struct xlio_ring_alloc_logic_attr));
 
 	profile.user_id = user_id;
 	profile.ring_alloc_logic = RING_LOGIC_PER_USER_ID;
 	profile.engress = 1;
-	profile.comp_mask = VMA_RING_ALLOC_MASK_RING_USER_ID | VMA_RING_ALLOC_MASK_RING_ENGRESS;
+	profile.comp_mask = XLIO_RING_ALLOC_MASK_RING_USER_ID | XLIO_RING_ALLOC_MASK_RING_ENGRESS;
 	
 	errno = EOK;
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -83,11 +83,11 @@ TEST_F(vma_sockopt, ti_1) {
 TEST_F(vma_sockopt, ti_2) {
         int rc = EOK;
 	int fd = UNDEFINED_VALUE;
-	struct vma_ring_alloc_logic_attr profile;
+	struct xlio_ring_alloc_logic_attr profile;
 	int user_id = 100;
 	int unsupported_mask = (1<<4);
 
-	memset(&profile, 0, sizeof(struct vma_ring_alloc_logic_attr));
+	memset(&profile, 0, sizeof(struct xlio_ring_alloc_logic_attr));
 
 	profile.user_id = user_id;
 	profile.ring_alloc_logic = RING_LOGIC_PER_USER_ID;

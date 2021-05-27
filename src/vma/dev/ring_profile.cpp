@@ -35,11 +35,11 @@
 ring_profiles_collection *g_p_ring_profile = NULL;
 
 
-ring_profile::ring_profile(const vma_ring_type_attr *ring_desc) {
+ring_profile::ring_profile(const xlio_ring_type_attr *ring_desc) {
 	m_ring_desc.comp_mask = ring_desc->comp_mask;
 	m_ring_desc.ring_type = ring_desc->ring_type;
 	switch (ring_desc->ring_type) {
-	case VMA_RING_PACKET:
+	case XLIO_RING_PACKET:
 		m_ring_desc.ring_pktq.comp_mask = ring_desc->ring_pktq.comp_mask;
 		break;
 		break;
@@ -49,17 +49,17 @@ ring_profile::ring_profile(const vma_ring_type_attr *ring_desc) {
 	create_string();
 };
 
-const char* ring_profile::get_vma_ring_type_str()
+const char* ring_profile::get_xlio_ring_type_str()
 {
 	switch (m_ring_desc.ring_type) {
-	case VMA_RING_PACKET:	return "VMA_PKTS_RING";
+	case XLIO_RING_PACKET:	return "VMA_PKTS_RING";
 	default:		return "";
 	}
 };
 
 ring_profile::ring_profile()
 {
-	m_ring_desc.ring_type = VMA_RING_PACKET;
+	m_ring_desc.ring_type = XLIO_RING_PACKET;
 	m_ring_desc.comp_mask = 0;
 	m_ring_desc.ring_pktq.comp_mask = 0;
 	create_string();
@@ -70,11 +70,11 @@ void ring_profile::create_string()
 {
 	ostringstream s;
 
-	s<<get_vma_ring_type_str();
+	s<<get_xlio_ring_type_str();
 	m_str = s.str();
 }
 
-bool ring_profile::operator==(const vma_ring_type_attr &p2)
+bool ring_profile::operator==(const xlio_ring_type_attr &p2)
 {
 	ring_profile other(&p2);
 
@@ -85,7 +85,7 @@ ring_profiles_collection::ring_profiles_collection(): m_curr_idx(START_RING_INDE
 
 }
 
-vma_ring_profile_key ring_profiles_collection::add_profile(vma_ring_type_attr *profile)
+xlio_ring_profile_key ring_profiles_collection::add_profile(xlio_ring_type_attr *profile)
 {
 	// first check if this profile exists
 	ring_profile_map_t::iterator it = m_profs_map.begin();
@@ -95,14 +95,14 @@ vma_ring_profile_key ring_profiles_collection::add_profile(vma_ring_type_attr *p
 		}
 	}
 	// key 0 is invalid
-	vma_ring_profile_key key = m_curr_idx;
+	xlio_ring_profile_key key = m_curr_idx;
 	m_curr_idx++;
 	ring_profile *prof = new ring_profile(profile);
 	m_profs_map[key] = prof;
 	return key;
 }
 
-ring_profile* ring_profiles_collection::get_profile(vma_ring_profile_key key)
+ring_profile* ring_profiles_collection::get_profile(xlio_ring_profile_key key)
 {
 	ring_profile_map_t::iterator iter = m_profs_map.find(key);
 	if (iter != m_profs_map.end()) {

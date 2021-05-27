@@ -691,7 +691,7 @@ int vma_dump_fd_stats(int fd, int log_level)
 }
 
 extern "C"
-int vma_add_ring_profile(vma_ring_type_attr *profile, vma_ring_profile_key *res)
+int add_ring_profile(xlio_ring_type_attr *profile, xlio_ring_profile_key *res)
 {
 	if (!g_p_ring_profile) {
 		vlog_printf(VLOG_DEBUG, "%s g_p_ring_profile is null\n",__func__);
@@ -1065,7 +1065,7 @@ int getsockopt(int __fd, int __level, int __optname,
 			SET_EXTRA_API(socketxtreme_ref_vma_buff, enable_socketxtreme ? vma_socketxtreme_ref_vma_buff : dummy_vma_socketxtreme_ref_vma_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);
 			SET_EXTRA_API(socketxtreme_free_vma_buff, enable_socketxtreme ? vma_socketxtreme_free_vma_buff : dummy_vma_socketxtreme_free_vma_buff, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF);
 			SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, VMA_EXTRA_API_DUMP_FD_STATS);
-                        SET_EXTRA_API(vma_add_ring_profile, vma_add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
+                        SET_EXTRA_API(add_ring_profile, add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
 			SET_EXTRA_API(ioctl, vma_ioctl, VMA_EXTRA_API_IOCTL);
 		}
 

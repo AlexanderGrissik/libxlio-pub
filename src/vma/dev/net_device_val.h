@@ -65,12 +65,12 @@ public:
 	ring_alloc_logic_attr(ring_logic_t ring_logic);
 	ring_alloc_logic_attr(const ring_alloc_logic_attr &other);
 	void set_ring_alloc_logic(ring_logic_t logic);
-	void set_ring_profile_key(vma_ring_profile_key profile);
+	void set_ring_profile_key(xlio_ring_profile_key profile);
 	void set_memory_descriptor(iovec &mem_desc);
 	void set_user_id_key(uint64_t user_id_key);
 	const char* to_str();
 	inline ring_logic_t get_ring_alloc_logic() { return m_ring_alloc_logic;}
-	inline vma_ring_profile_key get_ring_profile_key() { return m_ring_profile_key;}
+	inline xlio_ring_profile_key get_ring_profile_key() { return m_ring_profile_key;}
 	inline iovec* get_memory_descriptor() { return &m_mem_desc;}
 	inline uint64_t get_user_id_key() { return m_user_id_key;}
 
@@ -116,7 +116,7 @@ private:
 	/* ring allocation logic , per thread per fd ... */
 	ring_logic_t		m_ring_alloc_logic;
 	/* key in g_p_ring_profile */
-	vma_ring_profile_key	m_ring_profile_key;
+	xlio_ring_profile_key	m_ring_profile_key;
 	/* either user_idx or key as defined in ring_logic_t */
 	uint64_t		m_user_id_key;
 	char			m_str[RING_ALLOC_STR_SIZE];

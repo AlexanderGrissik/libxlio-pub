@@ -242,9 +242,9 @@ int sockinfo::fcntl64(int __cmd, unsigned long int __arg)
 }
 
 
-int sockinfo::set_ring_attr(vma_ring_alloc_logic_attr *attr)
+int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
 {
-	if ((attr->comp_mask & VMA_RING_ALLOC_MASK_RING_ENGRESS) && attr->engress) {
+	if ((attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_ENGRESS) && attr->engress) {
 		if (set_ring_attr_helper(&m_ring_alloc_log_tx, attr)) {
 			return SOCKOPT_NO_VMA_SUPPORT;
 		}
@@ -254,7 +254,7 @@ int sockinfo::set_ring_attr(vma_ring_alloc_logic_attr *attr)
 		m_p_socket_stats->ring_user_id_tx =
 			ring_allocation_logic_tx(get_fd(), m_ring_alloc_log_tx, this).calc_res_key_by_logic();
 	}
-	if ((attr->comp_mask & VMA_RING_ALLOC_MASK_RING_INGRESS) && attr->ingress) {
+	if ((attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_INGRESS) && attr->ingress) {
 		ring_alloc_logic_attr old_key(*m_ring_alloc_logic.get_key());
 
 		if (set_ring_attr_helper(&m_ring_alloc_log_rx, attr)) {
@@ -275,9 +275,9 @@ int sockinfo::set_ring_attr(vma_ring_alloc_logic_attr *attr)
 }
 
 int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
-				   vma_ring_alloc_logic_attr *user_attr)
+				   xlio_ring_alloc_logic_attr *user_attr)
 {
-	if (user_attr->comp_mask & VMA_RING_ALLOC_MASK_RING_PROFILE_KEY) {
+	if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY) {
 		if (sock_attr->get_ring_profile_key()) {
 			si_logdbg("ring_profile_key is already set and "
 				  "cannot be changed");
@@ -288,7 +288,7 @@ int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
 
 	sock_attr->set_ring_alloc_logic(user_attr->ring_alloc_logic);
 
-	if (user_attr->comp_mask & VMA_RING_ALLOC_MASK_RING_USER_ID)
+	if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_USER_ID)
 		sock_attr->set_user_id_key(user_attr->user_id);
 
 	return 0;
@@ -458,12 +458,12 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 			break;
 		case SO_VMA_RING_ALLOC_LOGIC:
 			if (__optval) {
-				uint32_t val = ((vma_ring_alloc_logic_attr*) __optval)->comp_mask;
+				uint32_t val = ((xlio_ring_alloc_logic_attr*) __optval)->comp_mask;
 
-				if (val & (VMA_RING_ALLOC_MASK_RING_PROFILE_KEY | VMA_RING_ALLOC_MASK_RING_USER_ID |
-					   VMA_RING_ALLOC_MASK_RING_INGRESS | VMA_RING_ALLOC_MASK_RING_ENGRESS)) {
-					if (__optlen == sizeof(vma_ring_alloc_logic_attr)) {
-						vma_ring_alloc_logic_attr *attr = (vma_ring_alloc_logic_attr *)__optval;
+				if (val & (XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY | XLIO_RING_ALLOC_MASK_RING_USER_ID |
+					   XLIO_RING_ALLOC_MASK_RING_INGRESS | XLIO_RING_ALLOC_MASK_RING_ENGRESS)) {
+					if (__optlen == sizeof(xlio_ring_alloc_logic_attr)) {
+						xlio_ring_alloc_logic_attr *attr = (xlio_ring_alloc_logic_attr *)__optval;
 						return set_ring_attr(attr);
 					}
 					else {
@@ -471,7 +471,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 						errno = EINVAL;
 						si_logdbg("SOL_SOCKET, %s=\"???\" - bad length expected %zu got %d",
 							  setsockopt_so_opt_to_str(__optname),
-							  sizeof(vma_ring_alloc_logic_attr), __optlen);
+							  sizeof(xlio_ring_alloc_logic_attr), __optlen);
 						break;
 					}
 				}

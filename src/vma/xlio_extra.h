@@ -218,7 +218,7 @@ struct vma_rate_limit_t {
 	uint16_t typical_pkt_sz;		/* typical packet size in bytes */
 };
 
-typedef int vma_ring_profile_key;
+typedef int xlio_ring_profile_key;
 
 typedef enum {
 	RING_LOGIC_PER_INTERFACE = 0,            //!< RING_LOGIC_PER_INTERFACE
@@ -232,21 +232,21 @@ typedef enum {
 } ring_logic_t;
 
 typedef enum {
-	VMA_RING_ALLOC_MASK_RING_PROFILE_KEY = (1 << 0),
-	VMA_RING_ALLOC_MASK_RING_USER_ID = (1 << 1),
-	VMA_RING_ALLOC_MASK_RING_INGRESS = (1 << 2),
-	VMA_RING_ALLOC_MASK_RING_ENGRESS = (1 << 3),
-} vma_ring_alloc_logic_attr_comp_mask;
+	XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY = (1 << 0),
+	XLIO_RING_ALLOC_MASK_RING_USER_ID = (1 << 1),
+	XLIO_RING_ALLOC_MASK_RING_INGRESS = (1 << 2),
+	XLIO_RING_ALLOC_MASK_RING_ENGRESS = (1 << 3),
+} xlio_ring_alloc_logic_attr_comp_mask;
 
 /**
  * @brief pass this struct to vma using setsockopt with @ref SO_VMA_RING_ALLOC_LOGIC
  * 	to set the allocation logic of this FD when he requests a ring.
  * 	@note ring_alloc_logic is a mandatory
  * @param comp_mask - what fields are read when processing this struct
- * 	see @ref vma_ring_alloc_logic_attr_comp_mask
+ * 	see @ref xlio_ring_alloc_logic_attr_comp_mask
  * @param ring_alloc_logic- allocation ratio to use
  * @param ring_profile_key - what ring profile to use - get the profile when
- * 	creating ring using @ref vma_add_ring_profile in extra_api
+ * 	creating ring using @ref add_ring_profile in extra_api
  * 	can only be set once
  * @param user_idx - when used RING_LOGIC_PER_USER_ID int @ref ring_alloc_logic
  * 	this is the user id to define. This lets you define the same ring for
@@ -254,7 +254,7 @@ typedef enum {
  * @param ingress - RX ring
  * @param engress - TX ring
  */
-struct vma_ring_alloc_logic_attr {
+struct xlio_ring_alloc_logic_attr {
 	uint32_t	comp_mask;
 	ring_logic_t	ring_alloc_logic;
 	uint32_t	ring_profile_key;
@@ -264,34 +264,34 @@ struct vma_ring_alloc_logic_attr {
 	uint32_t	reserved:30;
 };
 
-struct vma_packet_queue_ring_attr {
+struct xlio_packet_queue_ring_attr {
 	uint32_t	comp_mask;
 };
 
 typedef enum {
 	// for future use
-	VMA_RING_ATTR_LAST
-} vma_ring_type_attr_mask;
+	XLIO_RING_ATTR_LAST
+} xlio_ring_type_attr_mask;
 
 typedef enum {
-	VMA_RING_PACKET,
-} vma_ring_type;
+	XLIO_RING_PACKET,
+} xlio_ring_type;
 
 /**
  * @param comp_mask - what fields are read when processing this struct
- * 	see @ref vma_ring_type_attr_mask
+ * 	see @ref xlio_ring_type_attr_mask
  * @param ring_type - use cyclic buffer ring or default packets ring
  *
  */
-struct vma_ring_type_attr {
+struct xlio_ring_type_attr {
 	uint32_t	comp_mask;
-	vma_ring_type	ring_type;
+	xlio_ring_type	ring_type;
 	union {
-		struct vma_packet_queue_ring_attr	ring_pktq;
+		struct xlio_packet_queue_ring_attr	ring_pktq;
 	};
 };
 
-typedef enum {
+enum {
 	VMA_EXTRA_API_REGISTER_RECV_CALLBACK         = (1 << 0),
 	VMA_EXTRA_API_RECVFROM_ZCOPY                 = (1 << 1),
 	VMA_EXTRA_API_FREE_PACKETS                   = (1 << 2),
@@ -306,7 +306,7 @@ typedef enum {
 	VMA_EXTRA_API_DUMP_FD_STATS                  = (1 << 11),
 	VMA_EXTRA_API_ADD_RING_PROFILE               = (1 << 12),
 	VMA_EXTRA_API_IOCTL                          = (1 << 13),
-} vma_extra_api_mask;
+};
 
 /** 
  *  
@@ -576,7 +576,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * @param key - the profile key
 	 * @return 0 on success -1 on failure
 	 */
-	int (*vma_add_ring_profile)(struct vma_ring_type_attr *profile, int *key);
+	int (*add_ring_profile)(struct xlio_ring_type_attr *profile, int *key);
 
 	/**
 	 * This function allows to communicate with library using extendable protocol
