@@ -316,7 +316,8 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 			 * XXX This approach can lead to issue with epoll()
 			 * since such a socket will always be ready for write
 			 */
-			if (!block_this_run && sndbuf < TLS_RECORD_SMALLEST && sndbuf < tosend) {
+			if (!block_this_run && sndbuf < TLS_RECORD_SMALLEST &&
+			    (sndbuf < TLS_RECORD_OVERHEAD || (sndbuf - TLS_RECORD_OVERHEAD) < tosend)) {
 				/*
 				 * We don't want to create too small TLS records
 				 * when we do partial write.
@@ -344,7 +345,10 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				}
 			}
 
-			tosend = std::min(tosend, sndbuf - TLS_RECORD_OVERHEAD);
+			if (!block_this_run) {
+				/* sndbuf overflow is not possible since we have a check above. */
+				tosend = std::min(tosend, sndbuf - TLS_RECORD_OVERHEAD);
+			}
 			tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
 			pos += tosend;
 			tls_arg.attr.msg.iov[0].iov_base = rec->p_data->p_buffer;
@@ -354,7 +358,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 retry:
 			ret2 = m_sock->tcp_tx(tls_arg);
 			if (block_this_run && (ret2 != (ssize_t)tls_arg.attr.msg.iov[0].iov_len)) {
-				if ((ret2 >= 0) || (errno == EINTR)) {
+				if ((ret2 >= 0) || (errno == EINTR && !g_b_exit)) {
 					ret2 = ret2 < 0 ? 0 : ret2;
 					tls_arg.attr.msg.iov[0].iov_len -= ret2;
 					tls_arg.attr.msg.iov[0].iov_base =
@@ -363,8 +367,11 @@ retry:
 				}
 				if (tls_arg.attr.msg.iov[0].iov_len != rec->m_size) {
 					/* We cannot recover from a fail in the middle of a TLS record */
-					m_sock->abort_connection();
-					ret2 = tls_arg.attr.msg.iov[0].iov_len;
+					if (!g_b_exit)
+						m_sock->abort_connection();
+					ret += (rec->m_size - tls_arg.attr.msg.iov[0].iov_len);
+					rec->put();
+					goto done;
 				}
 			}
 			if (ret2 < 0) {
