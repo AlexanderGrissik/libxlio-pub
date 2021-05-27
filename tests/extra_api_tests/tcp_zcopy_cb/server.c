@@ -122,10 +122,10 @@ void myapp_processes_packet_func(
  **/
 void free_packet(void* packet_id, int fd){
 
-  struct vma_packet_t* vma_packet;
+  struct xlio_recvfrom_zcopy_packet_t* vma_packet;
   vma_packet = malloc(sizeof(vma_packet->packet_id));
   vma_packet->packet_id = packet_id;
-  vma_api->free_packets(fd, vma_packet, 1);
+  vma_api->recvfrom_zcopy_free_packets(fd, vma_packet, 1);
   free(vma_packet);
 }
 

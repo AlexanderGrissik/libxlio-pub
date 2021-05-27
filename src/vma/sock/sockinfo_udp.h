@@ -163,7 +163,7 @@ public:
 
 	// This call will handle all rdma related events (bind->listen->connect_req->accept)
 	virtual void statistics_print(vlog_levels_t log_level = VLOG_DEBUG);
-	virtual	int free_packets(struct vma_packet_t *pkts, size_t count);
+	virtual	int recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count);
 	virtual inline fd_type_t get_type()
 	{
 		return FD_TYPE_SOCKET;

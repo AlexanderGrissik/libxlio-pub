@@ -173,7 +173,7 @@ struct vma_completion_t {
  * Represents one VMA packets 
  * Used in zero-copy extended API.
  */
-struct __attribute__ ((packed)) vma_packet_t {
+struct __attribute__ ((packed)) xlio_recvfrom_zcopy_packet_t {
 	void*		packet_id;		// packet identifier
 	size_t		sz_iov;			// number of fragments
 	struct iovec	iov[];			// fragments size+data
@@ -183,9 +183,9 @@ struct __attribute__ ((packed)) vma_packet_t {
  * Represents received packets in VMA
  * Used in zero-copy extended API.
  */
-struct __attribute__ ((packed)) vma_packets_t {
+struct __attribute__ ((packed)) xlio_recvfrom_zcopy_packets_t {
 	size_t n_packet_num;		// number of received packets
-	struct vma_packet_t	pkts[];	// array of received packets
+	struct xlio_recvfrom_zcopy_packet_t	pkts[];	// array of received packets
 };
 
 /* 
@@ -351,7 +351,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * The value content is based on vma_extra_api_mask enum.
 	 * Order of fields in this structure should not be changed to keep abi compatibility.
 	 */
-	uint64_t vma_extra_supported_mask;
+	uint64_t cap_mask;
 
 	/**
 	 * Register a received packet notification callback.
@@ -382,7 +382,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * flag is set upon exit.
 	 * 
 	 * If zero copy is performed (MSG_VMA_ZCOPY flag is returned), the buffer 
-	 * is filled with a vma_packets_t structure, holding as much fragments 
+	 * is filled with a xlio_recvfrom_zcopy_packets_t structure, holding as much fragments 
 	 * as `len' allows. The total size of all fragments is returned.
 	 * Otherwise the MSG_VMA_ZCOPY flag is not set and the buffer is filled
 	 * with actual data and it's size is returned (same as recvfrom())
@@ -405,7 +405,7 @@ struct __attribute__ ((packed)) vma_api_t {
 	 * errno is set to: EINVAL - not a VMA offloaded socket
 	 *                  ENOENT - the packet was not received from `s'.
 	 */
-	int (*free_packets)(int s, struct vma_packet_t *pkts, size_t count);
+	int (*recvfrom_zcopy_free_packets)(int s, struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count);
 
 	/*
 	 * Add a libxlio.conf rule to the top of the list.

@@ -134,7 +134,7 @@ void assign_dlsym(T &ptr, const char *name) {
 
 #define SET_EXTRA_API(__dst, __func, __mask) do { \
 		vma_api->__dst = __func; \
-		vma_api->vma_extra_supported_mask |= __mask; \
+		vma_api->cap_mask |= __mask; \
 } while(0);
 
 #define VERIFY_PASSTROUGH_CHANGED(__ret, __func_and_params__) do { \
@@ -463,12 +463,12 @@ int vma_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *__flags,
 }
 
 extern "C"
-int vma_free_packets(int __fd, struct vma_packet_t *pkts, size_t count)
+int vma_recvfrom_zcopy_free_packets(int __fd, struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count)
 {
 	socket_fd_api* p_socket_object = NULL;
 	p_socket_object = fd_collection_get_sockfd(__fd);
 	if (p_socket_object) {
-		return p_socket_object->free_packets(pkts, count);
+		return p_socket_object->recvfrom_zcopy_free_packets(pkts, count);
 	}
 
 	errno = EINVAL;
@@ -1052,10 +1052,10 @@ int getsockopt(int __fd, int __level, int __optname,
 			vma_api = new struct vma_api_t();
 
 			memset(vma_api, 0, sizeof(struct vma_api_t));
-			vma_api->vma_extra_supported_mask = 0;
+			vma_api->cap_mask = 0;
 			SET_EXTRA_API(register_recv_callback, vma_register_recv_callback, VMA_EXTRA_API_REGISTER_RECV_CALLBACK);
 			SET_EXTRA_API(recvfrom_zcopy, vma_recvfrom_zcopy, VMA_EXTRA_API_RECVFROM_ZCOPY);
-			SET_EXTRA_API(free_packets, vma_free_packets, VMA_EXTRA_API_FREE_PACKETS);
+			SET_EXTRA_API(recvfrom_zcopy_free_packets, vma_recvfrom_zcopy_free_packets, VMA_EXTRA_API_FREE_PACKETS);
 			SET_EXTRA_API(add_conf_rule, vma_add_conf_rule, VMA_EXTRA_API_ADD_CONF_RULE);
 			SET_EXTRA_API(thread_offload, vma_thread_offload, VMA_EXTRA_API_THREAD_OFFLOAD);
                         SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num, VMA_EXTRA_API_GET_SOCKET_RINGS_NUM);

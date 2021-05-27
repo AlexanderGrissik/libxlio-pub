@@ -213,7 +213,7 @@ public:
 
 	virtual int register_callback(vma_recv_callback_t callback, void *context);
 	
-	virtual int free_packets(struct vma_packet_t *pkts, size_t count);
+	virtual int recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count);
 
 	/* This function is used for socketxtreme mode */
 	virtual	int free_buffs(uint16_t len);

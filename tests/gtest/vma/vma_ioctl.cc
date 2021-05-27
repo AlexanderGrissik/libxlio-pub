@@ -47,7 +47,7 @@ protected:
 
 		vma_base::SetUp();
 
-		SKIP_TRUE((vma_api->vma_extra_supported_mask & vma_extra_api_cap) == vma_extra_api_cap,
+		SKIP_TRUE((vma_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
 				"This test requires VMA capabilities as VMA_EXTRA_API_IOCTL");
 	}
 	void TearDown()	{

@@ -2348,7 +2348,7 @@ void sockinfo_udp::save_stats_tx_offload(int bytes, bool is_dummy)
 	}
 }
 
-int sockinfo_udp::free_packets(struct vma_packet_t *pkts, size_t count)
+int sockinfo_udp::recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count)
 {
 	int ret = 0;
 	unsigned int 	index = 0;
@@ -2403,7 +2403,7 @@ int sockinfo_udp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *p_desc, int *p_flag
 {
 	mem_buf_desc_t* p_desc_iter;
 	int total_rx = 0;
-	int len = p_iov[0].iov_len - sizeof(vma_packets_t) - sizeof(vma_packet_t);
+	int len = p_iov[0].iov_len - sizeof(xlio_recvfrom_zcopy_packets_t) - sizeof(xlio_recvfrom_zcopy_packet_t);
 
 	// Make sure there is enough room for the header
 	if (len < 0) {
@@ -2412,7 +2412,7 @@ int sockinfo_udp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *p_desc, int *p_flag
 	}
 
 	// Copy iov pointers to user buffer
-	vma_packets_t *p_packets = (vma_packets_t*)p_iov[0].iov_base;
+	xlio_recvfrom_zcopy_packets_t *p_packets = (xlio_recvfrom_zcopy_packets_t*)p_iov[0].iov_base;
 	p_packets->n_packet_num = 1;	
 	p_packets->pkts[0].packet_id = (void*)p_desc;
 	p_packets->pkts[0].sz_iov = 0;

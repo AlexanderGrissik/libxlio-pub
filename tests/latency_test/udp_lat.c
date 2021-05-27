@@ -188,7 +188,7 @@ unsigned char *msgbuf = NULL;
 
 #ifdef  USING_VMA_EXTRA_API
 unsigned char* pkt_buf = NULL;
-struct vma_packets_t* pkts = NULL;
+struct xlio_recvfrom_zcopy_packets_t* pkts = NULL;
 #endif
 
 int max_buff_size = 0;
@@ -715,7 +715,7 @@ static inline int check_data_integrity(unsigned char *pattern_buf, size_t buf_si
 #ifdef USING_VMA_EXTRA_API
 	if (pkts && pkts->n_packet_num > 0) {
 		size_t i, pos, len;
-		struct vma_packet_t *pkt;
+		struct xlio_recvfrom_zcopy_packet_t *pkt;
 
 		pkt = &pkts->pkts[0];
 		((char*)pkt->iov[0].iov_base)[1] = CLIENT_MASK; /*match to client so data_integrity will pass*/
@@ -1048,7 +1048,7 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 
 		// Free VMA's previously received zero copied datagram
 		if (pkts) {
-			vma_api->free_packets(fd, pkts->pkts, pkts->n_packet_num);
+			vma_api->recvfrom_zcopy_free_packets(fd, pkts->pkts, pkts->n_packet_num);
 			pkts = NULL;
 		}
 
@@ -1058,9 +1058,9 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 		if (ret >= 2) {
 			if (flags & MSG_VMA_ZCOPY) {
 				// zcopy
-				struct vma_packet_t *pkt;
+				struct xlio_recvfrom_zcopy_packet_t *pkt;
 				
-				pkts = (struct vma_packets_t*)pkt_buf;
+				pkts = (struct xlio_recvfrom_zcopy_packets_t*)pkt_buf;
 				pkt = &pkts->pkts[0];
 				// copy signature
 				msgbuf[0] = ((uint8_t*)pkt->iov[0].iov_base)[0];
@@ -2342,7 +2342,7 @@ int main(int argc, char *argv[])
 		else
 			log_msg("VMA Extra API found - using VMA's receive zero copy and packet filter APIs");
 
-		vma_dgram_desc_size = sizeof(struct vma_packets_t) + sizeof(struct vma_packet_t) + sizeof(struct iovec) * 16;
+		vma_dgram_desc_size = sizeof(struct xlio_recvfrom_zcopy_packets_t) + sizeof(struct xlio_recvfrom_zcopy_packet_t) + sizeof(struct iovec) * 16;
 #else
 		log_msg("This udp_lat version is not compiled with VMA extra API");
 #endif

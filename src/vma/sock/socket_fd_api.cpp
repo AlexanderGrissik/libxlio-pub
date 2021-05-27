@@ -304,7 +304,7 @@ int socket_fd_api::register_callback(vma_recv_callback_t callback, void *context
 	return -1;
 }
 
-int socket_fd_api::free_packets(struct vma_packet_t *pkts, size_t count)
+int socket_fd_api::recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_t *pkts, size_t count)
 {
 	NOT_IN_USE(pkts);
 	NOT_IN_USE(count);
