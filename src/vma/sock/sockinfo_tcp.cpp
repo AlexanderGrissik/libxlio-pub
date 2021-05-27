@@ -3105,6 +3105,9 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 	NOT_IN_USE(err);
 	ASSERT_LOCKED(new_sock->m_tcp_con_lock);
 
+	/* Dump statistics of the previous incarnation of the socket. */
+	print_full_stats(new_sock->m_p_socket_stats, NULL, safe_mce_sys().stats_file);
+
 	/*
 	 * We reuse socket, so remove ULP. Currently there is no interface to
 	 * check whether an ULP is attached, therefore, we reset it
