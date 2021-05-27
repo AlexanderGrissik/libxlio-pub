@@ -97,7 +97,7 @@ static bool is_inherited_option(int __level, int __optname)
 		case SO_RCVLOWAT:
 		case SO_SNDBUF:
 		case SO_SNDLOWAT:
-		case SO_VMA_RING_ALLOC_LOGIC:
+		case SO_XLIO_RING_ALLOC_LOGIC:
 			ret = true;
 		}
 	} else if (__level == IPPROTO_TCP) {
@@ -1765,7 +1765,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 	
 	if (conn->m_rx_callback && !conn->m_vma_thr && !conn->m_n_rx_pkt_ready_list_count) {
 		mem_buf_desc_t *tmp;
-		vma_info_t pkt_info;
+		xlio_info_t pkt_info;
 		int nr_frags = 0;
 
 		pkt_info.struct_sz = sizeof(pkt_info);
@@ -4158,7 +4158,7 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
 				errno = EINVAL;
 			}
 			break;
-		case SO_VMA_PD:
+		case SO_XLIO_PD:
 			if (__optlen && *__optlen >= sizeof(struct xlio_pd_attr)) {
 				if (m_p_connected_dst_entry) {
 					ring* tx_ring = m_p_connected_dst_entry->get_ring();

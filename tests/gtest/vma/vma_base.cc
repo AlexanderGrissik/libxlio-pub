@@ -43,8 +43,8 @@ void vma_base::SetUp()
 	errno = EOK;
 
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
-	vma_api = vma_get_api();
-	SKIP_TRUE(vma_api, "vma test suite should be launched under libvma.so");
+	xlio_api = xlio_get_api();
+	SKIP_TRUE(xlio_api, "vma test suite should be launched under libvma.so");
 #else
 	SKIP_TRUE(0, "Tests should be compiled as make CPPFLAGS=-DEXTRA_API_ENABLED=1")
 #endif /* EXTRA_API_ENABLED */

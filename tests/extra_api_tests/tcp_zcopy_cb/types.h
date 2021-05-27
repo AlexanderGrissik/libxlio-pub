@@ -30,7 +30,7 @@ struct __attribute__ ((packed)) pending_packet_t{
 	int                   valid;
 	int                   iovec_size;
 	struct iovec          iov[10];
-	struct vma_info_t     *vma_info;
+	struct xlio_info_t     *vma_info;
 };
 
 #define INVALID_SOCKET -1

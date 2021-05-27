@@ -217,7 +217,7 @@ protected:
 /**
  * @test vma_send_zc.ti_1
  * @brief
- *    Wrong parameter getsockopt(SO_VMA_PD)
+ *    Wrong parameter getsockopt(SO_XLIO_PD)
  * @details
  */
 TEST_F(vma_send_zc, ti_1) {
@@ -248,7 +248,7 @@ TEST_F(vma_send_zc, ti_1) {
 		ASSERT_EQ(0, rc);
 
 		errno = EOK;
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_XLIO_PD, &xlio_pd_attr, &op_len);
 		EXPECT_EQ(EINVAL, errno);
 		EXPECT_GT(0, rc);
 
@@ -335,7 +335,7 @@ TEST_F(vma_send_zc, ti_2) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_XLIO_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
 		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
 		ASSERT_TRUE(xlio_pd_attr.ib_pd);
@@ -351,7 +351,7 @@ TEST_F(vma_send_zc, ti_2) {
 		msg.msg_controllen = sizeof(cbuf);
 		cmsg = CMSG_FIRSTHDR(&msg);
 		cmsg->cmsg_level = SOL_SOCKET;
-		cmsg->cmsg_type = SCM_VMA_PD;
+		cmsg->cmsg_type = SCM_XLIO_PD;
 		cmsg->cmsg_len = CMSG_LEN(cmsg_len);
 		memcpy(CMSG_DATA(cmsg), &xlio_pd_key[0], sizeof(xlio_pd_key[0]));
 		msg.msg_controllen = cmsg->cmsg_len;
@@ -464,7 +464,7 @@ TEST_F(vma_send_zc, ti_3_few_send) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_XLIO_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
 		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
 		ASSERT_TRUE(xlio_pd_attr.ib_pd);
@@ -484,7 +484,7 @@ TEST_F(vma_send_zc, ti_3_few_send) {
 			msg.msg_controllen = sizeof(cbuf);
 			cmsg = CMSG_FIRSTHDR(&msg);
 			cmsg->cmsg_level = SOL_SOCKET;
-			cmsg->cmsg_type = SCM_VMA_PD;
+			cmsg->cmsg_type = SCM_XLIO_PD;
 			cmsg->cmsg_len = CMSG_LEN(cmsg_len);
 			memcpy(CMSG_DATA(cmsg), &xlio_pd_key[0], sizeof(xlio_pd_key[0]));
 			msg.msg_controllen = cmsg->cmsg_len;
@@ -618,7 +618,7 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 		rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
 		ASSERT_EQ(0, rc);
 
-		rc = getsockopt(m_fd, SOL_SOCKET, SO_VMA_PD, &xlio_pd_attr, &op_len);
+		rc = getsockopt(m_fd, SOL_SOCKET, SO_XLIO_PD, &xlio_pd_attr, &op_len);
 		ASSERT_EQ(0, rc);
 		ASSERT_EQ(sizeof(xlio_pd_attr), op_len);
 		ASSERT_TRUE(xlio_pd_attr.ib_pd);
@@ -639,7 +639,7 @@ TEST_F(vma_send_zc, ti_4_large_send) {
 		msg.msg_controllen = sizeof(cbuf);
 		cmsg = CMSG_FIRSTHDR(&msg);
 		cmsg->cmsg_level = SOL_SOCKET;
-		cmsg->cmsg_type = SCM_VMA_PD;
+		cmsg->cmsg_type = SCM_XLIO_PD;
 		cmsg->cmsg_len = CMSG_LEN(cmsg_len);
 		memcpy(CMSG_DATA(cmsg), xlio_pd_key, sizeof(xlio_pd_key));
 		msg.msg_controllen = cmsg->cmsg_len;

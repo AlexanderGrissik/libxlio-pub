@@ -53,7 +53,7 @@ protected:
 
 protected:
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
-	struct vma_api_t *vma_api;
+	struct xlio_api_t *xlio_api;
 #endif /* EXTRA_API_ENABLED */
 };
 

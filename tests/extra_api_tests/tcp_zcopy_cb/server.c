@@ -16,18 +16,18 @@
 extern struct config_t		config;
 
 typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_iov, struct iovec iov[],
-                                                          struct vma_info_t* vma_info, void *context);
+                                                          struct xlio_info_t* vma_info, void *context);
 xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
                                                               int fd,
                                                               size_t iov_sz,
                                                               struct iovec iov[],
-                                                              struct vma_info_t* vma_info,
+                                                              struct xlio_info_t* vma_info,
                                                               void *context);
 void free_packet(void* packet_id, int fd);
 int server_management(int *mangSocket);
 int get_sock_fd(int *sock, int mangSock);
 int receive_data(int *sock, int mangSock);
-struct vma_api_t *vma_api = NULL;
+struct xlio_api_t *xlio_api = NULL;
 
 int server_main(){
 	int		sock	= INVALID_SOCKET;
@@ -62,12 +62,12 @@ int server_main(){
 		CHECK_VALUE("setsockopt", rc, 0, goto cleanup);
 	}
 	
-	vma_api = vma_get_api();
-	CHECK_NOT_EQUAL("vma_get_api", vma_api, NULL, goto cleanup);
+	xlio_api = xlio_get_api();
+	CHECK_NOT_EQUAL("xlio_get_api", xlio_api, NULL, goto cleanup);
 	
 	printf("Server gets VMA APIs\n");
 	
-	rc = vma_api->register_recv_callback(sock, myapp_vma_recv_pkt_notify_callback, &pending_packet);
+	rc = xlio_api->register_recv_callback(sock, myapp_vma_recv_pkt_notify_callback, &pending_packet);
 	CHECK_VALUE("register_recv_callback", rc, 0, goto cleanup);
 	
 	printf("Callback function registered with VMA\n");
@@ -125,7 +125,7 @@ void free_packet(void* packet_id, int fd){
   struct xlio_recvfrom_zcopy_packet_t* vma_packet;
   vma_packet = malloc(sizeof(vma_packet->packet_id));
   vma_packet->packet_id = packet_id;
-  vma_api->recvfrom_zcopy_free_packets(fd, vma_packet, 1);
+  xlio_api->recvfrom_zcopy_free_packets(fd, vma_packet, 1);
   free(vma_packet);
 }
 
@@ -133,7 +133,7 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
                                                               int fd,
                                                               size_t iov_sz,
                                                               struct iovec iov[],
-                                                              struct vma_info_t* vma_info,
+                                                              struct xlio_info_t* vma_info,
                                                               void *context)
 {
 	struct pending_packet_t *p_pending_packet;
@@ -161,8 +161,8 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
 			myapp_processes_packet_func(p_pending_packet->iov, p_pending_packet->iovec_size, p_pending_packet->vma_info->packet_id, fd);
 		memcpy(p_pending_packet->iov, iov, sizeof(struct iovec)*iov_sz);
 		p_pending_packet->iovec_size = iov_sz;
-		p_pending_packet->vma_info = malloc(sizeof(struct vma_info_t));
-		memcpy (p_pending_packet->vma_info, vma_info, sizeof(struct vma_info_t));
+		p_pending_packet->vma_info = malloc(sizeof(struct xlio_info_t));
+		memcpy (p_pending_packet->vma_info, vma_info, sizeof(struct xlio_info_t));
 		p_pending_packet->valid = 1;
 		
 		return XLIO_PACKET_HOLD;

@@ -44,13 +44,13 @@
 class vma_tcp_recvfrom_zcopy : public vma_base, public tcp_base {
 protected:
 	void SetUp() {
-		uint64_t vma_extra_api_cap = VMA_EXTRA_API_RECVFROM_ZCOPY | VMA_EXTRA_API_FREE_PACKETS;
+		uint64_t vma_extra_api_cap = XLIO_EXTRA_API_RECVFROM_ZCOPY | XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS;
 
 		vma_base::SetUp();
 		tcp_base::SetUp();
 
-		SKIP_TRUE((vma_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
-				"This test requires VMA capabilities as VMA_EXTRA_API_RECVFROM_ZCOPY | VMA_EXTRA_API_FREE_PACKETS");
+		SKIP_TRUE((xlio_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
+				"This test requires VMA capabilities as XLIO_EXTRA_API_RECVFROM_ZCOPY | XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS");
 
 		m_fd = -1;
 		m_test_buf = NULL;
@@ -174,11 +174,11 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1) {
 		log_trace("Accepted connection: fd=%d from %s\n",
 				m_fd, sys_addr2str((struct sockaddr_in *)&peer_addr));
 
-		rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size - 1, &flags, NULL, NULL);
+		rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size - 1, &flags, NULL, NULL);
 		EXPECT_EQ(-1, rc);
 		EXPECT_TRUE(ENOBUFS == errno);
 
-		rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size, &flags, NULL, NULL);
+		rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size, &flags, NULL, NULL);
 		EXPECT_EQ(m_test_buf_size, rc);
 		EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 
@@ -268,7 +268,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once) {
 		log_trace("Accepted connection: fd=%d from %s\n",
 				m_fd, sys_addr2str((struct sockaddr_in *)&peer_addr));
 
-		rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
+		rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
 		EXPECT_EQ(m_test_buf_size, rc);
 		EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 		vma_packets = (struct xlio_recvfrom_zcopy_packets_t *)buf;
@@ -282,7 +282,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once) {
 
 		EXPECT_EQ(memcmp(vma_packet->iov[0].iov_base, m_test_buf, m_test_buf_size), 0);
 
-		rc = vma_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts, vma_packets->n_packet_num);
+		rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts, vma_packets->n_packet_num);
 		EXPECT_EQ(0, rc);
 
 		close(m_fd);
@@ -407,7 +407,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data) {
 						int j = 0;
 						int packet_len = 0;
 
-						rc = vma_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
+						rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
 						EXPECT_LT(0, rc);
 						EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 						total_len += rc;
@@ -425,7 +425,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data) {
 									n, vma_packet->packet_id, vma_packet->sz_iov, packet_len);
 						}
 
-						rc = vma_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts, vma_packets->n_packet_num);
+						rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts, vma_packets->n_packet_num);
 						EXPECT_EQ(0, rc);
 					}
 				}

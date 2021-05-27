@@ -453,7 +453,7 @@ public:
 #endif
 	uint32_t	tcp_send_buffer_size;
 	FILE *stats_file;
-	/* This field should be used to store and use data for VMA_EXTRA_API_IOCTL */
+	/* This field should be used to store and use data for XLIO_EXTRA_API_IOCTL */
 	struct {
 		struct {
 			uint8_t flags;

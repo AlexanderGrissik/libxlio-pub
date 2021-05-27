@@ -558,10 +558,10 @@ protected:
     	case SO_TIMESTAMPNS:		return "SO_TIMESTAMPNS";
     	case SO_BINDTODEVICE:		return "SO_BINDTODEVICE";
     	case SO_ZEROCOPY:		return "SO_ZEROCOPY";
-    	case SO_VMA_RING_ALLOC_LOGIC:	return "SO_VMA_RING_ALLOC_LOGIC";
+    	case SO_XLIO_RING_ALLOC_LOGIC:	return "SO_XLIO_RING_ALLOC_LOGIC";
     	case SO_MAX_PACING_RATE:	return "SO_MAX_PACING_RATE";
-    	case SO_VMA_FLOW_TAG:           return "SO_VMA_FLOW_TAG";
-    	case SO_VMA_SHUTDOWN_RX:        return "SO_VMA_SHUTDOWN_RX";
+    	case SO_XLIO_FLOW_TAG:           return "SO_XLIO_FLOW_TAG";
+    	case SO_XLIO_SHUTDOWN_RX:        return "SO_XLIO_SHUTDOWN_RX";
     	default:			break;
     	}
     	return "UNKNOWN SO opt";

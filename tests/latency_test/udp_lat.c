@@ -282,7 +282,7 @@ int min_msg_size = MIN_PAYLOAD_SIZE;
 int max_msg_size = MIN_PAYLOAD_SIZE;
 
 #ifdef  USING_VMA_EXTRA_API
-struct vma_api_t *vma_api;
+struct xlio_api_t *xlio_api;
 #endif
 
 #define max(x,y)	({typeof(x) _x = (x); typeof(y) _y = (y); (void)(&_x == &_y); _x > _y ? _x : _y; })
@@ -824,7 +824,7 @@ int set_mcgroups_fromfile(char *mcg_filename)
 }
 
 #ifdef  USING_VMA_EXTRA_API
-extern xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct vma_info_t* vma_info, void *context);
+extern xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context);
 #endif
 
 /* returns the new socket fd
@@ -961,13 +961,13 @@ int prepare_socket(struct sockaddr_in* p_addr)
 	}
 
 #ifdef  USING_VMA_EXTRA_API
-	if (user_params.is_vmarxfiltercb && vma_api) {
+	if (user_params.is_vmarxfiltercb && xlio_api) {
 		// Try to register application with VMA's special receive notification callback logic
-		if (vma_api->register_recv_callback(fd, myapp_vma_recv_pkt_filter_callback, &fd) < 0) {
-			log_err("vma_api->register_recv_callback failed. Try running without option 'vmarxfiltercb'");
+		if (xlio_api->register_recv_callback(fd, myapp_vma_recv_pkt_filter_callback, &fd) < 0) {
+			log_err("xlio_api->register_recv_callback failed. Try running without option 'vmarxfiltercb'");
 		}
 		else {
-			log_dbg("vma_api->register_recv_callback successful registered");
+			log_dbg("xlio_api->register_recv_callback successful registered");
 		}
 	}
 #endif
@@ -1043,17 +1043,17 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 
 #ifdef  USING_VMA_EXTRA_API
 
-	if (user_params.is_vmazcopyread && vma_api) {
+	if (user_params.is_vmazcopyread && xlio_api) {
 		int flags = 0;
 
 		// Free VMA's previously received zero copied datagram
 		if (pkts) {
-			vma_api->recvfrom_zcopy_free_packets(fd, pkts->pkts, pkts->n_packet_num);
+			xlio_api->recvfrom_zcopy_free_packets(fd, pkts->pkts, pkts->n_packet_num);
 			pkts = NULL;
 		}
 
 		// Receive the next datagram with zero copy API
-		ret = vma_api->recvfrom_zcopy(fd, pkt_buf, max_buff_size,
+		ret = xlio_api->recvfrom_zcopy(fd, pkt_buf, max_buff_size,
 		                                  &flags, (struct sockaddr*)recvfrom_addr, &size);
 		if (ret >= 2) {
 			if (flags & MSG_XLIO_ZCOPY) {
@@ -1123,15 +1123,15 @@ void warmup()
 
 #ifdef  USING_VMA_EXTRA_API
 xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
-	int fd, size_t iov_sz, struct iovec iov[], struct vma_info_t* vma_info, void *context)
+	int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context)
 {
 	if (iov_sz) {};
 	if (context) {};
 
 	// Check info structure version
-	if (vma_info->struct_sz < sizeof(struct vma_info_t)) {
+	if (vma_info->struct_sz < sizeof(struct xlio_info_t)) {
 		log_msg("VMA's info struct is not something we can handle so un-register the application's callback function");
-		vma_api->register_recv_callback(fd, NULL, &fd);
+		xlio_api->register_recv_callback(fd, NULL, &fd);
 		return XLIO_PACKET_RECV;
 	}
 
@@ -2336,8 +2336,8 @@ int main(int argc, char *argv[])
 	if (user_params.is_vmarxfiltercb || user_params.is_vmazcopyread) {
 #ifdef  USING_VMA_EXTRA_API
 		// Get VMA extended API
-		vma_api = vma_get_api();
-		if (vma_api == NULL)
+		xlio_api = xlio_get_api();
+		if (xlio_api == NULL)
 			log_err("VMA Extra API not found - working with default socket APIs");
 		else
 			log_msg("VMA Extra API found - using VMA's receive zero copy and packet filter APIs");
@@ -2398,7 +2398,7 @@ int main(int argc, char *argv[])
 	}
 	
 #ifdef  USING_VMA_EXTRA_API
-	if (user_params.is_vmazcopyread && vma_api){
+	if (user_params.is_vmazcopyread && xlio_api){
 		   pkt_buf = malloc(max_buff_size);
 	}
 #endif

@@ -58,7 +58,7 @@ TEST_F(vma_ring, ti_1) {
 	int rc = EOK;
 	int ring_fd = UNDEFINED_VALUE;
 
-	rc = vma_api->get_socket_rings_fds(0, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(0, &ring_fd, 1);
 	EXPECT_GE(0, rc);
 	EXPECT_EQ(UNDEFINED_VALUE, ring_fd);
 }
@@ -71,7 +71,7 @@ TEST_F(vma_ring, ti_2) {
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
 	ASSERT_LE(0, fd);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_GE(0, rc);
 	EXPECT_EQ(UNDEFINED_VALUE, ring_fd);
 
@@ -89,7 +89,7 @@ TEST_F(vma_ring, ti_3) {
 	rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -107,7 +107,7 @@ TEST_F(vma_ring, ti_4) {
 	rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -128,7 +128,7 @@ TEST_F(vma_ring, ti_5) {
 	rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -143,7 +143,7 @@ TEST_F(vma_ring, ti_6) {
 	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
 	ASSERT_LE(0, fd);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_GE(0, rc);
 	EXPECT_EQ(UNDEFINED_VALUE, ring_fd);
 
@@ -161,7 +161,7 @@ TEST_F(vma_ring, ti_7) {
 	rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_GE(0, rc);
 	EXPECT_EQ(UNDEFINED_VALUE, ring_fd);
 
@@ -192,7 +192,7 @@ TEST_F(vma_ring, ti_8) {
 	rc = listen(fd, 5);
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -214,7 +214,7 @@ TEST_F(vma_ring, ti_9) {
 	ASSERT_EQ(EINPROGRESS, errno);
 	ASSERT_EQ((-1), rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -244,7 +244,7 @@ TEST_F(vma_ring, ti_10) {
 	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd);
 
@@ -275,7 +275,7 @@ TEST_F(vma_ring, ti_11) {
 	rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_bind, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind, 1);
 	EXPECT_GE(0, rc);
 	EXPECT_EQ(UNDEFINED_VALUE, ring_fd_bind);
 
@@ -291,7 +291,7 @@ TEST_F(vma_ring, ti_11) {
 	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd_bind_opt);
 
@@ -302,7 +302,7 @@ TEST_F(vma_ring, ti_11) {
 	ASSERT_EQ(EINPROGRESS, errno);
 	ASSERT_EQ((-1), rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_connect, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_connect, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd_connect);
 
@@ -338,7 +338,7 @@ TEST_F(vma_ring, ti_12) {
 	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd_bind_opt);
 
@@ -352,7 +352,7 @@ TEST_F(vma_ring, ti_12) {
 	rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
 	ASSERT_EQ(0, rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_bind, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd_bind);
 
@@ -363,7 +363,7 @@ TEST_F(vma_ring, ti_12) {
 	ASSERT_EQ(EINPROGRESS, errno);
 	ASSERT_EQ((-1), rc);
 
-	rc = vma_api->get_socket_rings_fds(fd, &ring_fd_connect, 1);
+	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_connect, 1);
 	EXPECT_EQ(1, rc);
 	EXPECT_LE(0, ring_fd_connect);
 

@@ -117,14 +117,14 @@ TEST_F(vma_poll, ti_1) {
 		ASSERT_EQ(EOK, errno);
 		ASSERT_EQ(0, rc);
 
-		rc = vma_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
+		rc = xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		ASSERT_EQ(1, rc);
 		ASSERT_LE(0, _vma_ring_fd);
 
 		barrier_fork(pid);
 		rc = 0;
 		while (rc == 0 && !child_fork_exit()) {
-			rc = vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
+			rc = xlio_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if (vma_comps.events & XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED) {
 				EXPECT_EQ(fd, (int)vma_comps.listen_fd);
 				fd_peer = (int)vma_comps.user_data;
@@ -198,14 +198,14 @@ TEST_F(vma_poll, ti_2) {
 		ASSERT_EQ(EOK, errno);
 		ASSERT_EQ(0, rc);
 
-		rc = vma_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
+		rc = xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		ASSERT_EQ(1, rc);
 		ASSERT_LE(0, _vma_ring_fd);
 
 		barrier_fork(pid);
 		rc = 0;
 		while (rc == 0 && !child_fork_exit()) {
-			rc = vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
+			rc = xlio_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if ((vma_comps.events & EPOLLERR) ||
 					(vma_comps.events & EPOLLHUP) ||
 					(vma_comps.events & EPOLLRDHUP)) {
@@ -244,7 +244,7 @@ TEST_F(vma_poll, ti_2) {
 /**
  * @test vma_poll.ti_3
  * @brief
- *    Check TCP connection data receiving (SO_VMA_USER_DATA)
+ *    Check TCP connection data receiving (SO_XLIO_USER_DATA)
  * @details
  */
 TEST_F(vma_poll, ti_3) {
@@ -297,14 +297,14 @@ TEST_F(vma_poll, ti_3) {
 		ASSERT_EQ(EOK, errno);
 		ASSERT_EQ(0, rc);
 
-		rc = vma_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
+		rc = xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		ASSERT_EQ(1, rc);
 		ASSERT_LE(0, _vma_ring_fd);
 
 		barrier_fork(pid);
 		rc = 0;
 		while (rc == 0 && !child_fork_exit()) {
-			rc = vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
+			rc = xlio_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if ((vma_comps.events & EPOLLERR) ||
 					(vma_comps.events & EPOLLHUP) ||
 					(vma_comps.events & EPOLLRDHUP)) {
@@ -320,7 +320,7 @@ TEST_F(vma_poll, ti_3) {
 						fd_peer, sys_addr2str((struct sockaddr_in *)&peer_addr));
 
 				errno = EOK;
-				rc = setsockopt(fd_peer, SOL_SOCKET, SO_VMA_USER_DATA, &user_data, sizeof(void *));
+				rc = setsockopt(fd_peer, SOL_SOCKET, SO_XLIO_USER_DATA, &user_data, sizeof(void *));
 				EXPECT_EQ(0, rc);
 				EXPECT_EQ(EOK, errno);
 				log_trace("Set data: %p\n", user_data);
@@ -389,14 +389,14 @@ TEST_F(vma_poll, ti_4) {
 		rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);
 
-		rc = vma_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
+		rc = xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		ASSERT_EQ(1, rc);
 		ASSERT_LE(0, _vma_ring_fd);
 
 		barrier_fork(pid);
 		rc = 0;
 		while (rc == 0 && !child_fork_exit()) {
-			rc = vma_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
+			rc = xlio_api->socketxtreme_poll(_vma_ring_fd, &vma_comps, 1, 0);
 			if ((vma_comps.events & EPOLLERR) ||
 					(vma_comps.events & EPOLLHUP) ||
 					(vma_comps.events & EPOLLRDHUP)) {

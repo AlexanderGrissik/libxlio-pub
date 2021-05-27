@@ -52,7 +52,7 @@
 #define EXIT_FAILURE 1
 
 #if defined(VMA_API) && (VMA_API == 1)
-static struct vma_api_t *_vma_api = NULL;
+static struct xlio_api_t *_xlio_api = NULL;
 static int _vma_ring_fd = -1;
 #endif /* VMA_API */
 
@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
 
 	/* Step:1 Initialize VMA API */
 #if defined(VMA_API) && (VMA_API == 1)
-	_vma_api = vma_get_api();
-	if (_vma_api == NULL) {
+	_xlio_api = xlio_get_api();
+	if (_xlio_api == NULL) {
 		printf("VMA Extra API not found\n");
 	}
 #endif /* VMA_API */
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 	/* Step:3 Need to get ring or set listen socket */
 #if defined(VMA_API) && (VMA_API == 1)
 	if (_vma_ring_fd < 0) {
-		_vma_api->get_socket_rings_fds(sfd[0], &_vma_ring_fd, 1);
+		_xlio_api->get_socket_rings_fds(sfd[0], &_vma_ring_fd, 1);
 		assert((-1) != _vma_ring_fd);
 	}
 #else
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
 		/* Step:4 Get events */
 #if defined(VMA_API) && (VMA_API == 1)
 		while (0 == n) {
-			n = _vma_api->socketxtreme_poll(_vma_ring_fd, vma_comps, max_events, 0);
+			n = _xlio_api->socketxtreme_poll(_vma_ring_fd, vma_comps, max_events, 0);
 		}
 #else
 		n = epoll_wait(efd, events, max_events, 0);
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 				assert(sizeof(conns.msg) > vma_comps[j].packet.total_len);
 				memcpy(conns.msg, vma_comps[j].packet.buff_lst->payload, vma_comps[j].packet.total_len);
 				ret = vma_comps[j].packet.total_len;
-				_vma_api->socketxtreme_free_packets(&vma_comps[j].packet, 1);
+				_xlio_api->socketxtreme_free_packets(&vma_comps[j].packet, 1);
 #else
 				ret = recv(fd, conns.msg, sizeof(conns.msg), 0);
 #endif /* VMA_API */

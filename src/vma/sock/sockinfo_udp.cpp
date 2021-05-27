@@ -1776,7 +1776,7 @@ int sockinfo_udp::rx_verify_available_data()
  */
 inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc_t* p_desc)
 {
-	vma_info_t pkt_info;
+	xlio_info_t pkt_info;
 
 	pkt_info.struct_sz = sizeof(pkt_info);
 	pkt_info.packet_id = (void*)p_desc;

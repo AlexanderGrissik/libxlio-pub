@@ -133,8 +133,8 @@ void assign_dlsym(T &ptr, const char *name) {
 	}
 
 #define SET_EXTRA_API(__dst, __func, __mask) do { \
-		vma_api->__dst = __func; \
-		vma_api->cap_mask |= __mask; \
+		xlio_api->__dst = __func; \
+		xlio_api->cap_mask |= __mask; \
 } while(0);
 
 #define VERIFY_PASSTROUGH_CHANGED(__ret, __func_and_params__) do { \
@@ -1040,36 +1040,36 @@ int getsockopt(int __fd, int __level, int __optname,
 {
 	srdr_logdbg_entry("fd=%d, level=%d, optname=%d", __fd, __level, __optname);
 
-	if (__fd == -1 && __level == SOL_SOCKET && __optname == SO_VMA_GET_API &&
-	    __optlen && *__optlen >= sizeof(struct vma_api_t*)) {
-		static struct vma_api_t *vma_api = NULL;
+	if (__fd == -1 && __level == SOL_SOCKET && __optname == SO_XLIO_GET_API &&
+	    __optlen && *__optlen >= sizeof(struct xlio_api_t*)) {
+		static struct xlio_api_t *xlio_api = NULL;
 
 		srdr_logdbg("User request for " PRODUCT_NAME " Extra API pointers");
 
-		if (NULL == vma_api) {
+		if (NULL == xlio_api) {
 			bool enable_socketxtreme = safe_mce_sys().enable_socketxtreme;
 
-			vma_api = new struct vma_api_t();
+			xlio_api = new struct xlio_api_t();
 
-			memset(vma_api, 0, sizeof(struct vma_api_t));
-			vma_api->cap_mask = 0;
-			SET_EXTRA_API(register_recv_callback, vma_register_recv_callback, VMA_EXTRA_API_REGISTER_RECV_CALLBACK);
-			SET_EXTRA_API(recvfrom_zcopy, vma_recvfrom_zcopy, VMA_EXTRA_API_RECVFROM_ZCOPY);
-			SET_EXTRA_API(recvfrom_zcopy_free_packets, vma_recvfrom_zcopy_free_packets, VMA_EXTRA_API_FREE_PACKETS);
-			SET_EXTRA_API(add_conf_rule, vma_add_conf_rule, VMA_EXTRA_API_ADD_CONF_RULE);
-			SET_EXTRA_API(thread_offload, vma_thread_offload, VMA_EXTRA_API_THREAD_OFFLOAD);
-                        SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num, VMA_EXTRA_API_GET_SOCKET_RINGS_NUM);
-                        SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds, VMA_EXTRA_API_GET_SOCKET_RINGS_FDS);
-                        SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, VMA_EXTRA_API_SOCKETXTREME_POLL);
-			SET_EXTRA_API(socketxtreme_free_packets, enable_socketxtreme ? vma_socketxtreme_free_packets : dummy_vma_socketxtreme_free_packets, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_PACKETS);
-			SET_EXTRA_API(socketxtreme_ref_buff, enable_socketxtreme ? vma_socketxtreme_ref_buff : dummy_vma_socketxtreme_ref_buff, VMA_EXTRA_API_SOCKETXTREME_REF_VMA_BUFF);
-			SET_EXTRA_API(socketxtreme_free_buff, enable_socketxtreme ? vma_socketxtreme_free_buff : dummy_vma_socketxtreme_free_buff, VMA_EXTRA_API_SOCKETXTREME_FREE_VMA_BUFF);
-			SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, VMA_EXTRA_API_DUMP_FD_STATS);
-                        SET_EXTRA_API(add_ring_profile, add_ring_profile, VMA_EXTRA_API_ADD_RING_PROFILE);
-			SET_EXTRA_API(ioctl, vma_ioctl, VMA_EXTRA_API_IOCTL);
+			memset(xlio_api, 0, sizeof(struct xlio_api_t));
+			xlio_api->cap_mask = 0;
+			SET_EXTRA_API(register_recv_callback, vma_register_recv_callback, XLIO_EXTRA_API_REGISTER_RECV_CALLBACK);
+			SET_EXTRA_API(recvfrom_zcopy, vma_recvfrom_zcopy, XLIO_EXTRA_API_RECVFROM_ZCOPY);
+			SET_EXTRA_API(recvfrom_zcopy_free_packets, vma_recvfrom_zcopy_free_packets, XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS);
+			SET_EXTRA_API(add_conf_rule, vma_add_conf_rule, XLIO_EXTRA_API_ADD_CONF_RULE);
+			SET_EXTRA_API(thread_offload, vma_thread_offload, XLIO_EXTRA_API_THREAD_OFFLOAD);
+                        SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num, XLIO_EXTRA_API_GET_SOCKET_RINGS_NUM);
+                        SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds, XLIO_EXTRA_API_GET_SOCKET_RINGS_FDS);
+                        SET_EXTRA_API(socketxtreme_poll, enable_socketxtreme ? vma_socketxtreme_poll : dummy_vma_socketxtreme_poll, XLIO_EXTRA_API_SOCKETXTREME_POLL);
+			SET_EXTRA_API(socketxtreme_free_packets, enable_socketxtreme ? vma_socketxtreme_free_packets : dummy_vma_socketxtreme_free_packets, XLIO_EXTRA_API_SOCKETXTREME_FREE_PACKETS);
+			SET_EXTRA_API(socketxtreme_ref_buff, enable_socketxtreme ? vma_socketxtreme_ref_buff : dummy_vma_socketxtreme_ref_buff, XLIO_EXTRA_API_SOCKETXTREME_REF_XLIO_BUFF);
+			SET_EXTRA_API(socketxtreme_free_buff, enable_socketxtreme ? vma_socketxtreme_free_buff : dummy_vma_socketxtreme_free_buff, XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF);
+			SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
+                        SET_EXTRA_API(add_ring_profile, add_ring_profile, XLIO_EXTRA_API_ADD_RING_PROFILE);
+			SET_EXTRA_API(ioctl, vma_ioctl, XLIO_EXTRA_API_IOCTL);
 		}
 
-		*((vma_api_t**)__optval) = vma_api;
+		*((xlio_api_t**)__optval) = xlio_api;
 		return 0;
 	}
 
@@ -1738,7 +1738,7 @@ ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 
 		if (0 < __msg->msg_controllen) {
 			struct cmsghdr* cmsg = CMSG_FIRSTHDR((struct msghdr*)__msg);
-			if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_VMA_PD)) {
+			if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_XLIO_PD)) {
 				if ((tx_arg.attr.msg.flags & MSG_ZEROCOPY) &&
 						(__msg->msg_iovlen == ((cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(struct xlio_pd_key)))) {
 					tx_arg.priv.attr = PBUF_DESC_MKEY;

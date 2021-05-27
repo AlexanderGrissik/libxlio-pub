@@ -43,12 +43,12 @@
 class vma_ioctl : public vma_base {
 protected:
 	void SetUp() {
-		uint64_t vma_extra_api_cap = VMA_EXTRA_API_IOCTL;
+		uint64_t vma_extra_api_cap = XLIO_EXTRA_API_IOCTL;
 
 		vma_base::SetUp();
 
-		SKIP_TRUE((vma_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
-				"This test requires VMA capabilities as VMA_EXTRA_API_IOCTL");
+		SKIP_TRUE((xlio_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
+				"This test requires VMA capabilities as XLIO_EXTRA_API_IOCTL");
 	}
 	void TearDown()	{
 		vma_base::TearDown();
@@ -87,7 +87,7 @@ TEST_F(vma_ioctl, ti_1) {
 	data.free_func = free;
 	memcpy(CMSG_DATA(cmsg), &data, sizeof(data));
 
-	rc = vma_api->ioctl(cmsg, cmsg->cmsg_len);
+	rc = xlio_api->ioctl(cmsg, cmsg->cmsg_len);
 	EXPECT_EQ(-1, rc);
 	EXPECT_TRUE(EINVAL == errno);
 
@@ -102,7 +102,7 @@ TEST_F(vma_ioctl, ti_1) {
 	data.free_func = NULL;
 	memcpy(CMSG_DATA(cmsg), &data, sizeof(data));
 
-	rc = vma_api->ioctl(cmsg, cmsg->cmsg_len);
+	rc = xlio_api->ioctl(cmsg, cmsg->cmsg_len);
 	EXPECT_EQ(-1, rc);
 	EXPECT_TRUE(EINVAL == errno);
 
@@ -120,7 +120,7 @@ TEST_F(vma_ioctl, ti_1) {
 	data.free_func = free;
 	memcpy(CMSG_DATA(cmsg), &data, sizeof(data));
 
-	rc = vma_api->ioctl(cmsg, cmsg->cmsg_len);
+	rc = xlio_api->ioctl(cmsg, cmsg->cmsg_len);
 	EXPECT_EQ(-1, rc);
 	EXPECT_TRUE(EINVAL == errno);
 }

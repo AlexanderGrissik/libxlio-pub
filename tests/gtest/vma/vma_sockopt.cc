@@ -67,7 +67,7 @@ TEST_F(vma_sockopt, ti_1) {
 	EXPECT_EQ(EOK, errno);
 
 	errno = EOK;
-	rc = setsockopt(fd, SOL_SOCKET, SO_VMA_RING_ALLOC_LOGIC, &profile, sizeof(profile));
+	rc = setsockopt(fd, SOL_SOCKET, SO_XLIO_RING_ALLOC_LOGIC, &profile, sizeof(profile));
 	EXPECT_EQ(0, rc);
 	EXPECT_EQ(EOK, errno);
 
@@ -101,13 +101,13 @@ TEST_F(vma_sockopt, ti_2) {
 
 	/* Wrong passed value */
 	errno = EOK;
-	rc = setsockopt(fd, SOL_SOCKET, SO_VMA_RING_ALLOC_LOGIC, &profile, sizeof(profile));
+	rc = setsockopt(fd, SOL_SOCKET, SO_XLIO_RING_ALLOC_LOGIC, &profile, sizeof(profile));
 	EXPECT_GT(0, rc);
 	EXPECT_EQ(EINVAL, errno);
 
 	/* Wrong data size */
 	errno = EOK;
-	rc = setsockopt(fd, SOL_SOCKET, SO_VMA_RING_ALLOC_LOGIC, &profile, sizeof(profile) - 1);
+	rc = setsockopt(fd, SOL_SOCKET, SO_XLIO_RING_ALLOC_LOGIC, &profile, sizeof(profile) - 1);
 	EXPECT_GT(0, rc);
 	EXPECT_EQ(EINVAL, errno);
 

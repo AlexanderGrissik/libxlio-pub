@@ -349,7 +349,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 
 	if (__level == SOL_SOCKET) {
 		switch(__optname) {
-		case SO_VMA_USER_DATA:
+		case SO_XLIO_USER_DATA:
 			if (__optlen == sizeof(m_fd_context)) {
 				m_fd_context = *(void **)__optval;
 				ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
@@ -358,7 +358,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 				errno = EINVAL;
 			}
 			break;
-		case SO_VMA_RING_USER_MEMORY:
+		case SO_XLIO_RING_USER_MEMORY:
 			if (__optval) {
 				if (__optlen == sizeof(iovec)) {
 					iovec *attr = (iovec *)__optval;
@@ -372,7 +372,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 				} else {
 					ret = SOCKOPT_NO_VMA_SUPPORT;
 					errno = EINVAL;
-					si_logdbg("SOL_SOCKET, SO_VMA_RING_USER_MEMORY - "
+					si_logdbg("SOL_SOCKET, SO_XLIO_RING_USER_MEMORY - "
 						  "bad length expected %zu got %d",
 						  sizeof(iovec), __optlen);
 				}
@@ -380,14 +380,14 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 			else {
 				ret = SOCKOPT_NO_VMA_SUPPORT;
 				errno = EINVAL;
-				si_logdbg("SOL_SOCKET, SO_VMA_RING_USER_MEMORY - NOT HANDLED, optval == NULL");
+				si_logdbg("SOL_SOCKET, SO_XLIO_RING_USER_MEMORY - NOT HANDLED, optval == NULL");
 			}
 			break;
-		case SO_VMA_FLOW_TAG:
+		case SO_XLIO_FLOW_TAG:
 			if (__optval) {
 				if (__optlen == sizeof(uint32_t)) {
 					if (set_flow_tag(*(uint32_t*)__optval)) {
-						si_logdbg("SO_VMA_FLOW_TAG, set "
+						si_logdbg("SO_XLIO_FLOW_TAG, set "
 							  "socket fd: %d to flow id: %d",
 							  m_fd, m_flow_tag_id);
 						// not supported in OS
@@ -399,7 +399,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 				} else {
 					ret = SOCKOPT_NO_VMA_SUPPORT;
 					errno = EINVAL;
-					si_logdbg("SO_VMA_FLOW_TAG, bad length "
+					si_logdbg("SO_XLIO_FLOW_TAG, bad length "
 						  "expected %zu got %d",
 						  sizeof(uint32_t), __optlen);
 					break;
@@ -407,7 +407,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 			} else {
 				ret = SOCKOPT_NO_VMA_SUPPORT;
 				errno = EINVAL;
-				si_logdbg("SO_VMA_FLOW_TAG - NOT HANDLED, "
+				si_logdbg("SO_XLIO_FLOW_TAG - NOT HANDLED, "
 					  "optval == NULL");
 			}
 			break;
@@ -456,7 +456,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 				si_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, optval == NULL", setsockopt_so_opt_to_str(__optname));
 			}
 			break;
-		case SO_VMA_RING_ALLOC_LOGIC:
+		case SO_XLIO_RING_ALLOC_LOGIC:
 			if (__optval) {
 				uint32_t val = ((xlio_ring_alloc_logic_attr*) __optval)->comp_mask;
 
@@ -487,7 +487,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 				si_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, optval == NULL", setsockopt_so_opt_to_str(__optname));
 			}
 			break;
-		case SO_VMA_SHUTDOWN_RX:
+		case SO_XLIO_SHUTDOWN_RX:
 			shutdown_rx();
 			ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
 			break;
@@ -529,7 +529,7 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
 	switch (__level) {
 	case SOL_SOCKET:
 		switch(__optname) {
-		case SO_VMA_USER_DATA:
+		case SO_XLIO_USER_DATA:
 			if (*__optlen == sizeof(m_fd_context)) {
 				*(void **)__optval = m_fd_context;
 				ret = 0;
@@ -537,7 +537,7 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
 				errno = EINVAL;
 			}
 		break;
-		case SO_VMA_FLOW_TAG:
+		case SO_XLIO_FLOW_TAG:
 			if (*__optlen >= sizeof(uint32_t)) {
 				*(uint32_t*)__optval = m_flow_tag_id;
 				ret = 0;
