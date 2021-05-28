@@ -2,7 +2,6 @@
 job: LIBXLIO
 
 registry_host: harbor.mellanox.com
-registry_path: /swx-storage/libvma-pro
 registry_auth: swx-storage
 
 kubernetes:
@@ -46,6 +45,7 @@ matrix:
     flags:
       - default
       - extra
+      - dpcp
     arch:
       - x86_64
       - aarch64
