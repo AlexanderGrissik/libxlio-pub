@@ -14,8 +14,8 @@
  * -DTIMESTAMP_RDTSC=1 - rdtsc based time  (default)
  * -DTIMESTAMP_RDTSC=0 - clock_gettime()
  *
- * -DVMA_ZCOPY_ENABLED=1
- * -DVMA_ZCOPY_ENABLED=0 (default)
+ * -DXLIO_ZCOPY_ENABLED=1
+ * -DXLIO_ZCOPY_ENABLED=0 (default)
  *
  * -DNDEBUG – ON/OFF assert and log_trace()
  *
@@ -50,9 +50,9 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/epoll.h>
-#if  defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if  defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #include <mellanox/vma_extra.h>
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 #ifndef __LINUX__
 #define __LINUX__
@@ -69,8 +69,8 @@
 #ifndef BLOCKING_WRITE_ENABLED
 #define BLOCKING_WRITE_ENABLED 0
 #endif
-#ifndef VMA_ZCOPY_ENABLED
-#define VMA_ZCOPY_ENABLED 0
+#ifndef XLIO_ZCOPY_ENABLED
+#define XLIO_ZCOPY_ENABLED 0
 #endif
 #ifndef PONG_ENABLED
 #define PONG_ENABLED 0
@@ -185,10 +185,10 @@ static int _get_addr(char *dst, struct sockaddr_in *addr);
 static int _set_noblock(int fd);
 
 static int _write(int fd, uint8_t *buf, int count, int block);
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 static int _read(int fd, uint8_t *buf, int count, int block);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 #if defined(UDP_ENABLED) && (UDP_ENABLED == 1)
 static int _udp_client_init(struct sockaddr_in *addr);
@@ -217,10 +217,10 @@ static int _wb = 1;
 static int _wb = 0;
 #endif /* BLOCKING_WRITE_ENABLED */
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 static struct xlio_api_t *_xlio_api = NULL;
 static int _vma_ring_fd = -1;
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 #if defined(PONG_ENABLED) && (PONG_ENABLED == 1)
 #if defined(UDP_ENABLED) && (UDP_ENABLED == 0)
@@ -263,12 +263,12 @@ int main(int argc, char **argv)
 		goto err;
 	}
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	_xlio_api = xlio_get_api();
 	if (_xlio_api == NULL) {
-		log_fatal("VMA Extra API not found\n");
+		log_fatal("Extra API not found\n");
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	_done = 0;
 	_ini_stat();
@@ -723,11 +723,11 @@ static int _proc_engine(void)
 	struct conn_info {
 		int id;
 		int fd;
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		struct xlio_socketxtreme_packet_desc_t vma_packet;
 		struct xlio_buff_t *vma_buf;
 		int vma_buf_offset;
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 		int msg_len;
 		uint8_t msg[1];
 	} *conns_out, **conns_in;
@@ -792,12 +792,12 @@ static int _proc_engine(void)
 
 		event.data.ptr = conn;
 		event.events = EPOLLIN;
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		event = event;
 #else
 		rc = epoll_ctl(efd, EPOLL_CTL_ADD, conn->fd, &event);
 		assert(rc == 0);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 	}
 
 	log_trace("<engine> established %d connections with <sender>\n", _config.scount);
@@ -835,7 +835,7 @@ static int _proc_engine(void)
 		int n = 0;
 		int j = 0;
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		if (conn) {
 			if (conn->vma_buf && (conn->vma_buf_offset < conn->vma_buf->len)) {
 				n = 1;
@@ -889,18 +889,18 @@ static int _proc_engine(void)
 		}
 #else
 		n = epoll_wait(efd, events, max_events, 0);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 		for (j = 0; j < n; j++) {
 			int fd = 0;
 			int ret = 0;
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 			event = events[j].events;
 			conn = (struct conn_info *)events[j].data.ptr;
 			assert(conn);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 			fd = conn->fd;
 			fd = fd;
@@ -915,7 +915,7 @@ static int _proc_engine(void)
 			if (event & EPOLLIN) {
 				struct conn_info *conn_peer = NULL;
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 				ret = _min((_config.msg_size - conn->msg_len), (conn->vma_buf->len - conn->vma_buf_offset));
 				memcpy(((uint8_t *)msg_hdr) + conn->msg_len,
 						((uint8_t *)conn->vma_buf->payload) + conn->vma_buf_offset,
@@ -925,7 +925,7 @@ static int _proc_engine(void)
 				ret = _read(fd,
 						((uint8_t *)msg_hdr) + conn->msg_len,
 						_config.msg_size - conn->msg_len, _wb);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 				if (ret < 0) {
 					goto err;
 				}
@@ -964,10 +964,10 @@ err:
 
 			conn = conns_in[i];
 			if (conn) {
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 				epoll_ctl(efd, EPOLL_CTL_DEL, conn->fd, NULL);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 				close(conn->fd);
 				conn->fd = -1;
 				free(conn);
@@ -1009,11 +1009,11 @@ static int _proc_receiver(void)
 	struct conn_info {
 		int id;
 		int fd;
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		struct xlio_socketxtreme_packet_desc_t vma_packet;
 		struct xlio_buff_t *vma_buf;
 		int vma_buf_offset;
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 		int msg_len;
 		uint8_t msg[1];
 	} **conns_in = NULL;
@@ -1073,12 +1073,12 @@ static int _proc_receiver(void)
 
 		event.data.ptr = conn;
 		event.events = EPOLLIN;
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		event = event;
 #else
 		rc = epoll_ctl(efd, EPOLL_CTL_ADD, conn->fd, &event);
 		assert(rc == 0);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 	}
 
 	log_trace("<receiver> established %d connections with <engine>\n", _config.rcount);
@@ -1093,7 +1093,7 @@ static int _proc_receiver(void)
 		int n = 0;
 		int j = 0;
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 		if (conn) {
 			if (conn->vma_buf && (conn->vma_buf_offset < conn->vma_buf->len)) {
 				n = 1;
@@ -1147,17 +1147,17 @@ static int _proc_receiver(void)
 		}
 #else
 		n = epoll_wait(efd, events, max_events, 0);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 		for (j = 0; j < n; j++) {
 			int fd = 0;
 			int ret = 0;
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 			event = events[j].events;
 			conn = (struct conn_info *)events[j].data.ptr;
 			assert(conn);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 			fd = conn->fd;
 			fd = fd;
@@ -1170,7 +1170,7 @@ static int _proc_receiver(void)
 			}
 
 			if (event & EPOLLIN) {
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 				ret = _min((_config.msg_size - conn->msg_len), (conn->vma_buf->len - conn->vma_buf_offset));
 				memcpy(((uint8_t *)msg_hdr) + conn->msg_len,
 						((uint8_t *)conn->vma_buf->payload) + conn->vma_buf_offset,
@@ -1180,7 +1180,7 @@ static int _proc_receiver(void)
 				ret = _read(fd,
 						((uint8_t *)msg_hdr) + conn->msg_len,
 						_config.msg_size - conn->msg_len, _rb);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 				if (ret < 0) {
 					goto err;
 				}
@@ -1213,10 +1213,10 @@ err:
 
 			conn = conns_in[i];
 			if (conn) {
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 				epoll_ctl(efd, EPOLL_CTL_DEL, conn->fd, NULL);
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 				close(conn->fd);
 				conn->fd = -1;
 				free(conn);
@@ -1414,13 +1414,13 @@ static int _udp_client_init(struct sockaddr_in *addr)
 		goto err;
 	}
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	/* Need to get ring after listen() or nonblocking connect() */
 	if (_vma_ring_fd < 0) {
 		_xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		assert((-1) != _vma_ring_fd);
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	log_trace("Established connection: fd=%d to %s\n", fd, _addr2str(addr));
 
@@ -1431,13 +1431,13 @@ err:
 static int _udp_server_init(int fd)
 {
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	/* Need to get ring after listen() or nonblocking connect() */
 	if (_vma_ring_fd < 0) {
 		_xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		assert((-1) != _vma_ring_fd);
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	return fd;
 }
@@ -1511,17 +1511,17 @@ static int _tcp_client_init(struct sockaddr_in *addr)
 		goto err;
 	}
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	/* Need to get ring after listen() or nonblocking connect() */
 	if (_vma_ring_fd < 0) {
 		_xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		assert((-1) != _vma_ring_fd);
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	/* do this for non-blocking socket */
 	rc = 0;
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	while (0 == rc) {
 		uint32_t event;
 		struct xlio_socketxtreme_completion_t vma_comps;
@@ -1571,7 +1571,7 @@ static int _tcp_client_init(struct sockaddr_in *addr)
 			goto err;
 		}
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	log_trace("Established connection: fd=%d to %s\n", fd, _addr2str(addr));
 
@@ -1587,14 +1587,14 @@ static int _tcp_server_init(int fd)
 	int flag;
 
 	/* Need to get ring after listen() or nonblocking connect() */
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	if (_vma_ring_fd < 0) {
 		_xlio_api->get_socket_rings_fds(fd, &_vma_ring_fd, 1);
 		assert((-1) != _vma_ring_fd);
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 	while (0 == rc) {
 		uint32_t event;
 		struct xlio_socketxtreme_completion_t vma_comps;
@@ -1618,7 +1618,7 @@ static int _tcp_server_init(int fd)
 		log_error("Accept failed: %s\n", strerror(errno));
 		goto err;
 	}
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 	log_trace("Accepted connection: fd=%d from %s\n", fd, _addr2str((struct sockaddr_in *)&in_addr));
 
@@ -1697,7 +1697,7 @@ static int _write(int fd, uint8_t *buf, int count, int block)
 	return nb;
 }
 
-#if defined(VMA_ZCOPY_ENABLED) && (VMA_ZCOPY_ENABLED == 1)
+#if defined(XLIO_ZCOPY_ENABLED) && (XLIO_ZCOPY_ENABLED == 1)
 #else
 static int _read(int fd, uint8_t *buf, int count, int block)
 {
@@ -1731,7 +1731,7 @@ static int _read(int fd, uint8_t *buf, int count, int block)
 
 	return nb;
 }
-#endif /* VMA_ZCOPY_ENABLED */
+#endif /* XLIO_ZCOPY_ENABLED */
 
 static void _ini_stat(void)
 {

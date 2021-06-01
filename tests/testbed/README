@@ -18,8 +18,8 @@ Compilation options:
  -DTIMESTAMP_RDTSC=1 - rdtsc based time
  -DTIMESTAMP_RDTSC=0 - clock_gettime() (default ON)
 
- -DVMA_ZCOPY_ENABLED=1
- -DVMA_ZCOPY_ENABLED=0 (default)
+ -DXLIO_ZCOPY_ENABLED=1
+ -DXLIO_ZCOPY_ENABLED=0 (default)
 
  -DNDEBUG – ON/OFF assert() and log_trace()
 

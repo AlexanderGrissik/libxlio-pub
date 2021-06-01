@@ -1,4 +1,4 @@
-/*
+o*
  * Copyright (c) 2001-2021 Mellanox Technologies, Ltd. All rights reserved.
  *
  * This software is available to you under a choice of one of two
@@ -60,9 +60,9 @@
 #include <netinet/in.h>		/* internet address manipulation*/
 
 
-#define USING_VMA_EXTRA_API
-#ifdef  USING_VMA_EXTRA_API
-#include <src/vma/vma_extra.h>
+#define USING_EXTRA_API
+#ifdef  USING_EXTRA_API
+#include <src/vma/xlio_extra.h>
 #endif
 
 int prepare_socket(struct sockaddr_in* p_addr);
@@ -186,7 +186,7 @@ int *pid_arr = NULL;
 fd_set readfds;
 unsigned char *msgbuf = NULL;
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 unsigned char* pkt_buf = NULL;
 struct xlio_recvfrom_zcopy_packets_t* pkts = NULL;
 #endif
@@ -281,7 +281,7 @@ unsigned long long * packet_counter_arr = NULL;
 int min_msg_size = MIN_PAYLOAD_SIZE;
 int max_msg_size = MIN_PAYLOAD_SIZE;
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 struct xlio_api_t *xlio_api;
 #endif
 
@@ -314,7 +314,7 @@ static void usage(const char *argv0)
 	printf("  --timeout=<msec>\t\tset select/poll/epoll timeout to <msec>, -1 for infinite (default is 10 msec)\n");
 	printf("  --mc_loopback_disable\t\tdisables mc loopback (default enables).\n");
 	printf("  --udp-buffer-size=<size>\tset udp buffer size to <size> bytes\n");
-	printf("  --vmazcopyread\t\tIf possible use VMA's zero copy reads API (See VMA's readme)\n");
+	printf("  --vmazcopyread\t\tIf possible use XLIO's zero copy reads API (See XLIO's readme)\n");
 	printf("  --daemonize\t\t\trun as daemon\n");
 	printf("  --nonblocked\t\t\topen non-blocked sockets\n");
 	printf("  --dontwarmup\t\t\tdon't send warm up packets on start\n");
@@ -328,7 +328,7 @@ static void usage(const char *argv0)
 	printf("  -s, --server\t\t\trun server (default - unicast)\n");
 	printf("  -B, --Bridge\t\t\trun in Bridge mode\n");
 	printf("  --threads-num=<N>\t\trun <N> threads on server side (requires '-f' option)\n");
-	printf("  --vmarxfiltercb\t\tIf possible use VMA's receive path packet filter callback API (See VMA's readme)\n");
+	printf("  --vmarxfiltercb\t\tIf possible use XLIO's receive path packet filter callback API (See XLIO's readme)\n");
 	printf("  --force_unicast_reply\t\tforce server to reply via unicast\n");
 	printf("Client:\n");
 	printf("  -c, --client\t\t\trun client\n");
@@ -345,7 +345,7 @@ static void usage(const char *argv0)
 void print_version()
 {
 #ifdef PRJ_LIBRARY_MAJOR
-	log_msg("Linked with VMA version: %d.%d.%d.%d", PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR, PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE);
+	log_msg("Linked with XLIO version: %d.%d.%d.%d", PRJ_LIBRARY_MAJOR, PRJ_LIBRARY_MINOR, PRJ_LIBRARY_REVISION, PRJ_LIBRARY_RELEASE);
 #else 
 	log_msg("No version info");
 #endif
@@ -380,7 +380,7 @@ void cleanup()
 		free(msgbuf);
 		msgbuf = NULL;
 	}
-#ifdef USING_VMA_EXTRA_API
+#ifdef USING_EXTRA_API
 	if (pkt_buf) {
 		free(pkt_buf);
 		pkt_buf = NULL;
@@ -712,7 +712,7 @@ static inline int check_data_integrity(unsigned char *pattern_buf, size_t buf_si
 		printf("%s\n", rcvd_buf);
 		to_print = 0;
 	}*/
-#ifdef USING_VMA_EXTRA_API
+#ifdef USING_EXTRA_API
 	if (pkts && pkts->n_packet_num > 0) {
 		size_t i, pos, len;
 		struct xlio_recvfrom_zcopy_packet_t *pkt;
@@ -823,7 +823,7 @@ int set_mcgroups_fromfile(char *mcg_filename)
 	return 0;
 }
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 extern xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context);
 #endif
 
@@ -960,7 +960,7 @@ int prepare_socket(struct sockaddr_in* p_addr)
 		}
 	}
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 	if (user_params.is_vmarxfiltercb && xlio_api) {
 		// Try to register application with VMA's special receive notification callback logic
 		if (xlio_api->register_recv_callback(fd, myapp_vma_recv_pkt_filter_callback, &fd) < 0) {
@@ -1041,12 +1041,12 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 
 	//log_msg("Calling recvfrom with FD %d", fd);
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 
 	if (user_params.is_vmazcopyread && xlio_api) {
 		int flags = 0;
 
-		// Free VMA's previously received zero copied datagram
+		// Free previously received zero copied datagram
 		if (pkts) {
 			xlio_api->recvfrom_zcopy_free_packets(fd, pkts->pkts, pkts->n_packet_num);
 			pkts = NULL;
@@ -1121,7 +1121,7 @@ void warmup()
 	}
 }
 
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 	int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context)
 {
@@ -1130,7 +1130,7 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 
 	// Check info structure version
 	if (vma_info->struct_sz < sizeof(struct xlio_info_t)) {
-		log_msg("VMA's info struct is not something we can handle so un-register the application's callback function");
+		log_msg("info struct is not something we can handle so un-register the application's callback function");
 		xlio_api->register_recv_callback(fd, NULL, &fd);
 		return XLIO_PACKET_RECV;
 	}
@@ -1157,7 +1157,7 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
 		return XLIO_PACKET_HOLD;
 	}
 */
-	/* This does the server_recev_then_send all in the VMA's callback */
+	/* This does the server_recev_then_send all in the callback */
 	if (user_params.mode != MODE_BRIDGE) {
 		if (recvbuf[1] != CLIENT_MASK) {
 			if (user_params.mc_loop_disable)
@@ -2334,17 +2334,17 @@ int main(int argc, char *argv[])
 	}
 
 	if (user_params.is_vmarxfiltercb || user_params.is_vmazcopyread) {
-#ifdef  USING_VMA_EXTRA_API
-		// Get VMA extended API
+#ifdef  USING_EXTRA_API
+		// Get extended API
 		xlio_api = xlio_get_api();
 		if (xlio_api == NULL)
-			log_err("VMA Extra API not found - working with default socket APIs");
+			log_err("Extra API not found - working with default socket APIs");
 		else
-			log_msg("VMA Extra API found - using VMA's receive zero copy and packet filter APIs");
+			log_msg("Extra API found - using VMA's receive zero copy and packet filter APIs");
 
 		vma_dgram_desc_size = sizeof(struct xlio_recvfrom_zcopy_packets_t) + sizeof(struct xlio_recvfrom_zcopy_packet_t) + sizeof(struct iovec) * 16;
 #else
-		log_msg("This udp_lat version is not compiled with VMA extra API");
+		log_msg("This udp_lat version is not compiled with extra API");
 #endif
 	}
 
@@ -2397,7 +2397,7 @@ int main(int argc, char *argv[])
 		max_buff_size = max_msg_size + 1;
 	}
 	
-#ifdef  USING_VMA_EXTRA_API
+#ifdef  USING_EXTRA_API
 	if (user_params.is_vmazcopyread && xlio_api){
 		   pkt_buf = malloc(max_buff_size);
 	}

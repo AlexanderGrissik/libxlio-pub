@@ -65,12 +65,12 @@ int server_main(){
 	xlio_api = xlio_get_api();
 	CHECK_NOT_EQUAL("xlio_get_api", xlio_api, NULL, goto cleanup);
 	
-	printf("Server gets VMA APIs\n");
+	printf("Server gets APIs\n");
 	
 	rc = xlio_api->register_recv_callback(sock, myapp_vma_recv_pkt_notify_callback, &pending_packet);
 	CHECK_VALUE("register_recv_callback", rc, 0, goto cleanup);
 	
-	printf("Callback function registered with VMA\n");
+	printf("Callback function registered with XLIO\n");
 
 	rc = receive_data(&sock, mangSock);
 	CHECK_VALUE("receive_data", rc, 0, goto cleanup);
@@ -107,15 +107,15 @@ void myapp_processes_packet_func(
   printf("Enter Function myapp_processes_packet_func\n");
   /*myapp_processes_packet_func(.....);*/
   
-  /* Return zero copied packet buffer back to VMA
+  /* Return zero copied packet buffer back to the libraary
   // Would be better to collect a bunch of buffers and return them all at once
-  // which will save locks inside VMA
+  // which will save locks inside library
   */
 	free_packet(packet_id, s);
 }
 
 /**
- * Free VMA buffer reserved for given packet
+ * Free buffer reserved for given packet
  * Params:
  *		*packet_id	: ID of packet to remove
  *		fd			: File descriptor for socket.
@@ -141,18 +141,18 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
 	printf("Enter Function myapp_vma_recv_pkt_notify_callback\n");
 		
 	if (strcmp(iov[0].iov_base, "recv") == 0) {
-		printf("VMA's info struct is not something we recognize so un register the application's callback function\n");
-		printf("VMA extra API filtered to XLIO_PACKET_RECV\n");
+		printf("info struct is not something we recognize so un register the application's callback function\n");
+		printf("extra API filtered to XLIO_PACKET_RECV\n");
 		return XLIO_PACKET_RECV;
 	}
 	
 	if (strcmp(iov[0].iov_base, "drop") == 0){
-		printf("VMA extra API filtered to XLIO_PACKET_DROP\n");
+		printf("extra API filtered to XLIO_PACKET_DROP\n");
 		return XLIO_PACKET_DROP;
 	}
 	
 	if (strcmp(iov[0].iov_base, "hold") == 0){
-		printf("VMA extra API filtered to XLIO_PACKET_HOLD\n");
+		printf("extra API filtered to XLIO_PACKET_HOLD\n");
 
 		/* In hold case we check pending_packet,free its holding buffer if its valid and then fill it with new packet data,
 		   so each packet will be freed in the next callback */
@@ -167,7 +167,7 @@ xlio_recv_callback_retval_t myapp_vma_recv_pkt_notify_callback(
 		
 		return XLIO_PACKET_HOLD;
 	}
-	printf("VMA extra API filtered to XLIO_PACKET_RECV\n");
+	printf("extra API filtered to XLIO_PACKET_RECV\n");
 	
 	return XLIO_PACKET_RECV;
 }
