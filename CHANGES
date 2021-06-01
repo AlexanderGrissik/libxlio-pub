@@ -1,3 +1,13 @@
+Version 1.0.3-1:
+Date + Time 2021-06-01
+=============================================================
+Added:
+        - RM #2654385 Introduce XLIO environment variables and Extra API
+Fixed:
+        - RM #2647722 Fix corner cases for TLS blocking socket
+        - RM #2672303 Fix sendfile zerocopy TX flow
+        - RM #2668320 Fix m_p_n_rx_channel_fds update on bond ring restart
+
 Version 1.0.2-1:
 Date + Time 2021-05-28
 =============================================================
