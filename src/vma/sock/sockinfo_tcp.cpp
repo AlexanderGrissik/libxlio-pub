@@ -1009,7 +1009,7 @@ retry_write:
 
 				goto retry_write;
 			}
-			if (tx_arg.opcode == TX_FILE) {
+			if (tx_arg.opcode == TX_FILE && !(apiflags & VMA_TX_PACKET_ZEROCOPY)) {
 				file_offset += tx_size;
 			} else {
 				tx_ptr = (void *)((char *)tx_ptr + tx_size);
