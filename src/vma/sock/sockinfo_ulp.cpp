@@ -241,8 +241,30 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		ring *ring = m_sock->get_ring();
 		dpcp::status status;
 		uint64_t record_number;
+		const struct tls_crypto_info *base_info =
+			(const struct tls_crypto_info *)__optval;
 		const struct tls12_crypto_info_aes_gcm_128 *crypto_info =
 			(const struct tls12_crypto_info_aes_gcm_128 *)__optval;
+
+		if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128)) {
+			errno = EINVAL;
+			return -1;
+		}
+		if (base_info->version != TLS_1_2_VERSION) {
+			si_ulp_logdbg("Unsupported TLS version.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+		if (base_info->cipher_type != TLS_CIPHER_AES_GCM_128) {
+			si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+
+		/*
+		 * TODO When new ciphers are added, make sure IV size is the
+		 * same as TLS_RECORD_IV_LEN.
+		 */
 
 		p_tis = ib_ctx->create_tis();
 		p_dek = ib_ctx->create_dek(crypto_info->key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
@@ -253,7 +275,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		}
 
 		m_expected_seqno = m_sock->get_next_tcp_seqno();
-		memcpy(m_iv, crypto_info->iv, 8); /* TODO Check TLS_CIPHER_AES_GCM_128_IV_SIZE */
+		memcpy(m_iv, crypto_info->iv, TLS_RECORD_IV_LEN);
 		memcpy(&m_crypto_info, crypto_info, sizeof(*crypto_info));
 		memcpy(&record_number, crypto_info->rec_seq, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
 		m_next_record_number = be64toh(record_number);

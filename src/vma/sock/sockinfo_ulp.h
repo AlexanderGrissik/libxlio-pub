@@ -55,6 +55,13 @@
 #define TCP_ULP 31
 #endif
 
+#ifndef TLS_1_2_VERSION
+#define TLS_1_2_VERSION 0x0303
+#endif
+#ifndef TLS_CIPHER_AES_GCM_128
+#define TLS_CIPHER_AES_GCM_128 51
+#endif
+
 /* Forward declarations */
 class sockinfo_tcp;
 struct pbuf;
