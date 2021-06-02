@@ -300,7 +300,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 {
 	/*
 	 * TODO This method must be called under socket lock to avoid situation
-	 * where multiple send() are called simultenuously and multiple tls
+	 * where multiple send() are called simultaneously and multiple tls
 	 * records are associated with the same seqno (since pcb->snd_lbb isn't
 	 * updated).
 	 */
@@ -311,12 +311,14 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	uint64_t last_record_number;
 	ssize_t ret;
 	size_t pos;
+	int errno_save;
 	bool block_this_run;
 
 	if (!m_is_tls) {
 		return m_sock->tcp_tx(tx_arg);
 	}
 
+	errno_save = errno;
 	block_this_run = BLOCK_THIS_RUN(m_sock->is_blocking(), tx_arg.attr.msg.flags);
 
 	tls_arg.opcode = TX_FILE; /* XXX Not to use hugepage zerocopy path */
@@ -348,8 +350,10 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				 * We don't want to create too small TLS records
 				 * when we do partial write.
 				 */
-				errno = ret > 0 ? 0 : EAGAIN;
-				ret = ret ?: -1;
+				if (ret == 0) {
+					errno = EAGAIN;
+					ret = -1;
+				}
 				goto done;
 			}
 
@@ -411,9 +415,18 @@ retry:
 				}
 			}
 			if (ret2 < 0) {
-				errno = ret > 0 ? 0 : errno;
-				ret = ret ?: -1;
-				delete rec;
+				if (ret == 0) {
+					/* Keep errno from the TCP layer. */
+					ret = -1;
+				}
+				/*
+				 * sockinfo_tcp::tcp_tx() can return EINTR error even if some portion
+				 * of data is queued. This is wrong behavior and we must not destroy
+				 * record here until this issue is fixed. Instead of destroying, put
+				 * the reference and in case if TCP layer silently queues TCP segments,
+				 * the record will be destroyed only when the last pbuf is freed.
+				 */
+				rec->put();
 				--m_next_record_number;
 				goto done;
 			}
@@ -422,7 +435,7 @@ retry:
 			 * We allocate tls_records with a taken reference, so we
 			 * need to release it. This is done to avoid issues
 			 * when a pbuf takes a reference to the record and then
-			 * the pbuf is freed due to segment allocataion error.
+			 * the pbuf is freed due to segment allocation error.
 			 */
 			rec->put();
 		}
@@ -431,6 +444,7 @@ done:
 
 	/* Statistics */
 	if (ret > 0) {
+		errno = errno_save;
 		m_sock->m_p_socket_stats->tls_counters.n_tls_tx_records += m_next_record_number - last_record_number;
 		m_sock->m_p_socket_stats->tls_counters.n_tls_tx_bytes += ret;
 	}
