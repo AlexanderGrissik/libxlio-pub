@@ -1,3 +1,13 @@
+Version 1.0.4-1:
+Date + Time 2021-06-03
+=============================================================
+Fixed:
+        - RM #2342345 Distribute processes across different IRQ vectors
+        - RM #2679474 Fix segfault during termination phase
+        - RM #2679482 Handle buffer allocation error in TLS
+        - RM #2678990 Remove asserts in mapping_cache destructor
+        - RM #2647722 Check requested TLS version/cipher
+
 Version 1.0.3-1:
 Date + Time 2021-06-01
 =============================================================
