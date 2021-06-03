@@ -135,12 +135,14 @@ public:
 		m_record_number = record_number;
 		m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN + TLS_RECORD_TAG_LEN;
 		p_data = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
-		p_data->p_buffer[0] = 0x17;
-		p_data->p_buffer[1] = 0x3;
-		p_data->p_buffer[2] = 0x3;
-		p_data->p_buffer[3] = 0;
-		p_data->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
-		memcpy(&p_data->p_buffer[5], iv, 8);
+		if (likely(p_data != NULL)) {
+			p_data->p_buffer[0] = 0x17;
+			p_data->p_buffer[1] = 0x3;
+			p_data->p_buffer[2] = 0x3;
+			p_data->p_buffer[3] = 0;
+			p_data->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
+			memcpy(&p_data->p_buffer[5], iv, TLS_RECORD_IV_LEN);
+		}
 		/* TODO Make a pool of preallocated records with inited header. */
 	}
 
@@ -150,7 +152,9 @@ public:
 		 * Because of batching, buffers can be freed after their socket
 		 * is closed. Therefore, we cannot return p_data to the socket.
 		 */
-		m_p_ring->mem_buf_desc_return_single_to_owner_tx(p_data);
+		if (likely(p_data != NULL)) {
+			m_p_ring->mem_buf_desc_return_single_to_owner_tx(p_data);
+		}
 	}
 
 	void get(void)
@@ -351,6 +355,16 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 
 			rec = new tls_record(m_sock, m_sock->get_next_tcp_seqno(),
 					     m_next_record_number, m_crypto_info.iv);
+			if (unlikely(rec == NULL || rec->p_data == NULL)) {
+				if (ret == 0) {
+					errno = ENOMEM;
+					ret = -1;
+				}
+				if (rec != NULL) {
+					rec->put();
+				}
+				goto done;
+			}
 			++m_next_record_number;
 
 			/* Control sendmsg() support */
