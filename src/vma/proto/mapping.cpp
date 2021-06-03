@@ -272,8 +272,6 @@ mapping_cache::~mapping_cache()
 		handle_close(iter->first);
 	}
 
-	assert(m_cache_fd.empty());
-
 	while (!m_lru_list.empty()) {
 		mapping = m_lru_list.get_and_pop_front();
 		evict_mapping_unlocked(mapping);
@@ -284,8 +282,6 @@ mapping_cache::~mapping_cache()
 			    mapping->m_fd, (unsigned)mapping->m_ref,
 			    (unsigned)mapping->m_owners);
 	}
-	assert(m_cache_uid.empty());
-	assert(m_used == 0);
 }
 
 mapping_t *mapping_cache::get_mapping(int local_fd, void *p_ctx)
