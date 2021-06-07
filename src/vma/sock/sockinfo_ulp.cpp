@@ -227,6 +227,8 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	sockinfo_tcp_ops(sock)
 {
 	m_is_tls = false;
+	p_tis = NULL;
+	p_dek = NULL;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -272,10 +274,13 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 
 		p_tis = ib_ctx->create_tis();
 		p_dek = ib_ctx->create_dek(crypto_info->key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-		assert(p_tis != NULL && p_dek != NULL); /* XXX */
+		if (p_tis == NULL || p_dek == NULL) {
+			goto err;
+		}
 		status = p_tis->get_tisn(m_tisn);
 		if (status != dpcp::DPCP_OK) {
 			si_ulp_logerr("Cannot get TIS number.");
+			goto err;
 		}
 
 		m_expected_seqno = m_sock->get_next_tcp_seqno();
@@ -294,6 +299,19 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		return -1;
 	}
 	return m_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
+
+err:
+	if (p_tis != NULL) {
+		delete p_tis;
+		p_tis = NULL;
+	}
+	if (p_dek != NULL) {
+		delete p_dek;
+		p_dek = NULL;
+	}
+	/* If TLS setup fails we will fallback to software implementation. */
+	errno = ENOPROTOOPT;
+	return -1;
 }
 
 ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
