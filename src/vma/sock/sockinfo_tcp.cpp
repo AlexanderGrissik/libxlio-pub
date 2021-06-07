@@ -3105,15 +3105,23 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 	NOT_IN_USE(err);
 	ASSERT_LOCKED(new_sock->m_tcp_con_lock);
 
-	/* Dump statistics of the previous incarnation of the socket. */
-	print_full_stats(new_sock->m_p_socket_stats, NULL, safe_mce_sys().stats_file);
-
 	/*
 	 * We reuse socket, so remove ULP. Currently there is no interface to
 	 * check whether an ULP is attached, therefore, we reset it
 	 * unconditionally.
 	 */
 	new_sock->reset_ops();
+
+	new_sock->m_b_blocking = true;
+
+	/* Dump statistics of the previous incarnation of the socket. */
+	print_full_stats(new_sock->m_p_socket_stats, NULL, safe_mce_sys().stats_file);
+	new_sock->socket_stats_init();
+
+	/* Reset zerocopy state */
+	atomic_set(&new_sock->m_zckey, 0);
+	new_sock->m_last_zcdesc = NULL;
+	new_sock->m_b_zc = false;
 
 	new_sock->m_state = SOCKINFO_OPENED;
 	new_sock->m_sock_state = TCP_SOCK_INITED;
@@ -3129,7 +3137,6 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 
 	new_sock->m_rcvbuff_max = MAX(listen_sock->m_rcvbuff_max, 2 * new_sock->m_pcb.mss);
 	new_sock->fit_rcv_wnd(true);
-	new_sock->m_p_socket_stats->reset();
 
 	new_sock->register_timer();
 

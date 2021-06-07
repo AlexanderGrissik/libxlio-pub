@@ -209,6 +209,8 @@ public:
 	uint32_t get_flow_tag_val() { return m_flow_tag_id; }
 	inline in_protocol_t get_protocol(void) { return m_protocol; }
 
+	void socket_stats_init(void);
+
         socket_stats_t*         m_p_socket_stats;
 
 private:
