@@ -355,6 +355,7 @@ public:
 	uint32_t	tx_prefetch_bytes;
 	uint32_t        tx_bufs_batch_udp;
 	uint32_t        tx_bufs_batch_tcp;
+	uint32_t	tx_segs_batch_tcp;
 
 	uint32_t 	rx_num_bufs;
 	uint32_t        rx_bufs_batch;
@@ -660,6 +661,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TX_PREFETCH_BYTES                 (256)
 #define MCE_DEFAULT_TX_BUFS_BATCH_UDP                 (8)
 #define MCE_DEFAULT_TX_BUFS_BATCH_TCP                 (16)
+#define MCE_DEFAULT_TX_SEGS_BATCH_TCP                 (64)
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TX_NUM_SGE                        (4)
 #else

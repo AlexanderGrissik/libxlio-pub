@@ -549,6 +549,7 @@ void mce_sys_var::get_env_params()
 	tx_prefetch_bytes 	= MCE_DEFAULT_TX_PREFETCH_BYTES;
 	tx_bufs_batch_udp	= MCE_DEFAULT_TX_BUFS_BATCH_UDP;
 	tx_bufs_batch_tcp	= MCE_DEFAULT_TX_BUFS_BATCH_TCP;
+	tx_segs_batch_tcp	= MCE_DEFAULT_TX_SEGS_BATCH_TCP;
 
 	rx_num_bufs             = MCE_DEFAULT_RX_NUM_BUFS;
 	rx_bufs_batch           = MCE_DEFAULT_RX_BUFS_BATCH;
@@ -838,6 +839,7 @@ void mce_sys_var::get_env_params()
 		zc_num_bufs = 87500; // MCE_DEFAULT_ZC_NUM_BUFS (200000), Global ZC data buffers allocated.
 		tx_num_bufs = 87500; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated.
 		tx_bufs_batch_tcp = 2;  //MCE_DEFAULT_TX_BUFS_BATCH_TCP (16)
+		tx_segs_batch_tcp = 4;  //MCE_DEFAULT_TX_SEGS_BATCH_TCP (64)
 		tx_num_segs_tcp = 175000;  // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP segments in the pool.
 
 		rx_bufs_batch = 8;  // MCE_DEFAULT_RX_BUFS_BATCH (64), RX buffers batch size.

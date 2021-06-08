@@ -72,8 +72,6 @@
 #define si_tcp_logfunc              __log_info_func
 #define si_tcp_logfuncall           __log_info_funcall
 
-#define TCP_SEG_COMPENSATION 4
-
 
 tcp_seg_pool *g_tcp_seg_pool = NULL;
 tcp_timers_collection* g_tcp_timers_collection = NULL;
@@ -230,6 +228,7 @@ sockinfo_tcp::sockinfo_tcp(int fd):
         m_timer_handle(NULL),
         m_timer_pending(false),
         m_sysvar_buffer_batching_mode(safe_mce_sys().buffer_batching_mode),
+	m_sysvar_tx_segs_batch_tcp(safe_mce_sys().tx_segs_batch_tcp),
         m_sysvar_tcp_ctl_thread(safe_mce_sys().tcp_ctl_thread),
         m_sysvar_internal_thread_tcp_timer_handling(safe_mce_sys().internal_thread_tcp_timer_handling),
         m_sysvar_rx_poll_on_tx_tcp(safe_mce_sys().rx_poll_on_tx_tcp),
@@ -296,8 +295,8 @@ sockinfo_tcp::sockinfo_tcp(int fd):
 
 	m_tcp_seg_count = 0;
 	m_tcp_seg_in_use = 0;
-	m_tcp_seg_list = g_tcp_seg_pool->get_tcp_segs(TCP_SEG_COMPENSATION);
-	if (m_tcp_seg_list) m_tcp_seg_count += TCP_SEG_COMPENSATION;
+	m_tcp_seg_list = g_tcp_seg_pool->get_tcp_segs(m_sysvar_tx_segs_batch_tcp);
+	if (m_tcp_seg_list) m_tcp_seg_count += m_sysvar_tx_segs_batch_tcp;
 	m_tx_consecutive_eagain_count = 0;
 
 	// Disable Nagle algorithm if VMA_TCP_NODELAY flag was set.
@@ -4979,9 +4978,9 @@ struct tcp_seg * sockinfo_tcp::get_tcp_seg()
 {
 	struct tcp_seg * head = NULL;
 	if (!m_tcp_seg_list) {
-		m_tcp_seg_list = g_tcp_seg_pool->get_tcp_segs(TCP_SEG_COMPENSATION);
+		m_tcp_seg_list = g_tcp_seg_pool->get_tcp_segs(m_sysvar_tx_segs_batch_tcp);
 		if (unlikely(!m_tcp_seg_list)) return NULL;
-		m_tcp_seg_count += TCP_SEG_COMPENSATION;
+		m_tcp_seg_count += m_sysvar_tx_segs_batch_tcp;
 	}
 
 	head = m_tcp_seg_list;
@@ -4999,7 +4998,7 @@ void sockinfo_tcp::put_tcp_seg(struct tcp_seg * seg)
 	seg->next = m_tcp_seg_list;
 	m_tcp_seg_list = seg;
 	m_tcp_seg_in_use--;
-	if (m_tcp_seg_count > 2 * TCP_SEG_COMPENSATION && m_tcp_seg_in_use < m_tcp_seg_count / 2) {
+	if (m_tcp_seg_count > 2 * m_sysvar_tx_segs_batch_tcp && m_tcp_seg_in_use < m_tcp_seg_count / 2) {
 		int count = (m_tcp_seg_count - m_tcp_seg_in_use) / 2;
 		struct tcp_seg * next = m_tcp_seg_list;
 		for (int i = 0; i < count - 1; i++) {

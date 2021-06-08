@@ -328,6 +328,7 @@ private:
 	int m_error_status;
 
 	const buffer_batching_mode_t m_sysvar_buffer_batching_mode;
+	const int m_sysvar_tx_segs_batch_tcp;
 	const tcp_ctl_thread_t m_sysvar_tcp_ctl_thread;
 	const internal_thread_tcp_timer_handling_t m_sysvar_internal_thread_tcp_timer_handling;
 
