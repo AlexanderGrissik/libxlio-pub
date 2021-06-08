@@ -67,6 +67,11 @@ int g_p_fd_collection_size_parent_process = 0;
 fd_collection::fd_collection() :
 	lock_mutex_recursive("fd_collection"),
 	m_b_sysvar_offloaded_sockets(safe_mce_sys().offloaded_sockets)
+#if defined(DEFINED_NGINX)
+	,m_use_socket_pool(safe_mce_sys().nginx_udp_socket_pool_size ? true : false),
+	m_socket_pool_size(safe_mce_sys().nginx_udp_socket_pool_size),
+	m_socket_pool_counter(0)
+#endif
 {
 	fdcoll_logfunc("");
 
@@ -616,3 +621,64 @@ void fd_collection::remove_from_all_epfds(int fd, bool passthrough)
 
 	return;
 }
+
+#if defined(DEFINED_NGINX)
+void fd_collection::push_socket_pool(socket_fd_api *sockfd)
+{
+	lock();
+	sockfd->prepare_to_close_socket_pool(true);
+	m_socket_pool.push(sockfd);
+	unlock();
+}
+
+bool fd_collection::pop_socket_pool(int& fd, bool& add_to_udp_pool, int type)
+{
+	bool ret = false;
+	add_to_udp_pool = false;
+	fd = -1;
+
+	// socket pool is used only for udp sockets
+	// here we verify it, while in all other places we use general case for socket fd
+	if ((type != SOCK_DGRAM) || (safe_mce_sys().nginx_udp_socket_pool_size == 0))
+		return ret;
+
+	lock();
+	if (!m_socket_pool.empty()) {
+		// use fd from pool - will skip creation of new fd by os
+		socket_fd_api *sockfd = m_socket_pool.top();
+		fd = sockfd->get_fd();
+		if (m_p_sockfd_map[fd] == NULL) {
+			m_p_sockfd_map[fd] = sockfd;
+			m_pendig_to_remove_lst.erase(sockfd);
+		}
+		sockfd->prepare_to_close_socket_pool(false);
+		m_socket_pool.pop();
+		ret = true;
+	} else {
+		// pool is empty - will create of new fd by os, and will mark it as fd for the pool
+		add_to_udp_pool = true;
+	}
+	unlock();
+
+	return ret;
+}
+
+void fd_collection::handle_socket_pool(int fd)
+{
+	// socket pool will work only for child processes
+	if (m_use_socket_pool == false || !g_p_fd_collection_parent_process)
+		return;
+
+	socket_fd_api *sockfd = get_sockfd(fd);
+	if (!sockfd)
+		return;
+
+	if (m_socket_pool_counter++ >= m_socket_pool_size)
+	{
+		fdcoll_logdbg("Nginx worker num %d reached max UDP socket pool size (%d).", g_worker_index, m_socket_pool_size);
+		m_use_socket_pool = false;
+		return;
+	}
+	sockfd->m_is_for_socket_pool = true;
+}
+#endif

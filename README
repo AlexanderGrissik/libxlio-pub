@@ -167,6 +167,7 @@ Example:
  XLIO DETAILS: LRO support                    auto                       [XLIO_LRO]
  XLIO DETAILS: BF (Blue Flame)                Enabled                    [XLIO_BF]
  XLIO DETAILS: Src port stirde                2                          [XLIO_SRC_PORT_STRIDE]
+ XLIO DETAILS: Size of UDP socket pool        0                          [XLIO_NGINX_UDP_POOL_SIZE]
  XLIO DETAILS: Number of Nginx workers        0                          [XLIO_NGINX_WORKERS_NUM]
  XLIO DETAILS: fork() support                 Enabled                    [XLIO_FORK]
  XLIO DETAILS: close on dup2()                Enabled                    [XLIO_CLOSE_ON_DUP2]
@@ -540,6 +541,13 @@ This parameter replaces the two old parameters: XLIO_RX_POLL_OS_RATIO and
 XLIO_RX_SKIP_OS
 Disable with 0
 Default value is 100
+
+XLIO_NGINX_UDP_POOL_SIZE
+The above parameter defines the size of UDP socket pool for NGINX.
+For any value different that 0 - close() socket will not destroy the socket, but will
+place it in a pool for next socket UDP creation.
+Disable with 0
+Default value is 0
 
 XLIO_HW_TS_CONVERSION
 The above parameter defines the time stamp conversion method.

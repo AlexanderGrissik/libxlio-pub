@@ -45,6 +45,7 @@
 #include "vma/event/event_handler_manager.h"
 #include <vma/sock/cleanable_obj.h>
 #include "vma/dev/ring_tap.h"
+#include <stack>
 
 typedef vma_list_t<socket_fd_api, socket_fd_api::pendig_to_remove_node_offset> sock_fd_api_list_t;
 typedef vma_list_t<epfd_info, epfd_info::epfd_info_node_offset> epfd_info_list_t;
@@ -186,6 +187,11 @@ public:
 	 */
 	void 			statistics_print(int fd, vlog_levels_t log_level);
 
+#if defined(DEFINED_NGINX)
+	bool pop_socket_pool(int& fd, bool& add_to_udp_pool, int type);
+	void push_socket_pool(socket_fd_api *sockfd);
+	void handle_socket_pool(int fd);
+#endif
 private:
 	template <typename cls>	int del(int fd, bool b_cleanup, cls **map_type);
 	template <typename cls>	inline cls* get(int fd, cls **map_type);
@@ -218,6 +224,13 @@ private:
 	void  				handle_timer_expired(void* user_data);
 
 	void 				statistics_print_helper(int fd, vlog_levels_t log_level);
+
+#if defined(DEFINED_NGINX)
+	bool m_use_socket_pool;
+	std::stack<socket_fd_api*> m_socket_pool;
+	int m_socket_pool_size;
+	int m_socket_pool_counter;
+#endif
 };
 
 

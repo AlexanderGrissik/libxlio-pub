@@ -360,7 +360,14 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 			g_p_fd_collection->del_epfd(fd, cleanup);
 		}
 
+#if defined(DEFINED_NGINX)
+		if (sockfd && sockfd->m_is_for_socket_pool) {
+			g_p_fd_collection->push_socket_pool(sockfd);
+			is_closable = false;
+		}
+#endif
 	}
+
 	return is_closable;
 }
 
@@ -841,8 +848,15 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (!orig_os_api.socket) get_orig_funcs();
 	BULLSEYE_EXCLUDE_BLOCK_END
+	int fd;
 
-	int fd = orig_os_api.socket(__domain, __type, __protocol);
+#if defined(DEFINED_NGINX)
+	bool add_to_udp_pool = false;
+	if (g_p_fd_collection && g_p_fd_collection->pop_socket_pool(fd, add_to_udp_pool, __type & 0xf))
+		return fd;
+#endif
+
+	fd = orig_os_api.socket(__domain, __type, __protocol);
 	vlog_printf(VLOG_DEBUG, "ENTER: %s(domain=%s(%d), type=%s(%d), protocol=%d) = %d\n",__func__, socket_get_domain_str(__domain), __domain, socket_get_type_str(__type), __type, __protocol, fd);
 	if (fd < 0) {
 		return fd;
@@ -856,6 +870,11 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
 		if (offload_sockets)
 			g_p_fd_collection->addsocket(fd, __domain, __type, check_offload);
 	}
+
+#if defined(DEFINED_NGINX)
+	if (add_to_udp_pool)
+		g_p_fd_collection->handle_socket_pool(fd);
+#endif
 
 	return fd;
 }

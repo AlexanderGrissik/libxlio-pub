@@ -173,6 +173,11 @@ public:
 	virtual bool prepare_to_close(bool process_shutdown = false);
 	virtual void update_header_field(data_updater *updater);
 
+#if defined(DEFINED_NGINX)
+	virtual void prepare_to_close_socket_pool(bool _push_pop);
+	bool is_closable() { return !m_is_for_socket_pool; }
+#endif
+
 private:
 
 	struct port_socket_t {
@@ -234,6 +239,7 @@ private:
 	void 		set_blocking(bool is_blocked);
 
 	void 		rx_ready_byte_count_limit_update(size_t n_rx_ready_bytes_limit); // Drop rx ready packets from head of queue
+	void 		drop_rx_ready_byte_count(size_t n_rx_bytes_limit);
 
 	void 		save_stats_threadid_rx(); // ThreadId will only saved if logger is at least in DEBUG(4) level
 	void 		save_stats_threadid_tx(); // ThreadId will only saved if logger is at least in DEBUG(4) level

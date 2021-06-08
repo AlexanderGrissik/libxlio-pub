@@ -679,6 +679,7 @@ void mce_sys_var::get_env_params()
 	actual_nginx_workers_num	= MCE_DEFAULT_NGINX_WORKERS_NUM;
 	power_2_nginx_workers_num 	= MCE_DEFAULT_NGINX_WORKERS_NUM;
 	src_port_stride         = MCE_DEFAULT_SRC_PORT_STRIDE;
+	nginx_udp_socket_pool_size  = MCE_DEFAULT_NGINX_UDP_POOL_SIZE;
 #endif
 	lwip_mss		= MCE_DEFAULT_MSS;
 	lwip_cc_algo_mod	= MCE_DEFAULT_LWIP_CC_ALGO_MOD;
@@ -914,7 +915,7 @@ void mce_sys_var::get_env_params()
 #endif // DEFINED_TSO
 		tx_num_wr = 4096;  // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
 		rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
-		timer_resolution_msec = 256;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
+		timer_resolution_msec = 32;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
 		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
 		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
 		tcp_push_flag = false; // MCE_DEFAULT_TCP_PUSH_FLAG (true), When false, we don't set PSH flag in outgoing TCP segments.
@@ -1461,6 +1462,8 @@ void mce_sys_var::get_env_params()
 	vlog_printf(VLOG_DEBUG, "Actual nginx workers num: %d Power of  two nginx workers num: %d\n", actual_nginx_workers_num, power_2_nginx_workers_num);
 	if ((env_ptr = getenv(SYS_VAR_SRC_PORT_STRIDE)) != NULL)
 		src_port_stride = (uint32_t)atoi(env_ptr);
+	if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_SIZE)) != NULL)
+		nginx_udp_socket_pool_size = (uint32_t)atoi(env_ptr);
 #endif // DEFINED_NGINX
 	if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL)
 		lwip_mss = (uint32_t)atoi(env_ptr);
