@@ -1,3 +1,12 @@
+Version 1.0.5-1:
+Date + Time 2021-06-08
+=============================================================
+Fixed:
+        - RM #2682063 Update output with vmad
+        - RM #2683954 Make TCP segs batching configurable
+        - RM #2047225 Improve socket state reset on reuse
+        - RM #2680431 Fallback to SW TLS when TIS/DEK fails
+
 Version 1.0.4-1:
 Date + Time 2021-06-03
 =============================================================
