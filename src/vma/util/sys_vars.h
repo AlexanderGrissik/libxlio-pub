@@ -325,7 +325,7 @@ public:
 	char		stats_filename[PATH_MAX];
 	char		stats_shmem_dirname[PATH_MAX];
 	char 		conf_filename[PATH_MAX];
-	char		vmad_notify_dir[PATH_MAX];
+	char		service_notify_dir[PATH_MAX];
 	bool		log_colors;
 	bool 		handle_sigintr;
 	bool		handle_segfault;
