@@ -1,3 +1,10 @@
+Version 1.0.6-1:
+Date + Time 2021-06-10
+=============================================================
+Fixed:
+        - RM #2686808 Don't set TCP PSH flag for throughput profiles
+        - RM #2685998 Don't mask nor create 2nd rule for UDP
+
 Version 1.0.5-1:
 Date + Time 2021-06-08
 =============================================================
