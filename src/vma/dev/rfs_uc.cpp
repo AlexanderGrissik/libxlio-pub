@@ -137,7 +137,7 @@ bool rfs_uc::prepare_flow_spec()
 		p_attach_flow_data->ibv_flow_attr.priority = 0;
 	}
 #if defined(DEFINED_NGINX)
-	else if (safe_mce_sys().actual_nginx_workers_num > 0) {
+	else if (safe_mce_sys().actual_nginx_workers_num > 0 && m_flow_tuple.get_protocol() != PROTO_UDP) {
 		int src_port;
 		if (g_b_add_second_4t_rule) {
 			src_port = safe_mce_sys().actual_nginx_workers_num + g_worker_index;

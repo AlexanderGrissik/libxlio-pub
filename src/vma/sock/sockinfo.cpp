@@ -682,7 +682,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 		return false;
 	}
 #if defined(DEFINED_NGINX)
-	if (safe_mce_sys().actual_nginx_workers_num > 0) {
+	if (safe_mce_sys().actual_nginx_workers_num > 0 && flow_key.get_protocol() != PROTO_UDP) {
 		if ((safe_mce_sys().actual_nginx_workers_num != safe_mce_sys().power_2_nginx_workers_num) && flow_key.is_3_tuple()) {
 			if (g_worker_index < (safe_mce_sys().power_2_nginx_workers_num % safe_mce_sys().actual_nginx_workers_num)) {
 				g_b_add_second_4t_rule = true;
