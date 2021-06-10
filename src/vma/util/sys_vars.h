@@ -409,6 +409,7 @@ public:
 	tcp_ts_opt_t	tcp_ts_opt;
 	bool		tcp_nodelay;
 	bool		tcp_quickack;
+	bool		tcp_push_flag;
 	vma_exception_handling exception_handling;
 	bool		avoid_sys_calls_on_tcp_fd;
 	bool		allow_privileged_sock_opt;
@@ -574,6 +575,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TCP_TIMESTAMP_OPTION                  "XLIO_TCP_TIMESTAMP_OPTION"
 #define SYS_VAR_TCP_NODELAY                           "XLIO_TCP_NODELAY"
 #define SYS_VAR_TCP_QUICKACK                          "XLIO_TCP_QUICKACK"
+#define SYS_VAR_TCP_PUSH_FLAG                         "XLIO_TCP_PUSH_FLAG"
 #define SYS_VAR_AVOID_SYS_CALLS_ON_TCP_FD             "XLIO_AVOID_SYS_CALLS_ON_TCP_FD"
 #define SYS_VAR_ALLOW_PRIVILEGED_SOCK_OPT             "XLIO_ALLOW_PRIVILEGED_SOCK_OPT"
 #define SYS_VAR_WAIT_AFTER_JOIN_MSEC                  "XLIO_WAIT_AFTER_JOIN_MSEC"
@@ -717,6 +719,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TCP_TIMESTAMP_OPTION              (TCP_TS_OPTION_DISABLE)
 #define MCE_DEFAULT_TCP_NODELAY                       (false)
 #define MCE_DEFAULT_TCP_QUICKACK                      (false)
+#define MCE_DEFAULT_TCP_PUSH_FLAG                     (true)
 #define MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD         (false)
 #define MCE_DEFAULT_ALLOW_PRIVILEGED_SOCK_OPT         (true)
 #define MCE_DEFAULT_WAIT_AFTER_JOIN_MSEC              (0)

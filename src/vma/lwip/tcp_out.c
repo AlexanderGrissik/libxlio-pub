@@ -785,7 +785,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
   }
 
   /* Set the PSH flag in the last segment that we enqueued. */
-  if (seg != NULL && seg->tcphdr != NULL) {
+  if (enable_push_flag && seg != NULL && seg->tcphdr != NULL) {
     TCPH_SET_FLAG(seg->tcphdr, TCP_PSH);
   }
 
@@ -1455,7 +1455,8 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     seg->len = seg->p->len - (tcp_hlen_delta + optlen);
 
     /* Set the PSH flag in the last segment that we enqueued. */
-    TCPH_SET_FLAG(newseg->tcphdr, TCP_PSH);
+    if (enable_push_flag)
+      TCPH_SET_FLAG(newseg->tcphdr, TCP_PSH);
 
     /* Update number of buffer to be send */
     pcb->snd_queuelen++;

@@ -347,6 +347,7 @@ struct tcp_seg {
 extern struct tcp_pcb *tcp_input_pcb;
 extern int32_t enable_wnd_scale;
 extern u32_t rcv_wnd_scale;
+extern u8_t enable_push_flag;
 extern u8_t enable_ts_option;
 extern u32_t tcp_ticks;
 extern ip_route_mtu_fn external_ip_route_mtu;

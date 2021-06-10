@@ -603,6 +603,7 @@ void mce_sys_var::get_env_params()
 	tcp_ts_opt		= MCE_DEFAULT_TCP_TIMESTAMP_OPTION;
 	tcp_nodelay		= MCE_DEFAULT_TCP_NODELAY;
 	tcp_quickack		= MCE_DEFAULT_TCP_QUICKACK;
+	tcp_push_flag		= MCE_DEFAULT_TCP_PUSH_FLAG;
 //	exception_handling is handled by its CTOR
 	avoid_sys_calls_on_tcp_fd = MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD;
 	allow_privileged_sock_opt = MCE_DEFAULT_ALLOW_PRIVILEGED_SOCK_OPT;
@@ -827,6 +828,7 @@ void mce_sys_var::get_env_params()
 		timer_resolution_msec = 256;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
 		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
 		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
+		tcp_push_flag = false; // MCE_DEFAULT_TCP_PUSH_FLAG (true), When false, we don't set PSH flag in outgoing TCP segments.
 		progress_engine_wce_max = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX (10000), Don't drain WCEs.
 		select_poll_num = 0;  // MCE_DEFAULT_SELECT_NUM_POLLS (100000),  Don't poll the hardware on RX (before sleeping in epoll/select, etc).
 		tcp_3t_rules = true;  // MCE_DEFAULT_TCP_3T_RULES(false), Use 3 tuple instead rules of 5 tuple rules.
@@ -861,6 +863,7 @@ void mce_sys_var::get_env_params()
 		timer_resolution_msec = 256;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
 		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
 		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
+		tcp_push_flag = false; // MCE_DEFAULT_TCP_PUSH_FLAG (true), When false, we don't set PSH flag in outgoing TCP segments.
 		progress_engine_wce_max = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX (10000), Don't drain WCEs.
 		select_poll_num = 0;  // MCE_DEFAULT_SELECT_NUM_POLLS (100000),  Don't poll the hardware on RX (before sleeping in epoll/select, etc).
 		tcp_3t_rules = true;  // MCE_DEFAULT_TCP_3T_RULES(false), Use 3 tuple instead rules of 5 tuple rules.
@@ -1258,6 +1261,10 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_TCP_QUICKACK)) != NULL) {
 		tcp_quickack = atoi(env_ptr) ? true : false;
+	}
+
+	if ((env_ptr = getenv(SYS_VAR_TCP_PUSH_FLAG)) != NULL) {
+		tcp_push_flag = atoi(env_ptr) ? true : false;
 	}
 
 	// TODO: this should be replaced by calling "exception_handling.init()" that will be called from init()

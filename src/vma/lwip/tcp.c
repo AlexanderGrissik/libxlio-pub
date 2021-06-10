@@ -100,6 +100,7 @@ u32_t lwip_zc_tx_size = 0;
 #endif // DEFINED_TSO
 
 
+u8_t enable_push_flag = 1;
 u8_t enable_ts_option = 0;
 /* slow timer value */
 static u32_t slow_tmr_interval;

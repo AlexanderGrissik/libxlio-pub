@@ -104,6 +104,7 @@ vma_lwip::vma_lwip()
 #endif  // DEFINED_TSO
 	BULLSEYE_EXCLUDE_BLOCK_END
 
+	enable_push_flag = !!safe_mce_sys().tcp_push_flag;
 	enable_ts_option = read_tcp_timestamp_option();
 	int is_window_scaling_enabled = safe_mce_sys().sysctl_reader.get_tcp_window_scaling();
 	if(is_window_scaling_enabled) {
