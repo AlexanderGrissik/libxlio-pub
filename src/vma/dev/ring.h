@@ -36,6 +36,7 @@
 
 #include "vma/ib/base/verbs_extra.h"
 #include "vma/proto/flow_tuple.h"
+#include "vma/proto/tls.h"
 #include "vma/sock/socket_fd_api.h"
 
 class pkt_rcvr_sink;
@@ -136,7 +137,7 @@ public:
 
 #ifdef DEFINED_UTLS
 	virtual void tls_context_setup(
-		const void *info, uint32_t tis_number,
+		const xlio_tls_info *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn)
 	{
 		NOT_IN_USE(info);

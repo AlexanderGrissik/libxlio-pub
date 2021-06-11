@@ -31,72 +31,44 @@
  */
 
 
-#ifndef VMA_SOCKINFO_ULP_H
-#define VMA_SOCKINFO_ULP_H
+#ifndef XLIO_TLS_H
+#define XLIO_TLS_H
 
-#include "socket_fd_api.h"		/* vma_tx_call_attr_t */
-#include "vma/proto/dst_entry.h"	/* vma_send_attr */
-#include "vma/proto/tls.h"
+#include "config.h"
 
 #ifdef DEFINED_UTLS
-#include <mellanox/dpcp.h>
+#include <linux/tls.h>
 #endif /* DEFINED_UTLS */
 
-#include <stdint.h>
-
-/*
- * TODO Make ULP layer generic (not TCP specific) and implement ULP manager.
- */
-
-/* Forward declarations */
-class sockinfo_tcp;
-struct pbuf;
-
-class sockinfo_tcp_ulp {
-public:
-	virtual int attach(sockinfo_tcp *sock) = 0;
-};
-
-class sockinfo_tcp_ops {
-public:
-	sockinfo_tcp_ops(sockinfo_tcp *sock);
-	virtual ~sockinfo_tcp_ops() {}
-
-	virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
-	virtual ssize_t tx(vma_tx_call_attr_t &tx_arg);
-	virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
-
-protected:
-	sockinfo_tcp *m_sock;
-};
+/* Don't wrap the following defines with DEFINED_UTLS. */
+#ifndef SOL_TLS
+#define SOL_TLS 282
+#endif
+#ifndef TCP_ULP
+#define TCP_ULP 31
+#endif
 
 #ifdef DEFINED_UTLS
 
-class sockinfo_tcp_ulp_tls : public sockinfo_tcp_ulp {
-public:
-	int attach(sockinfo_tcp *sock);
-	static sockinfo_tcp_ulp_tls *instance(void);
+#ifndef TLS_1_2_VERSION
+#define TLS_1_2_VERSION 0x0303
+#endif
+#ifndef TLS_CIPHER_AES_GCM_128
+#define TLS_CIPHER_AES_GCM_128 51
+#endif
+
+enum {
+	TLS_AES_GCM_IV_LEN      = 8U,
+	TLS_AES_GCM_SALT_LEN    = 4U,
+	TLS_AES_GCM_REC_SEQ_LEN = 8U,
 };
 
-class sockinfo_tcp_ops_tls : public sockinfo_tcp_ops {
-public:
-	sockinfo_tcp_ops_tls(sockinfo_tcp *sock);
-	~sockinfo_tcp_ops_tls();
-
-	int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
-	ssize_t tx(vma_tx_call_attr_t &tx_arg);
-	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
-
-private:
-	dpcp::tis *p_tis;
-	dpcp::dek *p_dek;
-	uint32_t m_tisn;
-	uint32_t m_expected_seqno;
-	bool m_is_tls;
-	uint64_t m_next_record_number;
-	struct xlio_tls_info m_tls_info;
+struct xlio_tls_info {
+	unsigned char iv[TLS_AES_GCM_IV_LEN];
+	unsigned char salt[TLS_AES_GCM_SALT_LEN];
+	unsigned char rec_seq[TLS_AES_GCM_REC_SEQ_LEN];
 };
 
 #endif /* DEFINED_UTLS */
 
-#endif /* VMA_SOCKINFO_ULP_H */
+#endif /* XLIO_TLS_H */

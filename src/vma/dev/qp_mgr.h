@@ -48,6 +48,7 @@
 #include "vma/util/hash_map.h"
 #include "vma/lwip/opt.h"
 #include "vma/proto/mem_buf_desc.h"
+#include "vma/proto/tls.h"
 #include "vma/infra/sender.h"
 #include "vma/dev/ib_ctx_handler.h"
 #include "vma/dev/cq_mgr.h"
@@ -135,7 +136,7 @@ public:
 
 #ifdef DEFINED_UTLS
 	virtual void tls_context_setup(
-		const void* info, uint32_t tis_number,
+		const xlio_tls_info* info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn)
 	{
 		NOT_IN_USE(info);

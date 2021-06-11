@@ -931,39 +931,29 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 
 #ifdef DEFINED_UTLS
 void qp_mgr_eth_mlx5::tls_context_setup(
-	const void *info, uint32_t tis_number,
+	const xlio_tls_info *info, uint32_t tis_number,
 	uint32_t dek_id, uint32_t initial_tcp_sn)
 {
-	struct tls12_crypto_info_aes_gcm_128* crypto_info =
-		(struct tls12_crypto_info_aes_gcm_128*)info;
-
-	tls_tx_post_static_params_wqe(crypto_info, tis_number, dek_id, 0);
+	tls_tx_post_static_params_wqe(info, tis_number, dek_id, 0);
 	tls_tx_post_progress_params_wqe(tis_number, initial_tcp_sn);
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
 	struct mlx5_wqe_tls_static_params_seg* params,
-	const struct tls12_crypto_info_aes_gcm_128* info,
+	const struct xlio_tls_info* info,
 	uint32_t key_id, uint32_t resync_tcp_sn)
 {
 	unsigned char *initial_rn, *gcm_iv;
-	uint16_t salt_sz, rec_seq_sz;
-	const unsigned char *salt, *rec_seq;
 	uint8_t tls_version;
 	uint8_t* ctx;
 
 	ctx = params->ctx;
 
-	salt = info->salt;
-	rec_seq = info->rec_seq;
-	salt_sz = sizeof(info->salt);
-	rec_seq_sz = sizeof(info->rec_seq);
-
 	gcm_iv = DEVX_ADDR_OF(tls_static_params, ctx, gcm_iv);
 	initial_rn = DEVX_ADDR_OF(tls_static_params, ctx, initial_record_number);
 
-	memcpy(gcm_iv, salt, salt_sz);
-	memcpy(initial_rn, rec_seq, rec_seq_sz);
+	memcpy(gcm_iv, info->salt, TLS_AES_GCM_SALT_LEN);
+	memcpy(initial_rn, info->rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 
 	tls_version = MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2;
 
@@ -976,7 +966,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
-	const struct tls12_crypto_info_aes_gcm_128* info,
+	const struct xlio_tls_info* info,
 	uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn)
 {
 	struct mlx5_set_tls_static_params_wqe* wqe =

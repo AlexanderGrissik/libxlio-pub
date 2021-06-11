@@ -115,9 +115,9 @@ sockinfo_tcp_ulp_tls *sockinfo_tcp_ulp_tls::instance(void)
  */
 
 enum {
-	TLS_RECORD_HDR_LEN  = 5UL,
-	TLS_RECORD_IV_LEN   = 8UL,
-	TLS_RECORD_TAG_LEN  = 16UL,
+	TLS_RECORD_HDR_LEN  = 5U,
+	TLS_RECORD_IV_LEN   = TLS_AES_GCM_IV_LEN,
+	TLS_RECORD_TAG_LEN  = 16U,
 	TLS_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN +
 			      TLS_RECORD_TAG_LEN,
 	TLS_RECORD_SMALLEST = 256U,
@@ -246,11 +246,15 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		ib_ctx_handler *ib_ctx = m_sock->get_ctx();
 		ring *ring = m_sock->get_ring();
 		dpcp::status status;
-		uint64_t record_number;
+		uint64_t record_number_be64;
+		unsigned char *iv;
+		unsigned char *salt;
+		unsigned char *rec_seq;
+		unsigned char *key;
+		uint32_t keylen;
+
 		const struct tls_crypto_info *base_info =
 			(const struct tls_crypto_info *)__optval;
-		const struct tls12_crypto_info_aes_gcm_128 *crypto_info =
-			(const struct tls12_crypto_info_aes_gcm_128 *)__optval;
 
 		if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128)) {
 			errno = EINVAL;
@@ -261,19 +265,46 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			errno = ENOPROTOOPT;
 			return -1;
 		}
-		if (base_info->cipher_type != TLS_CIPHER_AES_GCM_128) {
+
+		switch (base_info->cipher_type) {
+		case TLS_CIPHER_AES_GCM_128:
+			/* Wrap with a block to avoid initialization error */
+			{
+				struct tls12_crypto_info_aes_gcm_128 *crypto_info =
+					(struct tls12_crypto_info_aes_gcm_128 *)__optval;
+				iv = crypto_info->iv;
+				salt = crypto_info->salt;
+				rec_seq = crypto_info->rec_seq;
+				key = crypto_info->key;
+				keylen = TLS_CIPHER_AES_GCM_128_KEY_SIZE;
+			}
+			break;
+#ifdef DEFINED_UTLS_AES256
+		case TLS_CIPHER_AES_GCM_256:
+			if (__optlen < sizeof(tls12_crypto_info_aes_gcm_256)) {
+				errno = EINVAL;
+				return -1;
+			}
+			/* Wrap with a block to avoid initialization error */
+			{
+				struct tls12_crypto_info_aes_gcm_256 *crypto_info =
+					(struct tls12_crypto_info_aes_gcm_256 *)__optval;
+				iv = crypto_info->iv;
+				salt = crypto_info->salt;
+				rec_seq = crypto_info->rec_seq;
+				key = crypto_info->key;
+				keylen = TLS_CIPHER_AES_GCM_256_KEY_SIZE;
+			}
+			break;
+#endif /* DEFINED_UTLS_AES256 */
+		default:
 			si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
 			errno = ENOPROTOOPT;
 			return -1;
 		}
 
-		/*
-		 * TODO When new ciphers are added, make sure IV size is the
-		 * same as TLS_RECORD_IV_LEN.
-		 */
-
 		p_tis = ib_ctx->create_tis();
-		p_dek = ib_ctx->create_dek(crypto_info->key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+		p_dek = ib_ctx->create_dek(key, keylen);
 		if (p_tis == NULL || p_dek == NULL) {
 			goto err;
 		}
@@ -284,12 +315,13 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		}
 
 		m_expected_seqno = m_sock->get_next_tcp_seqno();
-		memcpy(m_iv, crypto_info->iv, TLS_RECORD_IV_LEN);
-		memcpy(&m_crypto_info, crypto_info, sizeof(*crypto_info));
-		memcpy(&record_number, crypto_info->rec_seq, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-		m_next_record_number = be64toh(record_number);
+		memcpy(m_tls_info.iv, iv, TLS_AES_GCM_IV_LEN);
+		memcpy(m_tls_info.salt, salt, TLS_AES_GCM_SALT_LEN);
+		memcpy(m_tls_info.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+		memcpy(&record_number_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+		m_next_record_number = be64toh(record_number_be64);
 
-		ring->tls_context_setup(__optval, m_tisn, p_dek->get_key_id(), m_expected_seqno);
+		ring->tls_context_setup(&m_tls_info, m_tisn, p_dek->get_key_id(), m_expected_seqno);
 		m_is_tls = true;
 
 		return 0;
@@ -376,7 +408,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 			}
 
 			rec = new tls_record(m_sock, m_sock->get_next_tcp_seqno(),
-					     m_next_record_number, m_crypto_info.iv);
+					     m_next_record_number, m_tls_info.iv);
 			if (unlikely(rec == NULL || rec->p_data == NULL)) {
 				if (ret == 0) {
 					errno = ENOMEM;
@@ -488,8 +520,8 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 
 				si_ulp_logdbg("TX resync flow: record_number=%lu seqno%u", rec->m_record_number, seg->seqno);
 				record_number_be64 = htobe64(rec->m_record_number);
-				memcpy(&m_crypto_info.rec_seq, &record_number_be64, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-				ring->tls_context_setup(&m_crypto_info, m_tisn, p_dek->get_key_id(), rec->m_seqno);
+				memcpy(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
+				ring->tls_context_setup(&m_tls_info, m_tisn, p_dek->get_key_id(), rec->m_seqno);
 
 				uint32_t nr = (seg->seqno - rec->m_seqno + mss - 1) / mss;
 				uint8_t *addr = rec->p_data->p_buffer;

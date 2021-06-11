@@ -112,7 +112,7 @@ public:
 
 #ifdef DEFINED_UTLS
 	void tls_context_setup(
-		const void *info, uint32_t tis_number,
+		const xlio_tls_info *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn)
 	{
 		auto_unlocker lock(m_lock_ring_tx);

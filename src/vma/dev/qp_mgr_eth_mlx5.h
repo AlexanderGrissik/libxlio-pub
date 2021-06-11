@@ -37,10 +37,7 @@
 #include "qp_mgr.h"
 #include "vma/util/sg_array.h"
 #include "vma/dev/dm_mgr.h"
-
-#ifdef DEFINED_UTLS
-#include <linux/tls.h>
-#endif /* DEFINED_UTLS */
+#include "vma/proto/tls.h"
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -59,7 +56,7 @@ public:
 
 #ifdef DEFINED_UTLS
 	void tls_context_setup(
-		const void *info, uint32_t tis_number,
+		const xlio_tls_info *info, uint32_t tis_number,
 		uint32_t dek_id, uint32_t initial_tcp_sn);
 	void tls_tx_post_dump_wqe(uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey);
 #endif /* DEFINED_UTLS */
@@ -83,10 +80,10 @@ private:
 #ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(
 		struct mlx5_wqe_tls_static_params_seg* params,
-		const struct tls12_crypto_info_aes_gcm_128* info,
+		const struct xlio_tls_info* info,
 		uint32_t key_id, uint32_t resync_tcp_sn);
 	inline void tls_tx_post_static_params_wqe(
-		const struct tls12_crypto_info_aes_gcm_128* info,
+		const struct xlio_tls_info* info,
 		uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn);
 	inline void tls_tx_fill_progress_params_wqe(
 		struct mlx5_wqe_tls_progress_params_seg* params,

@@ -264,6 +264,7 @@ libxlio_la_SOURCES := \
 	proto/rule_entry.h \
 	proto/rule_table_mgr.h \
 	proto/rule_val.h \
+	proto/tls.h \
 	proto/vma_lwip.h \
 	\
 	sock/cleanable_obj.h \
