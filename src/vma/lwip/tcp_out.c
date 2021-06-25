@@ -1365,7 +1365,8 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   int tcp_hlen_delta;
   u32_t lentosend = 0;
   u16_t oversize = 0;
-  u8_t  optlen = 0, optflags = 0;
+  u8_t  optlen = 0;
+  u8_t  optflags = 0;
   u16_t mss_local = 0;
   u16_t max_length;
   pbuf_type type = PBUF_RAM;
@@ -1389,13 +1390,17 @@ tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
 
 #if LWIP_TCP_TIMESTAMPS
   if ((pcb->flags & TF_TIMESTAMP)) {
-    optflags |= TF_SEG_OPTS_TS;
     /* ensure that segments can hold at least one data byte... */
     mss_local = LWIP_MAX(mss_local, LWIP_TCP_OPT_LEN_TS + 1);
   }
 #endif /* LWIP_TCP_TIMESTAMPS */
 #endif /* LWIP_TSO */
 
+#if LWIP_TCP_TIMESTAMPS
+  if ((pcb->flags & TF_TIMESTAMP)) {
+    optflags |= TF_SEG_OPTS_TS;
+  }
+#endif /* LWIP_TCP_TIMESTAMPS */
   optlen = LWIP_TCP_OPT_LENGTH(optflags);
 
   if (is_zerocopy) {
