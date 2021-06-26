@@ -702,7 +702,6 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr* pswr)
 	void *addr;
 	int sg_copy_ptr_index = 0;
 	size_t sg_copy_ptr_offset = 0;
-	int bottom_hdr_sz = 0;
 
 	ctrl = (struct mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
@@ -755,7 +754,6 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr* pswr)
 	for (i = sg_copy_ptr_index; i < (int)nelem; ++i) {
 		if (unlikely((uintptr_t)dseg >= (uintptr_t)m_sq_wqes_end)) {
 			dseg = (struct mlx5_wqe_data_seg *)m_sq_wqes;
-			bottom_hdr_sz = align_to_WQEBB_up(wqe_size) / 4;
 		}
 		if (likely(pswr->sg_list[i].length)) {
 			dseg->byte_count = htonl(pswr->sg_list[i].length - sg_copy_ptr_offset);
@@ -768,7 +766,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr* pswr)
 	}
 
 	m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | wqe_size);
-	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, bottom_hdr_sz, align_to_WQEBB_up(wqe_size) / 4);
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, align_to_WQEBB_up(wqe_size) / 4);
 
 	return wqe_size;
 }
