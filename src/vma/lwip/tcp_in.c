@@ -492,7 +492,7 @@ tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
     return ERR_OK;
   }
   /* - fourth, check the SYN bit, */
-  if (in_data->flags & TCP_SYN) {
+  if ((in_data->flags & (TCP_SYN | TCP_ACK)) == TCP_SYN) {
     bool reusable;
 
     /* Check whether socket can be reused according to RFC 6191 */
@@ -527,9 +527,15 @@ tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
   }
 
   if ((in_data->tcplen > 0))  {
-    /* Acknowledge data or FIN */
-    pcb->flags |= TF_ACK_NOW;
-    return tcp_output(pcb);
+    if ((in_data->flags & (TCP_SYN | TCP_ACK)) == (TCP_SYN | TCP_ACK)) {
+      /* RST on out of state SYN-ACK */
+      tcp_rst(in_data->ackno, in_data->seqno + in_data->tcplen,
+              in_data->tcphdr->dest, in_data->tcphdr->src, pcb);
+    } else {
+      /* Acknowledge data or FIN */
+      pcb->flags |= TF_ACK_NOW;
+      return tcp_output(pcb);
+    }
   }
   return ERR_OK;
 }
