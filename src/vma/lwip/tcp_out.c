@@ -535,10 +535,18 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
       for (pcb->last_unsent = pcb->unsent; pcb->last_unsent->next != NULL;
            pcb->last_unsent = pcb->last_unsent->next);
     }
+
     /* Usable space at the end of the last unsent segment */
     unsent_optlen = LWIP_TCP_OPT_LENGTH(pcb->last_unsent->flags);
-    LWIP_ASSERT("mss_local is too small", mss_local >= pcb->last_unsent->len + unsent_optlen);
-    space = mss_local - (pcb->last_unsent->len + unsent_optlen);
+    if (!pcb->last_unsent->p || (pcb->last_unsent->p->type == type)) {
+      LWIP_ASSERT("mss_local is too small", mss_local >= pcb->last_unsent->len + unsent_optlen);
+      space = mss_local - (pcb->last_unsent->len + unsent_optlen);
+    } else {
+      space = 0;
+#if TCP_OVERSIZE
+      pcb->unsent_oversize = 0;
+#endif /* TCP_OVERSIZE */
+    }
     seg = pcb->last_unsent;
 #if LWIP_TSO
     tot_p = pbuf_clen(seg->p);
