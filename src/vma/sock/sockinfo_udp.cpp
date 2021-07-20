@@ -547,7 +547,12 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 			setPassthrough();
 			return 0;
 		}
-		// Create the new dst_entry
+		// Create the new dst_entry, delete if one already exists
+		if (m_p_connected_dst_entry) {
+			delete m_p_connected_dst_entry;
+			m_p_connected_dst_entry = NULL;
+		}
+
 		if (IN_MULTICAST_N(dst_ip)) {
 			socket_data data = { m_fd, m_n_mc_ttl, m_tos, m_pcp };
 			m_p_connected_dst_entry = new dst_entry_udp_mc(dst_ip, dst_port, src_port,
