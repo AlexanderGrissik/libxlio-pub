@@ -329,6 +329,10 @@ dnl===
 dnl===-----------------------------------------------------------------------===
 show_section_title "Check for functions, types and structures"
 
+# Check fortified glibc functions
+#
+AC_CHECK_FUNCS(__read_chk __recv_chk __recvfrom_chk __poll_chk __ppoll_chk)
+
 AC_MSG_CHECKING([for SOF_TIMESTAMPING_SOFTWARE support])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[
   #include <linux/net_tstamp.h>
