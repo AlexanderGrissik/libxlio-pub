@@ -73,7 +73,7 @@ public:
 	bool			reclaim_recv_buffers_no_lock(mem_buf_desc_t* rx_reuse_lst); // No locks
 	virtual int		reclaim_recv_single_buffer(mem_buf_desc_t* rx_reuse); // No locks
 	virtual void		mem_buf_rx_release(mem_buf_desc_t* p_mem_buf_desc);
-	virtual int 		socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags);	
+	virtual int             socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions, unsigned int ncompletions, int flags);
 	virtual int		drain_and_proccess();
 	virtual int		wait_for_notification_and_process_element(int cq_channel_fd, uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
 	// Tx completion handling at the qp_mgr level is just re listing the desc+data buffer in the free lists
@@ -251,6 +251,28 @@ private:
 		uint16_t max_header_sz;
 	} m_tso;
 #endif /* DEFINED_TSO */
+	struct {
+		/* Indicates LRO support */
+	    bool cap;
+
+	    /* Indicate LRO support for segments with PSH flag */
+	    bool psh_flag;
+
+	    /* Indicate LRO support for segments with TCP timestamp option */
+	    bool time_stamp;
+
+	    /* The maximum message size mode
+	     * 0x0 - TCP header + TCP payload
+	     * 0x1 - L2 + L3 + TCP header + TCP payload
+	     */
+	    uint8_t max_msg_sz_mode;
+
+	    /* The minimal size of TCP segment required for coalescing */
+	    uint16_t min_mss_size;
+
+	    /* Array of supported LRO timer periods in microseconds. */
+	    uint8_t timer_supported_periods[4];
+	} m_lro;
 };
 
 class ring_eth : public ring_simple

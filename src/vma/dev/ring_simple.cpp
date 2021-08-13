@@ -139,6 +139,7 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 #ifdef DEFINED_TSO
 	memset(&m_tso, 0, sizeof(m_tso));
 #endif /* DEFINED_TSO */
+	memset(&m_lro, 0, sizeof(m_lro));
 
 	m_socketxtreme.active = safe_mce_sys().enable_socketxtreme;
 	INIT_LIST_HEAD(&m_socketxtreme.ec_list);
@@ -259,6 +260,7 @@ void ring_simple::create_resources()
 	m_tx_num_wr_free = m_tx_num_wr;
 
 #ifdef DEFINED_TSO
+	/* Detect TSO capabilities */
 	memset(&m_tso, 0, sizeof(m_tso));
 	if (safe_mce_sys().enable_tso && (1 == validate_tso(get_if_index()))) {
 		if (vma_check_dev_attr_tso(m_p_ib_ctx->get_ibv_device_attr())) {
@@ -275,6 +277,34 @@ void ring_simple::create_resources()
 	ring_logdbg("ring attributes: m_tso:max_payload_sz = %d", get_max_payload_sz());
 	ring_logdbg("ring attributes: m_tso:max_header_sz = %d", get_max_header_sz());
 #endif /* DEFINED_TSO */
+
+	/* Detect LRO capabilities */
+	memset(&m_lro, 0, sizeof(m_lro));
+	if (1 == validate_lro(get_if_index())) {
+#ifdef DEFINED_DPCP
+		dpcp::adapter_hca_capabilities caps;
+
+		if (m_p_ib_ctx->get_dpcp_adapter() &&
+				(dpcp::DPCP_OK == m_p_ib_ctx->get_dpcp_adapter()->get_hca_capabilities(caps))) {
+			m_lro.cap = caps.lro_cap;
+			m_lro.psh_flag = caps.lro_psh_flag;
+			m_lro.time_stamp = caps.lro_time_stamp;
+			m_lro.max_msg_sz_mode = caps.lro_max_msg_sz_mode;
+			m_lro.min_mss_size = caps.lro_min_mss_size;
+			memcpy(m_lro.timer_supported_periods, caps.lro_timer_supported_periods, sizeof(m_lro.timer_supported_periods));
+		}
+#endif /* DEFINED_DPCP */
+	}
+	ring_logdbg("ring attributes: m_lro = %d", m_lro.cap);
+	ring_logdbg("ring attributes: m_lro:psh_flag = %d", m_lro.psh_flag);
+	ring_logdbg("ring attributes: m_lro:time_stamp = %d", m_lro.time_stamp);
+	ring_logdbg("ring attributes: m_lro:max_msg_sz_mode = %d", m_lro.max_msg_sz_mode);
+	ring_logdbg("ring attributes: m_lro:min_mss_size = %d", m_lro.min_mss_size);
+	ring_logdbg("ring attributes: m_lro:timer_supported_periods = [%d:%d:%d:%d]",
+			m_lro.timer_supported_periods[0],
+			m_lro.timer_supported_periods[1],
+			m_lro.timer_supported_periods[2],
+			m_lro.timer_supported_periods[3]);
 
 	m_flow_tag_enabled = m_p_ib_ctx->get_flow_tag_capability();
 #if defined(DEFINED_NGINX)
