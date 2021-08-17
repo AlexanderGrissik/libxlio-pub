@@ -104,6 +104,10 @@ typedef struct vma_ib_mlx5_qp {
 		uint32_t size;
 		uint32_t offset;
 	} bf;
+	uint32_t tirn;
+	uint32_t tisn;
+	uint32_t rqn;
+	uint32_t sqn;
 } vma_ib_mlx5_qp_t;
 
 /* Completion queue */
