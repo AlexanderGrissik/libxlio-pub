@@ -340,6 +340,9 @@ sockinfo_tcp::~sockinfo_tcp()
 
 	do_wakeup();
 
+	delete m_ops;
+	m_ops = NULL;
+
 	destructor_helper();
 
 	// Release preallocated buffers
@@ -357,9 +360,6 @@ sockinfo_tcp::~sockinfo_tcp()
 		m_socket_options_list.pop_front();
 		delete(opt);
 	}
-
-	delete m_ops;
-	m_ops = NULL;
 
 	unlock_tcp_con();
 
