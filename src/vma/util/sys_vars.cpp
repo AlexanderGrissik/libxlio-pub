@@ -626,6 +626,7 @@ void mce_sys_var::get_env_params()
 	udp_3t_rules		= MCE_DEFAULT_UDP_3T_RULES;
 	eth_mc_l2_only_rules	= MCE_DEFAULT_ETH_MC_L2_ONLY_RULES;
 	mc_force_flowtag	= MCE_DEFAULT_MC_FORCE_FLOWTAG;
+	enable_striding_rq  = MCE_DEFAULT_STRQ_ENABLE;
 
 	select_poll_num		= MCE_DEFAULT_SELECT_NUM_POLLS;
 	select_poll_os_force	= MCE_DEFAULT_SELECT_POLL_OS_FORCE;
@@ -1173,6 +1174,9 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_MC_FORCE_FLOWTAG)) != NULL)
 		mc_force_flowtag = atoi(env_ptr) ? true : false;
+
+	if ((env_ptr = getenv(SYS_VAR_STRQ_ENABLE)) != NULL)
+		enable_striding_rq = atoi(env_ptr) ? true : false;
 
 	if ((env_ptr = getenv(SYS_VAR_SELECT_NUM_POLLS)) != NULL)
 		select_poll_num = atoi(env_ptr);

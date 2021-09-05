@@ -648,6 +648,12 @@ Forces the use of flow tag acceleration for multicast flows where setsockopt(SO_
 set.
 Applicable if there are no other sockets opened for the same flow in system.
 
+XLIO_STRQ_ENABLE
+Enable/Disable Striding Receive Queues.
+Each WQE in a Striding RQ may receive several packets.
+Thus, the WQE buffer size is controlled by XLIO_STRQ_NUM_STRIDES x XLIO_STRQ_STRIDE_SIZE_BYTES
+Default: 1 (Enabled)
+
 XLIO_SELECT_POLL
 The duration in micro-seconds (usec) in which to poll the hardware on Rx path before
 going to sleep (pending an interrupt blocking on OS select(), poll() or epoll_wait().

@@ -39,6 +39,7 @@
 #include "vma/util/utils.h"
 #include "vlogger/vlogger.h"
 #include "ring_simple.h"
+#include "rfs_rule_dpcp.h"
 
 #undef  MODULE_NAME
 #define MODULE_NAME 	"qpm_mlx5"
@@ -448,6 +449,24 @@ inline void qp_mgr_eth_mlx5::set_signal_in_next_send_wqe()
 {
 	volatile struct mlx5_eth_wqe* wqe = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
 	wqe->ctrl.data[2] = htonl(8);
+}
+
+rfs_rule* qp_mgr_eth_mlx5::create_rfs_rule(vma_ibv_flow_attr& attrs)
+{
+#ifndef DEFINED_DPCP
+	return qp_mgr::create_rfs_rule(attrs);
+#else
+	if (!safe_mce_sys().enable_striding_rq)
+		return qp_mgr::create_rfs_rule(attrs);
+	
+	if (m_p_tir || !m_p_ib_ctx_handler || !m_p_ib_ctx_handler->get_dpcp_adapter()) {
+		std::unique_ptr<rfs_rule_dpcp> new_rule(new rfs_rule_dpcp());
+		if (new_rule->create(attrs, *m_p_tir, *m_p_ib_ctx_handler->get_dpcp_adapter()))
+			return new_rule.release();
+	}
+
+	return nullptr;
+#endif
 }
 
 #ifdef DEFINED_TSO

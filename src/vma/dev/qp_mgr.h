@@ -51,6 +51,7 @@
 #include "vma/infra/sender.h"
 #include "vma/dev/ib_ctx_handler.h"
 #include "vma/dev/cq_mgr.h"
+#include "vma/dev/rfs_rule.h"
 
 /* Forward declarations */
 struct xlio_tls_info;
@@ -135,6 +136,8 @@ public:
 	int                 modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t rl_changes);
 	static inline bool  is_lib_mlx5(const char* device_name) {return strstr(device_name, "mlx5");}
 	virtual void        dm_release_data(mem_buf_desc_t* buff) { NOT_IN_USE(buff); }
+	
+	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs);
 
 #ifdef DEFINED_UTLS
 	virtual xlio_tis *tls_context_setup_tx(const xlio_tls_info* info)

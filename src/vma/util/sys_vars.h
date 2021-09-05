@@ -391,6 +391,7 @@ public:
 	bool		udp_3t_rules;
 	bool		eth_mc_l2_only_rules;
 	bool		mc_force_flowtag;
+	bool		enable_striding_rq;
 
 	int32_t		select_poll_num;
 	bool		select_poll_os_force;
@@ -639,6 +640,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_RX_POLL_ON_TX_TCP                     "XLIO_RX_POLL_ON_TX_TCP"
 #define SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME        "XLIO_TRIGGER_DUMMY_SEND_GETSOCKNAME"
 #define SYS_VAR_TCP_SEND_BUFFER_SIZE                  "XLIO_TCP_SEND_BUFFER_SIZE"
+#define SYS_VAR_STRQ_ENABLE                           "XLIO_STRQ_ENABLE"
 
 /*
  * This block consists of default values for library specific
@@ -795,6 +797,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_RX_POLL_ON_TX_TCP                 (false)
 #define MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME    (false)
 #define MCE_ALIGNMENT                                 ((unsigned long)63)
+#define MCE_DEFAULT_STRQ_ENABLE                       (true)
 
 
 /*

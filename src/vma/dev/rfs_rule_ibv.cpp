@@ -30,69 +30,35 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_IB_MLX5_HW_H_
-#define SRC_VMA_IB_MLX5_HW_H_
+#include <cinttypes>
+#include "vma/dev/rfs_rule_ibv.h"
 
-#ifndef SRC_VMA_IB_MLX5_H_
-#error "Use <vma/ib/mlx5/ib_mlx5.h> instead."
-#endif
+#define MODULE_NAME "rfs_rule_ibv"
 
-#if defined(DEFINED_DIRECT_VERBS) && (DEFINED_DIRECT_VERBS == 2)
+rfs_rule_ibv::~rfs_rule_ibv()
+{
+}
 
-#include <stdint.h>
+bool rfs_rule_ibv::create(vma_ibv_flow_attr& attrs, ibv_qp* qp)
+{
+    _ibv_flow.reset(vma_ibv_create_flow(qp, &attrs));
+    if (_ibv_flow != nullptr) {
+        rfs_logdbg("Succeeded vma_ibv_create_flow, Type: %u, Priority %" PRIu16 ", rfs_rule_ibv: %p, ibv_flow: %p", 
+            static_cast<unsigned int>(attrs.type), attrs.priority, this, _ibv_flow.get());
+        return true;
+    }
+    
+    rfs_logerr("Failed vma_ibv_create_flow, Type: %u, Priority %" PRIu16, 
+            static_cast<unsigned int>(attrs.type), attrs.priority);
+    return false;
+}
 
-/* This structures duplicate mlx5dv.h (rdma-core upstream)
- * to use upstream specific approach as a basis
- */
-struct mlx5dv_qp {
-	volatile uint32_t *dbrec;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} sq;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} rq;
-	struct {
-		void *reg;
-		uint32_t size;
-	} bf;
-	uint64_t comp_mask;
-	uint32_t tirn;
-	uint32_t tisn;
-	uint32_t rqn;
-	uint32_t sqn;
-};
+void rfs_rule_ibv::destory_ibv_flow(vma_ibv_flow* flow)
+{
+    IF_VERBS_FAILURE_EX(vma_ibv_destroy_flow(flow), EIO) {
+        __log_err("Failed vma_ibv_destroy_flow, ibv_flow: %p", flow); 
+    } else {
+        __log_dbg("Success vma_ibv_destroy_flow, ibv_flow: %p", flow); 
+    } ENDIF_VERBS_FAILURE;
+}
 
-struct mlx5dv_cq {
-	void *buf;
-	volatile uint32_t *dbrec;
-	uint32_t cqe_cnt;
-	uint32_t cqe_size;
-	void *cq_uar;
-	uint32_t cqn;
-	uint64_t comp_mask;
-};
-
-struct mlx5dv_obj {
-	struct {
-		struct ibv_qp *in;
-		struct mlx5dv_qp *out;
-	} qp;
-	struct {
-		struct ibv_cq *in;
-		struct mlx5dv_cq *out;
-	} cq;
-};
-
-enum mlx5dv_obj_type {
-	MLX5DV_OBJ_QP = 1 << 0,
-	MLX5DV_OBJ_CQ = 1 << 1,
-};
-
-#endif /* (DEFINED_DIRECT_VERBS == 2) */
-
-#endif /* SRC_VMA_IB_MLX5_HW_H_ */

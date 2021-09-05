@@ -30,69 +30,35 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_IB_MLX5_HW_H_
-#define SRC_VMA_IB_MLX5_HW_H_
+#ifndef RFS_RULE_DPCP_H
+#define RFS_RULE_DPCP_H
 
-#ifndef SRC_VMA_IB_MLX5_H_
-#error "Use <vma/ib/mlx5/ib_mlx5.h> instead."
+#include <config.h>
+
+#ifdef DEFINED_DPCP
+
+#include <memory>
+#include "vma/util/utils.h"
+#include "vma/ib/base/verbs_extra.h"
+#include "vma/dev/rfs_rule.h"
+#include <mellanox/dpcp.h>
+
+using namespace std;
+
+class rfs_rule_dpcp : public rfs_rule
+{
+public:
+
+    virtual ~rfs_rule_dpcp();
+
+    bool create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dpcp::adapter& in_adapter);
+
+private:
+
+    unique_ptr<dpcp::flow_rule> _dpcp_flow;
+};
+
+#endif // DEFINED_DPCP
+
 #endif
 
-#if defined(DEFINED_DIRECT_VERBS) && (DEFINED_DIRECT_VERBS == 2)
-
-#include <stdint.h>
-
-/* This structures duplicate mlx5dv.h (rdma-core upstream)
- * to use upstream specific approach as a basis
- */
-struct mlx5dv_qp {
-	volatile uint32_t *dbrec;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} sq;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} rq;
-	struct {
-		void *reg;
-		uint32_t size;
-	} bf;
-	uint64_t comp_mask;
-	uint32_t tirn;
-	uint32_t tisn;
-	uint32_t rqn;
-	uint32_t sqn;
-};
-
-struct mlx5dv_cq {
-	void *buf;
-	volatile uint32_t *dbrec;
-	uint32_t cqe_cnt;
-	uint32_t cqe_size;
-	void *cq_uar;
-	uint32_t cqn;
-	uint64_t comp_mask;
-};
-
-struct mlx5dv_obj {
-	struct {
-		struct ibv_qp *in;
-		struct mlx5dv_qp *out;
-	} qp;
-	struct {
-		struct ibv_cq *in;
-		struct mlx5dv_cq *out;
-	} cq;
-};
-
-enum mlx5dv_obj_type {
-	MLX5DV_OBJ_QP = 1 << 0,
-	MLX5DV_OBJ_CQ = 1 << 1,
-};
-
-#endif /* (DEFINED_DIRECT_VERBS == 2) */
-
-#endif /* SRC_VMA_IB_MLX5_HW_H_ */

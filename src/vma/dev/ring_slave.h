@@ -103,7 +103,7 @@ typedef hash_map<flow_spec_4t_key_t, rfs*> flow_spec_4t_map_t;
 
 struct counter_and_ibv_flows {
 	int counter;
-	std::vector<vma_ibv_flow*> ibv_flows;
+	std::vector<rfs_rule*> rfs_rule_vec;
 };
 
 // rule key based on ip and port

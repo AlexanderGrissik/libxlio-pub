@@ -40,6 +40,8 @@
 #include <ifaddrs.h>
 #include <linux/if_ether.h>
 #include <exception>
+#include <tr1/functional>
+#include <memory>
 
 #include "vtypes.h"
 #include "utils/rdtsc.h"
@@ -52,6 +54,9 @@ struct iphdr; //forward declaration
 #define VMA_ALIGN(x, y) ((((x) + (y) - 1) / (y)) * (y) )
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+template <typename T>
+using unique_ptr_delfunc = std::unique_ptr<T, std::tr1::function<void(T*)>>;
 
 /**
 * Check if file type is regular

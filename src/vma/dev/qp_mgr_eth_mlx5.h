@@ -39,6 +39,15 @@
 #include "vma/dev/dm_mgr.h"
 
 #include <vector>
+#include <memory>
+
+#ifdef DEFINED_DPCP
+#include <mellanox/dpcp.h>
+#endif /* DEFINED_DPCP */
+
+#ifdef DEFINED_UTLS
+#include <linux/tls.h>
+#endif /* DEFINED_UTLS */
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -74,6 +83,7 @@ private:
 	virtual cq_mgr*	init_tx_cq_mgr(void);
 	virtual bool	is_completion_need() { return !m_n_unsignaled_count || (m_dm_enabled && m_dm_mgr.is_completion_need()); };
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
+	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs);
 
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
@@ -119,6 +129,7 @@ private:
 
 	int                 m_sq_wqe_hot_index;
 	uint16_t            m_sq_wqe_counter;
+
 	bool                m_dm_enabled;
 	dm_mgr              m_dm_mgr;
 	/*

@@ -40,6 +40,8 @@
 #include "cq_mgr.h"
 #include "ring_simple.h"
 #include "util/valgrind.h"
+#include "vma/dev/rfs_rule_ibv.h"
+#include <memory>
 
 #undef  MODULE_NAME
 #define MODULE_NAME 		"qpm"
@@ -896,3 +898,13 @@ int qp_mgr::modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t r
 	m_rate_limit = rate_limit;
 	return 0;
 }
+
+rfs_rule* qp_mgr::create_rfs_rule(vma_ibv_flow_attr& attrs)
+{
+	unique_ptr<rfs_rule_ibv> new_rule(new rfs_rule_ibv());
+	if (new_rule->create(attrs, this->get_ibv_qp()))
+		return new_rule.release();
+
+	return nullptr;
+}
+

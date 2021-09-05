@@ -42,15 +42,6 @@
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/proto/flow_tuple.h"
 
-
-#define rfs_logpanic 	__log_info_panic
-#define rfs_logerr	__log_info_err
-#define rfs_logwarn	__log_info_warn
-#define rfs_loginfo	__log_info_info
-#define rfs_logdbg	__log_info_dbg
-#define rfs_logfunc	__log_info_func
-#define rfs_logfuncall	__log_info_funcall
-
 #define RFS_SINKS_LIST_DEFAULT_LEN 32
 
 class qp_mgr;
@@ -59,7 +50,7 @@ class pkt_rcvr_sink;
 /* ETHERNET
  */
 typedef struct attach_flow_data_eth_ipv4_tcp_udp_t {
-	struct ibv_flow *                       ibv_flow;
+	rfs_rule*                               rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	struct ibv_flow_attr_eth_ipv4_tcp_udp {
 		vma_ibv_flow_attr             attr;
@@ -82,7 +73,7 @@ typedef struct attach_flow_data_eth_ipv4_tcp_udp_t {
 		}
 	} ibv_flow_attr;
 	attach_flow_data_eth_ipv4_tcp_udp_t(qp_mgr* qp_mgr) :
-		ibv_flow(NULL),
+		rfs_flow(NULL),
 		p_qp_mgr(qp_mgr),
 		ibv_flow_attr(qp_mgr->get_port_num()) {}
 } attach_flow_data_eth_ipv4_tcp_udp_t;
@@ -90,7 +81,7 @@ typedef struct attach_flow_data_eth_ipv4_tcp_udp_t {
 /* IPOIB (MC)
  */
 typedef struct attach_flow_data_ib_v2_t {
-	struct ibv_flow *                       ibv_flow;
+	rfs_rule*                               rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	struct ibv_flow_attr_ib_v2 {
 		vma_ibv_flow_attr             attr;
@@ -107,7 +98,7 @@ typedef struct attach_flow_data_ib_v2_t {
 		}
 	} ibv_flow_attr;
 	attach_flow_data_ib_v2_t(qp_mgr* qp_mgr) :
-		ibv_flow(NULL),
+		rfs_flow(NULL),
 		p_qp_mgr(qp_mgr),
 		ibv_flow_attr(qp_mgr->get_port_num()) {}
 
@@ -115,7 +106,7 @@ typedef struct attach_flow_data_ib_v2_t {
 
 #ifdef DEFINED_IBV_FLOW_SPEC_IB
 typedef struct attach_flow_data_ib_v1_t {
-	struct ibv_flow *                       ibv_flow;
+	rfs_rule*                               rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	struct ibv_flow_attr_ib_v1 {
 		vma_ibv_flow_attr             attr;
@@ -131,7 +122,7 @@ typedef struct attach_flow_data_ib_v1_t {
 		}
 	} ibv_flow_attr;
 	attach_flow_data_ib_v1_t(qp_mgr* qp_mgr) :
-		ibv_flow(NULL),
+		rfs_flow(NULL),
 		p_qp_mgr(qp_mgr),
 		ibv_flow_attr(qp_mgr->get_port_num()) {}
 
@@ -141,7 +132,7 @@ typedef struct attach_flow_data_ib_v1_t {
 /* IPOIB (UC)
  */
 typedef struct attach_flow_data_ib_ipv4_tcp_udp_v2_t {
-	struct ibv_flow *                       ibv_flow;
+	rfs_rule*                               rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	struct ibv_flow_attr_ib_ipv4_tcp_udp_v2 {
 
@@ -159,14 +150,14 @@ typedef struct attach_flow_data_ib_ipv4_tcp_udp_v2_t {
 		}
 	} ibv_flow_attr;
 	attach_flow_data_ib_ipv4_tcp_udp_v2_t(qp_mgr* qp_mgr) :
-		ibv_flow(NULL),
+		rfs_flow(NULL),
 		p_qp_mgr(qp_mgr),
 		ibv_flow_attr(qp_mgr->get_port_num()) {}
 } attach_flow_data_ib_ipv4_tcp_udp_v2_t;
 
 #ifdef DEFINED_IBV_FLOW_SPEC_IB
 typedef struct attach_flow_data_ib_ipv4_tcp_udp_v1_t {
-	struct ibv_flow *                       ibv_flow;
+	rfs_rule*                               rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	struct ibv_flow_attr_ib_ipv4_tcp_udp_v1 {
 
@@ -185,14 +176,14 @@ typedef struct attach_flow_data_ib_ipv4_tcp_udp_v1_t {
 		}
 	} ibv_flow_attr;
 	attach_flow_data_ib_ipv4_tcp_udp_v1_t(qp_mgr* qp_mgr) :
-		ibv_flow(NULL),
+		rfs_flow(NULL),
 		p_qp_mgr(qp_mgr),
 		ibv_flow_attr(qp_mgr->get_port_num()) {}
 } attach_flow_data_ib_ipv4_tcp_udp_v1_t;
 #endif /* DEFINED_IBV_FLOW_SPEC_IB */
 
 typedef struct attach_flow_data_t {
-	vma_ibv_flow *                       ibv_flow;
+	rfs_rule*                            rfs_flow;
 	qp_mgr*                                 p_qp_mgr;
 	vma_ibv_flow_attr                    ibv_flow_attr;
 } attach_flow_data_t;
@@ -249,8 +240,8 @@ protected:
 	uint32_t		m_flow_tag_id; // Associated with this rule, set by attach_flow()
 	bool 			m_b_tmp_is_attached; // Only temporary, while ibcm calls attach_flow with no sinks...
 
-	bool 			create_ibv_flow(); // Attach flow to all qps
-	bool 			destroy_ibv_flow(); // Detach flow from all qps
+	bool 			create_rcv_flow(); // Attach flow to all queues
+	bool 			destroy_rcv_flow(); // Detach flow from all queues
 	bool 			add_sink(pkt_rcvr_sink* p_sink);
 	bool 			del_sink(pkt_rcvr_sink* p_sink);
 	virtual bool 		prepare_flow_spec() = 0;
