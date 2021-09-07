@@ -160,6 +160,34 @@ struct mlx5_ifc_tls_progress_params_bits {
 	uint8_t hw_offset_record_number[0x18];
 };
 
+typedef struct vma_mlx5_cqe {
+	uint8_t pkt_info;
+	uint8_t rsvd0;
+	__be16 wqe_id;
+	uint8_t lro_tcppsh_abort_dupack;
+	uint8_t lro_min_ttl;
+	__be16 lro_tcp_win;
+	__be32 lro_ack_seq_num;
+	__be32 rx_hash_res;
+	uint8_t rx_hash_type;
+	uint8_t rsvd1[3];
+	__be16 csum;
+	uint8_t rsvd2[6];
+	uint8_t hds_ip_ext;
+	uint8_t l4_hdr_type_etc;
+	__be16 vlan_info;
+	uint8_t lro_num_seg;
+	uint8_t rsvd3[3];
+	__be32 flow_table_metadata;
+	uint8_t rsvd4[4];
+	__be32 byte_cnt;
+	__be64 timestamp;
+	__be32 sop_drop_qpn;
+	__be16 wqe_counter;
+	uint8_t rsvd5;
+	uint8_t op_own;
+} vma_mlx5_cqe;
+
 /* WQE segments structures */
 
 typedef struct vma_mlx5_wqe_ctrl_seg {

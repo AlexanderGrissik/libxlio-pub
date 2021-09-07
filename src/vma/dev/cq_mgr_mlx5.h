@@ -61,8 +61,8 @@ public:
 	virtual int                 poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
 	virtual int                 poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst);
 	virtual int                 poll_and_process_element_tx(uint64_t* p_cq_poll_sn);
-	int                         poll_and_process_error_element_tx(struct mlx5_cqe64 *cqe, uint64_t* p_cq_poll_sn);
-	int                         poll_and_process_error_element_rx(struct mlx5_cqe64 *cqe, void* pv_fd_ready_array);
+	int                         poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uint64_t* p_cq_poll_sn);
+	int                         poll_and_process_error_element_rx(struct vma_mlx5_cqe *cqe, void* pv_fd_ready_array);
 
 	virtual mem_buf_desc_t*     process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status);
 	virtual void                add_qp_rx(qp_mgr* qp);
@@ -74,16 +74,16 @@ public:
 protected:
 	qp_mgr_eth_mlx5*            m_qp;
 	vma_ib_mlx5_cq_t            m_mlx5_cq;
-	inline struct mlx5_cqe64*   check_cqe(void);
+	inline struct vma_mlx5_cqe*   check_cqe(void);
 
 private:
 	const bool                  m_b_sysvar_enable_socketxtreme;
 	mem_buf_desc_t              *m_rx_hot_buffer;
 
-	inline struct mlx5_cqe64*   get_cqe64(struct mlx5_cqe64 **cqe_err = NULL);
-	inline void                 cqe64_to_mem_buff_desc(struct mlx5_cqe64 *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
-	void                        cqe64_to_vma_wc(struct mlx5_cqe64 *cqe, vma_ibv_wc *wc);
-	inline struct mlx5_cqe64*   check_error_completion(struct mlx5_cqe64 *cqe, uint32_t *ci, uint8_t op_own);
+	inline struct vma_mlx5_cqe*   get_cqe(struct vma_mlx5_cqe **cqe_err = NULL);
+	inline void                 cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
+	void                        cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc);
+	inline struct vma_mlx5_cqe*   check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci, uint8_t op_own);
 	inline void                 update_global_sn(uint64_t& cq_poll_sn, uint32_t rettotal);
 
 	virtual int	req_notify_cq() {
