@@ -383,6 +383,16 @@ enum {
 	VMA_MLX5_OPCODE_DUMP = 0x23,
 };
 
+/*
+ * Parameters
+ */
+#define VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE          (64 * 1024)
+#define VMA_MLX5_PARAMS_LRO_TIMEOUT               32
+#define VMA_MLX5_PARAMS_LRO_TIMEOUT_ARRAY_SIZE    4
+
+/*
+ * Interfaces
+ */
 int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
 int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr, struct ibv_recv_wr **bad_wr);
 

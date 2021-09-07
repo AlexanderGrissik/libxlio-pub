@@ -292,6 +292,11 @@ void ring_simple::create_resources()
 			m_lro.max_msg_sz_mode = caps.lro_max_msg_sz_mode;
 			m_lro.min_mss_size = caps.lro_min_mss_size;
 			memcpy(m_lro.timer_supported_periods, caps.lro_timer_supported_periods, sizeof(m_lro.timer_supported_periods));
+			/* calculate possible payload size w/o using max_msg_sz_mode
+			 * because during memory buffer allocation L2+L3+L4 is reserved
+			 * adjust payload size to 256 bytes
+			 */
+			m_lro.max_payload_sz = std::min((int)safe_mce_sys().rx_buf_size, VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256 * 256;
 		}
 #endif /* DEFINED_DPCP */
 	}
@@ -305,6 +310,7 @@ void ring_simple::create_resources()
 			m_lro.timer_supported_periods[1],
 			m_lro.timer_supported_periods[2],
 			m_lro.timer_supported_periods[3]);
+	ring_logdbg("ring attributes: m_lro:max_payload_sz = %d", m_lro.max_payload_sz);
 
 	m_flow_tag_enabled = m_p_ib_ctx->get_flow_tag_capability();
 #if defined(DEFINED_NGINX)

@@ -272,6 +272,11 @@ private:
 
 	    /* Array of supported LRO timer periods in microseconds. */
 	    uint8_t timer_supported_periods[4];
+
+	    /* Maximum length of TCP payload for LRO
+	     * It is calculated from max_msg_sz_mode and safe_mce_sys().rx_buf_size
+	     */
+	    uint32_t max_payload_sz;
 	} m_lro;
 };
 
