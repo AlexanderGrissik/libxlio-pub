@@ -101,6 +101,11 @@ private:
 	inline int	fill_inl_segment(sg_array &sga, uint8_t *cur_seg, uint8_t* data_addr, int max_inline_len, int inline_len);
 	inline int	fill_ptr_segment(sg_array &sga, struct mlx5_wqe_data_seg* dp_seg, uint8_t* data_addr, int data_len, mem_buf_desc_t* buffer);
 
+#ifdef DEFINED_DPCP
+	dpcp::tir* create_tir();
+	dpcp::tir* m_p_tir;
+#endif /* DEFINED_DPCP */
+
 	struct mlx5_eth_wqe	(*m_sq_wqes)[];
 	struct mlx5_eth_wqe*	m_sq_wqe_hot;
 	uint8_t*		m_sq_wqes_end;

@@ -142,6 +142,9 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc,
         qp_mgr_eth(desc, tx_num_wr, vlan, false)
         ,m_sq_wqe_idx_to_wrid(NULL)
         ,m_rq_wqe_counter(0)
+#ifdef DEFINED_DPCP
+        ,m_p_tir(NULL)
+#endif /* DEFINED_DPCP */
         ,m_sq_wqes(NULL)
         ,m_sq_wqe_hot(NULL)
         ,m_sq_wqes_end(NULL)
@@ -232,6 +235,10 @@ void qp_mgr_eth_mlx5::up()
 #endif /* DEFINED_IBV_DM */
 		}
 	}
+
+#ifdef DEFINED_DPCP
+	m_p_tir = create_tir();
+#endif /* DEFINED_DPCP */
 }
 
 void qp_mgr_eth_mlx5::down()
@@ -239,6 +246,13 @@ void qp_mgr_eth_mlx5::down()
 	if (m_dm_enabled) {
 		m_dm_mgr.release_resources();
 	}
+
+#ifdef DEFINED_DPCP
+	if (m_p_tir) {
+		delete m_p_tir;
+		m_p_tir = NULL;
+	}
+#endif /* DEFINED_DPCP */
 
 	qp_mgr::down();
 }
@@ -1245,5 +1259,28 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true, 0);
 	}
 }
+
+#ifdef DEFINED_DPCP
+dpcp::tir* qp_mgr_eth_mlx5::create_tir()
+{
+	dpcp::status status = dpcp::DPCP_OK;
+	dpcp::tir* tir_obj = NULL;
+	dpcp::tir::attr tir_attr;
+
+	memset(&tir_attr, 0, sizeof(tir_attr));
+	tir_attr.flags = dpcp::TIR_ATTR_INLINE_RQN | dpcp::TIR_ATTR_TRANSPORT_DOMAIN;
+	tir_attr.inline_rqn = m_mlx5_qp.rqn;
+	tir_attr.transport_domain = m_p_ib_ctx_handler->get_dpcp_adapter()->get_td();
+	status = m_p_ib_ctx_handler->get_dpcp_adapter()->create_tir(tir_attr, tir_obj);
+	if (dpcp::DPCP_OK != status) {
+		qp_logwarn("failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);
+		return NULL;
+	}
+
+	qp_logdbg("tir:%p created", tir_obj);
+
+	return tir_obj;
+}
+#endif /* DEFINED_DPCP */
 
 #endif /* DEFINED_DIRECT_VERBS */
