@@ -162,7 +162,7 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc,
 	qp_logdbg("m_db_method=%d", m_db_method);
 }
 
-void qp_mgr_eth_mlx5::init_sq()
+void qp_mgr_eth_mlx5::init_qp()
 {
 	if (0 != vma_ib_mlx5_get_qp(m_qp, &m_mlx5_qp)) {
 		qp_logpanic("vma_ib_mlx5_get_qp failed (errno=%d %m)", errno);
@@ -216,7 +216,7 @@ void qp_mgr_eth_mlx5::init_sq()
 
 void qp_mgr_eth_mlx5::up()
 {
-	init_sq();
+	init_qp();
 	qp_mgr::up();
 
 	/* This limitation is done because of a observation

@@ -340,10 +340,6 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
 
 	m_curr_rx_wr = 0;
 
-	if (m_p_cq_mgr_tx) {
-		m_p_cq_mgr_tx->add_qp_tx(this);
-	}
-
 	return 0;
 }
 
@@ -351,6 +347,9 @@ void qp_mgr::up()
 {
 	// Add buffers
 	qp_logdbg("QP current state: %d", priv_ibv_query_qp_state(m_qp));
+
+	m_p_cq_mgr_tx->add_qp_tx(this);
+
 	release_rx_buffers(); // We might have old flushed cqe's in our CQ still from previous HA event
 	release_tx_buffers();
 
@@ -358,6 +357,7 @@ void qp_mgr::up()
 	m_p_last_tx_mem_buf_desc = NULL;
 
 	modify_qp_to_ready_state();
+
 	m_p_cq_mgr_rx->add_qp_rx(this);
 }
 
@@ -375,6 +375,7 @@ void qp_mgr::down()
 
 	release_tx_buffers();
 	release_rx_buffers();
+	m_p_cq_mgr_tx->del_qp_tx(this);
 	m_p_cq_mgr_rx->del_qp_rx(this);
 }
 

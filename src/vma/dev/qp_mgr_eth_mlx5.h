@@ -64,7 +64,7 @@ public:
 
 protected:
 	void		trigger_completion_for_all_sent_packets();
-	void		init_sq();
+	void		init_qp();
 
 	uint64_t*   m_sq_wqe_idx_to_wrid;
 	uint64_t    m_rq_wqe_counter;

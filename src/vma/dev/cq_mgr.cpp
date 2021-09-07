@@ -314,6 +314,19 @@ void cq_mgr::add_qp_tx(qp_mgr* qp)
 	m_qp_rec.debt = 0;
 }
 
+void cq_mgr::del_qp_tx(qp_mgr *qp)
+{
+	BULLSEYE_EXCLUDE_BLOCK_START
+	if (m_qp_rec.qp != qp) {
+		cq_logdbg("wrong qp_mgr=%p != m_qp_rec.qp=%p", qp, m_qp_rec.qp);
+		return;
+	}
+	BULLSEYE_EXCLUDE_BLOCK_END
+	cq_logdbg("qp_mgr=%p", m_qp_rec.qp);
+
+	memset(&m_qp_rec, 0, sizeof(m_qp_rec));
+}
+
 bool cq_mgr::request_more_buffers()
 {
 	cq_logfuncall("Allocating additional %d buffers for internal use", m_n_sysvar_qp_compensation_level);

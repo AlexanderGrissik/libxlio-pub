@@ -147,9 +147,11 @@ public:
 
 	virtual void	add_qp_rx(qp_mgr* qp);
 	virtual void	del_qp_rx(qp_mgr *qp);
-	virtual uint32_t	clean_cq();
 	
 	virtual void 	add_qp_tx(qp_mgr* qp);
+	virtual void	del_qp_tx(qp_mgr *qp);
+
+	virtual uint32_t	clean_cq();
 
 	bool	reclaim_recv_buffers(descq_t *rx_reuse);
 	bool	reclaim_recv_buffers(mem_buf_desc_t *rx_reuse_lst);
