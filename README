@@ -107,6 +107,7 @@ Example:
  XLIO DETAILS: Tx Prefetch Bytes              256                        [XLIO_TX_PREFETCH_BYTES]
  XLIO DETAILS: TCP Send Buffer size           1000000                    [XLIO_TCP_SEND_BUFFER_SIZE]
  XLIO DETAILS: Rx Mem Bufs                    200000                     [XLIO_RX_BUFS]
+ XLIO DETAILS: Rx Mem Buf size                0                          [XLIO_RX_BUF_SIZE]
  XLIO DETAILS: Rx QP WRE                      16000                      [XLIO_RX_WRE]
  XLIO DETAILS: Rx QP WRE Batching             64                         [XLIO_RX_WRE_BATCHING]
  XLIO DETAILS: Rx Byte Min Limit              65536                      [XLIO_RX_BYTES_MIN]
@@ -455,6 +456,11 @@ XLIO_RX_BUFS
 Number Rx data buffer elements allocation for the processes. These data buffers
 may be used by all QPs on all HCAs
 Default value is 200000
+
+XLIO_RX_BUF_SIZE
+Size of Rx data buffer elements allocation.
+Can not be less then MTU (Maximum Transfer Unit) and greater than 0xFF00.
+Default value is calculated basing on maximum MTU.
 
 XLIO_RX_WRE
 Number of Work Request Elements allocated in all receive QP's.

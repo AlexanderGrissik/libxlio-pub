@@ -720,8 +720,14 @@ static void do_global_ctors_helper()
 
  	NEW_CTOR(g_zc_cache, mapping_cache((size_t)safe_mce_sys().zc_cache_threshold * ONE_MB));
 
+	safe_mce_sys().rx_buf_size = MIN((int)safe_mce_sys().rx_buf_size, (int)0xFF00);
+	if (safe_mce_sys().rx_buf_size <= get_lwip_tcp_mss(g_p_net_device_table_mgr->get_max_mtu(), safe_mce_sys().lwip_mss)) {
+		safe_mce_sys().rx_buf_size = 0;
+	}
 	NEW_CTOR(g_buffer_pool_rx, buffer_pool(safe_mce_sys().rx_num_bufs,
-			RX_BUF_SIZE(g_p_net_device_table_mgr->get_max_mtu()),
+			RX_BUF_SIZE(safe_mce_sys().rx_buf_size ?
+					safe_mce_sys().rx_buf_size :
+					g_p_net_device_table_mgr->get_max_mtu()),
 			buffer_pool::free_rx_lwip_pbuf_custom,
 			(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX ? safe_mce_sys().m_ioctl.user_alloc.memalloc : NULL),
 			(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX ? safe_mce_sys().m_ioctl.user_alloc.memfree : NULL)));

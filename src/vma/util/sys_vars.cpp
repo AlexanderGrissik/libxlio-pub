@@ -552,6 +552,7 @@ void mce_sys_var::get_env_params()
 	tx_segs_batch_tcp	= MCE_DEFAULT_TX_SEGS_BATCH_TCP;
 
 	rx_num_bufs             = MCE_DEFAULT_RX_NUM_BUFS;
+	rx_buf_size             = MCE_DEFAULT_RX_BUF_SIZE;
 	rx_bufs_batch           = MCE_DEFAULT_RX_BUFS_BATCH;
 	rx_num_wr               = MCE_DEFAULT_RX_NUM_WRE;
 	rx_num_wr_to_post_recv  = MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV;
@@ -1024,6 +1025,9 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_RX_NUM_BUFS)) != NULL)
 		rx_num_bufs = (uint32_t)atoi(env_ptr);
+
+	if ((env_ptr = getenv(SYS_VAR_RX_BUF_SIZE)) != NULL)
+		rx_buf_size = (uint32_t)atoi(env_ptr);
 
 	if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE_TO_POST_RECV)) != NULL)
 		rx_num_wr_to_post_recv = MIN(NUM_RX_WRE_TO_POST_RECV_MAX, MAX(1, (uint32_t)atoi(env_ptr)));
