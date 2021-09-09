@@ -1271,6 +1271,15 @@ dpcp::tir* qp_mgr_eth_mlx5::create_tir()
 	tir_attr.flags = dpcp::TIR_ATTR_INLINE_RQN | dpcp::TIR_ATTR_TRANSPORT_DOMAIN;
 	tir_attr.inline_rqn = m_mlx5_qp.rqn;
 	tir_attr.transport_domain = m_p_ib_ctx_handler->get_dpcp_adapter()->get_td();
+
+	if (m_p_ring->m_lro.cap &&
+			m_p_ring->m_lro.max_payload_sz) {
+		tir_attr.flags |= dpcp::TIR_ATTR_LRO;
+		tir_attr.lro.timeout_period_usecs = VMA_MLX5_PARAMS_LRO_TIMEOUT;
+		tir_attr.lro.enable_mask = 1;
+		tir_attr.lro.max_msg_sz = m_p_ring->m_lro.max_payload_sz >> 8;
+	}
+
 	status = m_p_ib_ctx_handler->get_dpcp_adapter()->create_tir(tir_attr, tir_obj);
 	if (dpcp::DPCP_OK != status) {
 		qp_logwarn("failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);

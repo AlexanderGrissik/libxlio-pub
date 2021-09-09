@@ -199,6 +199,9 @@ inline void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_
 			p_rx_wc_buf_desc->rx.flow_tag_id      = vma_get_flow_tag(cqe);
 			p_rx_wc_buf_desc->rx.is_sw_csum_need = !(m_b_is_rx_hw_csum_on &&
 					(cqe->hds_ip_ext & MLX5_CQE_L4_OK) && (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
+			if (cqe->lro_num_seg > 1) {
+				lro_update_hdr(cqe, p_rx_wc_buf_desc);
+			}
 			return;
 		}
 		case MLX5_CQE_INVALID: /* No cqe!*/
@@ -832,6 +835,47 @@ int cq_mgr_mlx5::poll_and_process_error_element_rx(struct vma_mlx5_cqe *cqe, voi
 	m_rx_hot_buffer = NULL;
 
 	return 1;
+}
+
+void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc)
+{
+	struct ethhdr* p_eth_h = (struct ethhdr*)(p_rx_wc_buf_desc->p_buffer);
+	struct iphdr* p_ip_h = NULL;
+	struct tcphdr* p_tcp_h = NULL;
+	size_t transport_header_len = ETH_HDR_LEN;
+
+	if (p_eth_h->h_proto == htons(ETH_P_8021Q)) {
+		transport_header_len = ETH_VLAN_HDR_LEN;
+	}
+
+	assert(p_ip_h->protocol == IPPROTO_TCP);
+	assert(p_ip_h->version == IPV4_VERSION);
+
+	p_ip_h = (struct iphdr*)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
+	p_tcp_h = (struct tcphdr*)((uint8_t*)p_ip_h + (int)(p_ip_h->ihl) * 4);
+
+	if ((cqe->lro_tcppsh_abort_dupack >> 6) & 1) {
+		p_tcp_h->psh = 1;
+	}
+
+	/* TCP packet <ACK> flag is set, and packet carries no data or
+	 * TCP packet <ACK> flag is set, and packet carries data
+	 */
+	if ((0x03  == ((cqe->l4_hdr_type_etc >> 4) & 0x7)) ||
+			(0x04 == ((cqe->l4_hdr_type_etc >> 4) & 0x7))) {
+		p_tcp_h->ack = 1;
+		p_tcp_h->ack_seq = cqe->lro_ack_seq_num;
+		p_tcp_h->window = cqe->lro_tcp_win;
+
+		/* ignore */
+		p_tcp_h->check = 0;
+	}
+
+	p_ip_h->ttl = cqe->lro_min_ttl;
+	p_ip_h->tot_len = htons(ntohl(cqe->byte_cnt) - transport_header_len);
+
+	/* ignore */
+	p_ip_h->check = 0;
 }
 
 #endif /* DEFINED_DIRECT_VERBS */

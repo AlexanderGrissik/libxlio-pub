@@ -89,6 +89,8 @@ private:
 	virtual int	req_notify_cq() {
 		return vma_ib_mlx5_req_notify_cq(&m_mlx5_cq, 0);
 	};
+
+	void lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc);
 };
 
 #endif /* DEFINED_DIRECT_VERBS */
