@@ -213,6 +213,17 @@ namespace vma_spec {
 	const char * to_str(vma_spec_t level);
 }
 
+namespace option_3 {
+	typedef enum {
+		AUTO = -1,
+		OFF = 0,
+		ON = 1,
+	} mode_t;
+	mode_t from_str(const char* str, mode_t def_value);
+	mode_t from_int(const int option, mode_t def_value);
+	const char * to_str(mode_t option);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 class vma_exception_handling
 {
@@ -435,6 +446,7 @@ public:
 #ifdef DEFINED_TSO
 	bool 		enable_tso;
 #endif /* DEFINED_TSO */
+	option_3::mode_t enable_lro;
 	uint32_t	timer_netlink_update_msec;
 
 	//Neigh parameters
@@ -606,6 +618,7 @@ extern mce_sys_var & safe_mce_sys();
 #ifdef DEFINED_TSO
 #define SYS_VAR_TSO                                   "XLIO_TSO"
 #endif /* DEFINED_TSO */
+#define SYS_VAR_LRO                                   "XLIO_LRO"
 
 #define SYS_VAR_INTERNAL_THREAD_AFFINITY              "XLIO_INTERNAL_THREAD_AFFINITY"
 #define SYS_VAR_INTERNAL_THREAD_CPUSET                "XLIO_INTERNAL_THREAD_CPUSET"
@@ -774,6 +787,7 @@ extern mce_sys_var & safe_mce_sys();
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TSO                               (true)
 #endif /* DEFINED_TSO */
+#define MCE_DEFAULT_LRO                               (option_3::AUTO)
 #define MCE_DEFAULT_TCP_ABORT_ON_CLOSE                (false)
 #define MCE_DEFAULT_RX_POLL_ON_TX_TCP                 (false)
 #define MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME    (false)

@@ -163,6 +163,58 @@ namespace vma_spec {
 
 }
 
+namespace option_3 {
+	static struct {
+		mode_t option;
+		const char *  output_name;
+		const char * input_names[3];
+	} options[] = {
+			{AUTO, "auto", {"auto", NULL, NULL}},
+			{ON, "on", {"on", "enabled", NULL}},
+			{OFF, "off", {"off", "disabled", NULL}}
+	};
+
+	mode_t from_str(const char* str, mode_t def_value)
+	{
+		size_t total_options = sizeof(options) / sizeof(options[0]);
+		for (size_t i = 0; i < total_options; ++i) {
+			const char ** input_name = options[i].input_names;
+			while (*input_name) {
+				if (strcasecmp(str, *input_name) == 0)
+					return options[i].option;
+				input_name++;
+			}
+		}
+
+		return def_value;
+	}
+
+	mode_t from_int(const int option, mode_t def_value)
+	{
+		size_t total_options = sizeof(options) / sizeof(options[0]);
+		for (size_t i = 0; i < total_options; ++i) {
+			if ((int)options[i].option == option) {
+					return options[i].option;
+			}
+		}
+
+		return def_value;
+	}
+
+	const char * to_str(mode_t option)
+	{
+		size_t total_options = sizeof(options) / sizeof(options[0]);
+		for (size_t i = 0; i < total_options; ++i) {
+			if (options[i].option == option) {
+					return options[i].output_name;
+			}
+		}
+
+		return NULL;
+	}
+
+}
+
 int mce_sys_var::list_to_cpuset(char *cpulist, cpu_set_t *cpu_set)
 {
 	char comma[] = ",";
@@ -617,6 +669,7 @@ void mce_sys_var::get_env_params()
 #ifdef DEFINED_TSO
 	enable_tso		= MCE_DEFAULT_TSO;
 #endif /* DEFINED_TSO */
+	enable_lro		= MCE_DEFAULT_LRO;
 	handle_fork		= MCE_DEFAULT_FORK_SUPPORT;
 	handle_bf		= MCE_DEFAULT_BF_FLAG;
 	close_on_dup2		= MCE_DEFAULT_CLOSE_ON_DUP2;
@@ -1386,6 +1439,10 @@ void mce_sys_var::get_env_params()
 				SYS_VAR_RING_MIGRATION_RATIO_TX, -1, SYS_VAR_TSO);
 	}
 #endif /* DEFINED_TSO */
+
+	if ((env_ptr = getenv(SYS_VAR_LRO)) != NULL){
+		enable_lro = option_3::from_str(env_ptr, MCE_DEFAULT_LRO);
+	}
 
 	if ((env_ptr = getenv(SYS_VAR_CLOSE_ON_DUP2)) != NULL)
 		close_on_dup2 = atoi(env_ptr) ? true : false;

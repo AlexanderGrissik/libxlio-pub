@@ -164,6 +164,7 @@ Example:
  XLIO DETAILS: IPOIB support                  Enabled                    [XLIO_IPOIB]
  XLIO DETAILS: SocketXtreme mode              Disabled                   [XLIO_SOCKETXTREME]
  XLIO DETAILS: TSO support                    Enabled                    [XLIO_TSO]
+ XLIO DETAILS: LRO support                    auto                       [XLIO_LRO]
  XLIO DETAILS: BF (Blue Flame)                Enabled                    [XLIO_BF]
  XLIO DETAILS: Src port stirde                2                          [XLIO_SRC_PORT_STRIDE]
  XLIO DETAILS: Number of Nginx workers        0                          [XLIO_NGINX_WORKERS_NUM]
@@ -503,6 +504,22 @@ of required size. Copying the prototype header and options, then calculating
 the sequence number and checksum fields creates TCP segment headers.
 Expected benefits: Throughput increase and CPU unload.
 Default value is 1 (Enable)
+
+XLIO_LRO
+Large receive offload (LRO) is a technique for increasing inbound throughput of
+high-bandwidth network connections by reducing central processing unit (CPU)
+overhead. It works by aggregating multiple incoming packets from a single stream
+into a larger buffer before they are passed higher up the networking stack,
+thus reducing the number of packets that must be processed.
+Default value: auto
+
+auto
+    Depends on ethtool setting and adapter ability.
+    See ethtool -k <eth0> | grep large-receive-offload
+on
+    Enabled in case adapter supports it
+off
+    Disabled
 
 XLIO_RX_POLL_INIT
 XLIO maps all UDP sockets as potential offloaded capable. Only after the

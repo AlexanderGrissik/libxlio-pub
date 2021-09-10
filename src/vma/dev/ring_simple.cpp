@@ -280,7 +280,8 @@ void ring_simple::create_resources()
 
 	/* Detect LRO capabilities */
 	memset(&m_lro, 0, sizeof(m_lro));
-	if (1 == validate_lro(get_if_index())) {
+	if ((safe_mce_sys().enable_lro == option_3::ON) ||
+			((safe_mce_sys().enable_lro == option_3::AUTO) && (1 == validate_lro(get_if_index())))) {
 #ifdef DEFINED_DPCP
 		dpcp::adapter_hca_capabilities caps;
 
