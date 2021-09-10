@@ -201,6 +201,8 @@ inline void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_
 					(cqe->hds_ip_ext & MLX5_CQE_L4_OK) && (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
 			if (cqe->lro_num_seg > 1) {
 				lro_update_hdr(cqe, p_rx_wc_buf_desc);
+				m_p_cq_stat->n_rx_lro_packets++;
+				m_p_cq_stat->n_rx_lro_bytes += p_rx_wc_buf_desc->sz_data;
 			}
 			return;
 		}

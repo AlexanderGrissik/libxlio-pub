@@ -264,6 +264,8 @@ void update_delta_cq_stat(cq_stats_t* p_curr_cq_stats, cq_stats_t* p_prev_cq_sta
 		p_prev_cq_stats->n_rx_pkt_drop = (p_curr_cq_stats->n_rx_pkt_drop - p_prev_cq_stats->n_rx_pkt_drop) / delay;
 		p_prev_cq_stats->n_rx_sw_queue_len = p_curr_cq_stats->n_rx_sw_queue_len;
 		p_prev_cq_stats->n_buffer_pool_len = p_curr_cq_stats->n_buffer_pool_len;
+		p_prev_cq_stats->n_rx_lro_packets = p_curr_cq_stats->n_rx_lro_packets;
+		p_prev_cq_stats->n_rx_lro_bytes = p_curr_cq_stats->n_rx_lro_bytes;
 	}
 }
 
@@ -347,6 +349,9 @@ void print_cq_stats(cq_instance_block_t* p_cq_inst_arr)
 			printf(FORMAT_STATS_32bit, "Packets queue len:",p_cq_stats->n_rx_sw_queue_len);
 			printf(FORMAT_STATS_32bit, "Drained max:", p_cq_stats->n_rx_drained_at_once_max);
 			printf(FORMAT_STATS_32bit, "Buffer pool size:",p_cq_stats->n_buffer_pool_len);
+			if (p_cq_stats->n_rx_lro_packets) {
+				printf(FORMAT_RING_PACKETS, "Rx lro:", p_cq_stats->n_rx_lro_bytes/BYTES_TRAFFIC_UNIT, p_cq_stats->n_rx_lro_packets, post_fix);
+			}
 		}
 	}
 	printf("======================================================\n");
@@ -1336,8 +1341,7 @@ void zero_ring_stats(ring_stats_t* p_ring_stats)
 
 void zero_cq_stats(cq_stats_t* p_cq_stats)
 {
-	p_cq_stats->n_rx_pkt_drop = 0;
-	p_cq_stats->n_rx_drained_at_once_max = 0;
+	memset(p_cq_stats, 0, sizeof(*p_cq_stats));
 }
 
 void zero_bpool_stats(bpool_stats_t* p_bpool_stats)
