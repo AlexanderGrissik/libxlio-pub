@@ -62,7 +62,7 @@ TEST_F(udp_rfs, single_rule_send) {
 		ASSERT_EQ(0, rc);
 
         log_trace("Client bound: fd=%d to %s\n",
-				fd, sys_addr2str((struct sockaddr_in *)&server_addr));
+				fd, sys_addr2str((struct sockaddr_in *)&client_addr));
 
 		rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);

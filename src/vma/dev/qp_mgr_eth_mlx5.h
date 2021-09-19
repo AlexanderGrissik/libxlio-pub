@@ -39,7 +39,6 @@
 #include "vma/dev/dm_mgr.h"
 
 #include <vector>
-#include <memory>
 
 #ifdef DEFINED_DPCP
 #include <mellanox/dpcp.h>
@@ -50,6 +49,14 @@
 #endif /* DEFINED_UTLS */
 
 #if defined(DEFINED_DIRECT_VERBS)
+
+#define qp_logpanic 	__log_info_panic
+#define qp_logerr	__log_info_err
+#define qp_logwarn	__log_info_warn
+#define qp_loginfo	__log_info_info
+#define qp_logdbg	__log_info_dbg
+#define qp_logfunc	__log_info_func
+#define qp_logfuncall	__log_info_funcall
 
 class qp_mgr_eth_mlx5 : public qp_mgr_eth
 {
@@ -74,17 +81,17 @@ public:
 
 protected:
 	void		trigger_completion_for_all_sent_packets();
-	void		init_qp();
+	virtual void	init_qp();
 
 	uint64_t*   m_sq_wqe_idx_to_wrid;
 	uint64_t    m_rq_wqe_counter;
+
 private:
-	cq_mgr*		init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
+	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
 	virtual cq_mgr*	init_tx_cq_mgr(void);
 	virtual bool	is_completion_need() { return !m_n_unsignaled_count || (m_dm_enabled && m_dm_mgr.is_completion_need()); };
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
-	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs);
-
+	
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
@@ -113,11 +120,6 @@ private:
 #endif /* DEFINED_TSO */
 	inline int	fill_inl_segment(sg_array &sga, uint8_t *cur_seg, uint8_t* data_addr, int max_inline_len, int inline_len);
 	inline int	fill_ptr_segment(sg_array &sga, struct mlx5_wqe_data_seg* dp_seg, uint8_t* data_addr, int data_len, mem_buf_desc_t* buffer);
-
-#ifdef DEFINED_DPCP
-	dpcp::tir* create_tir();
-	dpcp::tir* m_p_tir;
-#endif /* DEFINED_DPCP */
 
 	struct mlx5_eth_wqe	(*m_sq_wqes)[];
 	struct mlx5_eth_wqe*	m_sq_wqe_hot;

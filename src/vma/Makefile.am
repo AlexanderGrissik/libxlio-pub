@@ -68,6 +68,7 @@ libxlio_la_SOURCES := \
 	dev/dm_mgr.cpp \
 	dev/qp_mgr.cpp \
 	dev/qp_mgr_eth_mlx5.cpp \
+	dev/qp_mgr_eth_mlx5_dpcp.cpp \
 	dev/gro_mgr.cpp \
 	dev/rfs.cpp \
 	dev/rfs_uc.cpp \

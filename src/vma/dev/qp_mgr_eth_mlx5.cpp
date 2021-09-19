@@ -39,17 +39,9 @@
 #include "vma/util/utils.h"
 #include "vlogger/vlogger.h"
 #include "ring_simple.h"
-#include "rfs_rule_dpcp.h"
 
 #undef  MODULE_NAME
 #define MODULE_NAME 	"qpm_mlx5"
-#define qp_logpanic 	__log_info_panic
-#define qp_logerr	__log_info_err
-#define qp_logwarn	__log_info_warn
-#define qp_loginfo	__log_info_info
-#define qp_logdbg	__log_info_dbg
-#define qp_logfunc	__log_info_func
-#define qp_logfuncall	__log_info_funcall
 
 #if !defined(MLX5_ETH_INLINE_HEADER_SIZE)
 #define MLX5_ETH_INLINE_HEADER_SIZE 18
@@ -233,9 +225,6 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc,
         qp_mgr_eth(desc, tx_num_wr, vlan, false)
         ,m_sq_wqe_idx_to_wrid(NULL)
         ,m_rq_wqe_counter(0)
-#ifdef DEFINED_DPCP
-        ,m_p_tir(NULL)
-#endif /* DEFINED_DPCP */
         ,m_sq_wqes(NULL)
         ,m_sq_wqe_hot(NULL)
         ,m_sq_wqes_end(NULL)
@@ -326,10 +315,6 @@ void qp_mgr_eth_mlx5::up()
 #endif /* DEFINED_IBV_DM */
 		}
 	}
-
-#ifdef DEFINED_DPCP
-	m_p_tir = create_tir();
-#endif /* DEFINED_DPCP */
 }
 
 void qp_mgr_eth_mlx5::down()
@@ -337,13 +322,6 @@ void qp_mgr_eth_mlx5::down()
 	if (m_dm_enabled) {
 		m_dm_mgr.release_resources();
 	}
-
-#ifdef DEFINED_DPCP
-	if (m_p_tir) {
-		delete m_p_tir;
-		m_p_tir = NULL;
-	}
-#endif /* DEFINED_DPCP */
 
 	qp_mgr::down();
 }
@@ -449,24 +427,6 @@ inline void qp_mgr_eth_mlx5::set_signal_in_next_send_wqe()
 {
 	volatile struct mlx5_eth_wqe* wqe = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
 	wqe->ctrl.data[2] = htonl(8);
-}
-
-rfs_rule* qp_mgr_eth_mlx5::create_rfs_rule(vma_ibv_flow_attr& attrs)
-{
-#ifndef DEFINED_DPCP
-	return qp_mgr::create_rfs_rule(attrs);
-#else
-	if (!safe_mce_sys().enable_striding_rq)
-		return qp_mgr::create_rfs_rule(attrs);
-	
-	if (m_p_tir || !m_p_ib_ctx_handler || !m_p_ib_ctx_handler->get_dpcp_adapter()) {
-		std::unique_ptr<rfs_rule_dpcp> new_rule(new rfs_rule_dpcp());
-		if (new_rule->create(attrs, *m_p_tir, *m_p_ib_ctx_handler->get_dpcp_adapter()))
-			return new_rule.release();
-	}
-
-	return nullptr;
-#endif
 }
 
 #ifdef DEFINED_TSO
@@ -1435,39 +1395,5 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 		send_to_wire(&send_wr, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM|VMA_TX_PACKET_L4_CSUM), true, 0);
 	}
 }
-
-#ifdef DEFINED_DPCP
-dpcp::tir* qp_mgr_eth_mlx5::create_tir()
-{
-	dpcp::tir* tir_obj = NULL;
-#if (DEFINED_DPCP > 10113)
-	dpcp::status status = dpcp::DPCP_OK;
-	dpcp::tir::attr tir_attr;
-
-	memset(&tir_attr, 0, sizeof(tir_attr));
-	tir_attr.flags = dpcp::TIR_ATTR_INLINE_RQN | dpcp::TIR_ATTR_TRANSPORT_DOMAIN;
-	tir_attr.inline_rqn = m_mlx5_qp.rqn;
-	tir_attr.transport_domain = m_p_ib_ctx_handler->get_dpcp_adapter()->get_td();
-
-	if (m_p_ring->m_lro.cap &&
-			m_p_ring->m_lro.max_payload_sz) {
-		tir_attr.flags |= dpcp::TIR_ATTR_LRO;
-		tir_attr.lro.timeout_period_usecs = VMA_MLX5_PARAMS_LRO_TIMEOUT;
-		tir_attr.lro.enable_mask = 1;
-		tir_attr.lro.max_msg_sz = m_p_ring->m_lro.max_payload_sz >> 8;
-	}
-
-	status = m_p_ib_ctx_handler->get_dpcp_adapter()->create_tir(tir_attr, tir_obj);
-	if (dpcp::DPCP_OK != status) {
-		qp_logwarn("failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);
-		return NULL;
-	}
-#endif /* DEFINED_DPCP > 10112 */
-
-	qp_logdbg("tir:%p created", tir_obj);
-
-	return tir_obj;
-}
-#endif /* DEFINED_DPCP */
 
 #endif /* DEFINED_DIRECT_VERBS */

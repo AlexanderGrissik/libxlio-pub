@@ -213,6 +213,9 @@ out:
 		 * packets in illegal states.
 		 * This is only for Raw Packet QPs since they are represented
 		 * differently in the hardware.
+		 * For DPCP RQ, the RQ state is switched along with the QP-unused-rq,
+		 * and in such case if RQ.State == RST, doorbells are not processed anyway
+		 * and for RDY state without a TIR incomming messages never reach RQ (PRM 8.14.1).
 		 */
 		if (likely(!((mlx5_qp->qp->qp_type == IBV_QPT_RAW_PACKET ||
 				mlx5_qp->flags & VMA_IB_MLX5_QP_FLAGS_USE_UNDERLAY) &&

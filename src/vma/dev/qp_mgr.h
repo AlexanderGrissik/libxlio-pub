@@ -127,7 +127,7 @@ public:
 	inline bool         get_hw_dummy_send_support() {return m_hw_dummy_send_support; }
 
 	virtual void        modify_qp_to_ready_state() = 0;
-	void                modify_qp_to_error_state();
+	virtual void        modify_qp_to_error_state();
 
 	void                release_rx_buffers();
 	void                release_tx_buffers();
