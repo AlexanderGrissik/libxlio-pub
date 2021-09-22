@@ -1263,8 +1263,9 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 #ifdef DEFINED_DPCP
 dpcp::tir* qp_mgr_eth_mlx5::create_tir()
 {
-	dpcp::status status = dpcp::DPCP_OK;
 	dpcp::tir* tir_obj = NULL;
+#if (DEFINED_DPCP > 10113)
+	dpcp::status status = dpcp::DPCP_OK;
 	dpcp::tir::attr tir_attr;
 
 	memset(&tir_attr, 0, sizeof(tir_attr));
@@ -1285,6 +1286,7 @@ dpcp::tir* qp_mgr_eth_mlx5::create_tir()
 		qp_logwarn("failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);
 		return NULL;
 	}
+#endif /* DEFINED_DPCP > 10112 */
 
 	qp_logdbg("tir:%p created", tir_obj);
 

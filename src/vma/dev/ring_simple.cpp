@@ -282,7 +282,7 @@ void ring_simple::create_resources()
 	memset(&m_lro, 0, sizeof(m_lro));
 	if ((safe_mce_sys().enable_lro == option_3::ON) ||
 			((safe_mce_sys().enable_lro == option_3::AUTO) && (1 == validate_lro(get_if_index())))) {
-#ifdef DEFINED_DPCP
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 		dpcp::adapter_hca_capabilities caps;
 
 		if (m_p_ib_ctx->get_dpcp_adapter() &&
