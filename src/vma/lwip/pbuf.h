@@ -97,6 +97,8 @@ struct pbuf {
   /** length of this buffer */
   u16_t len;
 
+  u8_t  gro;
+
   /**
    * total length of this buffer and all next buffers in chain
    * belonging to the same packet.

@@ -109,20 +109,19 @@ public:
 			uint64_t	hw_raw_timestamp;
 			timestamps_t	timestamps;
 			void* 		context;
-			uint32_t	flow_tag_id; // Flow Tag ID of this received packet
-
+			
 			union {
 				struct {
 					struct iphdr* 	p_ip_h;
 					struct tcphdr* 	p_tcp_h;
 					size_t		n_transport_header_len;
-					bool		gro;
 				} tcp;
 				struct {
 					in_addr_t	local_if; // L3 info
 				} udp;
 			};
 
+			uint32_t	flow_tag_id; // Flow Tag ID of this received packet
 			int8_t		n_frags;	//number of fragments
 			bool 		is_vma_thr; 	// specify whether packet drained from VMA internal thread or from user app thread
 			bool		is_sw_csum_need; // specify if software checksum is need for this packet
@@ -154,11 +153,6 @@ public:
 
 	/* This field is needed for error queue processing */
 	struct sock_extended_err	ee;
-
-private:
-	atomic_t	n_ref_count;	// number of interested receivers (sockinfo) [can be modified only in cq_mgr context]
-
-public:
 	int    m_flags; /* object description */
 	uint32_t	lkey;      	// Buffers lkey for QP access
 	mem_buf_desc_t* p_next_desc;	// A general purpose linked list of mem_buf_desc
@@ -170,6 +164,11 @@ public:
 	// Rx: cq_mgr owns the mem_buf_desc and the associated data buffer
 	ring_slave* p_desc_owner;
 
+private:
+	atomic_t	n_ref_count;	// number of interested receivers (sockinfo) [can be modified only in cq_mgr context]
+
+public:
+	
 	inline mem_buf_desc_t* clone() {
 		mem_buf_desc_t* p_desc = new mem_buf_desc_t(*this);
 		INIT_LIST_HEAD(&p_desc->buffer_node.head);

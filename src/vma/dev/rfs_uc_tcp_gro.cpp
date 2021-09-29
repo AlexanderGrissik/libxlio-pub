@@ -185,7 +185,7 @@ void rfs_uc_tcp_gro::flush_gro_desc(void* pv_fd_ready_array)
 			p_tcp_ts_h->popts[2] = m_gro_desc.tsecr;
 		}
 
-		m_gro_desc.p_first->rx.tcp.gro = 1;
+		m_gro_desc.p_first->lwip_pbuf.pbuf.gro = 1;
 
 		m_gro_desc.p_first->lwip_pbuf.pbuf.flags = PBUF_FLAG_IS_CUSTOM;
 		m_gro_desc.p_first->lwip_pbuf.pbuf.tot_len = m_gro_desc.p_first->lwip_pbuf.pbuf.len = (m_gro_desc.p_first->sz_data - m_gro_desc.p_first->rx.tcp.n_transport_header_len);

@@ -2079,10 +2079,10 @@ void sockinfo_tcp::queue_rx_ctl_packet(struct tcp_pcb* pcb, mem_buf_desc_t *p_de
 {
 	/* in tcp_ctl_thread mode, always lock the child first*/
 	p_desc->inc_ref_count();
-	if (!p_desc->rx.tcp.gro)
+	if (!p_desc->lwip_pbuf.pbuf.gro)
 		init_pbuf_custom(p_desc);
 	else
-		p_desc->rx.tcp.gro = 0;
+		p_desc->lwip_pbuf.pbuf.gro = 0;
 	sockinfo_tcp *sock = (sockinfo_tcp*)pcb->my_container;
 
 	sock->m_rx_ctl_packets_list_lock.lock();
@@ -2159,8 +2159,8 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t* p_rx_pkt_mem_buf_desc_info, void*
 	}
 	p_rx_pkt_mem_buf_desc_info->inc_ref_count();
 
-	if (!p_rx_pkt_mem_buf_desc_info->rx.tcp.gro) init_pbuf_custom(p_rx_pkt_mem_buf_desc_info);
-	else p_rx_pkt_mem_buf_desc_info->rx.tcp.gro = 0;
+	if (!p_rx_pkt_mem_buf_desc_info->lwip_pbuf.pbuf.gro) init_pbuf_custom(p_rx_pkt_mem_buf_desc_info);
+	else p_rx_pkt_mem_buf_desc_info->lwip_pbuf.pbuf.gro = 0;
 
 	dropped_count = m_rx_cb_dropped_list.size();
 
