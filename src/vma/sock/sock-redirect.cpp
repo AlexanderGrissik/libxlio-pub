@@ -1845,7 +1845,7 @@ ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 			if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_XLIO_PD)) {
 				if ((tx_arg.attr.msg.flags & MSG_ZEROCOPY) &&
 						(__msg->msg_iovlen == ((cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(struct xlio_pd_key)))) {
-					tx_arg.priv.attr = PBUF_DESC_MKEY;
+					tx_arg.priv.attr_pbuf_desc = PBUF_DESC_MKEY;
 					tx_arg.priv.map = (void *)CMSG_DATA(cmsg);
 				} else {
 					errno = EINVAL;
@@ -2039,7 +2039,7 @@ static ssize_t sendfile_helper(socket_fd_api* p_socket_object, int in_fd, __off6
 		tx_arg.attr.msg.iov = piov;
 		tx_arg.attr.msg.sz_iov = 1;
 		tx_arg.attr.msg.flags = MSG_ZEROCOPY;
-		tx_arg.priv.attr = PBUF_DESC_MAP;
+		tx_arg.priv.attr_pbuf_desc = PBUF_DESC_MAP;
 		tx_arg.priv.map = (void *)mapping;
 		totSent = p_socket_object->tx(tx_arg);
 
@@ -2053,7 +2053,7 @@ fallback:
 			tx_arg.opcode = TX_FILE;
 			tx_arg.attr.msg.iov = piov;
 			tx_arg.attr.msg.sz_iov = 1;
-			tx_arg.priv.attr = PBUF_DESC_FD;
+			tx_arg.priv.attr_pbuf_desc = PBUF_DESC_FD;
 			tx_arg.priv.fd = in_fd;
 			piov[0].iov_base = (void *)&cur_offset;
 			piov[0].iov_len = count;

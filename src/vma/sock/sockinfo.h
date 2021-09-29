@@ -437,6 +437,12 @@ protected:
 		*__fromlen = sizeof(sockaddr_in);
 	}
 
+	inline void save_strq_stats(uint32_t packet_strides)
+	{
+		m_socket_stats.strq_counters.n_strq_total_strides += static_cast<uint64_t>(packet_strides);
+		m_socket_stats.strq_counters.n_strq_max_strides_per_packet = std::max(m_socket_stats.strq_counters.n_strq_max_strides_per_packet, packet_strides);
+	}
+
 	inline int dequeue_packet(iovec *p_iov, ssize_t sz_iov,
 		                  sockaddr_in *__from, socklen_t *__fromlen,
 		                  int in_flags, int *p_out_flags)
@@ -529,7 +535,7 @@ protected:
                 if (p_ring->reclaim_recv_buffers(rx_reuse)) {
                     n_buff_num = 0;
                 } else {
-                	g_buffer_pool_rx->put_buffers_after_deref_thread_safe(rx_reuse);
+                	g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(rx_reuse);
                 	n_buff_num = 0;
                 }
                 m_rx_reuse_buf_postponed = false;
@@ -543,7 +549,7 @@ protected:
             vlog_printf(VLOG_DEBUG, "Buffer owner not found\n");
             // Awareness: these are best efforts: decRef without lock in case no CQ
             if(buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1))
-                g_buffer_pool_rx->put_buffers_thread_safe(buff);
+                g_buffer_pool_rx_ptr->put_buffers_thread_safe(buff);
 
         }
     }

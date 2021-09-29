@@ -357,6 +357,15 @@ qp_mgr_eth_mlx5::~qp_mgr_eth_mlx5()
 
 void qp_mgr_eth_mlx5::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
 {
+	m_ibv_rx_sg_array[m_curr_rx_wr].addr   = (uintptr_t)p_mem_buf_desc->p_buffer;
+	m_ibv_rx_sg_array[m_curr_rx_wr].length = p_mem_buf_desc->sz_buffer;
+	m_ibv_rx_sg_array[m_curr_rx_wr].lkey   = p_mem_buf_desc->lkey;
+
+	post_recv_buffer_rq(p_mem_buf_desc);
+}
+
+void qp_mgr_eth_mlx5::post_recv_buffer_rq(mem_buf_desc_t* p_mem_buf_desc)
+{
 	if (m_n_sysvar_rx_prefetch_bytes_before_poll) {
 		if (m_p_prev_rx_desc_pushed)
 			m_p_prev_rx_desc_pushed->p_prev_desc = p_mem_buf_desc;
@@ -364,9 +373,6 @@ void qp_mgr_eth_mlx5::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
 	}
 
 	m_ibv_rx_wr_array[m_curr_rx_wr].wr_id  = (uintptr_t)p_mem_buf_desc;
-	m_ibv_rx_sg_array[m_curr_rx_wr].addr   = (uintptr_t)p_mem_buf_desc->p_buffer;
-	m_ibv_rx_sg_array[m_curr_rx_wr].length = p_mem_buf_desc->sz_buffer;
-	m_ibv_rx_sg_array[m_curr_rx_wr].lkey   = p_mem_buf_desc->lkey;
 
 	if (m_rq_wqe_idx_to_wrid) {
 		uint32_t index = m_rq_wqe_counter & (m_rx_num_wr - 1);
@@ -403,7 +409,8 @@ void qp_mgr_eth_mlx5::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
 	}
 }
 
-cq_mgr* qp_mgr_eth_mlx5::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
+
+bool qp_mgr_eth_mlx5::init_rx_cq_mgr_prepare()
 {
 	m_rx_num_wr = align32pow2(m_rx_num_wr);
 
@@ -411,10 +418,16 @@ cq_mgr* qp_mgr_eth_mlx5::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event
 			PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 	if (m_rq_wqe_idx_to_wrid == MAP_FAILED) {
 		qp_logerr("Failed allocating m_rq_wqe_idx_to_wrid (errno=%d %m)", errno);
-		return NULL;
+		return false;
 	}
 
-	return new cq_mgr_mlx5(m_p_ring, m_p_ib_ctx_handler, m_rx_num_wr, p_rx_comp_event_channel, true);
+	return true;
+}
+
+cq_mgr* qp_mgr_eth_mlx5::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
+{
+	return (!init_rx_cq_mgr_prepare() ? NULL :
+		new cq_mgr_mlx5(m_p_ring, m_p_ib_ctx_handler, m_rx_num_wr, p_rx_comp_event_channel, true));
 }
 
 cq_mgr* qp_mgr_eth_mlx5::init_tx_cq_mgr()

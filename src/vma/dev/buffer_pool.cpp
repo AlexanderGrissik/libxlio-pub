@@ -44,7 +44,9 @@
 
 #define MODULE_NAME 	"bpool"
 
-buffer_pool *g_buffer_pool_rx = NULL;
+buffer_pool *g_buffer_pool_rx_ptr = NULL;
+buffer_pool *g_buffer_pool_rx_stride = NULL;
+buffer_pool *g_buffer_pool_rx_rwqe = NULL;
 buffer_pool *g_buffer_pool_tx = NULL;
 buffer_pool *g_buffer_pool_zc = NULL;
 
@@ -68,6 +70,13 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 		__log_info_warn("Buffer is already a member in a list! id=[%s]", buff->buffer_node.list_id());
 	}
 #endif
+
+	if (buff->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_STRIDE) {
+		mem_buf_desc_t* rwqe = reinterpret_cast<mem_buf_desc_t*>(buff->lwip_pbuf.pbuf.desc.mdesc);
+		if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) // Is last stride.
+			g_buffer_pool_rx_rwqe->put_buffers_thread_safe(rwqe);
+	}
+
 	buff->p_next_desc = m_p_head;
 	free_lwip_pbuf(&buff->lwip_pbuf);
 	m_p_head = buff;
@@ -107,7 +116,7 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
  * pbuf_free. */
 void buffer_pool::free_rx_lwip_pbuf_custom(struct pbuf *p_buff)
 {
-	g_buffer_pool_rx->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
+	g_buffer_pool_rx_ptr->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
 }
 
 void buffer_pool::free_tx_lwip_pbuf_custom(struct pbuf *p_buff)
@@ -380,10 +389,26 @@ inline void buffer_pool::put_buffers(mem_buf_desc_t *buff_list)
 	}
 }
 
+inline void buffer_pool::put_buffers(mem_buf_desc_t **buff_vec, size_t count)
+{
+	__log_info_funcall("returning vector, present %zu, created %zu, returned %zu", m_n_buffers, m_n_buffers_created, count);
+	while (count-- > 0U)
+		put_buffer_helper(buff_vec[count]);
+
+	if (unlikely(m_n_buffers > m_n_buffers_created))
+		buffersPanic();
+}
+
 void buffer_pool::put_buffers_thread_safe(mem_buf_desc_t *buff_list)
 {
 	auto_unlocker lock(m_lock_spin);
 	put_buffers(buff_list);
+}
+
+void buffer_pool::put_buffers_thread_safe(mem_buf_desc_t **buff_vec, size_t count)
+{
+	auto_unlocker lock(m_lock_spin);
+	put_buffers(buff_vec, count);
 }
 
 void buffer_pool::put_buffers(descq_t *buffers, size_t count)

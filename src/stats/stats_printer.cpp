@@ -34,6 +34,7 @@
 #include "config.h"
 #endif
 
+#include <cinttypes>
 #include "vma/util/utils.h"
 #include "vma/util/vma_stats.h"
 #include "vma/lwip/tcp.h"
@@ -173,6 +174,12 @@ void print_full_stats(socket_stats_t* p_si_stats, mc_grp_info_t* p_mc_grp_info, 
 	if (p_si_stats->n_rx_zcopy_pkt_count)
 	{
 		fprintf(filename, "Rx zero copy buffers: cur %u\n", p_si_stats->n_rx_zcopy_pkt_count);
+		b_any_activiy = true;
+	}
+	if (p_si_stats->strq_counters.n_strq_total_strides)
+	{
+		fprintf(filename, "Rx RQ Strides: %" PRIu64 " / %u [total/max-per-packet]%s\n",
+			p_si_stats->strq_counters.n_strq_total_strides, p_si_stats->strq_counters.n_strq_max_strides_per_packet, post_fix);
 		b_any_activiy = true;
 	}
 	if (p_si_stats->counters.n_rx_poll_miss || p_si_stats->counters.n_rx_poll_hit)

@@ -47,6 +47,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <vector>
+#include <cinttypes>
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
@@ -89,14 +90,16 @@ typedef enum {
 #define MEDIUM_HEADERS_NUM		3
 #define MEDIUM_STATS_LINES_NUM		2
 #define	 UPPER_MEDIUM_VIEW_HEADER	" %-7s %65s %31s\n"
-#define MIDDLE_MEDIUM_VIEW_HEADER	" %-7s %10s %7s %8s %7s %6s%23s %7s %7s %7s %7s\n"
+#define MIDDLE_MEDIUM_VIEW_HEADER	" %-7s %10s %10s %7s %8s %7s %6s%23s %7s %7s %7s %7s\n"
 #define LOWER_MEDIUM_VIEW_HEADER	" %50s %6s  %6s  %6s \n"
-#define RX_MEDIUM_VIEW			" %-3d %-3s %10u %7u %8u %7u %6.1f %6u  %6u  %6u %7u %7u %7u %7u\n"
-#define TX_MEDIUM_VIEW			" %-3s %-3s %10u %7u %8u %7u %29s %7u %7u %7u %7u\n"
+#define RX_MEDIUM_VIEW			" %-3d %-3s %10u %10" PRIu64 " %7u %8u %7u %6.1f %6u  %6u  %6u %7u %7u %7u %7u\n"
+#define TX_MEDIUM_VIEW			" %-3s %-3s %10u %10u %7u %8u %7u %29s %7u %7u %7u %7u\n"
 #define CYCLES_SEPARATOR		"-------------------------------------------------------------------------------\n" 
 #define FORMAT_STATS_32bit		"%-20s %u\n"
-#define FORMAT_STATS_64bit		"%-20s %llu %-3s\n"
+#define FORMAT_STATS_64bit		"%-20s %" PRIu64 " %-3s\n"
+#define FORMAT_STATS_double		"%-20s %.1f\n"
 #define FORMAT_RING_PACKETS 		"%-20s %zu / %zu [kilobytes/packets] %-3s\n"
+#define FORMAT_RING_STRIDES		"%-20s %zu / %zu / %zu [total/max-per-packet/packets-per-rwqe] %-3s\n"
 #define FORMAT_RING_INTERRUPT		"%-20s %zu / %zu [requests/received] %-3s\n"
 #define FORMAT_RING_MODERATION		"%-20s %u / %u [frames/usec period] %-3s\n"
 #define FORMAT_RING_DM_STATS		"%-20s %zu / %zu / %zu [kilobytes/packets/oob] %-3s\n"
@@ -203,6 +206,8 @@ void update_delta_stat(socket_stats_t* p_curr_stat, socket_stats_t* p_prev_stat)
 	p_prev_stat->n_rx_ready_pkt_count = p_curr_stat->n_rx_ready_pkt_count;
 	p_prev_stat->counters.n_rx_ready_pkt_max = p_curr_stat->counters.n_rx_ready_pkt_max;
 	p_prev_stat->n_rx_zcopy_pkt_count = p_curr_stat->n_rx_zcopy_pkt_count;
+	p_prev_stat->strq_counters.n_strq_total_strides = (p_curr_stat->strq_counters.n_strq_total_strides - p_prev_stat->strq_counters.n_strq_total_strides) / delay;
+	p_prev_stat->strq_counters.n_strq_max_strides_per_packet = p_curr_stat->strq_counters.n_strq_max_strides_per_packet;
 
 	p_prev_stat->threadid_last_rx = p_curr_stat->threadid_last_rx;
 	p_prev_stat->threadid_last_tx = p_curr_stat->threadid_last_tx;
@@ -266,6 +271,10 @@ void update_delta_cq_stat(cq_stats_t* p_curr_cq_stats, cq_stats_t* p_prev_cq_sta
 		p_prev_cq_stats->n_buffer_pool_len = p_curr_cq_stats->n_buffer_pool_len;
 		p_prev_cq_stats->n_rx_lro_packets = p_curr_cq_stats->n_rx_lro_packets;
 		p_prev_cq_stats->n_rx_lro_bytes = p_curr_cq_stats->n_rx_lro_bytes;
+		p_prev_cq_stats->n_rx_consumed_rwqe_count = (p_curr_cq_stats->n_rx_consumed_rwqe_count - p_prev_cq_stats->n_rx_consumed_rwqe_count) / delay;
+		p_prev_cq_stats->n_rx_stride_count = (p_curr_cq_stats->n_rx_stride_count - p_prev_cq_stats->n_rx_stride_count) / delay;
+		p_prev_cq_stats->n_rx_packet_count = (p_curr_cq_stats->n_rx_packet_count - p_prev_cq_stats->n_rx_packet_count) / delay;
+		p_prev_cq_stats->n_rx_max_stirde_per_packet = p_curr_cq_stats->n_rx_max_stirde_per_packet;
 	}
 }
 
@@ -301,11 +310,11 @@ void print_ring_stats(ring_instance_block_t* p_ring_inst_arr)
 			printf(FORMAT_RING_PACKETS, "Rx Offload:", p_ring_stats->n_rx_byte_count/BYTES_TRAFFIC_UNIT, p_ring_stats->n_rx_pkt_count, post_fix);
 
 			if (p_ring_stats->n_tx_retransmits) {
-				printf(FORMAT_STATS_64bit, "Retransmissions:", (unsigned long long int)p_ring_stats->n_tx_retransmits, post_fix);
+				printf(FORMAT_STATS_64bit, "Retransmissions:", p_ring_stats->n_tx_retransmits, post_fix);
 			}
 
 			if (p_ring_stats->n_tx_tls_contexts) {
-				printf(FORMAT_STATS_64bit, "TLS Context Setups:", (unsigned long long int)p_ring_stats->n_tx_tls_contexts, post_fix);
+				printf(FORMAT_STATS_64bit, "TLS Context Setups:", (uint64_t)p_ring_stats->n_tx_tls_contexts, post_fix);
 			}
 
 			if (p_ring_stats->n_type == RING_TAP) {
@@ -345,10 +354,16 @@ void print_cq_stats(cq_instance_block_t* p_cq_inst_arr)
 			p_cq_stats = &p_cq_inst_arr[i].cq_stats;
 			printf("======================================================\n");
 			printf("\tCQ=[%u]\n", i);
-			printf(FORMAT_STATS_64bit, "Packets dropped:", (unsigned long long int)p_cq_stats->n_rx_pkt_drop, post_fix);
+			printf(FORMAT_STATS_64bit, "Packets dropped:", p_cq_stats->n_rx_pkt_drop, post_fix);
 			printf(FORMAT_STATS_32bit, "Packets queue len:",p_cq_stats->n_rx_sw_queue_len);
 			printf(FORMAT_STATS_32bit, "Drained max:", p_cq_stats->n_rx_drained_at_once_max);
 			printf(FORMAT_STATS_32bit, "Buffer pool size:",p_cq_stats->n_buffer_pool_len);
+			printf(FORMAT_STATS_64bit, "Packets received:",p_cq_stats->n_rx_packet_count, post_fix);
+			printf(FORMAT_STATS_64bit, "Strides received:", p_cq_stats->n_rx_stride_count, post_fix);
+			printf(FORMAT_STATS_64bit, "Consumed rwqes:", p_cq_stats->n_rx_consumed_rwqe_count, post_fix);
+			printf(FORMAT_STATS_32bit, "Max strides/packet:", static_cast<uint32_t>(p_cq_stats->n_rx_max_stirde_per_packet));
+			printf(FORMAT_STATS_double, "Avg strides/packet:", p_cq_stats->n_rx_stride_count / static_cast<double>(p_cq_stats->n_rx_packet_count + 1U));
+			printf(FORMAT_STATS_double, "Avg packets/rwqe:", p_cq_stats->n_rx_packet_count / static_cast<double>(p_cq_stats->n_rx_consumed_rwqe_count + 1U));
 			if (p_cq_stats->n_rx_lro_packets) {
 				printf(FORMAT_RING_PACKETS, "Rx lro:", p_cq_stats->n_rx_lro_bytes/BYTES_TRAFFIC_UNIT, p_cq_stats->n_rx_lro_packets, post_fix);
 			}
@@ -420,14 +435,14 @@ void print_medium_total_stats(socket_stats_t* p_stats)
 		double rx_poll_hit = (double)p_stats->counters.n_rx_poll_hit;
 		rx_poll_hit_percentage = (rx_poll_hit / (rx_poll_hit + (double)p_stats->counters.n_rx_poll_miss)) * 100;
 	}
-	printf(RX_MEDIUM_VIEW,p_stats->fd,"Rx:",p_stats->counters.n_rx_packets,
+	printf(RX_MEDIUM_VIEW,p_stats->fd,"Rx:",p_stats->counters.n_rx_packets, p_stats->strq_counters.n_strq_total_strides,
 			p_stats->counters.n_rx_bytes/BYTES_TRAFFIC_UNIT,p_stats->counters.n_rx_eagain,
 			p_stats->counters.n_rx_errors,rx_poll_hit_percentage,
 			p_stats->n_rx_ready_pkt_count, p_stats->counters.n_rx_ready_pkt_max,
 			p_stats->counters.n_rx_ready_pkt_drop,p_stats->counters.n_rx_os_packets,p_stats->counters.n_rx_os_bytes / BYTES_TRAFFIC_UNIT,
 			p_stats->counters.n_rx_os_eagain,p_stats->counters.n_rx_os_errors);
 	
-	printf(TX_MEDIUM_VIEW," ", "Tx:",p_stats->counters.n_tx_sent_pkt_count,
+	printf(TX_MEDIUM_VIEW," ", "Tx:",p_stats->counters.n_tx_sent_pkt_count, 0U,
 			p_stats->counters.n_tx_sent_byte_count/BYTES_TRAFFIC_UNIT,p_stats->counters.n_tx_eagain,
 			p_stats->counters.n_tx_errors," ",
 			p_stats->counters.n_tx_os_packets,p_stats->counters.n_tx_os_bytes / BYTES_TRAFFIC_UNIT,
@@ -473,12 +488,12 @@ void print_medium_mode_headers()
 	switch (user_params.print_details_mode) {
 		case e_totals:
 			printf(UPPER_MEDIUM_VIEW_HEADER,"fd", "----------------------- total offloaded -------------------------", "--------- total os ----------");
-			printf(MIDDLE_MEDIUM_VIEW_HEADER," ","pkt","Kbyte","eagain","error","poll%","---- queue pkt -----", "pkt", "Kbyte","eagain", "error");
+			printf(MIDDLE_MEDIUM_VIEW_HEADER," ","pkt","stride","Kbyte","eagain","error","poll%","---- queue pkt -----", "pkt", "Kbyte","eagain", "error");
 			printf(LOWER_MEDIUM_VIEW_HEADER," ", "cur","max","drop");
 			break;
 		case e_deltas:
 			printf(UPPER_MEDIUM_VIEW_HEADER,"fd", "---------------------------- offloaded --------------------------", "---------- os ---------");
-			printf(MIDDLE_MEDIUM_VIEW_HEADER," ","pkt/s","Kbyte/s","eagain/s","error/s","poll%","----- queue pkt ------", "pkt/s", "Kbyte/s", "eagain/s", "error/s");
+			printf(MIDDLE_MEDIUM_VIEW_HEADER," ","pkt/s","stride/s","Kbyte/s","eagain/s","error/s","poll%","----- queue pkt ------", "pkt/s", "Kbyte/s", "eagain/s", "error/s");
 			printf(LOWER_MEDIUM_VIEW_HEADER," ", "cur","max","drop/s");
 			break;
 		default:

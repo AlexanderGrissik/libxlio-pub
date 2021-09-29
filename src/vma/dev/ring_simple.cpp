@@ -87,7 +87,7 @@ qp_mgr* ring_eth::create_qp_mgr(struct qp_mgr_desc *desc)
 #if defined(DEFINED_DIRECT_VERBS)
 	if (qp_mgr::is_lib_mlx5(((ib_ctx_handler*)desc->slave->p_ib_ctx)->get_ibname())) {
 #ifdef DEFINED_DPCP
-		if (safe_mce_sys().enable_striding_rq)
+		if (safe_mce_sys().enable_dpcp_rq)
 			return new qp_mgr_eth_mlx5_dpcp(desc, get_tx_num_wr(), m_partition);
 #endif
 		return new qp_mgr_eth_mlx5(desc, get_tx_num_wr(), m_partition);

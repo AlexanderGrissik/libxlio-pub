@@ -131,7 +131,7 @@ qp_mgr::~qp_mgr()
 	delete[] m_ibv_rx_sg_array;
 	delete[] m_ibv_rx_wr_array;
 
-	qp_logdbg("Rx buffer poll: %ld free global buffers available", g_buffer_pool_rx->get_free_count());
+	qp_logdbg("Rx buffer poll: %ld free global buffers available", g_buffer_pool_rx_rwqe->get_free_count());
 	qp_logdbg("delete done");
 }
 
@@ -404,7 +404,7 @@ void qp_mgr::release_rx_buffers()
 				m_p_ring->mem_buf_desc_return_to_owner_rx(p_mem_buf_desc);
 			}
 			else {
-				g_buffer_pool_rx->put_buffers_thread_safe(p_mem_buf_desc);
+				g_buffer_pool_rx_rwqe->put_buffers_thread_safe(p_mem_buf_desc);
 			}
 		}
 	}

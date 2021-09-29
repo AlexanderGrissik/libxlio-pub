@@ -36,6 +36,7 @@
 #include <sys/epoll.h>
 #include <netdb.h>
 #include <linux/sockios.h>
+#include <cinttypes>
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
@@ -1170,6 +1171,10 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
 		b_any_activity = true;
 	}
+	if (m_p_socket_stats->strq_counters.n_strq_total_strides) {
+		vlog_printf(log_level, "Rx RQ Strides: %" PRIu64 " / %u [total/max-per-packet]\n",
+			m_p_socket_stats->strq_counters.n_strq_total_strides, m_p_socket_stats->strq_counters.n_strq_max_strides_per_packet);
+	}
 	if (m_p_socket_stats->counters.n_rx_os_bytes || m_p_socket_stats->counters.n_rx_os_packets || m_p_socket_stats->counters.n_rx_os_errors || m_p_socket_stats->counters.n_rx_os_eagain) {
 		vlog_printf(log_level, "Rx OS info : %d KB / %d / %d / %d [bytes/packets/eagains/errors]\n", m_p_socket_stats->counters.n_rx_os_bytes/1024, m_p_socket_stats->counters.n_rx_os_packets, m_p_socket_stats->counters.n_rx_os_eagain, m_p_socket_stats->counters.n_rx_os_errors);
 		b_any_activity = true;
@@ -1342,7 +1347,7 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 	reuse_descs(&temp_rx_reuse, base_ring);
 
 	if (temp_rx_reuse_global.size() > 0) {
-		g_buffer_pool_rx->put_buffers_after_deref_thread_safe(&temp_rx_reuse_global);
+		g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(&temp_rx_reuse_global);
 	}
 
 	lock_rx_q();
@@ -1416,7 +1421,7 @@ void sockinfo::reuse_descs(descq_t *reuseq, ring* p_ring)
 			sched_yield();
 		}
 		if (reuseq->size() > 0) {
-			g_buffer_pool_rx->put_buffers_after_deref_thread_safe(reuseq);
+			g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(reuseq);
 		}
 	}
 }

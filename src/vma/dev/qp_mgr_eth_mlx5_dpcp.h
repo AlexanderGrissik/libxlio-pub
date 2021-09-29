@@ -46,7 +46,7 @@ public:
 
 	qp_mgr_eth_mlx5_dpcp(struct qp_mgr_desc *desc, uint32_t tx_num_wr, uint16_t vlan);
 
-	virtual ~qp_mgr_eth_mlx5_dpcp() {}
+	virtual ~qp_mgr_eth_mlx5_dpcp() override {}
 
 	virtual void init_qp() override;
 	virtual void down() override;
@@ -54,6 +54,12 @@ public:
 	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs) override;
 	virtual void modify_qp_to_ready_state() override;
 	virtual void modify_qp_to_error_state() override;
+	virtual void post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc) override;
+
+protected:
+
+	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel) override;
+
 private:
 
 	dpcp::tir* create_tir();
@@ -64,6 +70,7 @@ private:
 
 	std::unique_ptr<dpcp::tir> _tir = {nullptr};
 	std::unique_ptr<dpcp::simple_rq> _rq = {nullptr};
+	uint32_t _strq_wqe_reserved_seg = 0U;
 };
 
 #endif /* DEFINED_DPCP */

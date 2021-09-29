@@ -101,7 +101,7 @@ ring_tap::~ring_tap()
 	}
 
 	/* Release RX buffer poll */
-	g_buffer_pool_rx->put_buffers_thread_safe(&m_rx_pool, m_rx_pool.size());
+	g_buffer_pool_rx_ptr->put_buffers_thread_safe(&m_rx_pool, m_rx_pool.size());
 
 	delete[] m_p_n_rx_channel_fds;
 
@@ -301,7 +301,7 @@ bool ring_tap::reclaim_recv_buffers(descq_t *rx_reuse)
 	if (m_rx_pool.size() >= m_sysvar_qp_compensation_level * 2) {
 		int buff_to_rel = m_rx_pool.size() - m_sysvar_qp_compensation_level;
 
-		g_buffer_pool_rx->put_buffers_thread_safe(&m_rx_pool, buff_to_rel);
+		g_buffer_pool_rx_ptr->put_buffers_thread_safe(&m_rx_pool, buff_to_rel);
 		m_p_ring_stat->tap.n_rx_buffers = m_rx_pool.size();
 	}
 
@@ -442,7 +442,7 @@ bool ring_tap::request_more_rx_buffers()
 	ring_logfuncall("Allocating additional %d buffers for internal use",
 			m_sysvar_qp_compensation_level);
 
-	bool res = g_buffer_pool_rx->get_buffers_thread_safe(m_rx_pool,
+	bool res = g_buffer_pool_rx_ptr->get_buffers_thread_safe(m_rx_pool,
 			this, m_sysvar_qp_compensation_level, 0);
 	if (!res) {
 		ring_logfunc("Out of mem_buf_desc from RX free pool for internal object pool");

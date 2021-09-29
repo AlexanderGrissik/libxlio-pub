@@ -179,8 +179,11 @@ static int free_libvma_resources()
 	if (g_buffer_pool_tx) delete g_buffer_pool_tx;
 	g_buffer_pool_tx = NULL;
 
-	if (g_buffer_pool_rx) delete g_buffer_pool_rx;
-	g_buffer_pool_rx = NULL;
+	if (g_buffer_pool_rx_stride) delete g_buffer_pool_rx_stride;
+	g_buffer_pool_rx_stride = NULL;
+
+	if (g_buffer_pool_rx_rwqe) delete g_buffer_pool_rx_rwqe;
+	g_buffer_pool_rx_rwqe = NULL;
 
 	if (g_zc_cache) delete g_zc_cache;
 	g_zc_cache = NULL;
@@ -491,6 +494,10 @@ void print_vma_global_settings()
 	VLOG_PARAM_STRING("ETH MC L2 only rules", safe_mce_sys().eth_mc_l2_only_rules, MCE_DEFAULT_ETH_MC_L2_ONLY_RULES, SYS_VAR_ETH_MC_L2_ONLY_RULES, safe_mce_sys().eth_mc_l2_only_rules ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Force Flowtag for MC", safe_mce_sys().mc_force_flowtag, MCE_DEFAULT_MC_FORCE_FLOWTAG, SYS_VAR_MC_FORCE_FLOWTAG, safe_mce_sys().mc_force_flowtag ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Striding RQ", safe_mce_sys().enable_striding_rq, MCE_DEFAULT_STRQ_ENABLE, SYS_VAR_STRQ_ENABLE, safe_mce_sys().enable_striding_rq ? "Enabled " : "Disabled");
+	VLOG_PARAM_NUMBER("STRQ Strides per RWQE", safe_mce_sys().strq_stride_num_per_rwqe, MCE_DEFAULT_STRQ_NUM_STRIDES, SYS_VAR_STRQ_NUM_STRIDES);
+	VLOG_PARAM_NUMBER("STRQ Stride Size (Bytes)", safe_mce_sys().strq_stride_size_bytes, MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES, SYS_VAR_STRQ_STRIDE_SIZE_BYTES);
+	VLOG_PARAM_NUMBER("STRQ Initial Strides Per Ring", safe_mce_sys().strq_strides_num_bufs, MCE_DEFAULT_STRQ_STRIDES_NUM_BUFS, SYS_VAR_STRQ_STRIDES_NUM_BUFS);
+	VLOG_PARAM_NUMBER("STRQ Strides Compensation Level", safe_mce_sys().strq_strides_compensation_level, MCE_DEFAULT_STRQ_STRIDES_COMPENSATION_LEVEL, SYS_VAR_STRQ_STRIDES_COMPENSATION_LEVEL);
 	VLOG_PARAM_NUMBER("Select Poll (usec)", safe_mce_sys().select_poll_num, MCE_DEFAULT_SELECT_NUM_POLLS, SYS_VAR_SELECT_NUM_POLLS);
 	VLOG_PARAM_STRING("Select Poll OS Force", safe_mce_sys().select_poll_os_force, MCE_DEFAULT_SELECT_POLL_OS_FORCE, SYS_VAR_SELECT_POLL_OS_FORCE, safe_mce_sys().select_poll_os_force ? "Enabled " : "Disabled");
 
@@ -677,6 +684,26 @@ do { \
 	} \
 } while (0);
 
+static size_t calc_rx_wqe_buff_size() {
+	size_t buff_size = RX_BUF_SIZE(safe_mce_sys().rx_buf_size ? safe_mce_sys().rx_buf_size : g_p_net_device_table_mgr->get_max_mtu());
+	if (safe_mce_sys().enable_striding_rq) {
+		size_t min_puff_size = g_p_net_device_table_mgr->get_max_mtu() + ETH_VLAN_HDR_LEN;
+		buff_size = safe_mce_sys().strq_stride_num_per_rwqe * safe_mce_sys().strq_stride_size_bytes;
+		if (buff_size < min_puff_size) {
+			vlog_printf(VLOG_INFO, "The requested "
+				SYS_VAR_STRQ_NUM_STRIDES "(%" PRIu32 ") * "
+				SYS_VAR_STRQ_STRIDE_SIZE_BYTES "(%" PRIu32 ") = %zu "
+				"is less then MTU + Headers (%zu)",
+				safe_mce_sys().strq_stride_num_per_rwqe, safe_mce_sys().strq_stride_size_bytes,
+				buff_size, min_puff_size);	
+
+			buff_size = g_p_net_device_table_mgr->get_max_mtu() + ETH_VLAN_HDR_LEN;
+		}
+	}
+
+	return buff_size;
+}
+
 static void do_global_ctors_helper()
 {
 	static lock_spin_recursive g_globals_lock;
@@ -727,14 +754,23 @@ static void do_global_ctors_helper()
 	if (safe_mce_sys().rx_buf_size <= get_lwip_tcp_mss(g_p_net_device_table_mgr->get_max_mtu(), safe_mce_sys().lwip_mss)) {
 		safe_mce_sys().rx_buf_size = 0;
 	}
-	NEW_CTOR(g_buffer_pool_rx, buffer_pool(safe_mce_sys().rx_num_bufs,
-			RX_BUF_SIZE(safe_mce_sys().rx_buf_size ?
-					safe_mce_sys().rx_buf_size :
-					g_p_net_device_table_mgr->get_max_mtu()),
+	
+	NEW_CTOR(g_buffer_pool_rx_rwqe, buffer_pool(safe_mce_sys().rx_num_bufs, calc_rx_wqe_buff_size(),
 			buffer_pool::free_rx_lwip_pbuf_custom,
 			(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX ? safe_mce_sys().m_ioctl.user_alloc.memalloc : NULL),
 			(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX ? safe_mce_sys().m_ioctl.user_alloc.memfree : NULL)));
- 	g_buffer_pool_rx->set_RX_TX_for_stats(true);
+ 	g_buffer_pool_rx_rwqe->set_RX_TX_for_stats(true);
+
+	if (safe_mce_sys().enable_striding_rq) {
+		NEW_CTOR(g_buffer_pool_rx_stride, buffer_pool(safe_mce_sys().strq_strides_compensation_level, 0,
+				buffer_pool::free_rx_lwip_pbuf_custom,
+				(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX_STRIDE ? safe_mce_sys().m_ioctl.user_alloc.memalloc : NULL),
+				(safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX_STRIDE ? safe_mce_sys().m_ioctl.user_alloc.memfree : NULL)));
+		g_buffer_pool_rx_stride->set_RX_TX_for_stats(true);
+		g_buffer_pool_rx_ptr = g_buffer_pool_rx_stride;
+	} else {
+		g_buffer_pool_rx_ptr = g_buffer_pool_rx_rwqe;
+	}
 
 #ifdef DEFINED_TSO
 	safe_mce_sys().tx_buf_size = MIN((int)safe_mce_sys().tx_buf_size, (int)0xFF00);
@@ -847,7 +883,9 @@ void reset_globals()
 	g_p_igmp_mgr = NULL;
 	g_p_ip_frag_manager = NULL;
 	g_zc_cache = NULL;
-	g_buffer_pool_rx = NULL;
+	g_buffer_pool_rx_ptr = NULL;
+	g_buffer_pool_rx_stride = NULL;
+	g_buffer_pool_rx_rwqe = NULL;
 	g_buffer_pool_tx = NULL;
 	g_buffer_pool_zc = NULL;
 	g_tcp_seg_pool = NULL;

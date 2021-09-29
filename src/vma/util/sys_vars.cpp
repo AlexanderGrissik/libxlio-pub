@@ -514,6 +514,60 @@ void mce_sys_var::read_hv()
 	}
 }
 
+void mce_sys_var::read_strq_strides_num()
+{
+	char* env_ptr = nullptr;
+	if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_NUM_STRIDES))))
+		return;
+
+	int stirdes_num = atoi(env_ptr);
+	bool isOK = true;
+	if (stirdes_num < STRQ_MIN_STRIDES_NUM) {
+		stirdes_num = STRQ_MIN_STRIDES_NUM;
+		isOK = false;
+	} else if (stirdes_num > STRQ_MAX_STRIDES_NUM) {
+		stirdes_num = STRQ_MAX_STRIDES_NUM;
+		isOK = false;
+	} else if (!is_ilog2(static_cast<unsigned int>(stirdes_num))) {
+		stirdes_num = align32pow2(static_cast<uint32_t>(stirdes_num));
+		isOK = false;
+	}
+		
+	if (!isOK) {
+		vlog_printf(VLOG_INFO," Invalid " SYS_VAR_STRQ_NUM_STRIDES ": Must be power of 2 and in the range of (%d,%d). Using: %d.\n", 
+			STRQ_MIN_STRIDES_NUM, STRQ_MAX_STRIDES_NUM, stirdes_num);
+	}
+
+	strq_stride_num_per_rwqe = static_cast<uint32_t>(stirdes_num);
+}
+
+void mce_sys_var::read_strq_stride_size_bytes() 
+{
+	char* env_ptr = nullptr;
+	if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_STRIDE_SIZE_BYTES))))
+		return;
+
+	int stirde_size_bytes = atoi(env_ptr);
+	bool isOK = true;
+	if (stirde_size_bytes < STRQ_MIN_STRIDE_SIZE_BYTES) {
+		stirde_size_bytes = STRQ_MIN_STRIDE_SIZE_BYTES;
+		isOK = false;
+	} else if (stirde_size_bytes > STRQ_MAX_STRIDE_SIZE_BYTES) {
+		stirde_size_bytes = STRQ_MAX_STRIDE_SIZE_BYTES;
+		isOK = false;
+	} else if (!is_ilog2(static_cast<unsigned int>(stirde_size_bytes))) {
+		stirde_size_bytes = align32pow2(static_cast<uint32_t>(stirde_size_bytes));
+		isOK = false;
+	}
+		
+	if (!isOK) {
+		vlog_printf(VLOG_INFO," Invalid " SYS_VAR_STRQ_STRIDE_SIZE_BYTES ": Must be power of 2 and in the range of (%d,%d). Using: %d.\n", 
+			STRQ_MIN_STRIDE_SIZE_BYTES, STRQ_MAX_STRIDE_SIZE_BYTES, stirde_size_bytes);
+	}
+
+	strq_stride_size_bytes = static_cast<uint32_t>(stirde_size_bytes);
+}
+
 void mce_sys_var::get_env_params()
 {
 	int c = 0, len =0;
@@ -620,14 +674,20 @@ void mce_sys_var::get_env_params()
 	rx_cq_drain_rate_nsec 	= MCE_DEFAULT_RX_CQ_DRAIN_RATE;
 	rx_delta_tsc_between_cq_polls = 0;
 
+	enable_striding_rq        = MCE_DEFAULT_STRQ_ENABLE;
+	enable_dpcp_rq            = MCE_DEFAULT_STRQ_ENABLE;
+	strq_stride_num_per_rwqe  = MCE_DEFAULT_STRQ_NUM_STRIDES;
+	strq_stride_size_bytes    = MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES;
+	strq_strides_num_bufs     = MCE_DEFAULT_STRQ_STRIDES_NUM_BUFS;
+	strq_strides_compensation_level = MCE_DEFAULT_STRQ_STRIDES_COMPENSATION_LEVEL;
+
 	gro_streams_max		= MCE_DEFAULT_GRO_STREAMS_MAX;
 
 	tcp_3t_rules		= MCE_DEFAULT_TCP_3T_RULES;
 	udp_3t_rules		= MCE_DEFAULT_UDP_3T_RULES;
 	eth_mc_l2_only_rules	= MCE_DEFAULT_ETH_MC_L2_ONLY_RULES;
 	mc_force_flowtag	= MCE_DEFAULT_MC_FORCE_FLOWTAG;
-	enable_striding_rq  = MCE_DEFAULT_STRQ_ENABLE;
-
+	
 	select_poll_num		= MCE_DEFAULT_SELECT_NUM_POLLS;
 	select_poll_os_force	= MCE_DEFAULT_SELECT_POLL_OS_FORCE;
 	select_poll_os_ratio	= MCE_DEFAULT_SELECT_POLL_OS_RATIO;
@@ -716,6 +776,19 @@ void mce_sys_var::get_env_params()
 		progress_engine_interval_msec = MCE_CQ_DRAIN_INTERVAL_DISABLED;
 	}
 
+	if ((env_ptr = getenv(SYS_VAR_STRQ_ENABLE)) != NULL) {
+		int temp = atoi(env_ptr);
+		enable_striding_rq = (temp == 1 ? true : false);
+		enable_dpcp_rq = (enable_striding_rq || (temp == 2 ? true : false));
+	}
+
+	if (enable_striding_rq) {
+		rx_num_bufs = MCE_DEFAULT_STRQ_NUM_BUFS;
+		rx_num_wr = MCE_DEFAULT_STRQ_NUM_WRE;
+		rx_num_wr_to_post_recv = MCE_DEFAULT_STRQ_NUM_WRE_TO_POST_RECV;
+		qp_compensation_level = MCE_DEFAULT_STRQ_COMPENSATION_LEVEL;
+	}
+
 	if ((env_ptr = getenv(SYS_VAR_SPEC)) != NULL){
 		mce_spec = (uint32_t)vma_spec::from_str(env_ptr, MCE_SPEC_NONE);
 	}
@@ -742,10 +815,7 @@ void mce_sys_var::get_env_params()
 		tx_prefetch_bytes 	= MCE_DEFAULT_TX_PREFETCH_BYTES; //(256)
 		tx_bufs_batch_udp	= 1; //MCE_DEFAULT_TX_BUFS_BATCH_UDP (8)
 		tx_bufs_batch_tcp	= 1; //MCE_DEFAULT_TX_BUFS_BATCH_TCP;
-		rx_num_bufs             = 1024; //MCE_DEFAULT_RX_NUM_BUFS (200000)
 		rx_bufs_batch           = 4; //MCE_DEFAULT_RX_BUFS_BATCH (64)
-		rx_num_wr               = 256; //MCE_DEFAULT_RX_NUM_WRE (16000)
-		rx_num_wr_to_post_recv  = 4; //MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV (64)
 		rx_poll_num             = -1; //MCE_DEFAULT_RX_NUM_POLLS
 #ifdef DEFINED_TSO
 		enable_tso              = false; //MCE_DEFAULT_TSO (true)
@@ -765,6 +835,17 @@ void mce_sys_var::get_env_params()
 		tcp_nodelay		= true; // MCE_DEFAULT_TCP_NODELAY (false)
 		ring_dev_mem_tx         = 16384; // MCE_DEFAULT_RING_DEV_MEM_TX (0)
 		strcpy(internal_thread_affinity_str, "0"); //MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR;
+
+		if (enable_striding_rq) {
+			rx_num_bufs             		= 16; //MCE_DEFAULT_RX_NUM_BUFS (64)
+			strq_strides_num_bufs   		= 131072; //MCE_DEFAULT_STRQ_NUM_BUFS(262144)
+			strq_stride_num_per_rwqe 		= 65536; //MCE_DEFAULT_STRQ_NUM_STRIDES(16384)
+			strq_stride_size_bytes 			= 64; //MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES(512)
+		} else {
+			rx_num_bufs             = 1024; //MCE_DEFAULT_RX_NUM_BUFS (200000)
+			rx_num_wr               = 256; //MCE_DEFAULT_RX_NUM_WRE (16000)
+			rx_num_wr_to_post_recv  = 4; //MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV (64)
+		}
 		break;
 
 	case MCE_SPEC_SOCKPERF_LATENCY_15:
@@ -773,8 +854,7 @@ void mce_sys_var::get_env_params()
 		tx_bufs_batch_udp	= 1;   //MCE_DEFAULT_TX_BUFS_BATCH_UDP (8)
 		tx_bufs_batch_tcp	= 1;   //MCE_DEFAULT_TX_BUFS_BATCH_TCP (16)
 		rx_bufs_batch           = 4;   //MCE_DEFAULT_RX_BUFS_BATCH (64)
-		rx_num_wr               = 256; //MCE_DEFAULT_RX_NUM_WRE (16000)
-		rx_num_wr_to_post_recv  = 4;   //MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV (64)
+		
 		rx_poll_num             = -1;  //MCE_DEFAULT_RX_NUM_POLLS (100000)
 #ifdef DEFINED_TSO
 		enable_tso              = false; //MCE_DEFAULT_TSO (true)
@@ -792,6 +872,16 @@ void mce_sys_var::get_env_params()
 		select_poll_os_force	      = 1;   //MCE_DEFAULT_SELECT_POLL_OS_FORCE (0)
 		tcp_nodelay	      	      = true; // MCE_DEFAULT_TCP_NODELAY (falst)
 		ring_dev_mem_tx          = 16384; // MCE_DEFAULT_RING_DEV_MEM_TX (0)
+
+		if (enable_striding_rq) {
+			strq_strides_num_bufs   		= 131072; //MCE_DEFAULT_STRQ_NUM_BUFS(262144)
+			strq_stride_num_per_rwqe 		= 32768; //MCE_DEFAULT_STRQ_NUM_STRIDES(16384)
+			strq_stride_size_bytes 			= 64; //MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES(512)
+		} else {
+			rx_num_wr               = 256; //MCE_DEFAULT_RX_NUM_WRE (16000)
+			rx_num_wr_to_post_recv  = 4;   //MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV (64)
+		}
+
 		break;
 
 	case MCE_SPEC_29WEST_LBM_29:
@@ -835,7 +925,6 @@ void mce_sys_var::get_env_params()
 
 	case MCE_SPEC_LL_7750:
 		tx_num_bufs               = 8192; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated
-		rx_num_bufs               = 204800; // MCE_DEFAULT_RX_NUM_BUFS (200000), RX data buffers used on all QPs on all HCAs
 		log_level                 = VLOG_WARNING; //VLOG_DEFAULT(VLOG_INFO)
 		stats_fd_num_max          = 1024; //MCE_DEFAULT_STATS_FD_NUM(100), max. number of sockets monitored by stats tool
 		strcpy(internal_thread_affinity_str, "0x3"); // MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR(-1), first 2 cores
@@ -846,6 +935,10 @@ void mce_sys_var::get_env_params()
 		avoid_sys_calls_on_tcp_fd = 1; //MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD (false), Disable handling control packets on a separate thread
 		buffer_batching_mode      = BUFFER_BATCHING_NONE; //MCE_DEFAULT_BUFFER_BATCHING_MODE(BUFFER_BATCHING_WITH_RECLAIM), Disable handling control packets on a separate thread
 		tcp_ctl_thread            = CTL_THREAD_NO_WAKEUP; //MCE_DEFAULT_TCP_CTL_THREAD (CTL_THREAD_DISABLE), wait for thread timer to expire
+
+		if (!enable_striding_rq) 
+			rx_num_bufs = 204800; // MCE_DEFAULT_RX_NUM_BUFS (200000), RX data buffers used on all QPs on all HCAs
+		
 		break;
 
 	case MCE_SPEC_LL_MULTI_RING:
@@ -880,7 +973,6 @@ void mce_sys_var::get_env_params()
 		enable_tso = true;  // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
 #endif // DEFINED_TSO
 		tx_num_wr = 4096;  // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
-		rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
 		timer_resolution_msec = 256;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
 		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
 		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
@@ -888,18 +980,26 @@ void mce_sys_var::get_env_params()
 		progress_engine_wce_max = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX (10000), Don't drain WCEs.
 		select_poll_num = 0;  // MCE_DEFAULT_SELECT_NUM_POLLS (100000),  Don't poll the hardware on RX (before sleeping in epoll/select, etc).
 		tcp_3t_rules = true;  // MCE_DEFAULT_TCP_3T_RULES(false), Use 3 tuple instead rules of 5 tuple rules.
+
+		if (enable_striding_rq) {
+			rx_num_wr 	= 256; //MCE_DEFAULT_STRQ_NUM_WRE(8)
+			rx_num_bufs	= 512; //MCE_DEFAULT_RX_NUM_BUFS (64)
+			strq_stride_num_per_rwqe = 4096; //MCE_DEFAULT_STRQ_NUM_STRIDES(16384)
+		} else {
+			rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
+		}
+
 		break;
 
 	case MCE_SPEC_NGINX_DPU_670:
 		// The top part is different from NGINX SPEC
 		rx_poll_on_tx_tcp = false;  // MCE_DEFAULT_RX_POLL_ON_TX_TCP(false), Do polling on RX queue on TX operations, helpful to maintain TCP stack management.
-		rx_num_bufs = 87500; // MCE_DEFAULT_RX_NUM_BUFS (200000), Global RX data buffers allocated.
+		
 		zc_num_bufs = 87500; // MCE_DEFAULT_ZC_NUM_BUFS (200000), Global ZC data buffers allocated.
 		tx_num_bufs = 87500; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated.
 		tx_bufs_batch_tcp = 2;  //MCE_DEFAULT_TX_BUFS_BATCH_TCP (16)
 		tx_segs_batch_tcp = 4;  //MCE_DEFAULT_TX_SEGS_BATCH_TCP (64)
 		tx_num_segs_tcp = 200000;  // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP segments in the pool.
-
 		rx_bufs_batch = 8;  // MCE_DEFAULT_RX_BUFS_BATCH (64), RX buffers batch size.
 #ifdef DEFINED_TSO
 		tx_buf_size = 0;  // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
@@ -915,7 +1015,6 @@ void mce_sys_var::get_env_params()
 		enable_tso = true;  // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
 #endif // DEFINED_TSO
 		tx_num_wr = 4096;  // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
-		rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
 		timer_resolution_msec = 32;  // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer resolution, reduce CPU utilization of internal thread.
 		tcp_timer_resolution_msec = 256;  // MCE_DEFAULT_TCP_TIMER_RESOLUTION_MSEC (10), TCP logical timer resolution,  reduce CPU utilization of internal thread.
 		tcp_send_buffer_size = 2000000;  // MCE_DEFAULT_TCP_SEND_BUFFER_SIZE (1000000), LWIP TCP send buffer size.
@@ -923,6 +1022,16 @@ void mce_sys_var::get_env_params()
 		progress_engine_wce_max = 0;  // MCE_DEFAULT_PROGRESS_ENGINE_WCE_MAX (10000), Don't drain WCEs.
 		select_poll_num = 0;  // MCE_DEFAULT_SELECT_NUM_POLLS (100000),  Don't poll the hardware on RX (before sleeping in epoll/select, etc).
 		tcp_3t_rules = true;  // MCE_DEFAULT_TCP_3T_RULES(false), Use 3 tuple instead rules of 5 tuple rules.
+		
+		if (enable_striding_rq) {
+			rx_num_wr 	= 128; //MCE_DEFAULT_STRQ_NUM_WRE(8)
+			rx_num_bufs	= 256; //MCE_DEFAULT_RX_NUM_BUFS (64)
+			strq_stride_num_per_rwqe = 2048; //MCE_DEFAULT_STRQ_NUM_STRIDES(16384)
+		} else {
+			rx_num_bufs = 87500; // MCE_DEFAULT_RX_NUM_BUFS (200000), Global RX data buffers allocated.
+			rx_num_wr = 32000;  // MCE_DEFAULT_RX_NUM_WRE (16000), Amount of WREs in RX queue.
+		}
+		
 		break;
 #endif // DEFINED_NGINX
 
@@ -987,6 +1096,14 @@ void mce_sys_var::get_env_params()
 		}
 	}
 
+	read_strq_strides_num();
+	read_strq_stride_size_bytes();
+
+	if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_NUM_BUFS)) != NULL)
+		strq_strides_num_bufs = (uint32_t)atoi(env_ptr);
+
+	if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_COMPENSATION_LEVEL)) != NULL)
+		strq_strides_compensation_level = (uint32_t)atoi(env_ptr);
 
 	if ((env_ptr = getenv(SYS_VAR_ZC_NUM_BUFS)) != NULL)
 		zc_num_bufs = (uint32_t)atoi(env_ptr);
@@ -1089,6 +1206,15 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE)) != NULL)
 		rx_num_wr = (uint32_t)atoi(env_ptr);
+
+	if (enable_striding_rq && (strq_stride_num_per_rwqe * rx_num_wr > MAX_MLX5_CQ_SIZE_ITEMS)) {
+		rx_num_wr = MAX_MLX5_CQ_SIZE_ITEMS / strq_stride_num_per_rwqe;
+
+		vlog_printf(VLOG_WARNING, "Requested " SYS_VAR_STRQ_NUM_STRIDES " * " SYS_VAR_RX_NUM_WRE " > Maximum CQE per CQ (%d)."
+			" Decreasing " SYS_VAR_RX_NUM_WRE " to %" PRIu32 "\n",
+			MAX_MLX5_CQ_SIZE_ITEMS, rx_num_wr);
+	}
+
 	if (rx_num_wr <= (rx_num_wr_to_post_recv * 2))
 		rx_num_wr = rx_num_wr_to_post_recv * 2;
 
@@ -1175,9 +1301,6 @@ void mce_sys_var::get_env_params()
 	if ((env_ptr = getenv(SYS_VAR_MC_FORCE_FLOWTAG)) != NULL)
 		mc_force_flowtag = atoi(env_ptr) ? true : false;
 
-	if ((env_ptr = getenv(SYS_VAR_STRQ_ENABLE)) != NULL)
-		enable_striding_rq = atoi(env_ptr) ? true : false;
-
 	if ((env_ptr = getenv(SYS_VAR_SELECT_NUM_POLLS)) != NULL)
 		select_poll_num = atoi(env_ptr);
 
@@ -1208,18 +1331,20 @@ void mce_sys_var::get_env_params()
 		cq_moderation_enable = atoi(env_ptr) ? true : false;
 	if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_COUNT)) != NULL)
 		cq_moderation_count = (uint32_t)atoi(env_ptr);
-	if (cq_moderation_count > rx_num_wr / 2) {
-		cq_moderation_count = rx_num_wr / 2;
-	}
+
+	uint32_t max_cq_moderation_count = (!enable_striding_rq ? rx_num_wr : (strq_stride_num_per_rwqe * rx_num_wr)) / 2U;
+	if (cq_moderation_count > max_cq_moderation_count)
+		cq_moderation_count = max_cq_moderation_count;
 
 	if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_PERIOD_USEC)) != NULL)
 		cq_moderation_period_usec = (uint32_t)atoi(env_ptr);
 
 	if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_COUNT)) != NULL)
 		cq_aim_max_count = (uint32_t)atoi(env_ptr);
-	if (cq_aim_max_count > rx_num_wr / 2){
-		cq_aim_max_count = rx_num_wr / 2;
-	}
+
+	uint32_t max_cq_aim_max_count = (!enable_striding_rq ? rx_num_wr : (strq_stride_num_per_rwqe * rx_num_wr)) / 2U;
+	if (cq_aim_max_count > max_cq_aim_max_count)
+		cq_aim_max_count = max_cq_aim_max_count;
 
 	if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_PERIOD_USEC)) != NULL)
 		cq_aim_max_period_usec = (uint32_t)atoi(env_ptr);
@@ -1547,3 +1672,5 @@ void set_env_params()
 		break;
 	}
 }
+
+

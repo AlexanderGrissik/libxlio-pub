@@ -220,16 +220,16 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
 			m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
 			if (is_zerocopy) {
-				if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
+				if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc) {
 					/* PBUF_DESC_MKEY - value is provided by user */
 					m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mkey;
-				} else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
+				} else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc) {
 					mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mdesc;
 					m_sge[i].lkey = mdesc->get_lkey(p_tcp_iov[i].p_desc, ib_ctx, (void*)m_sge[i].addr, m_sge[i].length);
 					if (m_sge[i].lkey == LKEY_USE_DEFAULT)
 						m_sge[i].lkey = m_p_ring->get_tx_lkey(m_id);
 				} else {
-					/* Do not check desc.attr for specific type because
+					/* Do not check desc.attr_pbuf_desc for specific type because
 					 * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
 					 * PBUF_DESC_NONE - map should be initialized to NULL in dst_entry_tcp::get_buffer()
 					 * PBUF_DESC_MAP - map should point on mapping object
@@ -528,15 +528,15 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc, bool 
 		}
 
 		/* Initialize pbuf description */
-		p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_NONE;
+		p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc = PBUF_DESC_NONE;
 		memset(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, 0, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
 		if (desc) {
 			memcpy(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, desc, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
-			if (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MDESC) {
+			if (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_MDESC) {
 				mem_desc *mdesc = (mem_desc *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.mdesc;
 				mdesc->get();
 			} else if (p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY &&
-					(p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MAP)) {
+					(p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_MAP)) {
 				mapping_t *mapping = (mapping_t *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.map;
 				mapping->get();
 			}

@@ -80,15 +80,19 @@ public:
 	void post_nop_fence(void);
 
 protected:
+
+	void		post_recv_buffer_rq(mem_buf_desc_t* p_mem_buf_desc);
 	void		trigger_completion_for_all_sent_packets();
-	virtual void	init_qp();
+	bool 		init_rx_cq_mgr_prepare();
+	virtual void init_qp();
+	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
+	virtual cq_mgr*	init_tx_cq_mgr(void);
 
 	uint64_t*   m_sq_wqe_idx_to_wrid;
 	uint64_t    m_rq_wqe_counter;
 
 private:
-	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
-	virtual cq_mgr*	init_tx_cq_mgr(void);
+	
 	virtual bool	is_completion_need() { return !m_n_unsignaled_count || (m_dm_enabled && m_dm_mgr.is_completion_need()); };
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
 	

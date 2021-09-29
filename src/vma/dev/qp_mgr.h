@@ -93,6 +93,7 @@ class qp_mgr
 {
 friend class cq_mgr;
 friend class cq_mgr_mlx5;
+friend class cq_mgr_mlx5_strq;
 friend class cq_mgr_mp;
 public:
 	qp_mgr(struct qp_mgr_desc *desc, const uint32_t tx_num_wr);

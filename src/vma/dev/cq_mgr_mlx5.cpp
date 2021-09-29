@@ -55,8 +55,8 @@ cq_mgr_mlx5::cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler,
 			 bool is_rx, bool call_configure):
 	cq_mgr(p_ring, p_ib_ctx_handler, cq_size, p_comp_event_channel, is_rx, call_configure)
 	,m_qp(NULL)
-	,m_b_sysvar_enable_socketxtreme(safe_mce_sys().enable_socketxtreme)
 	,m_rx_hot_buffer(NULL)
+	,m_b_sysvar_enable_socketxtreme(safe_mce_sys().enable_socketxtreme)
 {
 	cq_logfunc("");
 
@@ -179,7 +179,7 @@ mem_buf_desc_t* cq_mgr_mlx5::poll(enum buff_status_e& status)
 	return buff;
 }
 
-inline void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e &status)
+void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e &status)
 {
 	struct mlx5_err_cqe *ecqe;
 	ecqe = (struct mlx5_err_cqe *)cqe;
@@ -425,27 +425,6 @@ int cq_mgr_mlx5::drain_and_proccess(uintptr_t* p_recycle_buffers_last_wr_id /*=N
 	return ret_total;
 }
 
-inline void cq_mgr_mlx5::update_global_sn(uint64_t& cq_poll_sn, uint32_t num_polled_cqes)
-{
-	if (num_polled_cqes > 0) {
-		// spoil the global sn if we have packets ready
-		union __attribute__((packed)) {
-			uint64_t global_sn;
-			struct {
-				uint32_t cq_id;
-				uint32_t cq_sn;
-			} bundle;
-		} next_sn;
-		m_n_cq_poll_sn += num_polled_cqes;
-		next_sn.bundle.cq_sn = m_n_cq_poll_sn;
-		next_sn.bundle.cq_id = m_cq_id;
-
-		m_n_global_sn = next_sn.global_sn;
-	}
-
-	cq_poll_sn = m_n_global_sn;
-}
-
 mem_buf_desc_t* cq_mgr_mlx5::process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status)
 {
 	/* Assume locked!!! */
@@ -663,46 +642,6 @@ inline void cq_mgr_mlx5::cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc)
 	wc->vendor_err = ecqe->vendor_err_synd;
 }
 
-inline struct vma_mlx5_cqe* cq_mgr_mlx5::check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci, uint8_t op_own)
-{
-	switch (op_own >> 4) {
-	case MLX5_CQE_REQ_ERR:
-	case MLX5_CQE_RESP_ERR:
-		++(*ci);
-		rmb();
-		*m_mlx5_cq.dbrec = htonl((*ci));
-		return cqe;
-
-	case MLX5_CQE_INVALID:
-	default:
-		return NULL; // No CQE 
-	}
-}
-
-inline struct vma_mlx5_cqe *cq_mgr_mlx5::get_cqe(struct vma_mlx5_cqe **cqe_err)
-{
-	struct vma_mlx5_cqe *cqe = (struct vma_mlx5_cqe *)(((uint8_t*)m_mlx5_cq.cq_buf) +
-		((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1)) << m_mlx5_cq.cqe_size_log));
-	uint8_t op_own = cqe->op_own;
-
-	// Check ownership and invalid opcode
-	// Return cqe_err for 0x80 - MLX5_CQE_REQ_ERR, MLX5_CQE_RESP_ERR or MLX5_CQE_INVALID
- 	if (unlikely((op_own & MLX5_CQE_OWNER_MASK) == !(m_mlx5_cq.cq_ci & m_mlx5_cq.cqe_count))) {
-		return NULL;
-	} else if (unlikely((op_own >> 4) == MLX5_CQE_INVALID)) {
-		return NULL;
-	} else if (cqe_err && (op_own & 0x80)) {
-		*cqe_err = check_error_completion(cqe, &m_mlx5_cq.cq_ci, op_own);
-		return NULL;
-	}
-
- 	++m_mlx5_cq.cq_ci;
-	rmb();
-	*m_mlx5_cq.dbrec = htonl(m_mlx5_cq.cq_ci);
-
- 	return cqe;
-}
-
 int cq_mgr_mlx5::poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uint64_t* p_cq_poll_sn)
 {
 	uint16_t wqe_ctr = ntohs(cqe->wqe_counter);
@@ -876,6 +815,11 @@ void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_
 
 	/* ignore */
 	p_ip_h->check = 0;
+}
+
+void cq_mgr_mlx5::cq_logerr_call(const char* fmt)
+{
+	cq_logerr("%s", fmt);
 }
 
 #endif /* DEFINED_DIRECT_VERBS */

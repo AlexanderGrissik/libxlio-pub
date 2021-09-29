@@ -74,11 +74,12 @@ enum {
   PBUF_DESC_MDESC,
   PBUF_DESC_FD,
   PBUF_DESC_MAP,
-  PBUF_DESC_MKEY
+  PBUF_DESC_MKEY,
+  PBUF_DESC_STRIDE
 };
 
 typedef struct {
-  int attr;
+  int attr_pbuf_desc;
   union {
     int fd;
     void *map;

@@ -619,13 +619,13 @@ bool ring_bond::reclaim_recv_buffers(descq_t *rx_reuse)
 	for (i = 0; i < m_bond_rings.size(); i++) {
 		if (buffer_per_ring[i].size() > 0) {
 			if (!m_bond_rings[i]->reclaim_recv_buffers(&buffer_per_ring[i])) {
-				g_buffer_pool_rx->put_buffers_after_deref_thread_safe(&buffer_per_ring[i]);
+				g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(&buffer_per_ring[i]);
 			}
 		}
 	}
 
 	if (buffer_per_ring[m_bond_rings.size()].size() > 0) {
-		g_buffer_pool_rx->put_buffers_after_deref_thread_safe(&buffer_per_ring[m_bond_rings.size()]);
+		g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(&buffer_per_ring[m_bond_rings.size()]);
 	}
 
 	m_lock_ring_rx.unlock();

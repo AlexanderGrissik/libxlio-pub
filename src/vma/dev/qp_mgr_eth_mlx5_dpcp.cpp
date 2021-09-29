@@ -36,19 +36,23 @@
 #include <cinttypes>
 #include "ring_simple.h"
 #include "rfs_rule_dpcp.h"
+#include "cq_mgr_mlx5_strq.h"
 
 #define MODULE_NAME	"qp_mgr_eth_mlx5_dpcp"
 
 qp_mgr_eth_mlx5_dpcp::qp_mgr_eth_mlx5_dpcp(struct qp_mgr_desc *desc, uint32_t tx_num_wr, uint16_t vlan):
-        qp_mgr_eth_mlx5(desc, tx_num_wr, vlan)
+        qp_mgr_eth_mlx5(desc, tx_num_wr, vlan, false)
 {
+	if (configure(desc))
+		throw_vma_exception("Failed creating qp_mgr_eth_mlx5_dpcp");
+
 	if (!configure_rq_dpcp())
 		throw_vma_exception("Failed to create qp_mgr_eth_mlx5_dpcp");
 }
 
 bool qp_mgr_eth_mlx5_dpcp::configure_rq_dpcp()
 {
-    qp_logdbg("Creating RQ of transport type '%s' on ibv device '%s' [%p] on port %d",
+	qp_logdbg("Creating RQ of transport type '%s' on ibv device '%s' [%p] on port %d",
 			priv_vma_transport_type_str(m_p_ring->get_transport_type()),
 			m_p_ib_ctx_handler->get_ibname(), m_p_ib_ctx_handler->get_ibv_device(), m_port_num);
 
@@ -64,6 +68,20 @@ bool qp_mgr_eth_mlx5_dpcp::configure_rq_dpcp()
 	qp_logdbg("Configuring dpcp RQ, cq-rx: %p, cqn-rx: %u",
 		m_p_cq_mgr_rx, static_cast<unsigned int>(mlx5_cq.cq_num));
 
+	if (safe_mce_sys().enable_striding_rq) {
+		m_qp_cap.max_recv_sge = 2U;  // Striding-RQ needs a reserved segment.
+		_strq_wqe_reserved_seg = 1U;
+
+		delete[] m_ibv_rx_sg_array;
+		m_ibv_rx_sg_array = new ibv_sge[m_n_sysvar_rx_num_wr_to_post_recv * m_qp_cap.max_recv_sge];
+		for (uint32_t wr_idx = 0; wr_idx < m_n_sysvar_rx_num_wr_to_post_recv; wr_idx++) {
+			m_ibv_rx_wr_array[wr_idx].sg_list = &m_ibv_rx_sg_array[wr_idx * m_qp_cap.max_recv_sge];
+			m_ibv_rx_wr_array[wr_idx].num_sge = m_qp_cap.max_recv_sge;
+			memset(m_ibv_rx_wr_array[wr_idx].sg_list, 0, sizeof(ibv_sge));
+			m_ibv_rx_wr_array[wr_idx].sg_list[0].length = 1U; // To bypass a check inside vma_ib_mlx5_post_recv.
+		}
+	}
+
 	// Create the QP
 	if (!prepare_rq(mlx5_cq.cq_num))
 		return false;
@@ -76,21 +94,33 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 	qp_logdbg("");
 
 	dpcp::adapter* dpcp_adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
-    if (!dpcp_adapter) {
-        qp_logerr("Failed to get dpcp::adapter for prepare_rq");
-        return false;
-    }
+	if (!dpcp_adapter) {
+		qp_logerr("Failed to get dpcp::adapter for prepare_rq");
+		return false;
+	}
 
 	dpcp::rq_attr rqattrs;
-	rqattrs.buf_stride_sz = 0U; // Regular RQ has no WQE strides.
-    rqattrs.buf_stride_num = 0U; // Regular RQ has no WQE strides.
-    rqattrs.user_index = 0U; // Unused.
-    rqattrs.cqn = cqn;
+	rqattrs.user_index = 0U; // Unused.
+	rqattrs.cqn = cqn;
 
 	unique_ptr<dpcp::simple_rq> new_rq;
-	dpcp::regular_rq* new_rq_ptr = nullptr;
-    dpcp::status rc = dpcp_adapter->create_regular_rq(rqattrs, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge, new_rq_ptr);
-	new_rq.reset(new_rq_ptr);
+	dpcp::status rc = dpcp::DPCP_OK;
+
+	if (safe_mce_sys().enable_striding_rq) {
+		dpcp::striding_rq* new_rq_ptr = nullptr;
+		rqattrs.buf_stride_sz = safe_mce_sys().strq_stride_size_bytes;
+		rqattrs.buf_stride_num = safe_mce_sys().strq_stride_num_per_rwqe;
+		// Striding-RQ WQE format is as of Shared-RQ (PRM, page 381, wq_type).
+		// In this case the WQE minimum size is 2 * 16, and the first segment is reserved.
+		rc = dpcp_adapter->create_striding_rq(rqattrs, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge * 16U, new_rq_ptr);
+		new_rq.reset(new_rq_ptr);
+	} else {
+		dpcp::regular_rq* new_rq_ptr = nullptr;
+		rqattrs.buf_stride_sz = 0U; // Regular RQ has no WQE strides.
+		rqattrs.buf_stride_num = 0U; // Regular RQ has no WQE strides.
+		rc = dpcp_adapter->create_regular_rq(rqattrs, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge, new_rq_ptr);
+		new_rq.reset(new_rq_ptr);
+	}
 
 	if (dpcp::DPCP_OK != rc) {
 		qp_logerr("Failed to create dpcp rq, rc: %d, cqn: %" PRIu32, static_cast<int>(rc), cqn);
@@ -139,6 +169,9 @@ bool qp_mgr_eth_mlx5_dpcp::store_rq_mlx5_params(dpcp::simple_rq& new_rq)
 
 	new_rq.get_wqe_num(m_mlx5_qp.rq.wqe_cnt);
 	new_rq.get_wq_stride_sz(m_mlx5_qp.rq.stride);
+	if (safe_mce_sys().enable_striding_rq)
+		m_mlx5_qp.rq.stride /= 16U;
+
 	m_mlx5_qp.rq.wqe_shift = ilog_2(m_mlx5_qp.rq.stride);
 	m_mlx5_qp.rq.head      = 0;
 	m_mlx5_qp.rq.tail      = 0;
@@ -187,6 +220,8 @@ void qp_mgr_eth_mlx5_dpcp::modify_qp_to_ready_state()
 
 void qp_mgr_eth_mlx5_dpcp::modify_qp_to_error_state()
 {
+	m_p_cq_mgr_rx->clean_cq();
+
 	qp_mgr_eth_mlx5::modify_qp_to_error_state();
 
 	dpcp::status rc = _rq->modify_state(dpcp::RQ_ERR);
@@ -199,6 +234,29 @@ void qp_mgr_eth_mlx5_dpcp::modify_rq_to_ready_state()
 	dpcp::status rc = _rq->modify_state(dpcp::RQ_RDY);
 	if (dpcp::DPCP_OK != rc)
 		qp_logerr("Failed to modify rq state to RDY, rc: %d, rqn: %" PRIu32, static_cast<int>(rc), m_mlx5_qp.rqn);
+}
+
+cq_mgr* qp_mgr_eth_mlx5_dpcp::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
+{
+	if (unlikely(!safe_mce_sys().enable_striding_rq))
+		return qp_mgr_eth_mlx5::init_rx_cq_mgr(p_rx_comp_event_channel);
+
+	return (!init_rx_cq_mgr_prepare() ? nullptr :
+		new cq_mgr_mlx5_strq(
+			m_p_ring, m_p_ib_ctx_handler,
+			safe_mce_sys().strq_stride_num_per_rwqe * m_rx_num_wr,
+			safe_mce_sys().strq_stride_size_bytes, safe_mce_sys().strq_stride_num_per_rwqe,
+			p_rx_comp_event_channel, true));
+}
+
+void qp_mgr_eth_mlx5_dpcp::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
+{
+	uint32_t index = (m_curr_rx_wr * m_qp_cap.max_recv_sge) + _strq_wqe_reserved_seg;
+	m_ibv_rx_sg_array[index].addr   = (uintptr_t)p_mem_buf_desc->p_buffer;
+	m_ibv_rx_sg_array[index].length = p_mem_buf_desc->sz_buffer;
+	m_ibv_rx_sg_array[index].lkey   = p_mem_buf_desc->lkey;
+
+	post_recv_buffer_rq(p_mem_buf_desc);
 }
 
 dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()

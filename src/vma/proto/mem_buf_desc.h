@@ -76,7 +76,8 @@ public:
 		p_prev_desc(0),
 		sz_buffer(size),
 		sz_data(0),
-		p_desc_owner(0) {
+		p_desc_owner(0),
+		strides_num(0U) {
 
 		memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
 		memset(&rx, 0, sizeof(rx));
@@ -92,7 +93,7 @@ public:
 	 * and extra fields to proceed customer specific requirements
 	 */
 	struct pbuf_custom lwip_pbuf;
-	uint8_t* const	p_buffer;
+	uint8_t* p_buffer;
 
 	static inline size_t buffer_node_offset(void) {
 		return NODE_OFFSET(mem_buf_desc_t, buffer_node);
@@ -157,8 +158,8 @@ public:
 	uint32_t	lkey;      	// Buffers lkey for QP access
 	mem_buf_desc_t* p_next_desc;	// A general purpose linked list of mem_buf_desc
 	mem_buf_desc_t* p_prev_desc;
-	size_t const	sz_buffer; 	// this is the size of the buffer
-	size_t		sz_data;   	// this is the amount of data inside the buffer (sz_data <= sz_buffer)
+	size_t  sz_buffer; 	// this is the size of the buffer
+	size_t	sz_data;   	// this is the amount of data inside the buffer (sz_data <= sz_buffer)
 
 	// Tx: qp_mgr owns the mem_buf_desc and the associated data buffer
 	// Rx: cq_mgr owns the mem_buf_desc and the associated data buffer
@@ -169,7 +170,7 @@ private:
 
 public:
 
-	int16_t strides_num;
+	uint16_t strides_num;
 
 	inline mem_buf_desc_t* clone() {
 		mem_buf_desc_t* p_desc = new mem_buf_desc_t(*this);

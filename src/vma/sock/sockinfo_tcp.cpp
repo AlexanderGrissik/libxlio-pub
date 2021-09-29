@@ -177,7 +177,7 @@ inline void sockinfo_tcp::return_pending_rx_buffs()
     if (m_rx_reuse_buf_pending) {
             if (m_p_rx_ring && m_p_rx_ring->reclaim_recv_buffers(&m_rx_reuse_buff.rx_reuse)) {
             } else {
-                    g_buffer_pool_rx->put_buffers_after_deref_thread_safe(&m_rx_reuse_buff.rx_reuse);
+                    g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(&m_rx_reuse_buff.rx_reuse);
             }
             m_rx_reuse_buff.n_buff_num = 0;
             set_rx_reuse_pending(false);
@@ -210,7 +210,7 @@ inline void sockinfo_tcp::reuse_buffer(mem_buf_desc_t *buff)
 			if (m_p_rx_ring->reclaim_recv_buffers(&m_rx_reuse_buff.rx_reuse)) {
 				m_rx_reuse_buff.n_buff_num = 0;
 			} else {
-				g_buffer_pool_rx->put_buffers_after_deref_thread_safe(&m_rx_reuse_buff.rx_reuse);
+				g_buffer_pool_rx_ptr->put_buffers_after_deref_thread_safe(&m_rx_reuse_buff.rx_reuse);
 				m_rx_reuse_buff.n_buff_num = 0;
 			}
 			m_rx_reuse_buf_postponed = false;
@@ -877,7 +877,7 @@ retry_is_ready:
 	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 		is_send_zerocopy = tx_arg.opcode != TX_FILE;
-		pd_key_array = (tx_arg.priv.attr == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
+		pd_key_array = (tx_arg.priv.attr_pbuf_desc == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
 	}
 
 	for (int i = 0; i < sz_iov; i++) {
@@ -889,7 +889,7 @@ retry_is_ready:
 			tx_ptr = &file_offset;
 		} else {
 			tx_ptr = p_iov[i].iov_base;
-			if ((tx_arg.priv.attr == PBUF_DESC_MKEY) && pd_key_array) {
+			if ((tx_arg.priv.attr_pbuf_desc == PBUF_DESC_MKEY) && pd_key_array) {
 				tx_arg.priv.mkey = pd_key_array[i].mkey;
 			}
 		}
@@ -1135,7 +1135,7 @@ zc_fill_iov:
 	while (p && (count < max_count)) {
 		cur_end = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base +
 					     lwip_iovec[count].iovec.iov_len);
-		if ((p->desc.attr == PBUF_DESC_NONE) &&
+		if ((p->desc.attr_pbuf_desc == PBUF_DESC_NONE) &&
 				(cur_end == p->payload) &&
 				((uintptr_t)((uint64_t)lwip_iovec[count].iovec.iov_base & p_si_tcp->m_user_huge_page_mask) ==
 						(uintptr_t)((uint64_t)p->payload & p_si_tcp->m_user_huge_page_mask))) {
@@ -1734,7 +1734,11 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 	pbuf *p_curr_buff = p;
 	conn->m_connected.get_sa(p_first_desc->rx.src);
 
+	// We go over the p_first_desc again, so decrement what we did in rx_input_cb.
+	conn->m_socket_stats.strq_counters.n_strq_total_strides -= static_cast<uint64_t>(p_first_desc->strides_num);
+
 	while (p_curr_buff) {
+		conn->save_strq_stats(p_curr_desc->strides_num);
 		p_curr_desc->rx.context = conn;
 		p_first_desc->rx.n_frags++;
 		p_curr_desc->rx.frag.iov_base = p_curr_buff->payload;
@@ -2106,6 +2110,7 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t* p_rx_pkt_mem_buf_desc_info, void*
 
 	lock_tcp_con();
 
+	save_strq_stats(p_rx_pkt_mem_buf_desc_info->strides_num);
 	m_iomux_ready_fd_array = (fd_array_t*)pv_fd_ready_array;
 
 	/* Try to process socketxtreme_poll() completion directly */
@@ -4522,7 +4527,7 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
 		
 			p_pkts->iov[p_pkts->sz_iov++] = p_desc_iter->rx.frag;
 			total_rx += p_desc_iter->rx.frag.iov_len;
-			
+
 			prev 		= p_desc_iter;
 			p_desc_iter = p_desc_iter->p_next_desc;	
 			len -= sizeof(iovec);
@@ -4789,8 +4794,8 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf
 		p_desc = p_dst->get_buffer(type, desc);
 		if (p_desc &&
 				(p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
-				((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
-					(p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MKEY))) {
+				((p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_NONE) ||
+					(p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_MKEY))) {
 			/* Prepare error queue fields for send zerocopy */
 			if (p_buff) {
 				/* It is a special case that can happen as a result

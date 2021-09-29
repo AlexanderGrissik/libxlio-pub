@@ -65,6 +65,7 @@ libxlio_la_SOURCES := \
 	dev/buffer_pool.cpp \
 	dev/cq_mgr.cpp \
 	dev/cq_mgr_mlx5.cpp \
+	dev/cq_mgr_mlx5_strq.cpp \
 	dev/dm_mgr.cpp \
 	dev/qp_mgr.cpp \
 	dev/qp_mgr_eth_mlx5.cpp \
@@ -168,6 +169,7 @@ libxlio_la_SOURCES := \
 	dev/buffer_pool.h \
 	dev/cq_mgr.h \
 	dev/cq_mgr_mlx5.h \
+	dev/cq_mgr_mlx5_strq.h \
 	dev/dm_mgr.h \
 	dev/gro_mgr.h \
 	dev/ib_ctx_handler_collection.h \

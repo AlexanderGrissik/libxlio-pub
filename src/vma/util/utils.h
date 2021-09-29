@@ -540,4 +540,8 @@ static inline int ilog_2(uint32_t n) {
 	return (int)t;
 }
 
+static inline bool is_ilog2(unsigned int x) {
+	return (1 >= __builtin_popcount(x));
+}
+
 #endif
