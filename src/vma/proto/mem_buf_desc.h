@@ -168,7 +168,9 @@ private:
 	atomic_t	n_ref_count;	// number of interested receivers (sockinfo) [can be modified only in cq_mgr context]
 
 public:
-	
+
+	int16_t strides_num;
+
 	inline mem_buf_desc_t* clone() {
 		mem_buf_desc_t* p_desc = new mem_buf_desc_t(*this);
 		INIT_LIST_HEAD(&p_desc->buffer_node.head);
@@ -184,12 +186,20 @@ public:
 		atomic_set(&n_ref_count, 0);
 	}
 
+	inline void  set_ref_count(int x) {
+		atomic_set(&n_ref_count, x);
+	}
+
 	inline int inc_ref_count() {
 		return atomic_fetch_and_inc(&n_ref_count);
 	}
 
 	inline int dec_ref_count() {
 		return atomic_fetch_and_dec(&n_ref_count);
+	}
+
+	inline int add_ref_count(int x) {
+		return atomic_fetch_add(x, &n_ref_count);
 	}
 
 	inline unsigned int lwip_pbuf_inc_ref_count() {
