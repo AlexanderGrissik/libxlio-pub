@@ -199,7 +199,7 @@ public:
 	}
 
 	inline int add_ref_count(int x) {
-		return atomic_fetch_add(x, &n_ref_count);
+		return atomic_fetch_add_relaxed(x, &n_ref_count);
 	}
 
 	inline unsigned int lwip_pbuf_inc_ref_count() {

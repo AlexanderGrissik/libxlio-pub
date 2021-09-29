@@ -121,9 +121,9 @@ static inline int atomic_fetch_and_dec(atomic_t *v)
  * @param v pointer of type atomic_t.
  * @return Value before add.
  */
-static inline int atomic_fetch_add(int x, atomic_t *v)
+static inline int atomic_fetch_add_relaxed(int x, atomic_t *v)
 {
-	return atomic_fetch_and_add(x, &v->counter);
+	return atomic_fetch_and_add_relaxed(x, &v->counter);
 }
 
 #endif /* ATOMIC_H_ */
