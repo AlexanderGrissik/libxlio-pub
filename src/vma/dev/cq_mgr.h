@@ -142,7 +142,6 @@ public:
 	// CQ implements the Rx mem_buf_desc_owner.
 	// These callbacks will be called for each Rx buffer that passed processed completion
 	// Rx completion handling at the cq_mgr level is forwarding the packet to the ib_comm_mgr layer
-	void	mem_buf_desc_completion_with_error(mem_buf_desc_t* p_rx_wc_buf_desc);
 	void	mem_buf_desc_return_to_owner(mem_buf_desc_t* p_mem_buf_desc, void* pv_fd_ready_array = NULL);
 
 	virtual void	add_qp_rx(qp_mgr* qp);

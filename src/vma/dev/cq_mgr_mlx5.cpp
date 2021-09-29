@@ -459,7 +459,7 @@ mem_buf_desc_t* cq_mgr_mlx5::process_cq_element_rx(mem_buf_desc_t* p_mem_buf_des
 	if (unlikely(status != BS_OK)) {
 		m_p_next_rx_desc_poll = NULL;
 		if (p_mem_buf_desc->p_desc_owner) {
-			m_p_ring->mem_buf_desc_completion_with_error_rx(p_mem_buf_desc);
+			reclaim_recv_buffer_helper(p_mem_buf_desc);
 		} else {
 			/* AlexR: are we throwing away a data buffer and a mem_buf_desc element? */
 			cq_logdbg("no desc_owner(wr_id=%p)", p_mem_buf_desc);
@@ -663,8 +663,7 @@ inline void cq_mgr_mlx5::cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc)
 	wc->vendor_err = ecqe->vendor_err_synd;
 }
 
-inline struct vma_mlx5_cqe* cq_mgr_mlx5::check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci,
-	uint8_t op_own)
+inline struct vma_mlx5_cqe* cq_mgr_mlx5::check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci, uint8_t op_own)
 {
 	switch (op_own >> 4) {
 	case MLX5_CQE_REQ_ERR:
@@ -676,7 +675,7 @@ inline struct vma_mlx5_cqe* cq_mgr_mlx5::check_error_completion(struct vma_mlx5_
 
 	case MLX5_CQE_INVALID:
 	default:
-		return NULL; /* No CQE */
+		return NULL; // No CQE 
 	}
 }
 
@@ -686,9 +685,8 @@ inline struct vma_mlx5_cqe *cq_mgr_mlx5::get_cqe(struct vma_mlx5_cqe **cqe_err)
 		((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1)) << m_mlx5_cq.cqe_size_log));
 	uint8_t op_own = cqe->op_own;
 
-	/* Check ownership and invalid opcode
-	 * Return cqe_err for 0x80 - MLX5_CQE_REQ_ERR, MLX5_CQE_RESP_ERR or MLX5_CQE_INVALID
-	 */
+	// Check ownership and invalid opcode
+	// Return cqe_err for 0x80 - MLX5_CQE_REQ_ERR, MLX5_CQE_RESP_ERR or MLX5_CQE_INVALID
  	if (unlikely((op_own & MLX5_CQE_OWNER_MASK) == !(m_mlx5_cq.cq_ci & m_mlx5_cq.cqe_count))) {
 		return NULL;
 	} else if (unlikely((op_own >> 4) == MLX5_CQE_INVALID)) {
@@ -784,7 +782,7 @@ void cq_mgr_mlx5::set_qp_rq(qp_mgr* qp)
 {
 	m_qp = static_cast<qp_mgr_eth_mlx5*> (qp);
 
-	m_qp->m_rq_wqe_counter = 0; /* In case of bonded qp, wqe_counter must be reset to zero */
+	m_qp->m_rq_wqe_counter = 0; // In case of bonded qp, wqe_counter must be reset to zero 
 	m_rx_hot_buffer = NULL;
 
 	if (0 != vma_ib_mlx5_get_cq(m_p_ibv_cq, &m_mlx5_cq)) {

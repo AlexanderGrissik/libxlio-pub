@@ -501,11 +501,6 @@ int ring_simple::reclaim_recv_single_buffer(mem_buf_desc_t* rx_reuse)
 	return m_p_cq_mgr_rx->reclaim_recv_single_buffer(rx_reuse);
 }
 
-void ring_simple::mem_buf_desc_completion_with_error_rx(mem_buf_desc_t* p_rx_wc_buf_desc)
-{
-	m_p_cq_mgr_rx->mem_buf_desc_completion_with_error(p_rx_wc_buf_desc);
-}
-
 void ring_simple::mem_buf_desc_completion_with_error_tx(mem_buf_desc_t* p_tx_wc_buf_desc)
 {
 	if (m_b_qp_tx_first_flushed_completion_handled) {

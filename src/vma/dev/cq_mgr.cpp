@@ -512,7 +512,7 @@ mem_buf_desc_t* cq_mgr::process_cq_element_rx(vma_ibv_wc* p_wce)
 			return NULL;
 		}
 		if (p_mem_buf_desc->p_desc_owner) {
-			m_p_ring->mem_buf_desc_completion_with_error_rx(p_mem_buf_desc);
+			reclaim_recv_buffer_helper(p_mem_buf_desc);
 			return NULL;
 		}
 		// AlexR: can this wce have a valid mem_buf_desc pointer?
@@ -633,14 +633,6 @@ void cq_mgr::process_tx_buffer_list(mem_buf_desc_t* p_mem_buf_desc)
 		cq_logerr("got buffer of wrong owner, buf=%p, owner=%p", p_mem_buf_desc, p_mem_buf_desc ? p_mem_buf_desc->p_desc_owner : NULL);
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
-}
-
-void cq_mgr::mem_buf_desc_completion_with_error(mem_buf_desc_t* p_mem_buf_desc)
-{
-	cq_logfuncall("");
-	// lock(); Called from cq_mgr context which is already locked!!
-	reclaim_recv_buffer_helper(p_mem_buf_desc);
-	// unlock(); Called from cq_mgr context which is already locked!!
 }
 
 void cq_mgr::mem_buf_desc_return_to_owner(mem_buf_desc_t* p_mem_buf_desc, void* pv_fd_ready_array /*=NULL*/)
