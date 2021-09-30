@@ -56,6 +56,7 @@
 #include "vma/xlio_extra.h"
 
 #include <vma/sock/sockinfo_tcp.h>
+#include <vma/sock/sockinfo_udp.h>
 
 #include "fd_collection.h"
 #include "vma/util/instrumentation.h"
@@ -85,6 +86,7 @@ using namespace std;
 #if defined(DEFINED_NGINX)
 int g_worker_index = 0;
 bool g_b_add_second_4t_rule = false;
+int  g_b_udp_bounded_port   = -1;
 #endif
 
 struct os_api orig_os_api;
@@ -376,42 +378,75 @@ int init_child_process_for_nginx()
 		return 0;
 	}
 
-	srdr_logdbg("g_worker_index: %d Size is: %d\n", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
+	srdr_logdbg("g_worker_index: %d Size is: %d", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
+	int j = -1;
 	for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {
 		socket_fd_api* fd = g_p_fd_collection_parent_process->get_sockfd(i);
-		if (fd && fd->m_is_listen) {
+		if (fd) {
 			struct sockaddr_in addr;
 			int ret = 0;
 			socklen_t tmp_sin_len = sizeof(sockaddr_in);
 			fd->getsockname((struct sockaddr*) & addr, &tmp_sin_len);
-			srdr_logdbg("found listen socket %d\n", fd->get_fd());
-			g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
-			fd = g_p_fd_collection->get_sockfd(i);
-			if (fd) {
-				ret = bind(i, (struct sockaddr*) & addr, tmp_sin_len);
-				if (ret < 0) {
-					srdr_logerr("bind() error\n");
-				}
-				ret = fd->prepareListen(); // for verifying that the socket is really offloaded
-				if (ret < 0) {
-					srdr_logerr("prepareListen error\n");
-					fd = NULL;
-				}
-				else if (ret > 0) { // Pass-through
-					handle_close(fd->get_fd(), false, true);
-					fd = NULL;
-				}
-				else {
-					srdr_logdbg("Prepare listen successfully offloaded\n");
-				}
-
+			if (fd->m_is_listen) {
+				srdr_logdbg("found listen socket %d\n", fd->get_fd());
+				g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
+				fd = g_p_fd_collection->get_sockfd(i);
 				if (fd) {
-					ret = fd->listen(fd->m_back_log);
+					ret = bind(i, (struct sockaddr*) & addr, tmp_sin_len);
 					if (ret < 0) {
-						srdr_logerr("Listen error\n");
+						srdr_logerr("bind() error\n");
+					}
+					ret = fd->prepareListen(); // for verifying that the socket is really offloaded
+					if (ret < 0) {
+						srdr_logerr("prepareListen error\n");
+						fd = NULL;
+					}
+					else if (ret > 0) { // Pass-through
+						handle_close(fd->get_fd(), false, true);
+						fd = NULL;
 					}
 					else {
-						srdr_logdbg("Listen success\n");
+						srdr_logdbg("Prepare listen successfully offloaded\n");
+					}
+
+					if (fd) {
+						ret = fd->listen(fd->m_back_log);
+						if (ret < 0) {
+							srdr_logerr("Listen error\n");
+						}
+						else {
+							srdr_logdbg("Listen success\n");
+						}
+					}
+				}
+			} else {
+				// UDP sockets
+				sockinfo_udp* udp_sock = dynamic_cast<sockinfo_udp*>(fd);
+				if (udp_sock) {
+					int val, size = sizeof(int);
+					bool use_as_udp_listen_socket = true;
+					if (udp_sock->getsockopt(SOL_SOCKET, SO_REUSEPORT, &val, (socklen_t *)&size) < 0) {
+						srdr_logdbg("fd=%d - getsockopt() failed", i);
+						continue;
+					}
+					use_as_udp_listen_socket = use_as_udp_listen_socket && val;
+					use_as_udp_listen_socket = use_as_udp_listen_socket && ntohs(addr.sin_port);
+					if (!use_as_udp_listen_socket)
+						continue;
+
+					// found UDP socket with SO_REUSEPORT which is bound to port != 0
+					if (++j == g_worker_index) {
+						// condition met only once. if not, need to fix logic of setting g_b_udp_bounded_port
+						srdr_logdbg("fd=%d - address: %s:%d", i, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+						g_p_fd_collection->addsocket(i, AF_INET, SOCK_DGRAM);
+						sockinfo_udp* new_udp_sock = dynamic_cast<sockinfo_udp*>(g_p_fd_collection->get_sockfd(i));
+						if (new_udp_sock) {
+							g_b_udp_bounded_port = ntohs(addr.sin_port);
+							ret = new_udp_sock->bind_no_os();
+							if (ret < 0) {
+								srdr_loginfo("bind_no_os() error");
+							}
+						}
 					}
 				}
 			}

@@ -428,30 +428,14 @@ sockinfo_udp::~sockinfo_udp()
 	si_udp_logfunc("done");
 }
 
-int sockinfo_udp::bind(const struct sockaddr *__addr, socklen_t __addrlen)
+int sockinfo_udp::bind_no_os()
 {
-	si_udp_logfunc("");
-
-
-	// We always call the orig_bind which will check sanity of the user socket api
-	// and the OS will also allocate a specific port that we can also use
-	int ret = orig_os_api.bind(m_fd, __addr, __addrlen);
-	if (ret) {
-		si_udp_logdbg("orig bind failed (ret=%d %m)", ret);
-		// TODO: Should we set errno again (maybe log write modified the orig.bind() errno)?
-		return ret;
-	}
-	if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
-		errno = EBUSY;
-		return -1; // zero returned from orig_bind()
-	}
-
 	struct sockaddr_in bound_addr;
 	socklen_t boundlen = sizeof(struct sockaddr_in);
 	struct sockaddr *name = (struct sockaddr *)&bound_addr;
 	socklen_t *namelen = &boundlen;
 
-	ret = getsockname(name, namelen);
+	int ret = getsockname(name, namelen);
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (ret) {
 		si_udp_logdbg("getsockname failed (ret=%d %m)", ret);
@@ -471,6 +455,27 @@ int sockinfo_udp::bind(const struct sockaddr *__addr, socklen_t __addrlen)
 	}
 
 	return 0;
+}
+
+int sockinfo_udp::bind(const struct sockaddr *__addr, socklen_t __addrlen)
+{
+	si_udp_logfunc("");
+
+
+	// We always call the orig_bind which will check sanity of the user socket api
+	// and the OS will also allocate a specific port that we can also use
+	int ret = orig_os_api.bind(m_fd, __addr, __addrlen);
+	if (ret) {
+		si_udp_logdbg("orig bind failed (ret=%d %m)", ret);
+		// TODO: Should we set errno again (maybe log write modified the orig.bind() errno)?
+		return ret;
+	}
+	if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
+		errno = EBUSY;
+		return -1; // zero returned from orig_bind()
+	}
+
+	return bind_no_os();
 }
 
 int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)

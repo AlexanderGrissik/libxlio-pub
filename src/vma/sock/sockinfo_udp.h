@@ -100,6 +100,7 @@ public:
 
 	int 	prepare_to_connect(const sockaddr *__to, socklen_t __tolen);
 
+	int	bind_no_os();
 	int	bind(const struct sockaddr *__addr, socklen_t __addrlen);
 	int	connect(const struct sockaddr *__to, socklen_t __tolen);
 	int	getsockname(struct sockaddr *__name, socklen_t *__namelen);

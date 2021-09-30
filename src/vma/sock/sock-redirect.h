@@ -85,6 +85,7 @@
 #if defined(DEFINED_NGINX)
 extern int g_worker_index;
 extern bool g_b_add_second_4t_rule;
+extern int g_b_udp_bounded_port;
 #endif
 
 struct mmsghdr;
