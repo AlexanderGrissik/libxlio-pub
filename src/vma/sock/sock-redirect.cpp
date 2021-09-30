@@ -86,7 +86,7 @@ using namespace std;
 #if defined(DEFINED_NGINX)
 int g_worker_index = 0;
 bool g_b_add_second_4t_rule = false;
-int  g_b_udp_bounded_port   = -1;
+map_udp_bounded_port_t g_map_udp_bounded_port;
 #endif
 
 struct os_api orig_os_api;
@@ -366,6 +366,23 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 
 #if defined(DEFINED_NGINX)
 
+bool add_to_list(uint16_t port, map_port_list_t &map_port_list, int fd) {
+	bool is_new_list = false;
+	if (map_port_list.find(port) == map_port_list.end()) {
+		map_port_list[port] = new list<int>;;
+		is_new_list = true;
+	}
+
+	map_port_list_t::iterator iter = map_port_list.find(port);
+	if (iter != map_port_list.end()) {
+		iter->second->push_back(fd);
+		srdr_logdbg("worker %d, port=%d, fd=%d, pushed to list. ret=%d", g_worker_index, port, fd, is_new_list);
+	} else {
+		srdr_logerr("failed to create new port list");
+	}
+	return is_new_list;
+}
+
 int init_child_process_for_nginx()
 {
 	if (safe_mce_sys().actual_nginx_workers_num <= 0) {
@@ -379,7 +396,8 @@ int init_child_process_for_nginx()
 	}
 
 	srdr_logdbg("g_worker_index: %d Size is: %d", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
-	int j = -1;
+	map_port_list_t map_port_list;
+	list<uint16_t> port_list = {};
 	for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {
 		socket_fd_api* fd = g_p_fd_collection_parent_process->get_sockfd(i);
 		if (fd) {
@@ -429,30 +447,42 @@ int init_child_process_for_nginx()
 						srdr_logdbg("fd=%d - getsockopt() failed", i);
 						continue;
 					}
+					uint16_t port = ntohs(addr.sin_port);
 					use_as_udp_listen_socket = use_as_udp_listen_socket && val;
-					use_as_udp_listen_socket = use_as_udp_listen_socket && ntohs(addr.sin_port);
+					use_as_udp_listen_socket = use_as_udp_listen_socket && port;
 					if (!use_as_udp_listen_socket)
 						continue;
 
-					// found UDP socket with SO_REUSEPORT which is bound to port != 0
-					if (++j == g_worker_index) {
-						// condition met only once. if not, need to fix logic of setting g_b_udp_bounded_port
-						srdr_logdbg("fd=%d - address: %s:%d", i, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-						g_p_fd_collection->addsocket(i, AF_INET, SOCK_DGRAM);
-						sockinfo_udp* new_udp_sock = dynamic_cast<sockinfo_udp*>(g_p_fd_collection->get_sockfd(i));
-						if (new_udp_sock) {
-							g_b_udp_bounded_port = ntohs(addr.sin_port);
-							ret = new_udp_sock->bind_no_os();
-							if (ret < 0) {
-								srdr_loginfo("bind_no_os() error");
-							}
-						}
-					}
+					if (add_to_list(port, map_port_list, i))
+						port_list.push_back(port);
 				}
 			}
 		}
 	}
-
+	// UDP sockets
+	for (auto& p : port_list) {
+		map_port_list_t::iterator iter = map_port_list.find(p);
+		if (iter != map_port_list.end()) {
+			if ((int)iter->second->size() == safe_mce_sys().actual_nginx_workers_num) {
+				for (int j = 0; j < g_worker_index; j++) {
+					// pop "g_worker_index" number of fds from the list, so we can use the g_worker_index'th fd for worker number g_worker_index
+					iter->second->pop_front();
+				}
+				int fd = iter->second->front();
+				srdr_logdbg("worker %d is using fd=%d. bound to port=%d", g_worker_index, fd, p);
+				g_p_fd_collection->addsocket(fd, AF_INET, SOCK_DGRAM);
+				sockinfo_udp* new_udp_sock = dynamic_cast<sockinfo_udp*>(g_p_fd_collection->get_sockfd(fd));
+				if (new_udp_sock) {
+					g_map_udp_bounded_port[p] = true;
+					// in order to create new steering rules we call bind()
+					// we skip os.bind since it always fails
+					new_udp_sock->bind_no_os();
+				}
+			} else {
+				srdr_logdbg("not using port=%d. count is %u", p, iter->second->size());
+			}
+		}
+	}
 	return 0;
 }
 

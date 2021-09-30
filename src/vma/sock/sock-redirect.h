@@ -81,11 +81,16 @@
 #include <vma/util/utils.h>
 
 #include <vlogger/vlogger.h>
+#include <tr1/unordered_map>
+#include <list>
 
 #if defined(DEFINED_NGINX)
+typedef std::tr1::unordered_map<uint16_t, std::list<int>*> map_port_list_t;
+typedef std::tr1::unordered_map<uint16_t, bool> map_udp_bounded_port_t;
+
 extern int g_worker_index;
 extern bool g_b_add_second_4t_rule;
-extern int g_b_udp_bounded_port;
+extern map_udp_bounded_port_t g_map_udp_bounded_port;
 #endif
 
 struct mmsghdr;

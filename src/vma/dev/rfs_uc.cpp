@@ -139,7 +139,7 @@ bool rfs_uc::prepare_flow_spec()
 #if defined(DEFINED_NGINX)
 	else if (safe_mce_sys().actual_nginx_workers_num > 0) {
 		if (m_flow_tuple.get_protocol() != PROTO_UDP ||
-			(m_flow_tuple.get_protocol() == PROTO_UDP && ntohs(m_flow_tuple.get_dst_port()) == g_b_udp_bounded_port)) {
+			(m_flow_tuple.get_protocol() == PROTO_UDP && g_map_udp_bounded_port.count(ntohs(m_flow_tuple.get_dst_port())))) {
 			int src_port;
 			if (g_b_add_second_4t_rule) {
 				src_port = safe_mce_sys().actual_nginx_workers_num + g_worker_index;
