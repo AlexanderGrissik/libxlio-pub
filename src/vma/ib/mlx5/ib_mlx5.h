@@ -344,6 +344,7 @@ enum {
 /* TLS static parameters TLS version */
 enum {
 	MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2 = 0x2,
+	MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_3 = 0x3,
 };
 
 /* TLS static parameters encryption standard */

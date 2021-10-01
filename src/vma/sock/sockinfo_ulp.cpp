@@ -205,15 +205,19 @@ public:
 		atomic_set(&m_ref, 1);
 		m_seqno = seqno;
 		m_record_number = record_number;
-		m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN + TLS_RECORD_TAG_LEN;
+		m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_TAG_LEN;
 		m_p_buf = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
 		if (likely(m_p_buf != NULL)) {
 			m_p_buf->p_buffer[0] = 0x17;
 			m_p_buf->p_buffer[1] = 0x3;
 			m_p_buf->p_buffer[2] = 0x3;
 			m_p_buf->p_buffer[3] = 0;
-			m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
-			memcpy(&m_p_buf->p_buffer[5], iv, TLS_RECORD_IV_LEN);
+			m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN;
+			if (iv != NULL) {
+				m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
+				m_size += TLS_RECORD_IV_LEN;
+				memcpy(&m_p_buf->p_buffer[5], iv, TLS_RECORD_IV_LEN);
+			}
 		}
 		/* TODO Make a pool of preallocated records with inited header. */
 	}
@@ -238,8 +242,9 @@ public:
 	{
 		int ref = atomic_fetch_and_dec(&m_ref);
 
-		if (ref == 1)
+		if (ref == 1) {
 			delete this;
+		}
 	}
 
 	uint32_t get_lkey(mem_buf_desc_t *desc, ib_ctx_handler *ib_ctx, void *addr, size_t len)
@@ -254,10 +259,11 @@ public:
 	inline size_t append_data(void *data, size_t len)
 	{
 		len = std::min(len, avail_space());
-		memcpy(m_p_buf->p_buffer + m_size - TLS_RECORD_TAG_LEN, data, len);
-		m_size += len;
-		set_length();
-
+		if (len > 0) {
+			memcpy(m_p_buf->p_buffer + m_size - TLS_RECORD_TAG_LEN, data, len);
+			m_size += len;
+			set_length();
+		}
 		return len;
 	}
 
@@ -350,6 +356,8 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 	unsigned char *rec_seq;
 	unsigned char *key;
 	uint32_t keylen;
+	const struct tls_crypto_info *base_info =
+		(const struct tls_crypto_info *)__optval;
 
 	if (__level != SOL_TLS) {
 		return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
@@ -357,6 +365,11 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 	if (unlikely(__optname != TLS_TX && __optname != TLS_RX)) {
 		errno = EINVAL;
 		return -1;
+	}
+
+	if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128) ||
+		__optval == nullptr) {
+		errno = EINVAL;
 	}
 
 	si_ulp_logdbg("TLS %s offload is requested", __optname == TLS_TX ? "TX" : "RX");
@@ -368,6 +381,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			errno = ENOPROTOOPT;
 			return -1;
 		}
+		if (base_info->version != TLS_1_2_VERSION &&
+		    base_info->version != TLS_1_3_VERSION) {
+			si_ulp_logdbg("Unsupported TLS TX version.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
 	} else {
 		/* RX offload checks. */
 		if (unlikely(!m_p_sock->is_utls_supported(UTLS_MODE_RX))) {
@@ -375,29 +394,21 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			errno = ENOPROTOOPT;
 			return -1;
 		}
-	}
-
-	if (unlikely(__optname == TLS_RX && g_tls_api == NULL)) {
-		si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
-		errno = ENOPROTOOPT;
-		return -1;
-	}
-	if (unlikely(__optname == TLS_RX && m_p_rx_ring == NULL)) {
-		si_ulp_logdbg("Cannot determine RX ring, TLS RX offload is impossible.");
-		errno = ENOPROTOOPT;
-		return -1;
-	}
-
-	const struct tls_crypto_info *base_info = (const struct tls_crypto_info *)__optval;
-
-	if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_128))) {
-		errno = EINVAL;
-		return -1;
-	}
-	if (unlikely(base_info->version != TLS_1_2_VERSION)) {
-		si_ulp_logdbg("Unsupported TLS version.");
-		errno = ENOPROTOOPT;
-		return -1;
+		if (base_info->version != TLS_1_2_VERSION) {
+			si_ulp_logdbg("Unsupported TLS RX version.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+		if (unlikely(g_tls_api == NULL)) {
+			si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+		if (unlikely(m_p_rx_ring == NULL)) {
+			si_ulp_logdbg("Cannot determine RX ring, TLS RX offload is impossible.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
 	}
 
 	switch (base_info->cipher_type) {
@@ -451,6 +462,8 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 	xlio_tls_info *tls_info =
 			(__optname == TLS_TX) ? &m_tls_info_tx :
 						&m_tls_info_rx;
+	tls_info->tls_version = base_info->version;
+	tls_info->tls_cipher = base_info->cipher_type;
 	tls_info->key_len = keylen;
 	memcpy(tls_info->key, key, keylen);
 	memcpy(tls_info->iv, iv, TLS_AES_GCM_IV_LEN);
@@ -574,6 +587,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	size_t pos;
 	int errno_save;
 	bool block_this_run;
+	uint8_t tls_type = 0x17;
 
 	if (!m_is_tls_tx) {
 		return m_p_sock->tcp_tx(tx_arg);
@@ -619,7 +633,8 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 			}
 
 			rec = new tls_record(m_p_sock, m_p_sock->get_next_tcp_seqno(),
-					     m_next_recno_tx, m_tls_info_tx.iv);
+					     m_next_recno_tx,
+					     is_tx_tls13() ? NULL : m_tls_info_tx.iv);
 			if (unlikely(rec == NULL || rec->m_p_buf == NULL)) {
 				if (ret == 0) {
 					errno = ENOMEM;
@@ -640,7 +655,10 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 					for (cmsg = CMSG_FIRSTHDR(__msg); cmsg; cmsg = CMSG_NXTHDR(__msg, cmsg)) {
 						if (cmsg->cmsg_level == SOL_TLS &&
 						    cmsg->cmsg_type == TLS_SET_RECORD_TYPE) {
-							rec->set_type(*CMSG_DATA(cmsg));
+							tls_type = *CMSG_DATA(cmsg);
+							if (!is_tx_tls13()) {
+								rec->set_type(tls_type);
+							}
 						}
 					}
 				}
@@ -651,6 +669,15 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				tosend = std::min(tosend, sndbuf - TLS_RECORD_OVERHEAD);
 			}
 			tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
+			/*
+			 * Set type for TLS1.3. Replace the last payload byte
+			 * with the type if there is no room for 1 extra byte.
+			 */
+			if (is_tx_tls13() && rec->append_data(&tls_type, 1) == 0) {
+				assert(tosend > 0);
+				--tosend;
+				rec->m_p_buf->p_buffer[rec->m_size - TLS_RECORD_TAG_LEN - 1] = tls_type;
+			}
 			pos += tosend;
 			tls_arg.attr.msg.iov[0].iov_base = rec->m_p_buf->p_buffer;
 			tls_arg.attr.msg.iov[0].iov_len = rec->m_size;

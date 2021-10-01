@@ -95,6 +95,10 @@ public:
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
 private:
+	inline bool is_tx_tls13(void) {
+		return m_tls_info_tx.tls_version == TLS_1_3_VERSION;
+	}
+
 	err_t tls_rx_consume_ready_packets(void);
 	err_t recv(struct pbuf *p);
 	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);

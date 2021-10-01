@@ -1223,19 +1223,25 @@ inline void qp_mgr_eth_mlx5::tls_fill_static_params_wqe(
 	const struct xlio_tls_info* info,
 	uint32_t key_id, uint32_t resync_tcp_sn)
 {
-	unsigned char *initial_rn, *gcm_iv;
+	unsigned char *initial_rn, *iv;
 	uint8_t tls_version;
 	uint8_t* ctx;
 
 	ctx = params->ctx;
 
-	gcm_iv = DEVX_ADDR_OF(tls_static_params, ctx, gcm_iv);
+	iv = DEVX_ADDR_OF(tls_static_params, ctx, gcm_iv);
 	initial_rn = DEVX_ADDR_OF(tls_static_params, ctx, initial_record_number);
 
-	memcpy(gcm_iv, info->salt, TLS_AES_GCM_SALT_LEN);
+	memcpy(iv, info->salt, TLS_AES_GCM_SALT_LEN);
 	memcpy(initial_rn, info->rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+	if (info->tls_version == TLS_1_3_VERSION) {
+		iv = DEVX_ADDR_OF(tls_static_params, ctx, implicit_iv);
+		memcpy(iv, info->iv, TLS_AES_GCM_IV_LEN);
+	}
 
-	tls_version = MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2;
+	tls_version = (info->tls_version == TLS_1_2_VERSION) ?
+		MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_2 :
+		MLX5E_STATIC_PARAMS_CONTEXT_TLS_1_3;
 
 	DEVX_SET(tls_static_params, ctx, tls_version, tls_version);
 	DEVX_SET(tls_static_params, ctx, const_1, 1);

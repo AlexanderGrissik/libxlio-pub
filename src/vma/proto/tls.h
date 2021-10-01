@@ -63,6 +63,9 @@
 #ifndef TLS_1_2_VERSION
 #define TLS_1_2_VERSION 0x0303
 #endif
+#ifndef TLS_1_3_VERSION
+#define TLS_1_3_VERSION 0x0304
+#endif
 #ifndef TLS_CIPHER_AES_GCM_128
 #define TLS_CIPHER_AES_GCM_128 51
 #endif
@@ -76,6 +79,8 @@ enum {
 
 struct xlio_tls_info {
 	uint32_t key_len;
+	int tls_version;
+	int tls_cipher;
 	unsigned char iv[TLS_AES_GCM_IV_LEN];
 	unsigned char key[TLS_AES_GCM_KEY_MAX];
 	unsigned char salt[TLS_AES_GCM_SALT_LEN];
