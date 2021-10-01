@@ -4640,7 +4640,7 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool blocking)
     }
 
     // if in blocking accept state skip poll phase and go to sleep directly
-    if (m_loops_timer.is_timeout() || !blocking) {
+    if (!blocking || m_loops_timer.is_timeout()) {
         errno = EAGAIN;
         return -1;
     }
