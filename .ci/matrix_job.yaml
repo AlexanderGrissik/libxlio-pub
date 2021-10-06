@@ -39,7 +39,7 @@ runs_on_dockers:
   - {name: 'blackduck', url: 'harbor.mellanox.com/toolbox/ngci-centos:7.9.2009.2', category: 'tool', arch: 'x86_64'}
 
 runs_on_agents:
-  - {nodeLabel: 'r-aa-zorro014', category: 'base'}
+  - {nodeLabel: 'r-aa-fatty09', category: 'base'}
 
 matrix:
   axes:
@@ -146,7 +146,7 @@ steps:
   - name: Style
     enable: ${do_style}
     agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014'}"
+      - "{nodeLabel: 'r-aa-fatty09'}"
     run: |
       [ "x${do_style}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_style=${action} ./contrib/test_jenkins.sh
@@ -213,10 +213,56 @@ steps:
     archiveTap-onfail: |
       jenkins/**/*.tap
 
+  - name: Cppcheck
+    enable: ${do_cppcheck}
+    agentSelector:
+      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
+    run: |
+      [ "x${do_cppcheck}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cppcheck=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
+
+  - name: Csbuild
+    enable: ${do_csbuild}
+    agentSelector:
+      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
+    run: |
+      [ "x${do_csbuild}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cppcheck=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
+
   - name: Test
     enable: ${do_test}
     agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
+      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
     run: |
       [ "x${do_test}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_run=${action} ./contrib/test_jenkins.sh
@@ -239,7 +285,7 @@ steps:
   - name: Gtest
     enable: ${do_gtest}
     agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
+      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
     run: |
       [ "x${do_gtest}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_gtest=${action} ./contrib/test_jenkins.sh
@@ -265,7 +311,7 @@ steps:
   - name: Valgrind
     enable: ${do_valgrind}
     agentSelector:
-      - "{nodeLabel: 'r-aa-zorro014', variant:1}"
+      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
     run: |
       [ "x${do_valgrind}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_vg=${action} ./contrib/test_jenkins.sh
