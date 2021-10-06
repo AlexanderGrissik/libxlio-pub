@@ -240,7 +240,6 @@ TEST_F(vma_ring, ti_10) {
 
 	errno = EOK;
 	rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
-	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
 	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
@@ -287,7 +286,6 @@ TEST_F(vma_ring, ti_11) {
 
 	errno = EOK;
 	rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
-	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
 	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
@@ -334,7 +332,6 @@ TEST_F(vma_ring, ti_12) {
 
 	errno = EOK;
 	rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
-	ASSERT_EQ(EOK, errno);
 	ASSERT_EQ(0, rc);
 
 	rc = xlio_api->get_socket_rings_fds(fd, &ring_fd_bind_opt, 1);
