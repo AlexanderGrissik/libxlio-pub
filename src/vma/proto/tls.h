@@ -61,10 +61,13 @@ enum {
 	TLS_AES_GCM_IV_LEN      = 8U,
 	TLS_AES_GCM_SALT_LEN    = 4U,
 	TLS_AES_GCM_REC_SEQ_LEN = 8U,
+	TLS_AES_GCM_KEY_MAX     = 32U,
 };
 
 struct xlio_tls_info {
+	uint32_t key_len;
 	unsigned char iv[TLS_AES_GCM_IV_LEN];
+	unsigned char key[TLS_AES_GCM_KEY_MAX];
 	unsigned char salt[TLS_AES_GCM_SALT_LEN];
 	unsigned char rec_seq[TLS_AES_GCM_REC_SEQ_LEN];
 };

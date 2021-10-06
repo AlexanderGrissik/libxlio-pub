@@ -244,7 +244,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			}
 		}
 
-		send_lwip_buffer(m_id, m_p_send_wqe, attr.flags, attr.tisn);
+		send_lwip_buffer(m_id, m_p_send_wqe, attr.flags, attr.tis);
 
 	} else { // We don'nt support inline in this case, since we believe that this a very rare case
 		mem_buf_desc_t *p_mem_buf_desc;

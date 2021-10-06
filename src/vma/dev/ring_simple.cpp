@@ -676,17 +676,17 @@ void ring_simple::mem_buf_rx_release(mem_buf_desc_t* p_mem_buf_desc)
 }
 
 /* note that this function is inline, so keep it above the functions using it */
-inline int ring_simple::send_buffer(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn)
+inline int ring_simple::send_buffer(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
 	//Note: this is debatable logic as it count of WQEs waiting completion but
 	//our SQ is cyclic buffer so in reality only last WQE is still being sent
 	//and other SQ is mostly free to work on.
 	int ret = 0;
 	if (likely(m_tx_num_wr_free > 0)) {
-		ret = m_p_qp_mgr->send(p_send_wqe, attr, tisn);
+		ret = m_p_qp_mgr->send(p_send_wqe, attr, tis);
 		--m_tx_num_wr_free;
 	} else if (is_available_qp_wr(is_set(attr, VMA_TX_PACKET_BLOCK))) {
-		ret = m_p_qp_mgr->send(p_send_wqe, attr, tisn);
+		ret = m_p_qp_mgr->send(p_send_wqe, attr, tis);
 	} else {
 		ring_logdbg("silent packet drop, no available WR in QP!");
 		ret = -1;
@@ -728,7 +728,7 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wq
 	send_status_handler(ret, p_send_wqe);
 }
 
-void ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn)
+void ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
 	NOT_IN_USE(id);
 
@@ -744,7 +744,7 @@ void ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wq
 	mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t*)(p_send_wqe->wr_id);
 	p_mem_buf_desc->lwip_pbuf.pbuf.ref++;
 #endif /* DEFINED_TSO */
-	int ret = send_buffer(p_send_wqe, attr, tisn);
+	int ret = send_buffer(p_send_wqe, attr, tis);
 	send_status_handler(ret, p_send_wqe);
 }
 

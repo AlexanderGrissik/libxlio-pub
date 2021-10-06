@@ -36,9 +36,11 @@
 
 #include "vma/ib/base/verbs_extra.h"
 #include "vma/proto/flow_tuple.h"
-#include "vma/proto/tls.h"
 #include "vma/sock/socket_fd_api.h"
 
+/* Forward declarations */
+struct xlio_tls_info;
+class xlio_tis;
 class pkt_rcvr_sink;
 
 #define ring_logpanic 		__log_info_panic
@@ -91,7 +93,7 @@ public:
 	virtual int		mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock = false) = 0;
 	virtual void		mem_buf_rx_release(mem_buf_desc_t* p_mem_buf_desc) { buffer_pool::free_rx_lwip_pbuf_custom(&p_mem_buf_desc->lwip_pbuf.pbuf); };
 	virtual void		send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr) = 0;
-	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn) = 0;
+	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis) = 0;
 
 	// Funcs taken from cq_mgr.h
 	virtual int		get_num_resources() const = 0;
@@ -136,22 +138,28 @@ public:
 	inline int get_if_index() { return m_if_index; }
 
 #ifdef DEFINED_UTLS
-	virtual void tls_context_setup(
-		const xlio_tls_info *info, uint32_t tis_number,
-		uint32_t dek_id, uint32_t initial_tcp_sn)
+	virtual xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
 	{
 		NOT_IN_USE(info);
-		NOT_IN_USE(tis_number);
-		NOT_IN_USE(dek_id);
-		NOT_IN_USE(initial_tcp_sn);
+		return NULL;
 	}
-	virtual void tls_tx_post_dump_wqe(
-		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	virtual void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{
-		NOT_IN_USE(tis_number);
+		NOT_IN_USE(info);
+		NOT_IN_USE(tis);
+		NOT_IN_USE(skip_static);
+	}
+	virtual void tls_release_tis(xlio_tis *tis)
+	{
+		NOT_IN_USE(tis);
+	}
+	virtual void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
+	{
+		NOT_IN_USE(tis);
 		NOT_IN_USE(addr);
 		NOT_IN_USE(len);
 		NOT_IN_USE(lkey);
+		NOT_IN_USE(first);
 	}
 #endif /* DEFINED_UTLS */
 	virtual void post_nop_fence(void) {}

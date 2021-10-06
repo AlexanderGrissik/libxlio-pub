@@ -82,10 +82,6 @@ public:
 #ifdef DEFINED_DPCP
 	dpcp::adapter*          set_dpcp_adapter();
 	dpcp::adapter*          get_dpcp_adapter() { return m_p_adapter; }
-#ifdef DEFINED_UTLS
-	dpcp::tis*              create_tis();
-	dpcp::dek*              create_dek(const void *key, uint32_t key_len);
-#endif /* DEFINED_UTLS */
 #endif /* DEFINED_DPCP */
 	vma_ibv_device_attr*    get_ibv_device_attr() { return vma_get_device_orig_attr(m_p_ibv_device_attr); }
 #ifdef DEFINED_TSO

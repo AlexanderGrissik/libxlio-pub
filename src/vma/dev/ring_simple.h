@@ -81,14 +81,14 @@ public:
 	void			mem_buf_desc_completion_with_error_rx(mem_buf_desc_t* p_rx_wc_buf_desc); // Assume locked...
 	void			mem_buf_desc_return_to_owner_tx(mem_buf_desc_t* p_mem_buf_desc);
 	void			mem_buf_desc_return_to_owner_rx(mem_buf_desc_t* p_mem_buf_desc, void* pv_fd_ready_array = NULL);
-	inline int		send_buffer(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn);
+	inline int		send_buffer(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 	virtual bool		is_up();
 	void			start_active_qp_mgr();
 	void			stop_active_qp_mgr();
 	virtual mem_buf_desc_t*	mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs = 1);
 	virtual int		mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock = false);
 	virtual void		send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr);
-	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn);
+	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 	virtual void		mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t* p_mem_buf_desc);
 	virtual bool 		get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe);
 	inline void 		convert_hw_time_to_system_time(uint64_t hwtime, struct timespec* systime) { m_p_ib_ctx->convert_hw_time_to_system_time(hwtime, systime); }
@@ -111,22 +111,34 @@ public:
 	void			modify_cq_moderation(uint32_t period, uint32_t count);
 
 #ifdef DEFINED_UTLS
-	void tls_context_setup(
-		const xlio_tls_info *info, uint32_t tis_number,
-		uint32_t dek_id, uint32_t initial_tcp_sn)
+	xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
-		m_p_qp_mgr->tls_context_setup(info, tis_number, dek_id, initial_tcp_sn);
-		++m_p_ring_stat->n_tx_tls_contexts;
+		xlio_tis *tis;
+
+		tis = m_p_qp_mgr->tls_context_setup_tx(info);
+		if (likely(tis != NULL)) {
+			++m_p_ring_stat->n_tx_tls_contexts;
+		}
+		return tis;
 	}
-	void tls_tx_post_dump_wqe(
-		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_context_resync_tx(info, tis, skip_static);
+	}
+	void tls_release_tis(xlio_tis *tis)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_release_tis(tis);
+	}
+	void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
 		if (lkey == LKEY_USE_DEFAULT) {
 			lkey = m_tx_lkey;
 		}
-		m_p_qp_mgr->tls_tx_post_dump_wqe(tis_number, addr, len, lkey);
+		m_p_qp_mgr->tls_tx_post_dump_wqe(tis, addr, len, lkey, first);
 	}
 #endif /* DEFINED_UTLS */
 	void post_nop_fence(void)

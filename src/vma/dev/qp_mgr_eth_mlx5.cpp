@@ -35,6 +35,7 @@
 
 #include <sys/mman.h>
 #include "cq_mgr_mlx5.h"
+#include "vma/proto/tls.h"
 #include "vma/util/utils.h"
 #include "vlogger/vlogger.h"
 #include "ring_simple.h"
@@ -136,6 +137,95 @@ static inline uint32_t get_mlx5_opcode(vma_ibv_wr_opcode verbs_opcode)
 		return MLX5_OPCODE_SEND;
 	}
 }
+
+#ifdef DEFINED_UTLS
+/*
+ * TODO Move this class to a separated header. We will need to release reference
+ * on a TX completion in cq_mgr.
+ */
+class xlio_tis {
+public:
+	xlio_tis(dpcp::tis *_tis)
+	{
+		dpcp::status ret;
+
+		m_p_tis = _tis;
+		m_p_dek = NULL;
+		m_tisn = 0;
+		m_ref = 0;
+
+		/* Cache the tis number. Mustn't fail for a valid TIS object. */
+		ret = m_p_tis->get_tisn(m_tisn);
+		assert(ret == dpcp::DPCP_OK);
+		(void)ret;
+	}
+
+	~xlio_tis()
+	{
+		if (m_p_tis != NULL)
+			delete m_p_tis;
+		if (m_p_dek != NULL)
+			delete m_p_dek;
+	}
+
+	void reset(void)
+	{
+		assert(m_ref == 0);
+
+		if (m_p_dek != NULL) {
+			delete m_p_dek;
+			m_p_dek = NULL;
+		}
+	}
+
+	inline uint32_t get_tisn(void)
+	{
+		return m_tisn;
+	}
+
+	inline void assign_dek(dpcp::dek *_dek)
+	{
+		m_p_dek = _dek;
+	}
+
+	inline uint32_t get_dek_id(void)
+	{
+		if (unlikely(m_p_dek == NULL))
+			return 0;
+
+		return m_p_dek->get_key_id();
+	}
+
+	/*
+	 * Reference counting. m_ref must be protected by ring tx lock. Device
+	 * layer (QP, CQ) is responsible for the reference counting.
+	 */
+
+	inline void get(void)
+	{
+		++m_ref;
+		assert(m_ref > 0);
+	}
+
+	inline uint32_t put(void)
+	{
+		assert(m_ref > 0);
+		return --m_ref;
+	}
+
+private:
+	dpcp::dek *m_p_dek;
+	dpcp::tis *m_p_tis;
+	uint32_t m_tisn;
+	uint32_t m_ref;
+};
+#else /* DEFINED_UTLS */
+class xlio_tis {
+public:
+	/* A stub class to compile without uTLS support. */
+	inline uint32_t get_tisn(void) { return 0; }
+};
+#endif /* DEFINED_UTLS */
 
 qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc,
                 const uint32_t tx_num_wr, const uint16_t vlan, bool call_configure):
@@ -868,10 +958,11 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 //! Send one RAW packet by MLX5 BlueFlame
 //
 #ifdef DEFINED_TSO
-int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn)
+int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis)
 {
 	struct vma_mlx5_wqe_ctrl_seg *ctrl = NULL;
 	struct mlx5_wqe_eth_seg *eseg = NULL;
+	uint32_t tisn = tis ? tis->get_tisn() : 0;
 
 	ctrl = (struct vma_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
@@ -913,9 +1004,10 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	return 0;
 }
 #else
-int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn)
+int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis)
 {
 	// Set current WQE's ethernet segment checksum flags
+	uint32_t tisn = tis ? tis->get_tisn() : 0;
 	struct vma_mlx5_wqe_ctrl_seg *ctrl = (struct vma_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
 	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot+sizeof(struct mlx5_wqe_ctrl_seg));
 	eth_seg->cs_flags = (uint8_t)(attr & (VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM) & 0xff);
@@ -944,12 +1036,65 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 #endif /* DEFINED_TSO */
 
 #ifdef DEFINED_UTLS
-void qp_mgr_eth_mlx5::tls_context_setup(
-	const xlio_tls_info *info, uint32_t tis_number,
-	uint32_t dek_id, uint32_t initial_tcp_sn)
+xlio_tis *qp_mgr_eth_mlx5::tls_context_setup_tx(const xlio_tls_info *info)
 {
-	tls_tx_post_static_params_wqe(info, tis_number, dek_id, 0);
-	tls_tx_post_progress_params_wqe(tis_number, initial_tcp_sn);
+	xlio_tis *tis;
+	uint32_t tisn;
+	dpcp::tis *_tis;
+	dpcp::dek *_dek;
+	dpcp::status status;
+	dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
+
+	if (m_tis_cache.empty()) {
+		status = adapter->create_tis(dpcp::TIS_TLS_EN, _tis);
+		if (unlikely(status != dpcp::DPCP_OK)) {
+			qp_logerr("Failed to create TIS with TLS enabled, status: %d", status);
+			return NULL;
+		}
+
+		tis = new xlio_tis(_tis);
+		if (unlikely(tis == NULL)) {
+			delete _tis;
+			return NULL;
+		}
+	} else {
+		tis = m_tis_cache.back();
+		m_tis_cache.pop_back();
+	}
+
+	status = adapter->create_dek(dpcp::ENCRYPTION_KEY_TYPE_TLS,
+				     (void *)info->key, info->key_len, _dek);
+	if (unlikely(status != dpcp::DPCP_OK)) {
+		qp_logerr("Failed to create DEK, status: %d", status);
+		m_tis_cache.push_back(tis);
+		return NULL;
+	}
+	tis->assign_dek(_dek);
+	tisn = tis->get_tisn();
+
+	tls_tx_post_static_params_wqe(info, tisn, _dek->get_key_id(), 0, false);
+	tls_tx_post_progress_params_wqe(tisn, 0, false);
+
+	return tis;
+}
+
+void qp_mgr_eth_mlx5::tls_context_resync_tx(
+	const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
+{
+	uint32_t tisn = tis->get_tisn();
+
+	if (!skip_static) {
+		tls_tx_post_static_params_wqe(info, tisn, tis->get_dek_id(), 0, true);
+	}
+	tls_tx_post_progress_params_wqe(tisn, 0, skip_static);
+}
+
+void qp_mgr_eth_mlx5::tls_release_tis(xlio_tis *tis)
+{
+	/* TODO Track reference counting and don't release used TIS objects immediately. */
+	/* TODO We don't have to lock ring to destroy DEK object (a garbage collector?). */
+	tis->reset();
+	m_tis_cache.push_back(tis);
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
@@ -981,7 +1126,8 @@ inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
 
 inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
 	const struct xlio_tls_info* info,
-	uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn)
+	uint32_t tisn, uint32_t key_id, uint32_t resync_tcp_sn,
+	bool fence)
 {
 	struct mlx5_set_tls_static_params_wqe* wqe =
 			reinterpret_cast<struct mlx5_set_tls_static_params_wqe*>(m_sq_wqe_hot);
@@ -1030,8 +1176,8 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
 	memset(m_sq_wqe_hot, 0, sizeof(*m_sq_wqe_hot));
 	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | MLX5_OPCODE_UMR | (opmod << 24));
 	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | STATIC_PARAMS_DS_CNT);
-	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
-	cseg->tis_tir_num = htobe32(tis_number << 8);
+	cseg->fm_ce_se = fence ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
+	cseg->tis_tir_num = htobe32(tisn << 8);
 
 	ucseg->flags = MLX5_UMR_INLINE;
 	ucseg->bsf_octowords = htobe16(DEVX_ST_SZ_BYTES(tls_static_params) / 16);
@@ -1084,11 +1230,11 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
 
 inline void qp_mgr_eth_mlx5::tls_tx_fill_progress_params_wqe(
 	struct mlx5_wqe_tls_progress_params_seg* params,
-	uint32_t tis_number, uint32_t next_record_tcp_sn)
+	uint32_t tisn, uint32_t next_record_tcp_sn)
 {
 	uint8_t* ctx = params->ctx;
 
-	params->tis_tir_num = htobe32(tis_number);
+	params->tis_tir_num = htobe32(tisn);
 
 	DEVX_SET(tls_progress_params, ctx, next_record_tcp_sn, next_record_tcp_sn);
 	DEVX_SET(tls_progress_params, ctx, record_tracker_state, MLX5E_TLS_PROGRESS_PARAMS_RECORD_TRACKER_STATE_START);
@@ -1096,7 +1242,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_fill_progress_params_wqe(
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
-	uint32_t tis_number, uint32_t next_record_tcp_sn)
+	uint32_t tisn, uint32_t next_record_tcp_sn, bool fence)
 {
 	uint16_t num_wqebbs = TLS_SET_PROGRESS_PARAMS_WQEBBS;
 
@@ -1111,9 +1257,9 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
 
 	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_SET_PSV | (opmod << 24));
 	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
-	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
+	cseg->fm_ce_se = fence ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
 
-	tls_tx_fill_progress_params_wqe(&wqe->params, tis_number, next_record_tcp_sn);
+	tls_tx_fill_progress_params_wqe(&wqe->params, tisn, next_record_tcp_sn);
 	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
 
 #ifdef DEFINED_TSO
@@ -1134,11 +1280,12 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
 }
 
 void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
-	uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
 {
 	struct mlx5_dump_wqe* wqe = reinterpret_cast<struct mlx5_dump_wqe*>(m_sq_wqe_hot);
 	struct vma_mlx5_wqe_ctrl_seg* cseg = &wqe->ctrl.ctrl;
 	struct mlx5_wqe_data_seg* dseg = &wqe->data;
+	uint32_t tisn = tis ? tis->get_tisn() : 0;
 	uint16_t num_wqebbs = TLS_DUMP_WQEBBS;
 	uint16_t ds_cnt = sizeof(*wqe) / MLX5_SEND_WQE_DS;
 
@@ -1146,8 +1293,8 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
 
 	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_DUMP);
 	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | ds_cnt);
-	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
-	cseg->tis_tir_num = htobe32(tis_number << 8);
+	cseg->fm_ce_se = first ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
+	cseg->tis_tir_num = htobe32(tisn << 8);
 
 	dseg->addr       = htobe64((uintptr_t)addr);
 	dseg->lkey       = htobe32(lkey);

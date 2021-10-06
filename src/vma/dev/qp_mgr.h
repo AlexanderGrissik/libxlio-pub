@@ -48,11 +48,13 @@
 #include "vma/util/hash_map.h"
 #include "vma/lwip/opt.h"
 #include "vma/proto/mem_buf_desc.h"
-#include "vma/proto/tls.h"
 #include "vma/infra/sender.h"
 #include "vma/dev/ib_ctx_handler.h"
 #include "vma/dev/cq_mgr.h"
 
+/* Forward declarations */
+struct xlio_tls_info;
+class xlio_tis;
 class buffer_pool;
 class cq_mgr;
 struct slave_data;
@@ -100,7 +102,7 @@ public:
 
 	virtual void        post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc); // Post for receive single mem_buf_desc
 	void                post_recv_buffers(descq_t* p_buffers, size_t count); // Post for receive a list of mem_buf_desc
-	int                 send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn);
+	int                 send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 
 #ifdef DEFINED_TSO
 	inline uint32_t     get_max_inline_data() const {
@@ -135,22 +137,28 @@ public:
 	virtual void        dm_release_data(mem_buf_desc_t* buff) { NOT_IN_USE(buff); }
 
 #ifdef DEFINED_UTLS
-	virtual void tls_context_setup(
-		const xlio_tls_info* info, uint32_t tis_number,
-		uint32_t dek_id, uint32_t initial_tcp_sn)
+	virtual xlio_tis *tls_context_setup_tx(const xlio_tls_info* info)
 	{
 		NOT_IN_USE(info);
-		NOT_IN_USE(tis_number);
-		NOT_IN_USE(dek_id);
-		NOT_IN_USE(initial_tcp_sn);
+		return NULL;
 	}
-	virtual void tls_tx_post_dump_wqe(
-		uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey)
+	virtual void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{
-		NOT_IN_USE(tis_number);
+		NOT_IN_USE(info);
+		NOT_IN_USE(tis);
+		NOT_IN_USE(skip_static);
+	}
+	virtual void tls_release_tis(xlio_tis *tis)
+	{
+		NOT_IN_USE(tis);
+	}
+	virtual void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
+	{
+		NOT_IN_USE(tis);
 		NOT_IN_USE(addr);
 		NOT_IN_USE(len);
 		NOT_IN_USE(lkey);
+		NOT_IN_USE(first);
 	}
 #endif /* DEFINED_UTLS */
 	virtual void post_nop_fence(void) {}
@@ -211,7 +219,7 @@ protected:
 
 	cq_mgr* handle_cq_initialization(uint32_t *num_wr, struct ibv_comp_channel* comp_event_channel, bool is_rx);
 
-	virtual int     send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn);
+	virtual int     send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
 	virtual bool    is_completion_need() { return !m_n_unsignaled_count; };
 };
 

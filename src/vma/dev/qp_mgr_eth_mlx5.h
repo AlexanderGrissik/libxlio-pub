@@ -37,7 +37,8 @@
 #include "qp_mgr.h"
 #include "vma/util/sg_array.h"
 #include "vma/dev/dm_mgr.h"
-#include "vma/proto/tls.h"
+
+#include <vector>
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -55,10 +56,10 @@ public:
 	vma_ib_mlx5_qp_t    m_mlx5_qp;
 
 #ifdef DEFINED_UTLS
-	void tls_context_setup(
-		const xlio_tls_info *info, uint32_t tis_number,
-		uint32_t dek_id, uint32_t initial_tcp_sn);
-	void tls_tx_post_dump_wqe(uint32_t tis_number, void *addr, uint32_t len, uint32_t lkey);
+	xlio_tis* tls_context_setup_tx(const xlio_tls_info *info);
+	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static);
+	void tls_release_tis(xlio_tis *tis);
+	void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first);
 #endif /* DEFINED_UTLS */
 	void post_nop_fence(void);
 
@@ -75,7 +76,7 @@ private:
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
 
 	inline void	set_signal_in_next_send_wqe();
-	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, uint32_t tisn);
+	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
 #ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(
@@ -84,12 +85,13 @@ private:
 		uint32_t key_id, uint32_t resync_tcp_sn);
 	inline void tls_tx_post_static_params_wqe(
 		const struct xlio_tls_info* info,
-		uint32_t tis_number, uint32_t key_id, uint32_t resync_tcp_sn);
+		uint32_t tisn, uint32_t key_id, uint32_t resync_tcp_sn,
+		bool fence);
 	inline void tls_tx_fill_progress_params_wqe(
 		struct mlx5_wqe_tls_progress_params_seg* params,
-		uint32_t tis_number, uint32_t next_record_tcp_sn);
+		uint32_t tisn, uint32_t next_record_tcp_sn);
 	inline void tls_tx_post_progress_params_wqe(
-		uint32_t tis_number, uint32_t next_record_tcp_sn);
+		uint32_t tisn, uint32_t next_record_tcp_sn, bool fence);
 #endif /* DEFINED_UTLS */
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);
@@ -116,8 +118,13 @@ private:
 
 	int                 m_sq_wqe_hot_index;
 	uint16_t            m_sq_wqe_counter;
-	dm_mgr              m_dm_mgr;
 	bool                m_dm_enabled;
+	dm_mgr              m_dm_mgr;
+	/*
+	 * TIS cache. Protected by ring tx lock.
+	 * TODO Move to ring.
+	 */
+	std::vector<xlio_tis*> m_tis_cache;
 };
 #endif //defined(DEFINED_DIRECT_VERBS)
 #endif //QP_MGR_ETH_MLX5_H

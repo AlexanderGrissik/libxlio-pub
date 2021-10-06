@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-#include "vma/dev/ib_ctx_handler.h"
 #include "sockinfo_tcp.h"
 #include "sockinfo_ulp.h"
 
@@ -50,19 +49,19 @@
 
 sockinfo_tcp_ops::sockinfo_tcp_ops(sockinfo_tcp *sock)
 {
-	m_sock = sock;
+	m_p_sock = sock;
 }
 
 /*virtual*/
 int sockinfo_tcp_ops::setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen)
 {
-	return m_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
+	return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
 }
 
 /*virtual*/
 ssize_t sockinfo_tcp_ops::tx(vma_tx_call_attr_t &tx_arg)
 {
-	return m_sock->tcp_tx(tx_arg);
+	return m_p_sock->tcp_tx(tx_arg);
 }
 
 /*virtual*/
@@ -127,21 +126,20 @@ class tls_record : public mem_desc {
 public:
 	tls_record(sockinfo_tcp *sock, uint32_t seqno, uint64_t record_number, uint8_t *iv)
 	{
-		m_sock = sock;
-		m_p_ring = m_sock->get_ring();
+		m_p_ring = sock->get_ring();
 		/* Allocate record with a taken reference. */
 		atomic_set(&m_ref, 1);
 		m_seqno = seqno;
 		m_record_number = record_number;
 		m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN + TLS_RECORD_TAG_LEN;
-		p_data = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
-		if (likely(p_data != NULL)) {
-			p_data->p_buffer[0] = 0x17;
-			p_data->p_buffer[1] = 0x3;
-			p_data->p_buffer[2] = 0x3;
-			p_data->p_buffer[3] = 0;
-			p_data->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
-			memcpy(&p_data->p_buffer[5], iv, TLS_RECORD_IV_LEN);
+		m_p_buf = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
+		if (likely(m_p_buf != NULL)) {
+			m_p_buf->p_buffer[0] = 0x17;
+			m_p_buf->p_buffer[1] = 0x3;
+			m_p_buf->p_buffer[2] = 0x3;
+			m_p_buf->p_buffer[3] = 0;
+			m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
+			memcpy(&m_p_buf->p_buffer[5], iv, TLS_RECORD_IV_LEN);
 		}
 		/* TODO Make a pool of preallocated records with inited header. */
 	}
@@ -150,10 +148,10 @@ public:
 	{
 		/*
 		 * Because of batching, buffers can be freed after their socket
-		 * is closed. Therefore, we cannot return p_data to the socket.
+		 * is closed. Therefore, we cannot return m_p_buf to the socket.
 		 */
-		if (likely(p_data != NULL)) {
-			m_p_ring->mem_buf_desc_return_single_to_owner_tx(p_data);
+		if (likely(m_p_buf != NULL)) {
+			m_p_ring->mem_buf_desc_return_single_to_owner_tx(m_p_buf);
 		}
 	}
 
@@ -182,7 +180,7 @@ public:
 	inline size_t append_data(void *data, size_t len)
 	{
 		len = std::min(len, avail_space());
-		memcpy(p_data->p_buffer + m_size - TLS_RECORD_TAG_LEN, data, len);
+		memcpy(m_p_buf->p_buffer + m_size - TLS_RECORD_TAG_LEN, data, len);
 		m_size += len;
 		set_length();
 
@@ -192,12 +190,12 @@ public:
 	inline size_t avail_space(void)
 	{
 		/* Don't produce records larger than 16KB according to the protocol. */
-		return std::min(p_data->sz_buffer, (size_t)16384) - m_size;
+		return std::min(m_p_buf->sz_buffer, (size_t)16384) - m_size;
 	}
 
 	inline void set_type(uint8_t type)
 	{
-		p_data->p_buffer[0] = type;
+		m_p_buf->p_buffer[0] = type;
 	}
 
 private:
@@ -205,8 +203,8 @@ private:
 	{
 		uint16_t len = m_size - TLS_RECORD_HDR_LEN;
 
-		p_data->p_buffer[3] = len >> 8UL;
-		p_data->p_buffer[4] = len & 0xff;
+		m_p_buf->p_buffer[3] = len >> 8UL;
+		m_p_buf->p_buffer[4] = len & 0xff;
 	}
 
 public:
@@ -214,8 +212,7 @@ public:
 	uint32_t m_seqno;
 	uint64_t m_record_number;
 	size_t m_size;
-	mem_buf_desc_t *p_data;
-	sockinfo_tcp *m_sock;
+	mem_buf_desc_t *m_p_buf;
 	ring *m_p_ring;
 };
 
@@ -226,26 +223,26 @@ public:
 sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	sockinfo_tcp_ops(sock)
 {
+	/* We don't support ring migration with TLS offload */
+	m_p_ring = sock->get_ring();
+	m_p_tis = NULL;
+	m_expected_seqno = 0;
 	m_is_tls = false;
-	p_tis = NULL;
-	p_dek = NULL;
+	m_next_record_number = 0;
+	memset(&m_tls_info, 0, sizeof(m_tls_info));
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 {
 	if (m_is_tls) {
-		delete p_tis;
-		delete p_dek;
+		m_p_ring->tls_release_tis(m_p_tis);
+		m_p_tis = NULL;
 	}
 }
 
 int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen)
 {
 	if (__level == SOL_TLS && __optname == TLS_TX) {
-		/* XXX bond devices cannot be supported in such a way */
-		ib_ctx_handler *ib_ctx = m_sock->get_ctx();
-		ring *ring = m_sock->get_ring();
-		dpcp::status status;
 		uint64_t record_number_be64;
 		unsigned char *iv;
 		unsigned char *salt;
@@ -303,25 +300,22 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			return -1;
 		}
 
-		p_tis = ib_ctx->create_tis();
-		p_dek = ib_ctx->create_dek(key, keylen);
-		if (p_tis == NULL || p_dek == NULL) {
-			goto err;
-		}
-		status = p_tis->get_tisn(m_tisn);
-		if (status != dpcp::DPCP_OK) {
-			si_ulp_logerr("Cannot get TIS number.");
-			goto err;
-		}
-
-		m_expected_seqno = m_sock->get_next_tcp_seqno();
+		m_expected_seqno = m_p_sock->get_next_tcp_seqno();
+		m_tls_info.key_len = keylen;
+		memcpy(m_tls_info.key, key, keylen);
 		memcpy(m_tls_info.iv, iv, TLS_AES_GCM_IV_LEN);
 		memcpy(m_tls_info.salt, salt, TLS_AES_GCM_SALT_LEN);
 		memcpy(m_tls_info.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		memcpy(&record_number_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		m_next_record_number = be64toh(record_number_be64);
 
-		ring->tls_context_setup(&m_tls_info, m_tisn, p_dek->get_key_id(), m_expected_seqno);
+		m_p_tis = m_p_ring->tls_context_setup_tx(&m_tls_info);
+		/* We don't need key for TX anymore */
+		memset(m_tls_info.key, 0, keylen);
+		if (unlikely(m_p_tis == NULL)) {
+			errno = ENOPROTOOPT;
+			return -1;
+		}
 		m_is_tls = true;
 
 		return 0;
@@ -330,20 +324,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		errno = ENOPROTOOPT;
 		return -1;
 	}
-	return m_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
-
-err:
-	if (p_tis != NULL) {
-		delete p_tis;
-		p_tis = NULL;
-	}
-	if (p_dek != NULL) {
-		delete p_dek;
-		p_dek = NULL;
-	}
-	/* If TLS setup fails we will fallback to software implementation. */
-	errno = ENOPROTOOPT;
-	return -1;
+	return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
 }
 
 ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
@@ -365,11 +346,11 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	bool block_this_run;
 
 	if (!m_is_tls) {
-		return m_sock->tcp_tx(tx_arg);
+		return m_p_sock->tcp_tx(tx_arg);
 	}
 
 	errno_save = errno;
-	block_this_run = BLOCK_THIS_RUN(m_sock->is_blocking(), tx_arg.attr.msg.flags);
+	block_this_run = BLOCK_THIS_RUN(m_p_sock->is_blocking(), tx_arg.attr.msg.flags);
 
 	tls_arg.opcode = TX_FILE; /* XXX Not to use hugepage zerocopy path */
 	tls_arg.attr.msg.flags = MSG_ZEROCOPY;
@@ -387,7 +368,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 		while (pos < p_iov[i].iov_len) {
 			tls_record *rec;
 			ssize_t ret2;
-			size_t sndbuf = m_sock->sndbuf_available();
+			size_t sndbuf = m_p_sock->sndbuf_available();
 			size_t tosend = p_iov[i].iov_len - pos;
 
 			/*
@@ -407,9 +388,9 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				goto done;
 			}
 
-			rec = new tls_record(m_sock, m_sock->get_next_tcp_seqno(),
+			rec = new tls_record(m_p_sock, m_p_sock->get_next_tcp_seqno(),
 					     m_next_record_number, m_tls_info.iv);
-			if (unlikely(rec == NULL || rec->p_data == NULL)) {
+			if (unlikely(rec == NULL || rec->m_p_buf == NULL)) {
 				if (ret == 0) {
 					errno = ENOMEM;
 					ret = -1;
@@ -441,12 +422,12 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 			}
 			tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
 			pos += tosend;
-			tls_arg.attr.msg.iov[0].iov_base = rec->p_data->p_buffer;
+			tls_arg.attr.msg.iov[0].iov_base = rec->m_p_buf->p_buffer;
 			tls_arg.attr.msg.iov[0].iov_len = rec->m_size;
 			tls_arg.priv.mdesc = (void*)rec;
 
 retry:
-			ret2 = m_sock->tcp_tx(tls_arg);
+			ret2 = m_p_sock->tcp_tx(tls_arg);
 			if (block_this_run && (ret2 != (ssize_t)tls_arg.attr.msg.iov[0].iov_len)) {
 				if ((ret2 >= 0) || (errno == EINTR && !g_b_exit)) {
 					ret2 = ret2 < 0 ? 0 : ret2;
@@ -458,7 +439,7 @@ retry:
 				if (tls_arg.attr.msg.iov[0].iov_len != rec->m_size) {
 					/* We cannot recover from a fail in the middle of a TLS record */
 					if (!g_b_exit)
-						m_sock->abort_connection();
+						m_p_sock->abort_connection();
 					ret += (rec->m_size - tls_arg.attr.msg.iov[0].iov_len);
 					rec->put();
 					goto done;
@@ -495,8 +476,8 @@ done:
 	/* Statistics */
 	if (ret > 0) {
 		errno = errno_save;
-		m_sock->m_p_socket_stats->tls_counters.n_tls_tx_records += m_next_record_number - last_record_number;
-		m_sock->m_p_socket_stats->tls_counters.n_tls_tx_bytes += ret;
+		m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_records += m_next_record_number - last_record_number;
+		m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_bytes += ret;
 	}
 	return ret;
 }
@@ -507,47 +488,51 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 	if (m_is_tls && seg != NULL && p->type != PBUF_RAM) {
 		if (seg->len != 0) {
 			if (unlikely(seg->seqno != m_expected_seqno)) {
-				ring *ring = m_sock->get_ring();
 				uint64_t record_number_be64;
-				unsigned mss = m_sock->get_mss();
+				unsigned mss = m_p_sock->get_mss();
+				bool skip_static;
 
 				/* For zerocopy the 1st pbuf is always a TCP header and the pbuf is on stack */
 				assert(p->type == PBUF_ROM); /* TCP header pbuf */
 				assert(p->next != NULL && p->next->desc.attr == PBUF_DESC_MDESC);
 				tls_record *rec = dynamic_cast<tls_record *>((mem_desc*)p->next->desc.mdesc);
-
-				assert(rec != NULL); /* XXX */
+				if (unlikely(rec == NULL)) {
+					return -1;
+				}
 
 				si_ulp_logdbg("TX resync flow: record_number=%lu seqno%u", rec->m_record_number, seg->seqno);
-				record_number_be64 = htobe64(rec->m_record_number);
-				memcpy(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
-				ring->tls_context_setup(&m_tls_info, m_tisn, p_dek->get_key_id(), rec->m_seqno);
 
+				record_number_be64 = htobe64(rec->m_record_number);
+				skip_static = !memcmp(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
+				if (!skip_static) {
+					memcpy(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
+				}
+				m_p_ring->tls_context_resync_tx(&m_tls_info, m_p_tis, skip_static);
+
+				uint8_t *addr = rec->m_p_buf->p_buffer;
 				uint32_t nr = (seg->seqno - rec->m_seqno + mss - 1) / mss;
-				uint8_t *addr = rec->p_data->p_buffer;
 				uint32_t len;
 				uint32_t lkey = LKEY_USE_DEFAULT;
 
 				if (nr == 0) {
-					ring->post_nop_fence();
+					m_p_ring->post_nop_fence();
 				}
 				for (uint32_t i = 0; i < nr; ++i) {
 					len = (i == nr - 1) ? (seg->seqno - rec->m_seqno) % mss : mss;
 					if (len == 0)
 						len = mss;
-					ring->tls_tx_post_dump_wqe(m_tisn, (void *)addr, len, lkey);
+					m_p_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey, (i == 0));
 					addr += mss;
 				}
 
 				m_expected_seqno = seg->seqno;
 
 				/* Statistics */
-				++m_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync;
-				m_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync_replay += !!nr;
+				++m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync;
+				m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync_replay += !!nr;
 			}
 			m_expected_seqno += seg->len;
-			/* XXX Bonding cannot be supported in this way */
-			attr.tisn = m_tisn;
+			attr.tis = m_p_tis;
 		}
 	}
 	return 0;

@@ -71,7 +71,7 @@ public:
 	virtual int		mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock = false);
 	virtual void		inc_tx_retransmissions_stats(ring_user_id_t id);
 	virtual void		send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr);
-	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn);
+	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 	virtual void		mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t* p_mem_buf_desc);
 	virtual bool		is_member(ring_slave* rng);
 	virtual bool		is_active_member(ring_slave* rng, ring_user_id_t id);

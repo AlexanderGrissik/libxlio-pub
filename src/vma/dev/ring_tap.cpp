@@ -344,10 +344,10 @@ void ring_tap::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, 
 	send_status_handler(ret, p_send_wqe);
 }
 
-void ring_tap::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, uint32_t tisn)
+void ring_tap::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
 	NOT_IN_USE(id);
-	NOT_IN_USE(tisn);
+	NOT_IN_USE(tis);
 	compute_tx_checksum((mem_buf_desc_t*)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM, attr & VMA_TX_PACKET_L4_CSUM);
 
 	auto_unlocker lock(m_lock_ring_tx);

@@ -36,11 +36,7 @@
 
 #include "socket_fd_api.h"		/* vma_tx_call_attr_t */
 #include "vma/proto/dst_entry.h"	/* vma_send_attr */
-#include "vma/proto/tls.h"
-
-#ifdef DEFINED_UTLS
-#include <mellanox/dpcp.h>
-#endif /* DEFINED_UTLS */
+#include "vma/proto/tls.h"		/* xlio_tls_info */
 
 #include <stdint.h>
 
@@ -50,6 +46,7 @@
 
 /* Forward declarations */
 class sockinfo_tcp;
+class xlio_tis;
 struct pbuf;
 
 class sockinfo_tcp_ulp {
@@ -67,7 +64,7 @@ public:
 	virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
 protected:
-	sockinfo_tcp *m_sock;
+	sockinfo_tcp *m_p_sock;
 };
 
 #ifdef DEFINED_UTLS
@@ -88,9 +85,8 @@ public:
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
 private:
-	dpcp::tis *p_tis;
-	dpcp::dek *p_dek;
-	uint32_t m_tisn;
+	ring *m_p_ring;
+	xlio_tis *m_p_tis;
 	uint32_t m_expected_seqno;
 	bool m_is_tls;
 	uint64_t m_next_record_number;
