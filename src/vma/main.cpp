@@ -816,6 +816,10 @@ static void do_global_ctors_helper()
 // 	neigh_test();
 //	igmp_test();
 	NEW_CTOR(g_p_ring_profile, ring_profiles_collection());
+
+#ifdef DEFINED_UTLS
+	xlio_tls_api_setup();
+#endif /* DEFINED_UTLS */
 }
 
 int do_global_ctors()

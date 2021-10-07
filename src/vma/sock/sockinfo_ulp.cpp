@@ -75,6 +75,64 @@ int sockinfo_tcp_ops::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_
 
 #ifdef DEFINED_UTLS
 
+#include <openssl/evp.h>
+
+struct xlio_tls_api {
+	EVP_CIPHER_CTX* (*EVP_CIPHER_CTX_new)(void);
+	void (*EVP_CIPHER_CTX_free)(EVP_CIPHER_CTX*);
+	int (*EVP_CIPHER_CTX_reset)(EVP_CIPHER_CTX*);
+	const EVP_CIPHER* (*EVP_aes_128_gcm)(void);
+	const EVP_CIPHER* (*EVP_aes_256_gcm)(void);
+	int (*EVP_DecryptInit_ex)(EVP_CIPHER_CTX*,
+				  const EVP_CIPHER*, ENGINE*,
+				  const unsigned char*,
+				  const unsigned char*);
+	int (*EVP_DecryptUpdate)(EVP_CIPHER_CTX*, unsigned char*,
+				 int*, const unsigned char*, int);
+	int (*EVP_CIPHER_CTX_ctrl)(EVP_CIPHER_CTX*, int, int, void*);
+	int (*EVP_DecryptFinal_ex)(EVP_CIPHER_CTX*, unsigned char*, int*);
+};
+
+static struct xlio_tls_api *g_tls_api = NULL;
+static struct xlio_tls_api  s_tls_api;
+
+template<typename T>
+static void dlsym_handle(T &ptr, const char *name, void *handle) {
+	ptr = reinterpret_cast<T>(dlsym(handle, name));
+}
+template<typename T>
+static void dlsym_default(T &ptr, const char *name) {
+	dlsym_handle(ptr, name, RTLD_DEFAULT);
+}
+
+#define XLIO_TLS_API_FIND(__name) \
+	dlsym_default(s_tls_api.__name, #__name);
+
+void xlio_tls_api_setup(void) {
+	XLIO_TLS_API_FIND(EVP_CIPHER_CTX_new);
+	XLIO_TLS_API_FIND(EVP_CIPHER_CTX_free);
+	XLIO_TLS_API_FIND(EVP_CIPHER_CTX_reset);
+	XLIO_TLS_API_FIND(EVP_aes_128_gcm);
+	XLIO_TLS_API_FIND(EVP_aes_256_gcm);
+	XLIO_TLS_API_FIND(EVP_DecryptInit_ex);
+	XLIO_TLS_API_FIND(EVP_DecryptUpdate);
+	XLIO_TLS_API_FIND(EVP_CIPHER_CTX_ctrl);
+	XLIO_TLS_API_FIND(EVP_DecryptFinal_ex);
+	if (
+		s_tls_api.EVP_CIPHER_CTX_new  &&
+		s_tls_api.EVP_CIPHER_CTX_free  &&
+		s_tls_api.EVP_CIPHER_CTX_reset  &&
+		s_tls_api.EVP_aes_128_gcm  &&
+		s_tls_api.EVP_aes_256_gcm  &&
+		s_tls_api.EVP_DecryptInit_ex  &&
+		s_tls_api.EVP_DecryptUpdate  &&
+		s_tls_api.EVP_CIPHER_CTX_ctrl  &&
+		s_tls_api.EVP_DecryptFinal_ex
+	) {
+		g_tls_api = &s_tls_api;
+	}
+}
+
 /*
  * sockinfo_tcp_ulp_tls
  */

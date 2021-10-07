@@ -69,6 +69,8 @@ protected:
 
 #ifdef DEFINED_UTLS
 
+void xlio_tls_api_setup(void);
+
 class sockinfo_tcp_ulp_tls : public sockinfo_tcp_ulp {
 public:
 	int attach(sockinfo_tcp *sock);
