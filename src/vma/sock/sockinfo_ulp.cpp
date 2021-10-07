@@ -34,6 +34,7 @@
 #include "sockinfo_ulp.h"
 
 #include <algorithm>
+#include <assert.h>
 #include <endian.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -41,6 +42,7 @@
 #define MODULE_NAME	"si_ulp"
 
 #define si_ulp_logdbg	__log_info_dbg
+#define si_ulp_loginfo	__log_info_info
 #define si_ulp_logerr	__log_info_err
 
 /*
@@ -175,6 +177,7 @@ enum {
 	TLS_RECORD_HDR_LEN  = 5U,
 	TLS_RECORD_IV_LEN   = TLS_AES_GCM_IV_LEN,
 	TLS_RECORD_TAG_LEN  = 16U,
+	TLS_RECORD_NONCE_LEN = 12U, /* SALT + IV */
 	TLS_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN +
 			      TLS_RECORD_TAG_LEN,
 	TLS_RECORD_SMALLEST = 256U,
@@ -288,6 +291,15 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_is_tls = false;
 	m_next_record_number = 0;
 	memset(&m_tls_info, 0, sizeof(m_tls_info));
+
+	m_p_evp_cipher = NULL;
+	m_p_cipher_ctx = NULL;
+	memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
+	m_next_recno_rx = 0;
+	m_rx_offset = 0;
+	m_rx_rec_len = 0;
+	m_rx_rec_rcvd = 0;
+	m_rx_sm = TLS_RX_SM_HEADER;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -296,6 +308,7 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 		m_p_ring->tls_release_tis(m_p_tis);
 		m_p_tis = NULL;
 	}
+	/* TODO Free unhandled RX buffers. */
 }
 
 int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen)
@@ -379,8 +392,97 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		return 0;
 	}
 	if (__level == SOL_TLS && __optname != TLS_TX) {
-		errno = ENOPROTOOPT;
-		return -1;
+		uint64_t recno_be64;
+		unsigned char *iv;
+		unsigned char *key;
+		unsigned char *salt;
+		unsigned char *rec_seq;
+		uint32_t keylen;
+
+		const struct tls_crypto_info *base_info =
+			(const struct tls_crypto_info *)__optval;
+
+		si_ulp_loginfo("TLS RX offload is requested");
+
+		if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128)) {
+			errno = EINVAL;
+			return -1;
+		}
+		if (base_info->version != TLS_1_2_VERSION) {
+			si_ulp_logdbg("Unsupported TLS version.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+		if (g_tls_api == NULL) {
+			si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+
+		switch (base_info->cipher_type) {
+		case TLS_CIPHER_AES_GCM_128:
+			/* Wrap with a block to avoid initialization error */
+			{
+				struct tls12_crypto_info_aes_gcm_128 *crypto_info =
+					(struct tls12_crypto_info_aes_gcm_128 *)__optval;
+				iv = crypto_info->iv;
+				key = crypto_info->key;
+				salt = crypto_info->salt;
+				rec_seq = crypto_info->rec_seq;
+				keylen = TLS_CIPHER_AES_GCM_128_KEY_SIZE;
+				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_128_gcm();
+			}
+			break;
+#ifdef DEFINED_UTLS_AES256
+		case TLS_CIPHER_AES_GCM_256:
+			if (__optlen < sizeof(tls12_crypto_info_aes_gcm_256)) {
+				errno = EINVAL;
+				return -1;
+			}
+			/* Wrap with a block to avoid initialization error */
+			{
+				struct tls12_crypto_info_aes_gcm_256 *crypto_info =
+					(struct tls12_crypto_info_aes_gcm_256 *)__optval;
+				iv = crypto_info->iv;
+				key = crypto_info->key;
+				salt = crypto_info->salt;
+				rec_seq = crypto_info->rec_seq;
+				keylen = TLS_CIPHER_AES_GCM_256_KEY_SIZE;
+				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_256_gcm();
+			}
+			break;
+#endif /* DEFINED_UTLS_AES256 */
+		default:
+			si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+
+		assert(keylen <= TLS_AES_GCM_KEY_MAX);
+
+		/*
+		 * XXX TODO Handle pending RX buffers. Maybe move them from the
+		 * list to the TLS RX callback?
+		 */
+		if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0)
+			si_ulp_loginfo("There are pending packets (nr=%u)!", m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count);
+
+		// m_next_seqno_rx = m_p_sock->get_next_tcp_seqno_rx();
+		memcpy(m_tls_info_rx.iv, iv, TLS_AES_GCM_IV_LEN);
+		memcpy(m_tls_info_rx.key, key, keylen);
+		memcpy(m_tls_info_rx.salt, salt, TLS_AES_GCM_SALT_LEN);
+		memcpy(m_tls_info_rx.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+		memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+		m_next_recno_rx = be64toh(recno_be64);
+		m_p_sock->m_b_tls_rx = true;
+		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
+
+		/* TODO Check whether g_tls_api == NULL in proper place (attaching ULP?) */
+		m_p_cipher_ctx = (void*)g_tls_api->EVP_CIPHER_CTX_new();
+
+		si_ulp_loginfo("TLS RX offload is configured, keylen=%u", keylen);
+
+		return 0;
 	}
 	return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
 }
@@ -596,4 +698,317 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 	return 0;
 }
 
+void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len)
+{
+	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	mem_buf_desc_t *pdesc = *iter;
+	struct pbuf *p;
+
+	/* Skip leading buffers */
+	while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.tot_len <= offset) {
+		offset -= pdesc->lwip_pbuf.pbuf.tot_len;
+		pdesc = *(++iter);
+	}
+	p = &pdesc->lwip_pbuf.pbuf; // handles NULL pointer
+	while (p != NULL && p->len <= offset) {
+		offset -= p->len;
+		p = p->next;
+	}
+
+	/* Copy */
+	while (p != NULL && len > 0) {
+		uint32_t buflen = std::min<uint32_t>(p->len - offset, len);
+
+		memcpy(dst, (uint8_t*)p->payload + offset, buflen);
+		len -= buflen;
+		dst += buflen;
+		offset = 0;
+		p = p->next;
+		if (p == NULL) {
+			pdesc = *(++iter);
+			if (pdesc != NULL) {
+				p = &pdesc->lwip_pbuf.pbuf;
+			}
+		}
+	}
+}
+
+/* More efficient method to get 16bit value in the buffer list. */
+uint16_t sockinfo_tcp_ops_tls::offset_to_host16(uint32_t offset)
+{
+	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	mem_buf_desc_t *pdesc = *iter;
+	struct pbuf *p;
+	uint16_t res = 0;
+
+	/* Skip leading buffers */
+	while (likely(pdesc != NULL) && pdesc->lwip_pbuf.pbuf.tot_len <= offset) {
+		offset -= pdesc->lwip_pbuf.pbuf.tot_len;
+		pdesc = *(++iter);
+	}
+	p = &pdesc->lwip_pbuf.pbuf; // handles NULL pointer
+	while (likely(p != NULL) && p->len <= offset) {
+		offset -= p->len;
+		p = p->next;
+	}
+
+	if (likely(p != NULL)) {
+		res = (uint32_t)((uint8_t*)p->payload)[offset] << 8U;
+		++offset;
+		if (unlikely(offset >= p->len)) {
+			offset = 0;
+			p = p->next;
+			if (p == NULL) {
+				pdesc = *(++iter);
+				p = &pdesc->lwip_pbuf.pbuf;
+			}
+		}
+		if (likely(p != NULL)) {
+			res |= (uint32_t)((uint8_t*)p->payload)[offset];
+		} else {
+			res = 0;
+		}
+	}
+	return res;
+}
+
+void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
+{
+	/* Multi-purpose buffer, TAG is the largest object. */
+	uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__ ((aligned (8)));
+	EVP_CIPHER_CTX *tls_ctx;
+	struct pbuf *p;
+	uint16_t rec_len = m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
+	int len;
+	int ret;
+
+	tls_ctx = (EVP_CIPHER_CTX*)m_p_cipher_ctx;
+	assert(tls_ctx != NULL);
+	ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
+	assert(ret);
+
+	/* Build nonce. XXX TLS 1.3 nonce is different! */
+	memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
+	copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN],
+			m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
+	ret = g_tls_api->EVP_DecryptInit_ex(tls_ctx, (EVP_CIPHER*)m_p_evp_cipher, NULL, m_tls_info_rx.key, buf);
+	assert(ret);
+
+	/* Set authentication tag. TODO We can avoid copy if the tag doesn't cross a pbuf boundary. */
+	copy_by_offset(buf, m_rx_offset + m_rx_rec_len - TLS_RECORD_TAG_LEN, TLS_RECORD_TAG_LEN);
+	ret = g_tls_api->EVP_CIPHER_CTX_ctrl(tls_ctx, EVP_CTRL_GCM_SET_TAG, TLS_RECORD_TAG_LEN, buf);
+	assert(ret);
+
+	/* Additional data for AEAD */
+	*((uint64_t*)buf) = htobe64(m_next_recno_rx);
+	copy_by_offset(buf + 8, m_rx_offset, 3);
+	buf[11] = rec_len >> 8U;
+	buf[12] = rec_len & 0xFFU;
+	ret = g_tls_api->EVP_DecryptUpdate(tls_ctx, NULL, &len, buf, 13);
+	assert(ret);
+
+	for (p = plist; p != NULL; p = p->next) {
+		ret = g_tls_api->EVP_DecryptUpdate(tls_ctx,
+					(uint8_t*)p->payload, &len,
+					(uint8_t*)p->payload, p->len);
+		assert(ret);
+		/* XXX Can AES-GCM return len != p->len if not aligned to blocksize? */
+		assert(len == (int)p->len);
+	}
+	ret = g_tls_api->EVP_DecryptFinal_ex(tls_ctx, buf /* XXX */, &len);
+	assert(ret);
+	assert(len == 0);
+	(void)ret;
+}
+
+err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
+{
+	mem_buf_desc_t *pdesc = (mem_buf_desc_t*)p;
+	err_t err;
+
+	if (m_rx_bufs.empty()) {
+		m_rx_offset = 0;
+	}
+
+	m_rx_rec_rcvd += p->tot_len;
+	m_rx_bufs.push_back(pdesc);
+	/* TODO Check for requested resync flow. */
+
+check_single_record:
+
+	if (m_rx_sm == TLS_RX_SM_HEADER && m_rx_rec_rcvd >= TLS_RECORD_HDR_LEN) {
+		m_rx_rec_len = offset_to_host16(m_rx_offset + 3) + TLS_RECORD_HDR_LEN;
+		m_rx_sm = TLS_RX_SM_RECORD;
+		assert(offset_to_host16(m_rx_offset + 1) == 0x0303U);
+		assert(m_rx_rec_len >= TLS_RECORD_OVERHEAD); // XXX For TLS 1.3 overhead is different!
+	}
+
+	if (m_rx_sm != TLS_RX_SM_RECORD || m_rx_rec_rcvd < m_rx_rec_len) {
+		return ERR_OK;
+	}
+
+	/* The first record is complete - push the payload to application. */
+
+	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	struct pbuf *pi;
+	struct pbuf *pres = NULL;
+	struct pbuf *ptmp;
+	uint32_t offset = m_rx_offset + TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN; // XXX For TLS 1.3 this is different value!
+	uint32_t remain = m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
+	unsigned bufs_nr = 0;
+	unsigned decrypted_nr = 0;
+	uint8_t tls_type;
+	uint8_t tls_decrypted = 0;
+
+	pdesc = *iter;
+	pi = &pdesc->lwip_pbuf.pbuf;
+	/* TODO For TLS 1.3 the type field is in the last or 1 but last buffer.
+	 * We can find it going from the tail. This will work for the case
+	 * if the buffer is decrypted. Otherwise, we will need to find
+	 * the type after SW decryption.
+	 */
+	tls_type = ((uint8_t*)pi->payload)[m_rx_offset]; // XXX for TLS 1.3 this is different value!
+	while (remain > 0) {
+		if (unlikely(pdesc == NULL)) {
+			/* TODO Handle this situation, buffers chain is broken. */
+			break;
+		}
+		if (pi->len <= offset) {
+			offset -= pi->len;
+			goto next_buffer;
+		}
+
+		ptmp = sockinfo_tcp::tcp_tx_pbuf_alloc(m_p_sock->get_pcb(), PBUF_ZEROCOPY, NULL, NULL);
+		ptmp->len = ptmp->tot_len = std::min<uint32_t>(pi->len - offset, remain);
+		ptmp->payload = (void*)((uint8_t*)pi->payload + offset);
+		ptmp->next = NULL;
+		((mem_buf_desc_t*)ptmp)->p_next_desc = NULL;
+		((mem_buf_desc_t*)ptmp)->p_prev_desc = NULL;
+		((mem_buf_desc_t*)ptmp)->m_flags = 0;
+		((mem_buf_desc_t*)ptmp)->rx.tls_type = tls_type; // XXX For TLS 1.3 type is obtained only after full decryption!
+		tls_decrypted = ((mem_buf_desc_t*)pi)->rx.tls_decrypted;
+		((mem_buf_desc_t*)ptmp)->rx.tls_decrypted = tls_decrypted;
+
+		++bufs_nr;
+		decrypted_nr += !!(tls_decrypted == TLS_RX_DECRYPTED);
+
+		if (pres == NULL) {
+			pres = ptmp;
+		} else {
+			/* XXX Complexity of building pres list is O(N^2). */
+			pbuf_cat(pres, ptmp);
+		}
+
+		/* Reference counting for the underlying buffer. TODO Refactor. */
+		++pi->ref;
+		ptmp->desc.attr = PBUF_DESC_TLS_RX;
+		ptmp->desc.mdesc = (void*)pi;
+
+		remain -= ptmp->len;
+		offset = 0;
+
+next_buffer:
+		pi = pi->next;
+		if (pi == NULL) {
+			pdesc = *(++iter);
+			pi = &pdesc->lwip_pbuf.pbuf;
+		}
+	}
+
+	assert(pres->tot_len == (m_rx_rec_len - TLS_RECORD_OVERHEAD));
+
+	if (bufs_nr != decrypted_nr) {
+		/*
+		 * tls_decrypted holds value for the last buffer.
+		 *
+		 * There are multiple possible scenarios:
+		 * 1. Authentication failed (tls_decrypted == TLS_RX_AUTH_FAIL)
+		 * 2. E E E E - full record is encrypted
+		 * 3. E D D D - the 1st buffer is encrypted, authentication passed
+		 * 4. D D E E - tail is encrypted, authentication not checked
+		 * 5. E D E E - decrypted buffers in the middle
+		 */
+
+		/* TODO Currently we support only case #2. */
+		if (tls_decrypted == TLS_RX_ENCRYPTED && decrypted_nr == 0) {
+			tls_rx_decrypt(pres);
+			/* TODO Check for return code, send alert on decryption failure. */
+		} else {
+			assert(0); // XXX Not supported yet.
+		}
+	}
+
+	++m_next_recno_rx;
+	tcp_recved(m_p_sock->get_pcb(), TLS_RECORD_OVERHEAD); // XXX TLS 1.3 has different overhead
+	err = sockinfo_tcp::rx_lwip_cb((void*)m_p_sock, m_p_sock->get_pcb(), pres, ERR_OK);
+	(void)err; // TODO Handle return code
+
+	/* Free received underlying buffers. */
+
+	/* TODO We can optimize the loop using the fact, that there can be 2 scenarios:
+	 * 1. All buffers must be freed since they don't hold other records;
+	 * 2. Only the last buffer contains other records.
+	 * Using m_rx_rec_len, m_rx_rec_rcvd and m_rx_bufs.back()->tot_len we can avoid all the math in the loop.
+	 */
+
+	while (m_rx_rec_len > 0) {
+		if (unlikely(m_rx_bufs.empty())) {
+			/* TODO Handle broken buffers chain. */
+			pdesc = NULL;
+			break;
+		}
+		pdesc = m_rx_bufs.get_and_pop_front();
+		if (pdesc->lwip_pbuf.pbuf.tot_len > (m_rx_rec_len + m_rx_offset)) {
+			break;
+		}
+		m_rx_rec_len -= pdesc->lwip_pbuf.pbuf.tot_len - m_rx_offset;
+		m_rx_offset = 0;
+		pbuf_free(&pdesc->lwip_pbuf.pbuf);
+	}
+	if (pdesc && m_rx_rec_len > 0) {
+		ptmp = NULL;
+		for (pi = &pdesc->lwip_pbuf.pbuf; pi != NULL; pi = pi->next) {
+			if (pi->len > m_rx_rec_len + m_rx_offset) {
+				break;
+			}
+			m_rx_rec_len -= pi->len - m_rx_offset;
+			m_rx_offset = 0;
+			ptmp = pi;
+		}
+		assert(pi != NULL);
+		if (ptmp != NULL) {
+			/* Split pbuf chain into two and free the left part. */
+			assert(ptmp->next == pi);
+			ptmp->next = NULL;
+			pbuf_free(&pdesc->lwip_pbuf.pbuf);
+			pdesc = (mem_buf_desc_t*)pi;
+		}
+
+		m_rx_offset += m_rx_rec_len;
+		m_rx_rec_rcvd = pdesc->lwip_pbuf.pbuf.tot_len - m_rx_offset;
+		assert(m_rx_bufs.empty());
+		m_rx_bufs.push_front(pdesc);
+	} else {
+		m_rx_offset = 0;
+		m_rx_rec_rcvd = 0;
+	}
+
+	m_rx_sm = TLS_RX_SM_HEADER;
+	if (pdesc != NULL) {
+		/* Check for other complete records in the last buffer. */
+		goto check_single_record;
+	}
+	return ERR_OK;
+}
+
+/* static */
+err_t sockinfo_tcp_ops_tls::rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
+{
+	sockinfo_tcp *conn = (sockinfo_tcp *)arg;
+	sockinfo_tcp_ops *ops = conn->get_ops();
+
+	if (likely(p != NULL && err == ERR_OK))
+		return ops->recv(p);
+	return sockinfo_tcp::rx_lwip_cb(arg, tpcb, p, err);
+}
 #endif /* DEFINED_UTLS */

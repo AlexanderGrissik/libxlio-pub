@@ -75,7 +75,8 @@ enum {
   PBUF_DESC_FD,
   PBUF_DESC_MAP,
   PBUF_DESC_MKEY,
-  PBUF_DESC_STRIDE
+  PBUF_DESC_STRIDE,
+  PBUF_DESC_TLS_RX,
 };
 
 typedef struct {

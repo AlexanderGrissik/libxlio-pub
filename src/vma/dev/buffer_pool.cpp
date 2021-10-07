@@ -93,6 +93,7 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 	}
 
 	buff->p_next_desc = m_p_head;
+	assert(buff->lwip_pbuf.pbuf.type != PBUF_ZEROCOPY || this == g_buffer_pool_zc || g_buffer_pool_zc == NULL);
 	free_lwip_pbuf(&buff->lwip_pbuf);
 	m_p_head = buff;
 	m_n_buffers++;
@@ -116,7 +117,9 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
 	ptr_desc = (uint8_t *)area->m_area;
 
 	for (size_t i = 0; i < count; ++i) {
-		desc = new (ptr_desc) mem_buf_desc_t(ptr_data, buf_size, custom_free_function);
+		pbuf_type type = (ptr_data == NULL && custom_free_function == free_tx_lwip_pbuf_custom) ? PBUF_ZEROCOPY : PBUF_RAM;
+		desc = new (ptr_desc) mem_buf_desc_t(ptr_data, buf_size, type,
+							custom_free_function);
 		put_buffer_helper(desc);
 		ptr_desc += sizeof(mem_buf_desc_t);
 		if (ptr_data != NULL) {
@@ -131,7 +134,10 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
  * pbuf_free. */
 void buffer_pool::free_rx_lwip_pbuf_custom(struct pbuf *p_buff)
 {
-	g_buffer_pool_rx_ptr->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
+	buffer_pool *pool;
+
+	pool = (p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_rx_ptr;
+	pool->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
 }
 
 void buffer_pool::free_tx_lwip_pbuf_custom(struct pbuf *p_buff)

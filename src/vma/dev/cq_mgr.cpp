@@ -591,6 +591,7 @@ void cq_mgr::reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 			while (buff) {
 				VLIST_DEBUG_CQ_MGR_PRINT_ERROR_IS_MEMBER;
 				temp = buff;
+				assert(temp->lwip_pbuf.pbuf.type != PBUF_ZEROCOPY);
 				buff = temp->p_next_desc;
 				temp->p_next_desc = NULL;
 				temp->p_prev_desc = NULL;

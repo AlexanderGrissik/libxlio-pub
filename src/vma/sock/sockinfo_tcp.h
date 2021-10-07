@@ -169,6 +169,8 @@ public:
 
 	struct tcp_pcb* get_syn_received_pcb(in_addr_t src_addr, in_port_t src_port, in_addr_t dest_addr, in_port_t dest_port);
 
+	inline struct tcp_pcb* get_pcb(void) { return &m_pcb; }
+
 	inline unsigned sndbuf_available(void)
 	{
 		return tcp_sndbuf(&m_pcb);
@@ -198,6 +200,7 @@ public:
 	static struct tcp_seg * tcp_seg_alloc(void* p_conn);
 	static void tcp_seg_free(void* p_conn, struct tcp_seg * seg);
 	uint32_t get_next_tcp_seqno(void) { return m_pcb.snd_lbb; }
+	uint32_t get_next_tcp_seqno_rx(void) { return m_pcb.rcv_nxt; }
 
 	mem_buf_desc_t* tcp_tx_zc_alloc(mem_buf_desc_t* p_desc);
 	static void tcp_tx_zc_callback(mem_buf_desc_t* p_desc);
@@ -260,15 +263,17 @@ public:
 	ring *get_ring(void) { return m_p_connected_dst_entry->get_ring(); }
 
 	/* Proxy to support ULP. TODO Refactor. */
-	sockinfo_tcp_ops *get_ops(void) { return m_ops; }
+	inline sockinfo_tcp_ops *get_ops(void) { return m_ops; }
 	void set_ops(sockinfo_tcp_ops *ops) { m_ops = ops; }
 	void reset_ops(void)
 	{
 		delete m_ops;
 		m_ops = new sockinfo_tcp_ops(this);
 		assert(m_ops != NULL);
+		m_b_tls_rx = false;
 	}
 	sockinfo_tcp_ops *m_ops;
+	bool m_b_tls_rx;
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
 
@@ -391,7 +396,9 @@ private:
 	//rx
 	//int rx_wait(int &poll_count, bool blocking = true);
 	static err_t ack_recvd_lwip_cb(void *arg, struct tcp_pcb *tpcb, u16_t space);
+public:
 	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+private:
 	static err_t rx_drop_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
         
 	// Be sure that m_pcb is initialized

@@ -68,7 +68,8 @@ public:
 	};
 
 public:
-	mem_buf_desc_t(uint8_t *buffer, size_t size,  pbuf_free_custom_fn custom_free_function) :
+	mem_buf_desc_t(uint8_t *buffer, size_t size, pbuf_type type,
+			pbuf_free_custom_fn custom_free_function) :
 		p_buffer(buffer),
 		m_flags(mem_buf_desc_t::TYPICAL),
 		lkey(0),
@@ -85,6 +86,7 @@ public:
 		memset(&ee, 0, sizeof(ee));
 		reset_ref_count();
 
+		lwip_pbuf.pbuf.type = type;
 		lwip_pbuf.custom_free_function = custom_free_function;
 	}
 
@@ -110,7 +112,10 @@ public:
 			uint64_t	hw_raw_timestamp;
 			timestamps_t	timestamps;
 			void* 		context;
-			
+
+			uint8_t		tls_decrypted;
+			uint8_t		tls_type;
+
 			union {
 				struct {
 					struct iphdr* 	p_ip_h;

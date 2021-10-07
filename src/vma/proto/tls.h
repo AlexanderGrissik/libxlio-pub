@@ -47,6 +47,9 @@
 #ifndef TCP_ULP
 #define TCP_ULP 31
 #endif
+#ifndef TLS_GET_RECORD_TYPE
+#define TLS_GET_RECORD_TYPE 2
+#endif
 
 #ifdef DEFINED_UTLS
 

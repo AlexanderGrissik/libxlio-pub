@@ -199,6 +199,14 @@ inline void sockinfo_tcp::return_pending_tx_buffs()
 
 inline void sockinfo_tcp::reuse_buffer(mem_buf_desc_t *buff)
 {
+	/* Special case when ZC buffers are used in RX path. */
+	if (buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) {
+		/* TODO Accumulating ZC buffers in the dst_entry cache would
+		 * be more efficient. */
+		g_buffer_pool_zc->put_buffers_thread_safe(buff);
+		return;
+	}
+
 	set_rx_reuse_pending(false);
 	if (likely(m_p_rx_ring)) {
 		m_rx_reuse_buff.n_buff_num += buff->rx.n_frags;
@@ -322,6 +330,7 @@ sockinfo_tcp::sockinfo_tcp(int fd):
 	si_tcp_logdbg("TCP PCB FLAGS: 0x%x", m_pcb.flags);
 	g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
 	is_attached = false;
+	m_b_tls_rx = false;
 	si_tcp_logfunc("done");
 }
 
@@ -2027,6 +2036,17 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 
 	si_tcp_logfunc("something in rx queues: %d %p", m_n_rx_pkt_ready_list_count, m_rx_pkt_ready_list.front());
 
+	/* XXX For some reason OpenSSL returns an error if we don't insert 0x17 record type. */
+	if (m_b_tls_rx && __msg && __msg->msg_control) {
+		mem_buf_desc_t *pdesc = get_front_m_rx_pkt_ready_list();
+		struct cmsghdr *cmsg = CMSG_FIRSTHDR(__msg);
+		cmsg->cmsg_level = SOL_TLS;
+		cmsg->cmsg_type = TLS_GET_RECORD_TYPE;
+		cmsg->cmsg_len = CMSG_LEN(1);
+		*CMSG_DATA(cmsg) = pdesc->rx.tls_type;
+		__msg->msg_controllen = CMSG_SPACE(1);
+	}
+
 	if (total_iov_sz > 0) {
 		total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
 		if (total_rx < 0) {
@@ -2036,7 +2056,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 	}
 
 	/* Handle all control message requests */
-	if (__msg && __msg->msg_control) {
+	if (!m_b_tls_rx && __msg && __msg->msg_control) {
 		handle_cmsg(__msg, in_flags);
 	}
 
@@ -4823,7 +4843,7 @@ void sockinfo_tcp::tcp_rx_pbuf_free(struct pbuf *p_buff)
 {
 	mem_buf_desc_t *desc = (mem_buf_desc_t *)p_buff;
 
-	if (desc->p_desc_owner != NULL)
+	if (desc->p_desc_owner != NULL && p_buff->type != PBUF_ZEROCOPY)
 		desc->p_desc_owner->mem_buf_rx_release(desc);
 	else
 		buffer_pool::free_rx_lwip_pbuf_custom(p_buff);

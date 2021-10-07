@@ -528,8 +528,8 @@ mem_buf_desc_t* dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc, bool 
 		}
 
 		/* Initialize pbuf description */
-		p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_NONE;
 		memset(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, 0, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
+		p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_NONE;
 		if (desc) {
 			memcpy(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, desc, sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
 			if (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MDESC) {

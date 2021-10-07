@@ -643,6 +643,7 @@ void cq_mgr_mlx5_strq::reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 
 				VLIST_DEBUG_CQ_MGR_PRINT_ERROR_IS_MEMBER;
 				temp = buff;
+				assert(temp->lwip_pbuf.pbuf.type != PBUF_ZEROCOPY);
 				buff = temp->p_next_desc;
 				temp->p_next_desc = nullptr;
 				temp->p_prev_desc = nullptr;

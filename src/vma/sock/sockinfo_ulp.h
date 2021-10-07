@@ -37,6 +37,7 @@
 #include "socket_fd_api.h"		/* vma_tx_call_attr_t */
 #include "vma/proto/dst_entry.h"	/* vma_send_attr */
 #include "vma/proto/tls.h"		/* xlio_tls_info */
+#include "vma/lwip/err.h"		/* err_t */
 
 #include <stdint.h>
 
@@ -63,6 +64,8 @@ public:
 	virtual ssize_t tx(vma_tx_call_attr_t &tx_arg);
 	virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
+	virtual err_t recv(struct pbuf *p) { NOT_IN_USE(p); return ERR_OK; };
+
 protected:
 	sockinfo_tcp *m_p_sock;
 };
@@ -86,13 +89,57 @@ public:
 	ssize_t tx(vma_tx_call_attr_t &tx_arg);
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
+	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+
 private:
+	err_t recv(struct pbuf *p);
+	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);
+	uint16_t offset_to_host16(uint32_t offset);
+	void tls_rx_decrypt(struct pbuf *plist);
+
+private:
+	enum tls_rx_state {
+		TLS_RX_SM_UNKNOWN = 0,
+		/* Initial state. The header of the first record is incomplete. */
+		TLS_RX_SM_HEADER,
+		/* The first unhandled record is incomplete. */
+		TLS_RX_SM_RECORD,
+		/* Terminal state when decryption/authentication fails. */
+		TLS_RX_SM_FAIL,
+	};
+
+	/* Values for the tls_offload field in CQE. */
+	enum tls_rx_decrypted {
+		TLS_RX_ENCRYPTED = 0x0,
+		TLS_RX_DECRYPTED = 0x1,
+		TLS_RX_RESYNC = 0x2,
+		TLS_RX_AUTH_FAIL = 0x3,
+	};
+
 	ring *m_p_ring;
 	xlio_tis *m_p_tis;
 	uint32_t m_expected_seqno;
 	bool m_is_tls;
 	uint64_t m_next_record_number;
 	struct xlio_tls_info m_tls_info;
+
+	uint64_t m_next_recno_rx;
+	struct xlio_tls_info m_tls_info_rx;
+
+	/* OpenSSL objects for SW decryption. */
+	void *m_p_evp_cipher;
+	void *m_p_cipher_ctx;
+
+	/* List of RX buffers that contain unhandled records. */
+	vma_desc_list_t m_rx_bufs;
+	/* Offset of the first unhandled record. */
+	uint32_t m_rx_offset;
+	/* Size of the first unhandled record. */
+	uint32_t m_rx_rec_len;
+	/* Number of bytes received after m_rx_offset. */
+	uint32_t m_rx_rec_rcvd;
+	/* State machine for TLS RX stream. */
+	enum tls_rx_state m_rx_sm;
 };
 
 #endif /* DEFINED_UTLS */
