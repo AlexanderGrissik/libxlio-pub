@@ -817,9 +817,9 @@ void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_
 	p_ip_h->check = 0;
 }
 
-void cq_mgr_mlx5::cq_logerr_call(const char* fmt)
-{
-	cq_logerr("%s", fmt);
-}
+//void cq_mgr_mlx5::cq_logerr_call(const char* fmt)
+//{
+//	cq_logerr("%s", fmt);
+//}
 
 #endif /* DEFINED_DIRECT_VERBS */

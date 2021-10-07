@@ -96,7 +96,7 @@ protected:
 
 private:
 
-	inline bool	cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, enum buff_status_e& status, bool& is_filler);
+	inline bool	strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, enum buff_status_e& status, bool& is_filler);
 	void		cqe_to_vma_wc_sockextreme(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc);
 	int		drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffers_last_wr_id);
 	int 		poll_and_process_element_rx_sockextreme(uint64_t*, void*);

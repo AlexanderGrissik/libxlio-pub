@@ -48,6 +48,10 @@
 #include <linux/tls.h>
 #endif /* DEFINED_UTLS */
 
+#ifdef DEFINED_DPCP
+#include <mellanox/dpcp.h>
+#endif /* DEFINED_DPCP */
+
 #if defined(DEFINED_DIRECT_VERBS)
 
 #define qp_logpanic 	__log_info_panic
@@ -92,7 +96,6 @@ protected:
 	uint64_t    m_rq_wqe_counter;
 
 private:
-	
 	virtual bool	is_completion_need() { return !m_n_unsignaled_count || (m_dm_enabled && m_dm_mgr.is_completion_need()); };
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
 	

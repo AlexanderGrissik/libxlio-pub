@@ -242,7 +242,7 @@ mem_buf_desc_t* cq_mgr_mlx5_strq::poll(enum buff_status_e& status, mem_buf_desc_
 		rmb();
 
 		bool is_filler = false;
-		bool is_wqe_complete = cqe_to_mem_buff_desc(cqe, status, is_filler);
+		bool is_wqe_complete = strq_cqe_to_mem_buff_desc(cqe, status, is_filler);
 
 		*m_mlx5_cq.dbrec = htonl(m_mlx5_cq.cq_ci & 0xffffff);
 
@@ -290,10 +290,10 @@ mem_buf_desc_t* cq_mgr_mlx5_strq::poll(enum buff_status_e& status, mem_buf_desc_
 	return buff;
 }
 
-inline bool cq_mgr_mlx5_strq::cqe_to_mem_buff_desc(
+/*inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(
 	struct vma_mlx5_cqe *cqe, enum buff_status_e &status, bool& is_filler)
 {
-	cq_mgr_mlx5::cqe_to_mem_buff_desc(cqe, _hot_buffer_stride, status);
+	cq_mgr_mlx5::strq_cqe_to_mem_buff_desc(cqe, _hot_buffer_stride, status);
 	uint32_t host_byte_cnt = ntohl(cqe->byte_cnt);
 	_hot_buffer_stride->strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
 	_hot_buffer_stride->lwip_pbuf.pbuf.desc.attr_pbuf_desc = PBUF_DESC_STRIDE;
@@ -331,6 +331,107 @@ inline bool cq_mgr_mlx5_strq::cqe_to_mem_buff_desc(
 	}
 
 	return false;
+}*/
+
+inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, enum buff_status_e &status, bool& is_filler)
+{
+	struct mlx5_err_cqe *ecqe;
+	ecqe = (struct mlx5_err_cqe *)cqe;
+	uint32_t host_byte_cnt = ntohl(cqe->byte_cnt);
+
+	switch (MLX5_CQE_OPCODE(cqe->op_own)) {
+		case MLX5_CQE_RESP_WR_IMM:
+			cq_logerr("IBV_WC_RECV_RDMA_WITH_IMM is not supported");
+			status = BS_CQE_RESP_WR_IMM_NOT_SUPPORTED;
+			break;
+		case MLX5_CQE_RESP_SEND:
+		case MLX5_CQE_RESP_SEND_IMM:
+		case MLX5_CQE_RESP_SEND_INV:
+		{
+			status = BS_OK;
+			_hot_buffer_stride->strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+			_hot_buffer_stride->lwip_pbuf.pbuf.desc.attr_pbuf_desc = PBUF_DESC_STRIDE;
+			_hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
+
+			is_filler = (host_byte_cnt >> 31 != 0U ? true : false);
+			_hot_buffer_stride->sz_data = host_byte_cnt & 0x0000FFFFU; // In case of a Filler/Error this size is invalid.
+			_hot_buffer_stride->p_buffer = m_rx_hot_buffer->p_buffer + _current_wqe_consumed_bytes; //(_stride_size_bytes * ntohs(cqe->wqe_counter))
+			_hot_buffer_stride->sz_buffer = _hot_buffer_stride->strides_num * _stride_size_bytes;
+			_current_wqe_consumed_bytes += _hot_buffer_stride->sz_buffer;
+
+			_hot_buffer_stride->rx.hw_raw_timestamp = ntohll(cqe->timestamp);
+			_hot_buffer_stride->rx.flow_tag_id      = vma_get_flow_tag(cqe);
+			_hot_buffer_stride->rx.is_sw_csum_need = !(m_b_is_rx_hw_csum_on &&
+					(cqe->hds_ip_ext & MLX5_CQE_L4_OK) && (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
+			if (cqe->lro_num_seg > 1) {
+				lro_update_hdr(cqe, _hot_buffer_stride);
+				m_p_cq_stat->n_rx_lro_packets++;
+				m_p_cq_stat->n_rx_lro_bytes += _hot_buffer_stride->sz_data;
+			}
+			break;
+		}
+		case MLX5_CQE_INVALID: /* No cqe!*/
+		{
+			cq_logerr("We should no receive a buffer without a cqe\n");
+			status = BS_CQE_INVALID;
+			return false;
+		}
+		case MLX5_CQE_REQ:
+		case MLX5_CQE_REQ_ERR:
+		case MLX5_CQE_RESP_ERR:
+		default:
+		{
+			_hot_buffer_stride->strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+			_hot_buffer_stride->lwip_pbuf.pbuf.desc.attr_pbuf_desc = PBUF_DESC_STRIDE;
+			_hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
+			is_filler = true;
+			_current_wqe_consumed_bytes = _wqe_buff_size_bytes;
+			_hot_buffer_stride->sz_data = 0U;
+			_hot_buffer_stride->p_buffer = nullptr;
+			_hot_buffer_stride->sz_buffer = 0U;
+
+			if (_hot_buffer_stride->strides_num == 0U)
+				_hot_buffer_stride->strides_num = _strides_num;
+
+			if (MLX5_CQE_SYNDROME_WR_FLUSH_ERR == ecqe->syndrome) {
+				status = BS_IBV_WC_WR_FLUSH_ERR;
+			} else {
+				status = BS_GENERAL_ERR;
+			}
+			/*
+			  IB compliant completion with error syndrome:
+			  0x1: Local_Length_Error
+			  0x2: Local_QP_Operation_Error
+			  0x4: Local_Protection_Error
+			  0x5: Work_Request_Flushed_Error
+			  0x6: Memory_Window_Bind_Error
+			  0x10: Bad_Response_Error
+			  0x11: Local_Access_Error
+			  0x12: Remote_Invalid_Request_Error
+			  0x13: Remote_Access_Error
+			  0x14: Remote_Operation_Error
+			  0x15: Transport_Retry_Counter_Exceeded
+			  0x16: RNR_Retry_Counter_Exceeded
+			  0x22: Aborted_Error
+			  other: Reserved
+			 */
+			break;
+		}
+	}
+
+	cq_logfunc("STRQ CQE. Status: %d, WQE-ID: %hu, Is-Filler: %" PRIu32 ", Orig-HBC: %" PRIu32
+		", Data-Size: %" PRIu32 ", Strides: %hu, Consumed-Bytes: %" PRIu32 ", RX-HB: %p, RX-HB-SZ: %zu\n",
+		static_cast<int>(status), cqe->wqe_id, (host_byte_cnt >> 31), cqe->byte_cnt, (host_byte_cnt & 0x0000FFFFU),
+		_hot_buffer_stride->strides_num, _current_wqe_consumed_bytes, m_rx_hot_buffer, m_rx_hot_buffer->sz_buffer);
+	//vlog_print_buffer(VLOG_FINE, "STRQ CQE. Data: ", "\n",
+	//	reinterpret_cast<const char*>(_hot_buffer_stride->p_buffer), min(112, static_cast<int>(_hot_buffer_stride->sz_data)));
+
+	if (_current_wqe_consumed_bytes >= _wqe_buff_size_bytes) {
+		_current_wqe_consumed_bytes = 0;
+		return true;
+	}
+
+	return false;
 }
 
 int cq_mgr_mlx5_strq::drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffers_last_wr_id)
@@ -340,11 +441,11 @@ int cq_mgr_mlx5_strq::drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffer
 	/*while (((m_n_sysvar_progress_engine_wce_max > m_n_wce_counter) && (!m_b_was_drained)) ||
 		(p_recycle_buffers_last_wr_id)) {
 		int ret = 0;
-		vma_mlx5_cqe *cqe_arr[MCE_MAX_CQ_POLL_BATCH];
+		mlx5_cqe64 *cqe_arr[MCE_MAX_CQ_POLL_BATCH];
 
 		for (int i = 0; i < MCE_MAX_CQ_POLL_BATCH; ++i)
 		{
-			cqe_arr[i] = get_cqe();
+			cqe_arr[i] = get_cqe64();
 			if (cqe_arr[i]) {
 				++ret;
 				wmb();
@@ -370,7 +471,7 @@ int cq_mgr_mlx5_strq::drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffer
 
 		for (int i = 0; i < ret; i++) {
 			uint32_t wqe_sz = 0;
-			vma_mlx5_cqe *cqe = cqe_arr[i];
+			mlx5_cqe64 *cqe = cqe_arr[i];
 			vma_ibv_wc wce;
 
 			uint16_t wqe_ctr = ntohs(cqe->wqe_counter);
@@ -390,7 +491,7 @@ int cq_mgr_mlx5_strq::drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffer
 			m_rx_hot_buffer = (mem_buf_desc_t*)(uintptr_t)m_qp->m_rq_wqe_idx_to_wrid[index];
 			memset(&wce, 0, sizeof(wce));
 			wce.wr_id = (uintptr_t)m_rx_hot_buffer;
-			cqe_to_vma_wc(cqe, &wce);
+			cqe64_to_vma_wc(cqe, &wce);
 
 			m_rx_hot_buffer = cq_mgr::process_cq_element_rx(&wce);
 			if (m_rx_hot_buffer) {
@@ -550,8 +651,8 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx_sockextreme(uint64_t* p_cq_pol
 		m_rx_hot_buffer->rx.socketxtreme_polled = false;
 	}
 	else {
-		vma_mlx5_cqe *cqe_err = NULL;
-		vma_mlx5_cqe *cqe = get_cqe(&cqe_err);
+		mlx5_cqe64 *cqe_err = NULL;
+		mlx5_cqe64 *cqe = get_cqe64(&cqe_err);
 
 		if (likely(cqe)) {
 			++m_n_wce_counter;
@@ -708,8 +809,8 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst)
 #ifdef RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
 	RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL]);
 #endif //RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
-	vma_mlx5_cqe *cqe_err = NULL;
-	vma_mlx5_cqe *cqe = get_cqe(&cqe_err);
+	mlx5_cqe64 *cqe_err = NULL;
+	mlx5_cqe64 *cqe = get_cqe64(&cqe_err);
 
 	if (likely(cqe)) {
 		++m_n_wce_counter; // Actually strides count.
@@ -771,7 +872,7 @@ int cq_mgr_mlx5_strq::poll_and_process_error_element_rx_sockextreme(struct vma_m
 
 	memset(&wce, 0, sizeof(wce));
 	wce.wr_id = (uintptr_t)m_rx_hot_buffer;
-	cqe_to_vma_wc(cqe, &wce);
+	cqe64_to_vma_wc(cqe, &wce);
 
 	++m_n_wce_counter; // Actually strides count.
 	++m_qp->m_mlx5_qp.rq.tail;

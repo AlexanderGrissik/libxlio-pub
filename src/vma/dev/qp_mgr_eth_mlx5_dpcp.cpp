@@ -31,7 +31,7 @@
  */
 #include "qp_mgr_eth_mlx5_dpcp.h"
 
-#ifdef DEFINED_DPCP
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 
 #include <cinttypes>
 #include "ring_simple.h"
@@ -99,26 +99,26 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 		return false;
 	}
 
-	dpcp::rq_attr rqattrs;
-	rqattrs.user_index = 0U; // Unused.
-	rqattrs.cqn = cqn;
+	// user_index Unused.
+	dpcp::rq_attr rqattrs { 0U, 0U, 0U, cqn, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge };
 
 	unique_ptr<dpcp::simple_rq> new_rq;
 	dpcp::status rc = dpcp::DPCP_OK;
 
 	if (safe_mce_sys().enable_striding_rq) {
-		dpcp::striding_rq* new_rq_ptr = nullptr;
 		rqattrs.buf_stride_sz = safe_mce_sys().strq_stride_size_bytes;
 		rqattrs.buf_stride_num = safe_mce_sys().strq_stride_num_per_rwqe;
+
 		// Striding-RQ WQE format is as of Shared-RQ (PRM, page 381, wq_type).
 		// In this case the WQE minimum size is 2 * 16, and the first segment is reserved.
-		rc = dpcp_adapter->create_striding_rq(rqattrs, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge * 16U, new_rq_ptr);
+		rqattrs.wqe_sz = m_qp_cap.max_recv_sge * 16U;
+
+		dpcp::striding_rq* new_rq_ptr = nullptr;
+		rc = dpcp_adapter->create_striding_rq(rqattrs, new_rq_ptr);
 		new_rq.reset(new_rq_ptr);
 	} else {
 		dpcp::regular_rq* new_rq_ptr = nullptr;
-		rqattrs.buf_stride_sz = 0U; // Regular RQ has no WQE strides.
-		rqattrs.buf_stride_num = 0U; // Regular RQ has no WQE strides.
-		rc = dpcp_adapter->create_regular_rq(rqattrs, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge, new_rq_ptr);
+		rc = dpcp_adapter->create_regular_rq(rqattrs, new_rq_ptr);
 		new_rq.reset(new_rq_ptr);
 	}
 
@@ -261,8 +261,7 @@ void qp_mgr_eth_mlx5_dpcp::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
 
 dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()
 {
-	dpcp::tir* tir_obj = NULL;
-#if (DEFINED_DPCP > 10113)
+	dpcp::tir* tir_obj = nullptr;
 	dpcp::status status = dpcp::DPCP_OK;
 	dpcp::tir::attr tir_attr;
 
@@ -271,8 +270,7 @@ dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()
 	tir_attr.inline_rqn = m_mlx5_qp.rqn;
 	tir_attr.transport_domain = m_p_ib_ctx_handler->get_dpcp_adapter()->get_td();
 
-	if (m_p_ring->m_lro.cap &&
-			m_p_ring->m_lro.max_payload_sz) {
+	if (m_p_ring->m_lro.cap && m_p_ring->m_lro.max_payload_sz) {
 		tir_attr.flags |= dpcp::TIR_ATTR_LRO;
 		tir_attr.lro.timeout_period_usecs = VMA_MLX5_PARAMS_LRO_TIMEOUT;
 		tir_attr.lro.enable_mask = 1;
@@ -280,15 +278,15 @@ dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()
 	}
 
 	status = m_p_ib_ctx_handler->get_dpcp_adapter()->create_tir(tir_attr, tir_obj);
-	if (dpcp::DPCP_OK != status) {
-		qp_logwarn("failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);
-		return NULL;
-	}
-#endif /* DEFINED_DPCP > 10112 */
 
-	qp_logdbg("tir:%p created", tir_obj);
+	if (dpcp::DPCP_OK != status) {
+		qp_logerr("Failed creating dpcp tir with flags=0x%x status=%d", tir_attr.flags, status);
+		return nullptr;
+	}
+
+	qp_logdbg("TIR: %p created", tir_obj);
 
 	return tir_obj;
 }
 
-#endif
+#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113) 

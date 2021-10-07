@@ -64,7 +64,6 @@ public:
 	virtual int                 poll_and_process_element_tx(uint64_t* p_cq_poll_sn);
 	int                         poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uint64_t* p_cq_poll_sn);
 	
-
 	virtual mem_buf_desc_t*     process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status);
 	virtual void                add_qp_rx(qp_mgr* qp);
 	void                        set_qp_rq(qp_mgr* qp);
@@ -78,25 +77,24 @@ protected:
 	mem_buf_desc_t              *m_rx_hot_buffer;
 	const bool                  m_b_sysvar_enable_socketxtreme;
 
-	inline struct vma_mlx5_cqe*   check_cqe(void);
+	inline struct vma_mlx5_cqe* check_cqe(void);
 	virtual mem_buf_desc_t*     poll(enum buff_status_e& status);
 	int                         poll_and_process_error_element_rx(struct vma_mlx5_cqe *cqe, void* pv_fd_ready_array);
-	inline void                 update_global_sn(uint64_t& cq_poll_sn, uint32_t rettotal);
 
-	inline struct vma_mlx5_cqe* get_cqe(struct vma_mlx5_cqe **cqe_err = NULL);
-	void                        cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
+	inline struct vma_mlx5_cqe*   get_cqe(struct vma_mlx5_cqe **cqe_err = NULL);
+	inline void                 cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
 	void                        cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc);
-	inline struct vma_mlx5_cqe* check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci, uint8_t op_own);
+	inline struct vma_mlx5_cqe*   check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci, uint8_t op_own);
+	inline void                 update_global_sn(uint64_t& cq_poll_sn, uint32_t rettotal);
+	void                        lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc);
 
 private:
 
-	void cq_logerr_call(const char* fmt);
+	//void cq_logerr_call(const char* fmt);
 
 	virtual int	req_notify_cq() {
 		return vma_ib_mlx5_req_notify_cq(&m_mlx5_cq, 0);
 	};
-
-	void lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_wc_buf_desc);
 };
 
 inline void cq_mgr_mlx5::update_global_sn(uint64_t& cq_poll_sn, uint32_t num_polled_cqes)
@@ -133,7 +131,7 @@ inline struct vma_mlx5_cqe* cq_mgr_mlx5::check_error_completion(struct vma_mlx5_
 
 	case MLX5_CQE_INVALID:
 	default:
-		return NULL; // No CQE
+		return NULL; /* No CQE */
 	}
 }
 
@@ -143,9 +141,10 @@ inline struct vma_mlx5_cqe *cq_mgr_mlx5::get_cqe(struct vma_mlx5_cqe **cqe_err)
 		((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1)) << m_mlx5_cq.cqe_size_log));
 	uint8_t op_own = cqe->op_own;
 
-	// Check ownership and invalid opcode
-	// Return cqe_err for 0x80 - MLX5_CQE_REQ_ERR, MLX5_CQE_RESP_ERR or MLX5_CQE_INVALID
-	if (unlikely((op_own & MLX5_CQE_OWNER_MASK) == !(m_mlx5_cq.cq_ci & m_mlx5_cq.cqe_count))) {
+	/* Check ownership and invalid opcode
+	 * Return cqe_err for 0x80 - MLX5_CQE_REQ_ERR, MLX5_CQE_RESP_ERR or MLX5_CQE_INVALID
+	 */
+ 	if (unlikely((op_own & MLX5_CQE_OWNER_MASK) == !(m_mlx5_cq.cq_ci & m_mlx5_cq.cqe_count))) {
 		return NULL;
 	} else if (unlikely((op_own >> 4) == MLX5_CQE_INVALID)) {
 		return NULL;
@@ -154,11 +153,11 @@ inline struct vma_mlx5_cqe *cq_mgr_mlx5::get_cqe(struct vma_mlx5_cqe **cqe_err)
 		return NULL;
 	}
 
-	++m_mlx5_cq.cq_ci;
+ 	++m_mlx5_cq.cq_ci;
 	rmb();
 	*m_mlx5_cq.dbrec = htonl(m_mlx5_cq.cq_ci);
 
-	return cqe;
+ 	return cqe;
 }
 
 #endif /* DEFINED_DIRECT_VERBS */

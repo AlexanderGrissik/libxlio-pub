@@ -86,7 +86,7 @@ qp_mgr* ring_eth::create_qp_mgr(struct qp_mgr_desc *desc)
 {
 #if defined(DEFINED_DIRECT_VERBS)
 	if (qp_mgr::is_lib_mlx5(((ib_ctx_handler*)desc->slave->p_ib_ctx)->get_ibname())) {
-#ifdef DEFINED_DPCP
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 		if (safe_mce_sys().enable_dpcp_rq)
 			return new qp_mgr_eth_mlx5_dpcp(desc, get_tx_num_wr(), m_partition);
 #endif
@@ -296,12 +296,15 @@ void ring_simple::create_resources()
 			m_lro.time_stamp = caps.lro_time_stamp;
 			m_lro.max_msg_sz_mode = caps.lro_max_msg_sz_mode;
 			m_lro.min_mss_size = caps.lro_min_mss_size;
+
 			memcpy(m_lro.timer_supported_periods, caps.lro_timer_supported_periods, sizeof(m_lro.timer_supported_periods));
 			/* calculate possible payload size w/o using max_msg_sz_mode
 			 * because during memory buffer allocation L2+L3+L4 is reserved
 			 * adjust payload size to 256 bytes
 			 */
-			m_lro.max_payload_sz = std::min((int)safe_mce_sys().rx_buf_size, VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256 * 256;
+			uint32_t actual_buf_size = (!safe_mce_sys().rx_buf_size && safe_mce_sys().enable_striding_rq ? 
+				min(65280U, safe_mce_sys().strq_stride_num_per_rwqe * safe_mce_sys().strq_stride_size_bytes) : safe_mce_sys().rx_buf_size);
+			m_lro.max_payload_sz = std::min(actual_buf_size, VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256U * 256U;
 		}
 #endif /* DEFINED_DPCP */
 	}

@@ -386,7 +386,7 @@ enum {
 /*
  * Parameters
  */
-#define VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE          (64 * 1024)
+#define VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE          (64U * 1024U)
 #define VMA_MLX5_PARAMS_LRO_TIMEOUT               32
 #define VMA_MLX5_PARAMS_LRO_TIMEOUT_ARRAY_SIZE    4
 
