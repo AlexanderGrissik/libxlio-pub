@@ -154,6 +154,8 @@ case $CC in
         AC_MSG_RESULT([clang])
         CFLAGS="$CFLAGS -Wall -Werror -Wno-self-assign"
         CXXFLAGS="$CXXFLAGS -Wall -Werror -Wno-overloaded-virtual"
+        # workaround for clang w/o -Wnon-c-typedef-for-linkage
+        CXXFLAGS="$CXXFLAGS -Wno-unknown-warning-option -Wno-non-c-typedef-for-linkage"
         ;;
     *)
         AC_MSG_RESULT([unknown])

@@ -486,7 +486,7 @@ int init_child_process_for_nginx()
 					new_udp_sock->bind_no_os();
 				}
 			} else {
-				srdr_logdbg("not using port=%d. count is %u", p, iter->second->size());
+				srdr_logdbg("not using port=%d. count is %u", p, (int)iter->second->size());
 			}
 		}
 	}
