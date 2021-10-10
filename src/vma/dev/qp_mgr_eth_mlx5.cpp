@@ -136,16 +136,18 @@ static inline uint32_t get_mlx5_opcode(vma_ibv_wr_opcode verbs_opcode)
  * TODO Move this class to a separated header. We will need to release reference
  * on a TX completion in cq_mgr.
  */
-class xlio_tis {
+class xlio_tis : public xlio_ti {
 public:
-	xlio_tis(dpcp::tis *_tis)
+	xlio_tis(dpcp::tis *_tis) :
+		xlio_ti()
 	{
 		dpcp::status ret;
 
+		m_type = XLIO_TI_TIS;
 		m_p_tis = _tis;
 		m_p_dek = NULL;
 		m_tisn = 0;
-		m_ref = 0;
+		m_dek_id = 0;
 
 		/* Cache the tis number. Mustn't fail for a valid TIS object. */
 		ret = m_p_tis->get_tisn(m_tisn);
@@ -169,6 +171,7 @@ public:
 			delete m_p_dek;
 			m_p_dek = NULL;
 		}
+		m_released = false;
 	}
 
 	inline uint32_t get_tisn(void)
@@ -179,51 +182,35 @@ public:
 	inline void assign_dek(dpcp::dek *_dek)
 	{
 		m_p_dek = _dek;
+		m_dek_id = _dek->get_key_id();
 	}
 
 	inline uint32_t get_dek_id(void)
 	{
-		if (unlikely(m_p_dek == NULL))
-			return 0;
-
-		return m_p_dek->get_key_id();
-	}
-
-	/*
-	 * Reference counting. m_ref must be protected by ring tx lock. Device
-	 * layer (QP, CQ) is responsible for the reference counting.
-	 */
-
-	inline void get(void)
-	{
-		++m_ref;
-		assert(m_ref > 0);
-	}
-
-	inline uint32_t put(void)
-	{
-		assert(m_ref > 0);
-		return --m_ref;
+		return m_dek_id;
 	}
 
 private:
 	dpcp::dek *m_p_dek;
 	dpcp::tis *m_p_tis;
 	uint32_t m_tisn;
-	uint32_t m_ref;
+	uint32_t m_dek_id;
 };
 #else /* DEFINED_UTLS */
-class xlio_tis {
+class xlio_tis : public xlio_ti {
 public:
 	/* A stub class to compile without uTLS support. */
 	inline uint32_t get_tisn(void) { return 0; }
+	inline void reset(void) {}
 };
 #endif /* DEFINED_UTLS */
 
 qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc,
                 const uint32_t tx_num_wr, const uint16_t vlan, bool call_configure):
         qp_mgr_eth(desc, tx_num_wr, vlan, false)
-        ,m_sq_wqe_idx_to_wrid(NULL)
+        ,m_sq_wqe_idx_to_prop(NULL)
+	,m_sq_wqe_prop_last(NULL)
+	,m_sq_wqe_prop_last_signalled(0)
         ,m_rq_wqe_counter(0)
         ,m_sq_wqes(NULL)
         ,m_sq_wqe_hot(NULL)
@@ -274,17 +261,19 @@ void qp_mgr_eth_mlx5::init_qp()
 	m_max_inline_data = OCTOWORD-4 + 3*WQEBB;
 #endif /* DEFINED_TSO */
 
-	if (m_sq_wqe_idx_to_wrid == NULL) {
-		m_sq_wqe_idx_to_wrid = (uint64_t*)mmap(NULL, m_tx_num_wr * sizeof(*m_sq_wqe_idx_to_wrid),
+	if (m_sq_wqe_idx_to_prop == NULL) {
+		m_sq_wqe_idx_to_prop = (sq_wqe_prop*)mmap(NULL, m_tx_num_wr * sizeof(*m_sq_wqe_idx_to_prop),
 			PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-		if (m_sq_wqe_idx_to_wrid == MAP_FAILED) {
-			qp_logerr("Failed allocating m_sq_wqe_idx_to_wrid (errno=%d %m)", errno);
+		if (m_sq_wqe_idx_to_prop == MAP_FAILED) {
+			qp_logerr("Failed allocating m_sq_wqe_idx_to_prop (errno=%d %m)", errno);
 			return;
 		}
+		m_sq_wqe_prop_last_signalled = m_tx_num_wr - 1;
+		m_sq_wqe_prop_last = NULL;
 	}
 
-	qp_logfunc("m_tx_num_wr=%d max_inline_data: %d m_sq_wqe_idx_to_wrid=%p",
-		    m_tx_num_wr, get_max_inline_data(), m_sq_wqe_idx_to_wrid);
+	qp_logfunc("m_tx_num_wr=%d max_inline_data: %d m_sq_wqe_idx_to_prop=%p",
+		    m_tx_num_wr, get_max_inline_data(), m_sq_wqe_idx_to_prop);
 
 	memset((void*)(uintptr_t)m_sq_wqe_hot, 0, sizeof(struct mlx5_eth_wqe));
 	m_sq_wqe_hot->ctrl.data[0] = htonl(MLX5_OPCODE_SEND);
@@ -346,15 +335,13 @@ qp_mgr_eth_mlx5::~qp_mgr_eth_mlx5()
 		if (0 != munmap(m_rq_wqe_idx_to_wrid, m_rx_num_wr * sizeof(*m_rq_wqe_idx_to_wrid))) {
 			qp_logerr("Failed deallocating memory with munmap m_rq_wqe_idx_to_wrid (errno=%d %m)", errno);
 		}
-
 		m_rq_wqe_idx_to_wrid = NULL;
 	}
-	if (m_sq_wqe_idx_to_wrid) {
-		if (0 != munmap(m_sq_wqe_idx_to_wrid, m_tx_num_wr * sizeof(*m_sq_wqe_idx_to_wrid))) {
-			qp_logerr("Failed deallocating memory with munmap m_sq_wqe_idx_to_wrid (errno=%d %m)", errno);
+	if (m_sq_wqe_idx_to_prop) {
+		if (0 != munmap(m_sq_wqe_idx_to_prop, m_tx_num_wr * sizeof(*m_sq_wqe_idx_to_prop))) {
+			qp_logerr("Failed deallocating memory with munmap m_sq_wqe_idx_to_prop (errno=%d %m)", errno);
 		}
-
-		m_sq_wqe_idx_to_wrid = NULL;
+		m_sq_wqe_idx_to_prop = NULL;
 	}
 	destroy_tis_cache();
 }
@@ -961,6 +948,15 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr* pswr)
 }
 #endif /* DEFINED_TSO */
 
+void qp_mgr_eth_mlx5::store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti)
+{
+	m_sq_wqe_idx_to_prop[m_sq_wqe_hot_index] = (sq_wqe_prop){ wr_id, ti, m_sq_wqe_prop_last };
+	m_sq_wqe_prop_last = &m_sq_wqe_idx_to_prop[m_sq_wqe_hot_index];
+	if (ti != NULL) {
+		ti->get();
+	}
+}
+
 //! Send one RAW packet by MLX5 BlueFlame
 //
 #ifdef DEFINED_TSO
@@ -993,7 +989,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	fill_wqe(p_send_wqe);
 
 	/* Store buffer descriptor */
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = (uintptr_t)p_send_wqe->wr_id;
+	store_current_wqe_prop((uintptr_t)p_send_wqe->wr_id, tis);
 
 	/* Preparing next WQE and index */
 	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
@@ -1023,7 +1019,7 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 	ctrl->tis_tir_num = htobe32(tisn << 8);
 
 	fill_wqe(p_send_wqe);
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = (uintptr_t)p_send_wqe->wr_id;
+	store_current_wqe_prop((uintptr_t)p_send_wqe->wr_id, tis);
 
 	// Preparing next WQE and index
 	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
@@ -1078,8 +1074,10 @@ xlio_tis *qp_mgr_eth_mlx5::tls_context_setup_tx(const xlio_tls_info *info)
 	tis->assign_dek(_dek);
 	tisn = tis->get_tisn();
 
-	tls_tx_post_static_params_wqe(info, tisn, _dek->get_key_id(), 0, false);
-	tls_tx_post_progress_params_wqe(tisn, 0, false);
+	tls_tx_post_static_params_wqe(tis, info, tisn, _dek->get_key_id(), 0, false);
+	tls_tx_post_progress_params_wqe(tis, tisn, 0, false);
+
+	assert(!tis->m_released);
 
 	return tis;
 }
@@ -1090,17 +1088,9 @@ void qp_mgr_eth_mlx5::tls_context_resync_tx(
 	uint32_t tisn = tis->get_tisn();
 
 	if (!skip_static) {
-		tls_tx_post_static_params_wqe(info, tisn, tis->get_dek_id(), 0, true);
+		tls_tx_post_static_params_wqe(tis, info, tisn, tis->get_dek_id(), 0, true);
 	}
-	tls_tx_post_progress_params_wqe(tisn, 0, skip_static);
-}
-
-void qp_mgr_eth_mlx5::tls_release_tis(xlio_tis *tis)
-{
-	/* TODO Track reference counting and don't release used TIS objects immediately. */
-	/* TODO We don't have to lock ring to destroy DEK object (a garbage collector?). */
-	tis->reset();
-	m_tis_cache.push_back(tis);
+	tls_tx_post_progress_params_wqe(tis, tisn, 0, skip_static);
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
@@ -1131,7 +1121,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_fill_static_params_wqe(
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
-	const struct xlio_tls_info* info,
+	xlio_tis *tis, const struct xlio_tls_info* info,
 	uint32_t tisn, uint32_t key_id, uint32_t resync_tcp_sn,
 	bool fence)
 {
@@ -1215,7 +1205,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_static_params_wqe(
 	memset(tspseg, 0, sizeof(*tspseg));
 
 	tls_tx_fill_static_params_wqe(tspseg, info, key_id, resync_tcp_sn);
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+	store_current_wqe_prop(0, tis);
 
 #ifdef DEFINED_TSO
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs, num_wqebbs_top);
@@ -1248,7 +1238,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_fill_progress_params_wqe(
 }
 
 inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
-	uint32_t tisn, uint32_t next_record_tcp_sn, bool fence)
+	xlio_tis *tis, uint32_t tisn, uint32_t next_record_tcp_sn, bool fence)
 {
 	uint16_t num_wqebbs = TLS_SET_PROGRESS_PARAMS_WQEBBS;
 
@@ -1266,7 +1256,7 @@ inline void qp_mgr_eth_mlx5::tls_tx_post_progress_params_wqe(
 	cseg->fm_ce_se = fence ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
 
 	tls_tx_fill_progress_params_wqe(&wqe->params, tisn, next_record_tcp_sn);
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+	store_current_wqe_prop(0, tis);
 
 #ifdef DEFINED_TSO
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs);
@@ -1306,7 +1296,7 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
 	dseg->lkey       = htobe32(lkey);
 	dseg->byte_count = htobe32(len);
 
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+	store_current_wqe_prop(0, tis);
 
 #ifdef DEFINED_TSO
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs);
@@ -1323,7 +1313,31 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(
 	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
 	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
 }
+
+void qp_mgr_eth_mlx5::tls_release_tis(xlio_tis *tis)
+{
+	/* TODO We don't have to lock ring to destroy DEK object (a garbage collector?). */
+
+	tis->m_released = true;
+	if (tis->m_ref == 0) {
+		tis->reset();
+		m_tis_cache.push_back(tis);
+	}
+}
 #endif /* DEFINED_UTLS */
+
+void qp_mgr_eth_mlx5::ti_released(xlio_ti *ti)
+{
+	/* TODO We don't have to lock ring to destroy DEK object (a garbage collector?). */
+
+	assert(ti->m_released);
+	assert(ti->m_ref == 0);
+	if (ti->m_type == XLIO_TI_TIS) {
+		xlio_tis *tis = (xlio_tis*)ti;
+		tis->reset();
+		m_tis_cache.push_back(tis);
+	}
+}
 
 void qp_mgr_eth_mlx5::post_nop_fence(void)
 {
@@ -1336,7 +1350,7 @@ void qp_mgr_eth_mlx5::post_nop_fence(void)
 	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | 0x01);
 	cseg->fm_ce_se = MLX5_FENCE_MODE_INITIATOR_SMALL;
 
-	m_sq_wqe_idx_to_wrid[m_sq_wqe_hot_index] = 0;
+	store_current_wqe_prop(0, NULL);
 
 #ifdef DEFINED_TSO
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, 1);

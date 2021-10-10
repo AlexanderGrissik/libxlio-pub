@@ -645,10 +645,50 @@ inline void cq_mgr_mlx5::cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc)
 	wc->vendor_err = ecqe->vendor_err_synd;
 }
 
+void cq_mgr_mlx5::handle_sq_wqe_prop(unsigned index)
+{
+	sq_wqe_prop *p = &m_qp->m_sq_wqe_idx_to_prop[index];
+	sq_wqe_prop *prev;
+
+	/*
+	 * TX completions can be signalled for a set of WQEs as an optimization.
+	 * Therefore, for every TX completion we may need to handle multiple
+	 * WQEs. Since every WQE can have various size and the WQE index is
+	 * wrapped around, we build a linked list to simplify things. Each
+	 * element of the linked list represents properties of a previously
+	 * posted WQE.
+	 *
+	 * We keep index of the last completed WQE and stop processing the list
+	 * when we reach the index. This condition is checked in
+	 * is_sq_wqe_prop_valid().
+	 *
+	 * TODO We can move buffers handling here. In this case, we can
+	 * associate a WQE with a set of scatter-gather buffers and remove
+	 * fake mem_buf_desct_t object for retransmitted TCP segments.
+	 * This approach will solve data corruption issue with retransmitted
+	 * scatter-gather TCP segments.
+	 */
+
+	do {
+		if (p->ti != NULL) {
+			xlio_ti *ti = p->ti;
+			ti->put();
+			if (unlikely(ti->m_released && ti->m_ref == 0)) {
+				m_qp->ti_released(ti);
+			}
+		}
+
+		prev = p;
+		p = p->next;
+	} while (p != NULL && m_qp->is_sq_wqe_prop_valid(p, prev));
+
+	m_qp->m_sq_wqe_prop_last_signalled = index;
+}
+
 int cq_mgr_mlx5::poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uint64_t* p_cq_poll_sn)
 {
 	uint16_t wqe_ctr = ntohs(cqe->wqe_counter);
-	int index = wqe_ctr & (m_qp->m_tx_num_wr - 1);
+	unsigned index = wqe_ctr & (m_qp->m_tx_num_wr - 1);
 	mem_buf_desc_t* buff = NULL;
 	vma_ibv_wc wce;
 
@@ -666,14 +706,15 @@ int cq_mgr_mlx5::poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uin
 	*p_cq_poll_sn = m_n_global_sn = next_sn.global_sn;
 
 	memset(&wce, 0, sizeof(wce));
-	if (m_qp->m_sq_wqe_idx_to_wrid) {
-		wce.wr_id = m_qp->m_sq_wqe_idx_to_wrid[index];
+	if (m_qp->m_sq_wqe_idx_to_prop) {
+		wce.wr_id = m_qp->m_sq_wqe_idx_to_prop[index].wr_id;
 		cqe_to_vma_wc(cqe, &wce);
 
 		buff = cq_mgr::process_cq_element_tx(&wce);
 		if (buff) {
 			cq_mgr::process_tx_buffer_list(buff);
 		}
+		handle_sq_wqe_prop(index);
 		return 1;
 	}
 	return 0;
@@ -690,8 +731,8 @@ int cq_mgr_mlx5::poll_and_process_element_tx(uint64_t* p_cq_poll_sn)
 
 	if (likely(cqe)) {
 		uint16_t wqe_ctr = ntohs(cqe->wqe_counter);
-		int index = wqe_ctr & (m_qp->m_tx_num_wr - 1);
-		mem_buf_desc_t* buff = (mem_buf_desc_t*)(uintptr_t)m_qp->m_sq_wqe_idx_to_wrid[index];
+		unsigned index = wqe_ctr & (m_qp->m_tx_num_wr - 1);
+		mem_buf_desc_t* buff = (mem_buf_desc_t*)(uintptr_t)m_qp->m_sq_wqe_idx_to_prop[index].wr_id;
 		// spoil the global sn if we have packets ready
 		union __attribute__((packed)) {
 			uint64_t global_sn;
@@ -708,6 +749,7 @@ int cq_mgr_mlx5::poll_and_process_element_tx(uint64_t* p_cq_poll_sn)
 		if (likely(buff != NULL)) {
 			cq_mgr::process_tx_buffer_list(buff);
 		}
+		handle_sq_wqe_prop(index);
 		ret = 1;
 	}
 	else if (cqe_err) {
@@ -819,10 +861,5 @@ void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t* p_rx_
 	/* ignore */
 	p_ip_h->check = 0;
 }
-
-//void cq_mgr_mlx5::cq_logerr_call(const char* fmt)
-//{
-//	cq_logerr("%s", fmt);
-//}
 
 #endif /* DEFINED_DIRECT_VERBS */

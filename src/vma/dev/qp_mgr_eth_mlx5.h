@@ -40,10 +40,6 @@
 
 #include <vector>
 
-#ifdef DEFINED_UTLS
-#include <linux/tls.h>
-#endif /* DEFINED_UTLS */
-
 #if defined(DEFINED_DIRECT_VERBS)
 
 #define qp_logpanic 	__log_info_panic
@@ -53,6 +49,53 @@
 #define qp_logdbg	__log_info_dbg
 #define qp_logfunc	__log_info_func
 #define qp_logfuncall	__log_info_funcall
+
+enum {
+	XLIO_TI_UNKNOWN,
+	XLIO_TI_TIS,
+	XLIO_TI_TIR,
+};
+
+class xlio_ti {
+public:
+	xlio_ti()
+	{
+		m_type = XLIO_TI_UNKNOWN;
+		m_released = false;
+		m_ref = 0;
+	}
+
+	/*
+	 * Reference counting. m_ref must be protected by ring tx lock. Device
+	 * layer (QP, CQ) is responsible for the reference counting.
+	 */
+
+	inline void get(void)
+	{
+		++m_ref;
+		assert(m_ref > 0);
+	}
+
+	inline uint32_t put(void)
+	{
+		assert(m_ref > 0);
+		return --m_ref;
+	}
+
+	uint8_t m_type;
+	bool m_released;
+	uint32_t m_ref;
+};
+
+/* WQE properties description. */
+struct sq_wqe_prop {
+	/* wr_id pointing to mem_buf_desc_t object. */
+	uint64_t wr_id;
+	/* Transport interface (TIS/TIR) current WQE holds reference to. */
+	xlio_ti *ti;
+	struct sq_wqe_prop *next;
+};
+typedef struct sq_wqe_prop sq_wqe_prop;
 
 class qp_mgr_eth_mlx5 : public qp_mgr_eth
 {
@@ -85,9 +128,20 @@ protected:
 	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
 	virtual cq_mgr*	init_tx_cq_mgr(void);
 
-	uint64_t*   m_sq_wqe_idx_to_wrid;
-	uint64_t    m_rq_wqe_counter;
+	void		ti_released(xlio_ti *ti);
+	inline bool	is_sq_wqe_prop_valid(sq_wqe_prop *p, sq_wqe_prop *prev)
+	{
+		unsigned p_i = p - m_sq_wqe_idx_to_prop;
+		unsigned prev_i = prev - m_sq_wqe_idx_to_prop;
+		return (p_i != m_sq_wqe_prop_last_signalled) &&
+			((m_tx_num_wr + p_i - m_sq_wqe_prop_last_signalled) % m_tx_num_wr <
+			 (m_tx_num_wr + prev_i - m_sq_wqe_prop_last_signalled) % m_tx_num_wr);
+	}
 
+	sq_wqe_prop* m_sq_wqe_idx_to_prop;
+	sq_wqe_prop* m_sq_wqe_prop_last;
+	unsigned     m_sq_wqe_prop_last_signalled;
+	uint64_t     m_rq_wqe_counter;
 private:
 	virtual bool	is_completion_need() { return !m_n_unsignaled_count || (m_dm_enabled && m_dm_mgr.is_completion_need()); };
 	virtual void	dm_release_data(mem_buf_desc_t* buff) { m_dm_mgr.release_data(buff); }
@@ -95,6 +149,7 @@ private:
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
+	inline void	store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti);
 	void		destroy_tis_cache(void);
 #ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(
@@ -102,14 +157,14 @@ private:
 		const struct xlio_tls_info* info,
 		uint32_t key_id, uint32_t resync_tcp_sn);
 	inline void tls_tx_post_static_params_wqe(
-		const struct xlio_tls_info* info,
+		xlio_tis *tis, const struct xlio_tls_info* info,
 		uint32_t tisn, uint32_t key_id, uint32_t resync_tcp_sn,
 		bool fence);
 	inline void tls_tx_fill_progress_params_wqe(
 		struct mlx5_wqe_tls_progress_params_seg* params,
 		uint32_t tisn, uint32_t next_record_tcp_sn);
 	inline void tls_tx_post_progress_params_wqe(
-		uint32_t tisn, uint32_t next_record_tcp_sn, bool fence);
+		xlio_tis *tis, uint32_t tisn, uint32_t next_record_tcp_sn, bool fence);
 #endif /* DEFINED_UTLS */
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);

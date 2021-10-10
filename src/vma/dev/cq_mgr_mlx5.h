@@ -90,7 +90,7 @@ protected:
 
 private:
 
-	//void cq_logerr_call(const char* fmt);
+	void		handle_sq_wqe_prop(unsigned index);
 
 	virtual int	req_notify_cq() {
 		return vma_ib_mlx5_req_notify_cq(&m_mlx5_cq, 0);
