@@ -46,11 +46,11 @@ inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 {
 	mem_buf_desc_t* p_desc = (mem_buf_desc_t *)pbuf_custom;
 
-	if (pbuf_custom->pbuf.desc.attr_pbuf_desc == PBUF_DESC_MDESC) {
+	if (pbuf_custom->pbuf.desc.attr == PBUF_DESC_MDESC) {
 		mem_desc *mdesc = (mem_desc *)pbuf_custom->pbuf.desc.mdesc;
 		mdesc->put();
 	} else if ((pbuf_custom->pbuf.type == PBUF_ZEROCOPY) &&
-			(pbuf_custom->pbuf.desc.attr_pbuf_desc == PBUF_DESC_MAP)) {
+			(pbuf_custom->pbuf.desc.attr == PBUF_DESC_MAP)) {
 		mapping_t *mapping = (mapping_t *)pbuf_custom->pbuf.desc.map;
 		mapping->put();
 	}
@@ -60,7 +60,7 @@ inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 	}
 	pbuf_custom->pbuf.flags = 0;
 	pbuf_custom->pbuf.ref = 0;
-	pbuf_custom->pbuf.desc.attr_pbuf_desc = PBUF_DESC_NONE;
+	pbuf_custom->pbuf.desc.attr = PBUF_DESC_NONE;
 }
 
 class buffer_pool_area {

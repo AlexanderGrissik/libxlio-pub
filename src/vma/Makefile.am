@@ -182,6 +182,7 @@ libxlio_la_SOURCES := \
 	dev/net_device_val.h \
 	dev/qp_mgr.h \
 	dev/qp_mgr_eth_mlx5.h \
+	dev/qp_mgr_eth_mlx5_dpcp.h \
 	dev/rfs.h \
 	dev/rfs_mc.h \
 	dev/rfs_uc.h \

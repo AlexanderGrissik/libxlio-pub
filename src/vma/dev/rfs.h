@@ -240,8 +240,8 @@ protected:
 	uint32_t		m_flow_tag_id; // Associated with this rule, set by attach_flow()
 	bool 			m_b_tmp_is_attached; // Only temporary, while ibcm calls attach_flow with no sinks...
 
-	bool 			create_rcv_flow(); // Attach flow to all queues
-	bool 			destroy_rcv_flow(); // Detach flow from all queues
+	bool 			create_flow(); // Attach flow to all queues
+	bool 			destroy_flow(); // Detach flow from all queues
 	bool 			add_sink(pkt_rcvr_sink* p_sink);
 	bool 			del_sink(pkt_rcvr_sink* p_sink);
 	virtual bool 		prepare_flow_spec() = 0;

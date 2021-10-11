@@ -47,7 +47,7 @@ class tcp_rfs : public tcp_base {};
  */
 TEST_F(tcp_rfs, single_rule_send) {
 	int rc = EOK;
-    int fd;
+	int fd;
 	char buf[] = "hello";
 
 	int pid = fork();
@@ -61,7 +61,7 @@ TEST_F(tcp_rfs, single_rule_send) {
 		rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
 		ASSERT_EQ(0, rc);
 
-        log_trace("Client bound: fd=%d to %s\n",
+		log_trace("Client bound: fd=%d to %s\n",
 				fd, sys_addr2str((struct sockaddr_in *)&client_addr));
 
 		rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -70,8 +70,8 @@ TEST_F(tcp_rfs, single_rule_send) {
 		log_trace("Established connection: fd=%d to %s\n",
 				fd, sys_addr2str((struct sockaddr_in *)&server_addr));
 
-        rc = send(fd, (const void*)buf, sizeof(buf), 0);
-        EXPECT_GE(rc, 0);
+		rc = send(fd, (const void*)buf, sizeof(buf), 0);
+		EXPECT_GE(rc, 0);
 
 		close(fd);
 
@@ -92,8 +92,8 @@ TEST_F(tcp_rfs, single_rule_send) {
 		rc = bind(l_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);
 
-        log_trace("Server bound: fd=%d to %s\n",
-				l_fd, sys_addr2str((struct sockaddr_in *)&server_addr));
+		log_trace("Server bound: fd=%d to %s\n",
+			l_fd, sys_addr2str((struct sockaddr_in *)&server_addr));
 
 		rc = listen(l_fd, 5);
 		ASSERT_EQ(0, rc);
@@ -106,13 +106,13 @@ TEST_F(tcp_rfs, single_rule_send) {
 		close(l_fd);
 
 		log_trace("Accepted connection: fd=%d from %s\n",
-				fd, sys_addr2str((struct sockaddr_in *)&peer_addr));
+			fd, sys_addr2str((struct sockaddr_in *)&peer_addr));
 	
 		rc = recv(fd, (void*)buf, sizeof(buf), MSG_WAITALL);
-        EXPECT_GE(rc, 0);
+		EXPECT_GE(rc, 0);
 
 		close(fd);
 
 		ASSERT_EQ(0, wait_fork(pid));
-    }
+	}
 }

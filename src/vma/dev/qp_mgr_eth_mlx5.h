@@ -40,17 +40,9 @@
 
 #include <vector>
 
-#ifdef DEFINED_DPCP
-#include <mellanox/dpcp.h>
-#endif /* DEFINED_DPCP */
-
 #ifdef DEFINED_UTLS
 #include <linux/tls.h>
 #endif /* DEFINED_UTLS */
-
-#ifdef DEFINED_DPCP
-#include <mellanox/dpcp.h>
-#endif /* DEFINED_DPCP */
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -88,7 +80,8 @@ protected:
 	void		post_recv_buffer_rq(mem_buf_desc_t* p_mem_buf_desc);
 	void		trigger_completion_for_all_sent_packets();
 	bool 		init_rx_cq_mgr_prepare();
-	virtual void init_qp();
+	void		init_qp();
+	void            init_device_memory();
 	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
 	virtual cq_mgr*	init_tx_cq_mgr(void);
 

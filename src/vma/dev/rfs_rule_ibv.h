@@ -37,8 +37,12 @@
 #include "vma/util/utils.h"
 #include "vma/ib/base/verbs_extra.h"
 #include "vma/dev/rfs_rule.h"
+#include <functional>
 
 using namespace std;
+
+template <typename T>
+using unique_ptr_delfunc = std::unique_ptr<T, std::function<void(T*)>>;
 
 class rfs_rule_ibv : public rfs_rule
 {

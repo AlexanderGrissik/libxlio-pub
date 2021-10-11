@@ -143,13 +143,13 @@ rfs::~rfs()
 		prepare_filter_detach(counter, true);
 		if (counter == 0) {
 			if (m_p_ring->is_simple()) {
-				destroy_rcv_flow();
+				destroy_flow();
 			}
 			m_p_rule_filter->m_map.erase(m_p_rule_filter->m_key);
 		}
 	} else if (m_b_tmp_is_attached) {
 		if (m_p_ring->is_simple()) {
-			destroy_rcv_flow();
+			destroy_flow();
 		}
 	}
 
@@ -249,7 +249,7 @@ bool rfs::attach_flow(pkt_rcvr_sink *sink)
 	// We also check if this is the FIRST sink so we need to call ibv_attach_flow
 	if ((m_n_sinks_list_entries == 0) && (!m_b_tmp_is_attached) && (filter_counter == 1)) {
 		if (m_p_ring->is_simple() &&
-		        !create_rcv_flow()) {
+		        !create_flow()) {
 			return false;
 		}
 		filter_keep_attached(filter_iter);
@@ -257,7 +257,7 @@ bool rfs::attach_flow(pkt_rcvr_sink *sink)
 		rfs_logdbg("rfs: Joining existing flow");
 #if defined(DEFINED_NGINX)
 		if (g_b_add_second_4t_rule) { // This is second 4 tuple rule for the same worker (when num of workers is not power of two)
-			create_rcv_flow();
+			create_flow();
 			rfs_logdbg("Added second rule to nginx worker: %d", g_worker_index);
 		}
 #endif
@@ -291,13 +291,13 @@ bool rfs::detach_flow(pkt_rcvr_sink *sink)
 	// We also need to check if this is the LAST sink so we need to call ibv_attach_flow
 	if (m_p_ring->is_simple() &&
 			(m_n_sinks_list_entries == 0) && (filter_counter == 0)) {
-		ret = destroy_rcv_flow();
+		ret = destroy_flow();
 	}
 
 	return ret;
 }
 
-bool rfs::create_rcv_flow()
+bool rfs::create_flow()
 {
 	for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
 		attach_flow_data_t* iter = m_attach_flow_data_vector[i];
@@ -315,7 +315,7 @@ bool rfs::create_rcv_flow()
 	return true;
 }
 
-bool rfs::destroy_rcv_flow()
+bool rfs::destroy_flow()
 {
 	for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
 		attach_flow_data_t* iter = m_attach_flow_data_vector[i];

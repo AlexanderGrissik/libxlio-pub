@@ -108,7 +108,7 @@ typedef struct vma_tx_call_attr {
 		opcode = TX_UNDEF;
 		memset(&attr, 0, sizeof(attr));
 		memset(&priv, 0, sizeof(priv));
-		priv.attr_pbuf_desc = PBUF_DESC_NONE;
+		priv.attr = PBUF_DESC_NONE;
 		vma_flags = 0;
 	}
 

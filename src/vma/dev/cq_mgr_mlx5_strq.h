@@ -84,23 +84,25 @@ public:
 	virtual int      poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst) override;
 	virtual void     mem_buf_desc_return_to_owner(mem_buf_desc_t* p_mem_buf_desc, void* pv_fd_ready_array = NULL) override;
 	virtual void     add_qp_rx(qp_mgr* qp) override;
-	virtual uint32_t clean_cq();
+	virtual uint32_t clean_cq() override;
 
 protected:
 
 	virtual void statistics_print() override;
 	virtual void reclaim_recv_buffer_helper(mem_buf_desc_t* buff) override;
 
-	mem_buf_desc_t* poll(enum buff_status_e& status, mem_buf_desc_t*& buff_stride);
-	int             poll_and_process_error_element_rx_sockextreme(struct vma_mlx5_cqe *cqe, void* pv_fd_ready_array);
+	inline mem_buf_desc_t* poll(enum buff_status_e& status, mem_buf_desc_t*& buff_stride);
+	int poll_and_process_error_element_rx_sockextreme(struct vma_mlx5_cqe *cqe, void* pv_fd_ready_array);
 
 private:
 
+	inline bool     set_current_hot_buffer();
 	inline bool	strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, enum buff_status_e& status, bool& is_filler);
 	void		cqe_to_vma_wc_sockextreme(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc);
 	int		drain_and_proccess_sockextreme(uintptr_t* p_recycle_buffers_last_wr_id);
-	int 		poll_and_process_element_rx_sockextreme(uint64_t*, void*);
-	mem_buf_desc_t* process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status);
+	inline int 	poll_and_process_element_rx_sockextreme(void*);
+	inline int      drain_and_proccess_helper(mem_buf_desc_t* buff, mem_buf_desc_t* buff_wqe, buff_status_e status, uintptr_t* p_recycle_buffers_last_wr_id);
+	mem_buf_desc_t* process_strq_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status);
 
 	cq_strides_cache _stride_cache;
 	mem_buf_desc_t* _hot_buffer_stride = nullptr;

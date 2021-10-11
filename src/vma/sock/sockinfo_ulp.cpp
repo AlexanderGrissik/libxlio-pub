@@ -415,7 +415,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	tls_arg.vma_flags = TX_FLAG_NO_PARTIAL_WRITE;
 	tls_arg.attr.msg.iov = tls_iov;
 	tls_arg.attr.msg.sz_iov = 1;
-	tls_arg.priv.attr_pbuf_desc = PBUF_DESC_MDESC;
+	tls_arg.priv.attr = PBUF_DESC_MDESC;
 
 	p_iov = tx_arg.attr.msg.iov;
 	last_record_number = m_next_record_number;
@@ -552,7 +552,7 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 
 				/* For zerocopy the 1st pbuf is always a TCP header and the pbuf is on stack */
 				assert(p->type == PBUF_ROM); /* TCP header pbuf */
-				assert(p->next != NULL && p->next->desc.attr_pbuf_desc == PBUF_DESC_MDESC);
+				assert(p->next != NULL && p->next->desc.attr == PBUF_DESC_MDESC);
 				tls_record *rec = dynamic_cast<tls_record *>((mem_desc*)p->next->desc.mdesc);
 				if (unlikely(rec == NULL)) {
 					return -1;

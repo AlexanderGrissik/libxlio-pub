@@ -48,7 +48,7 @@ public:
 
 	virtual ~qp_mgr_eth_mlx5_dpcp() override {}
 
-	virtual void init_qp() override;
+	virtual void up() override;
 	virtual void down() override;
 
 	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs) override;
@@ -65,11 +65,12 @@ private:
 	dpcp::tir* create_tir();
 	bool configure_rq_dpcp();
 	bool prepare_rq(uint32_t cqn);
-	bool store_rq_mlx5_params(dpcp::simple_rq& new_rq);
+	bool store_rq_mlx5_params(dpcp::basic_rq& new_rq);
 	void modify_rq_to_ready_state();
+	void init_tir_rq();
 
 	std::unique_ptr<dpcp::tir> _tir = {nullptr};
-	std::unique_ptr<dpcp::simple_rq> _rq = {nullptr};
+	std::unique_ptr<dpcp::basic_rq> _rq = {nullptr};
 	uint32_t _strq_wqe_reserved_seg = 0U;
 };
 

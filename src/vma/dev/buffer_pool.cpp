@@ -44,10 +44,25 @@
 
 #define MODULE_NAME 	"bpool"
 
+// A pointer to differentiate between g_buffer_pool_rx_stride and g_buffer_pool_rx_rwqe 
+// and create an abstraction to the layers above device layer for cases when Striding RQ is on/off.
+// When Striding RQ is on, it points to g_buffer_pool_rx_stride since the upper layers work with strides.
+// When Striding RQ is off, it points to g_buffer_pool_rx_rwqe since the upper layers work with RWQEs buffers themselves.
 buffer_pool *g_buffer_pool_rx_ptr = NULL;
+
+// This buffer-pool holds buffer descriptors which represent strides in strided RWQEs.
+// These buffers descriptos do not actually own a buffer. 
+// Each such descriptor points into a portion of a buffer of a g_buffer_pool_rx_rwqe descriptor.
 buffer_pool *g_buffer_pool_rx_stride = NULL;
+
+// This buffer-pool holds the actual buffers for receive WQEs.
 buffer_pool *g_buffer_pool_rx_rwqe = NULL;
+
+// This buffer-pool holds the actual buffers for send WQEs.
 buffer_pool *g_buffer_pool_tx = NULL;
+
+// This buffer-pool holds buffer descriptors for zero copy TX.
+// These buffer descriptors do not actually own a buffer.
 buffer_pool *g_buffer_pool_zc = NULL;
 
 buffer_pool_area::buffer_pool_area(size_t buffer_nr)
@@ -71,7 +86,7 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 	}
 #endif
 
-	if (buff->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_STRIDE) {
+	if (buff->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_STRIDE) {
 		mem_buf_desc_t* rwqe = reinterpret_cast<mem_buf_desc_t*>(buff->lwip_pbuf.pbuf.desc.mdesc);
 		if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) // Is last stride.
 			g_buffer_pool_rx_rwqe->put_buffers_thread_safe(rwqe);

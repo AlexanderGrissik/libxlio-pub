@@ -297,11 +297,8 @@ void qp_mgr_eth_mlx5::init_qp()
 			m_qp, m_mlx5_qp.qpn, m_sq_wqes, m_sq_wqes_end,  m_tx_num_wr, m_mlx5_qp.bf.reg, m_mlx5_qp.bf.size, m_mlx5_qp.bf.offset);
 }
 
-void qp_mgr_eth_mlx5::up()
+void qp_mgr_eth_mlx5::init_device_memory()
 {
-	init_qp();
-	qp_mgr::up();
-
 	/* This limitation is done because of a observation
 	 * that dm_copy takes a lot of time on VMs w/o BF (RM:1542628)
 	 */
@@ -315,6 +312,13 @@ void qp_mgr_eth_mlx5::up()
 #endif /* DEFINED_IBV_DM */
 		}
 	}
+}
+
+void qp_mgr_eth_mlx5::up()
+{
+	init_qp();
+	qp_mgr::up();
+	init_device_memory();
 }
 
 void qp_mgr_eth_mlx5::down()

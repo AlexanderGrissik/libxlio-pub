@@ -877,7 +877,7 @@ retry_is_ready:
 	if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
 		apiflags |= VMA_TX_PACKET_ZEROCOPY;
 		is_send_zerocopy = tx_arg.opcode != TX_FILE;
-		pd_key_array = (tx_arg.priv.attr_pbuf_desc == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
+		pd_key_array = (tx_arg.priv.attr == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
 	}
 
 	for (int i = 0; i < sz_iov; i++) {
@@ -889,7 +889,7 @@ retry_is_ready:
 			tx_ptr = &file_offset;
 		} else {
 			tx_ptr = p_iov[i].iov_base;
-			if ((tx_arg.priv.attr_pbuf_desc == PBUF_DESC_MKEY) && pd_key_array) {
+			if ((tx_arg.priv.attr == PBUF_DESC_MKEY) && pd_key_array) {
 				tx_arg.priv.mkey = pd_key_array[i].mkey;
 			}
 		}
@@ -1135,7 +1135,7 @@ zc_fill_iov:
 	while (p && (count < max_count)) {
 		cur_end = (void *)((uint64_t)lwip_iovec[count].iovec.iov_base +
 					     lwip_iovec[count].iovec.iov_len);
-		if ((p->desc.attr_pbuf_desc == PBUF_DESC_NONE) &&
+		if ((p->desc.attr == PBUF_DESC_NONE) &&
 				(cur_end == p->payload) &&
 				((uintptr_t)((uint64_t)lwip_iovec[count].iovec.iov_base & p_si_tcp->m_user_huge_page_mask) ==
 						(uintptr_t)((uint64_t)p->payload & p_si_tcp->m_user_huge_page_mask))) {
@@ -4794,8 +4794,8 @@ struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf
 		p_desc = p_dst->get_buffer(type, desc);
 		if (p_desc &&
 				(p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
-				((p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_NONE) ||
-					(p_desc->lwip_pbuf.pbuf.desc.attr_pbuf_desc == PBUF_DESC_MKEY))) {
+				((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
+					(p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MKEY))) {
 			/* Prepare error queue fields for send zerocopy */
 			if (p_buff) {
 				/* It is a special case that can happen as a result

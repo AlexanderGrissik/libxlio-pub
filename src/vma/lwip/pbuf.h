@@ -79,7 +79,7 @@ enum {
 };
 
 typedef struct {
-  int attr_pbuf_desc;
+  int attr;
   union {
     int fd;
     void *map;

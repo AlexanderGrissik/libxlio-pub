@@ -47,7 +47,7 @@ class udp_rfs : public udp_base {};
  */
 TEST_F(udp_rfs, single_rule_send) {
 	int rc = EOK;
-    int fd;
+	int fd;
 	char buf[] = "hello";
 
 	int pid = fork();
@@ -61,14 +61,14 @@ TEST_F(udp_rfs, single_rule_send) {
 		rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
 		ASSERT_EQ(0, rc);
 
-        log_trace("Client bound: fd=%d to %s\n",
-				fd, sys_addr2str((struct sockaddr_in *)&client_addr));
+		log_trace("Client bound: fd=%d to %s\n",
+			fd, sys_addr2str((struct sockaddr_in *)&client_addr));
 
 		rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);
 
-        rc = send(fd, (const void*)buf, sizeof(buf), 0);
-        EXPECT_GE(rc, 0);
+		rc = send(fd, (const void*)buf, sizeof(buf), 0);
+		EXPECT_GE(rc, 0);
 
 		close(fd);
 
@@ -85,12 +85,12 @@ TEST_F(udp_rfs, single_rule_send) {
 		rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);
 
-        log_trace("Server bound: fd=%d to %s\n",
-				fd, sys_addr2str((struct sockaddr_in *)&server_addr));
+		log_trace("Server bound: fd=%d to %s\n",
+			fd, sys_addr2str((struct sockaddr_in *)&server_addr));
 
 		barrier_fork(pid);
 
-        int i = sizeof(buf);
+		int i = sizeof(buf);
 		while (i > 0 && !child_fork_exit()) {
 			rc = recv(fd, (void*)buf, i, MSG_WAITALL);
 			EXPECT_GE(rc, 0);
@@ -101,5 +101,5 @@ TEST_F(udp_rfs, single_rule_send) {
 		close(fd);
 
 		ASSERT_EQ(0, wait_fork(pid));
-    }
+	}
 }

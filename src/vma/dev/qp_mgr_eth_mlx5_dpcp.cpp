@@ -102,7 +102,7 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 	// user_index Unused.
 	dpcp::rq_attr rqattrs { 0U, 0U, 0U, cqn, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge };
 
-	unique_ptr<dpcp::simple_rq> new_rq;
+	unique_ptr<dpcp::basic_rq> new_rq;
 	dpcp::status rc = dpcp::DPCP_OK;
 
 	if (safe_mce_sys().enable_striding_rq) {
@@ -129,7 +129,7 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 
 	memset(&m_mlx5_qp, 0, sizeof(m_mlx5_qp));
 	if (!store_rq_mlx5_params(*new_rq)) {
-		qp_logerr("Failed to retrieve initial DPCP RQ parameters, rc: %d, simple_rq: %p, cqn: %" PRIu32,
+		qp_logerr("Failed to retrieve initial DPCP RQ parameters, rc: %d, basic_rq: %p, cqn: %" PRIu32,
 			static_cast<int>(rc), new_rq.get(), cqn);
 		return false;
 	}
@@ -145,25 +145,25 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 	return true;
 }
 
-bool qp_mgr_eth_mlx5_dpcp::store_rq_mlx5_params(dpcp::simple_rq& new_rq)
+bool qp_mgr_eth_mlx5_dpcp::store_rq_mlx5_params(dpcp::basic_rq& new_rq)
 {
 	uint32_t* dbrec_tmp = nullptr;
 	dpcp::status rc = new_rq.get_dbrec(dbrec_tmp);
 	if (dpcp::DPCP_OK != rc) {
-		qp_logerr("Failed to retrieve dbrec of dpcp rq, rc: %d, simple_rq: %p", static_cast<int>(rc), &new_rq);
+		qp_logerr("Failed to retrieve dbrec of dpcp rq, rc: %d, basic_rq: %p", static_cast<int>(rc), &new_rq);
 		return false;
 	}
 	m_mlx5_qp.rq.dbrec = dbrec_tmp;
 
 	rc = new_rq.get_wq_buf(m_mlx5_qp.rq.buf);
 	if (dpcp::DPCP_OK != rc) {
-		qp_logerr("Failed to retrieve wq-buf of dpcp rq, rc: %d, simple_rq: %p", static_cast<int>(rc), &new_rq);
+		qp_logerr("Failed to retrieve wq-buf of dpcp rq, rc: %d, basic_rq: %p", static_cast<int>(rc), &new_rq);
 		return false;
 	}
 
 	rc = new_rq.get_id(m_mlx5_qp.rqn);
 	if (dpcp::DPCP_OK != rc) {
-		qp_logerr("Failed to retrieve rqn of dpcp rq, rc: %d, simple_rq: %p", static_cast<int>(rc), &new_rq);
+		qp_logerr("Failed to retrieve rqn of dpcp rq, rc: %d, basic_rq: %p", static_cast<int>(rc), &new_rq);
 		return false;
 	}
 
@@ -182,16 +182,22 @@ bool qp_mgr_eth_mlx5_dpcp::store_rq_mlx5_params(dpcp::simple_rq& new_rq)
 	return true;
 }
 
-void qp_mgr_eth_mlx5_dpcp::init_qp()
+void qp_mgr_eth_mlx5_dpcp::init_tir_rq()
 {
-	qp_mgr_eth_mlx5::init_qp();
-	
 	if (_rq && !store_rq_mlx5_params(*_rq))
 		qp_logpanic("Failed to retrieve DPCP RQ parameters (errno=%d %m)", errno);
 
 	_tir.reset(create_tir());
 	if (!_tir)
 		qp_logpanic("TIR creation for qp_mgr_eth_mlx5_dpcp failed (errno=%d %m)", errno);
+}
+
+void qp_mgr_eth_mlx5_dpcp::up()
+{
+	qp_mgr_eth_mlx5::init_qp();
+	init_tir_rq();
+	qp_mgr::up();
+	init_device_memory();
 }
 
 void qp_mgr_eth_mlx5_dpcp::down()
@@ -203,7 +209,7 @@ void qp_mgr_eth_mlx5_dpcp::down()
 
 rfs_rule* qp_mgr_eth_mlx5_dpcp::create_rfs_rule(vma_ibv_flow_attr& attrs)
 {
-	if (_tir || !m_p_ib_ctx_handler || !m_p_ib_ctx_handler->get_dpcp_adapter()) {
+	if (_tir && m_p_ib_ctx_handler && m_p_ib_ctx_handler->get_dpcp_adapter()) {
 		std::unique_ptr<rfs_rule_dpcp> new_rule(new rfs_rule_dpcp());
 		if (new_rule->create(attrs, *_tir, *m_p_ib_ctx_handler->get_dpcp_adapter()))
 			return new_rule.release();

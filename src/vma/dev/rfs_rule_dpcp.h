@@ -35,7 +35,7 @@
 
 #include <config.h>
 
-#ifdef DEFINED_DPCP
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 
 #include <memory>
 #include "vma/util/utils.h"
