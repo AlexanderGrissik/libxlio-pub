@@ -347,6 +347,15 @@ void qp_mgr_eth_mlx5::down()
 	qp_mgr::down();
 }
 
+void qp_mgr_eth_mlx5::destroy_tis_cache(void)
+{
+	while (!m_tis_cache.empty()) {
+		xlio_tis *tis = m_tis_cache.back();
+		m_tis_cache.pop_back();
+		delete tis;
+	}
+}
+
 //! Cleanup resources QP itself will be freed by base class DTOR
 qp_mgr_eth_mlx5::~qp_mgr_eth_mlx5()
 {
@@ -364,6 +373,7 @@ qp_mgr_eth_mlx5::~qp_mgr_eth_mlx5()
 
 		m_sq_wqe_idx_to_wrid = NULL;
 	}
+	destroy_tis_cache();
 }
 
 void qp_mgr_eth_mlx5::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)

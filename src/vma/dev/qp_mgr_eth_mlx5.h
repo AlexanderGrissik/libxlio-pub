@@ -78,6 +78,7 @@ private:
 	inline void	set_signal_in_next_send_wqe();
 	int		send_to_wire(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp, xlio_tis *tis);
 	inline int	fill_wqe(vma_ibv_send_wr* p_send_wqe);
+	void		destroy_tis_cache(void);
 #ifdef DEFINED_UTLS
 	inline void tls_tx_fill_static_params_wqe(
 		struct mlx5_wqe_tls_static_params_seg* params,
