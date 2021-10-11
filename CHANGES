@@ -1,3 +1,12 @@
+Version 1.1.1-1:
+Date + Time 2021-10-11
+=============================================================
+Added:
+        - RM #2649476 Add support for NGINX Proxy mode
+        - RM #2568769 Add QUIC support for NGINX
+Fixed:
+        - RM #2737636 Fixing TCP hanging CLOSED sockets
+
 Version 1.1.0-1:
 Date + Time 2021-10-07
 =============================================================
