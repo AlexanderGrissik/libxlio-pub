@@ -65,6 +65,11 @@ AS_IF([test "$vma_cv_utls" -ne 0],
          [vma_cv_utls_aes256=1])
     ])
 
+AC_CHECK_HEADER(
+    [openssl/evp.h], [],
+    # Currently, we don't support TX without RX, so disable UTLS completely
+    [vma_cv_utls=0])
+
 AC_MSG_CHECKING([for utls support])
 if test "$vma_cv_utls" -ne 0; then
     AC_DEFINE_UNQUOTED([DEFINED_UTLS], [1], [Define to 1 to enable UTLS])
@@ -79,7 +84,7 @@ if test "$vma_cv_utls" -ne 0; then
     fi
 else
     AS_IF([test "x$enable_utls" == xyes],
-        [AC_MSG_ERROR([utls support requested but kTLS not present])],
+        [AC_MSG_ERROR([utls support requested but kTLS or openssl not found])],
         [AC_MSG_RESULT([no])])
 fi
 ])
