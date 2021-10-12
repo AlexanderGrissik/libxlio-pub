@@ -112,8 +112,10 @@ public:
 
 #ifdef DEFINED_UTLS
 	xlio_tis* tls_context_setup_tx(const xlio_tls_info *info);
+	xlio_tir* tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn);
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static);
 	void tls_release_tis(xlio_tis *tis);
+	void tls_release_tir(xlio_tir *tir);
 	void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first);
 #endif /* DEFINED_UTLS */
 	void post_nop_fence(void);
@@ -152,19 +154,20 @@ private:
 	inline void	store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti);
 	void		destroy_tis_cache(void);
 #ifdef DEFINED_UTLS
-	inline void tls_tx_fill_static_params_wqe(
+	inline void tls_fill_static_params_wqe(
 		struct mlx5_wqe_tls_static_params_seg* params,
 		const struct xlio_tls_info* info,
 		uint32_t key_id, uint32_t resync_tcp_sn);
-	inline void tls_tx_post_static_params_wqe(
-		xlio_tis *tis, const struct xlio_tls_info* info,
-		uint32_t tisn, uint32_t key_id, uint32_t resync_tcp_sn,
-		bool fence);
-	inline void tls_tx_fill_progress_params_wqe(
+	inline void tls_post_static_params_wqe(
+		xlio_ti *ti, const struct xlio_tls_info* info,
+		uint32_t tis_tir_number, uint32_t key_id,
+		uint32_t resync_tcp_sn, bool fence, bool is_tx);
+	inline void tls_fill_progress_params_wqe(
 		struct mlx5_wqe_tls_progress_params_seg* params,
-		uint32_t tisn, uint32_t next_record_tcp_sn);
-	inline void tls_tx_post_progress_params_wqe(
-		xlio_tis *tis, uint32_t tisn, uint32_t next_record_tcp_sn, bool fence);
+		uint32_t tis_tir_number, uint32_t next_record_tcp_sn);
+	inline void tls_post_progress_params_wqe(
+		xlio_ti *ti, uint32_t tis_tir_number,
+		uint32_t next_record_tcp_sn, bool fence, bool is_tx);
 #endif /* DEFINED_UTLS */
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);
@@ -194,6 +197,7 @@ private:
 	 * TODO Move to ring.
 	 */
 	std::vector<xlio_tis*> m_tis_cache;
+	std::vector<xlio_tir*> m_tir_cache;
 };
 #endif //defined(DEFINED_DIRECT_VERBS)
 #endif //QP_MGR_ETH_MLX5_H

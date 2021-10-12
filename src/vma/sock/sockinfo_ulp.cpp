@@ -301,7 +301,8 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_p_ring = sock->get_ring();
 	m_p_tis = NULL;
 	m_expected_seqno = 0;
-	m_is_tls = false;
+	m_is_tls_tx = false;
+	m_is_tls_rx = false;
 	m_next_record_number = 0;
 	memset(&m_tls_info, 0, sizeof(m_tls_info));
 
@@ -317,9 +318,14 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 {
-	if (m_is_tls) {
+	if (m_is_tls_tx) {
 		m_p_ring->tls_release_tis(m_p_tis);
+		si_ulp_loginfo("~sockinfo_tcp_ops_tls");
 		m_p_tis = NULL;
+	}
+	if (m_is_tls_rx) {
+		m_p_ring->tls_release_tir(m_p_tir);
+		m_p_tir = NULL;
 	}
 	/* TODO Free unhandled RX buffers. */
 }
@@ -400,7 +406,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			errno = ENOPROTOOPT;
 			return -1;
 		}
-		m_is_tls = true;
+		m_is_tls_tx = true;
 
 		return 0;
 	}
@@ -473,25 +479,51 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 
 		assert(keylen <= TLS_AES_GCM_KEY_MAX);
 
-		/*
-		 * XXX TODO Handle pending RX buffers. Maybe move them from the
-		 * list to the TLS RX callback?
-		 */
-		if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0)
-			si_ulp_loginfo("There are pending packets (nr=%u)!", m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count);
-
-		// m_next_seqno_rx = m_p_sock->get_next_tcp_seqno_rx();
+		m_tls_info_rx.key_len = keylen;
 		memcpy(m_tls_info_rx.iv, iv, TLS_AES_GCM_IV_LEN);
 		memcpy(m_tls_info_rx.key, key, keylen);
 		memcpy(m_tls_info_rx.salt, salt, TLS_AES_GCM_SALT_LEN);
 		memcpy(m_tls_info_rx.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		m_next_recno_rx = be64toh(recno_be64);
-		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
 
-		/* TODO Check whether g_tls_api == NULL in proper place (attaching ULP?) */
+		m_is_tls_rx = true;
+
 		m_p_cipher_ctx = (void*)g_tls_api->EVP_CIPHER_CTX_new();
 
+		m_p_sock->lock_tcp_con_public();
+		if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0) {
+			descq_t descs_rx_ready;
+			err_t ret;
+
+			si_ulp_logdbg("There are pending packets (nr=%u)!", m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count);
+			m_p_sock->sock_pop_descs_rx_ready(&descs_rx_ready);
+			for (size_t i = 0 ; i < descs_rx_ready.size(); i++) {
+				mem_buf_desc_t *temp;
+				temp = descs_rx_ready.front();
+				descs_rx_ready.pop_front();
+				ret = recv(&temp->lwip_pbuf.pbuf);
+				if (unlikely(ERR_OK != ret)) {
+					si_ulp_loginfo("failed to recv pbuf number %d in the list", i);
+				}
+			}
+
+			recno_be64 = htobe64(m_next_recno_rx);
+			memcpy(m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
+		}
+
+		m_p_tir = m_p_ring->tls_context_setup_rx(&m_tls_info_rx, m_p_sock->get_next_tcp_seqno_rx());
+		if (unlikely(m_p_tir == NULL)) {
+			si_ulp_loginfo("TLS RX offload setup failed");
+			m_is_tls_rx = false;
+			errno = ENOPROTOOPT;
+			m_p_sock->unlock_tcp_con_public();
+			return -1;
+		}
+
+		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
+
+		m_p_sock->unlock_tcp_con_public();
 		si_ulp_loginfo("TLS RX offload is configured, keylen=%u", keylen);
 
 		return 0;
@@ -517,7 +549,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	int errno_save;
 	bool block_this_run;
 
-	if (!m_is_tls) {
+	if (!m_is_tls_tx) {
 		return m_p_sock->tcp_tx(tx_arg);
 	}
 
@@ -657,7 +689,7 @@ done:
 int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr)
 {
 	NOT_IN_USE(p);
-	if (m_is_tls && seg != NULL && p->type != PBUF_RAM) {
+	if (m_is_tls_tx && seg != NULL && p->type != PBUF_RAM) {
 		if (seg->len != 0) {
 			if (unlikely(seg->seqno != m_expected_seqno)) {
 				uint64_t record_number_be64;

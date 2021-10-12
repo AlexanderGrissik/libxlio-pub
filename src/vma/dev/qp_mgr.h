@@ -56,6 +56,7 @@
 /* Forward declarations */
 struct xlio_tls_info;
 class xlio_tis;
+class xlio_tir;
 class buffer_pool;
 class cq_mgr;
 struct slave_data;
@@ -146,6 +147,12 @@ public:
 		NOT_IN_USE(info);
 		return NULL;
 	}
+	virtual xlio_tir *tls_context_setup_rx(const xlio_tls_info* info, uint32_t next_record_tcp_sn)
+	{
+		NOT_IN_USE(info);
+		NOT_IN_USE(next_record_tcp_sn);
+		return NULL;
+	}
 	virtual void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{
 		NOT_IN_USE(info);
@@ -155,6 +162,10 @@ public:
 	virtual void tls_release_tis(xlio_tis *tis)
 	{
 		NOT_IN_USE(tis);
+	}
+	virtual void tls_release_tir(xlio_tir *tir)
+	{
+		NOT_IN_USE(tir);
 	}
 	virtual void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
 	{

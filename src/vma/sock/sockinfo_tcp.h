@@ -275,6 +275,8 @@ public:
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
 
+	inline void lock_tcp_con_public(void)   { m_tcp_con_lock.lock(); }
+	inline void unlock_tcp_con_public(void) { m_tcp_con_lock.unlock(); }
 protected:
 	virtual void		lock_rx_q();
 	virtual void		unlock_rx_q();

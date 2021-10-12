@@ -213,6 +213,24 @@ public:
 
         socket_stats_t*         m_p_socket_stats;
 
+	void sock_pop_descs_rx_ready(descq_t *cache) {
+		lock_rx_q();
+		mem_buf_desc_t *temp;
+		const size_t size = get_size_m_rx_pkt_ready_list();
+
+		for (size_t i = 0 ; i < size; i++) {
+			temp = get_front_m_rx_pkt_ready_list();
+			pop_front_m_rx_pkt_ready_list();
+			cache->push_back(temp);
+		}
+		m_n_rx_pkt_ready_list_count = 0;
+		m_rx_ready_byte_count = 0;
+		m_p_socket_stats->n_rx_ready_pkt_count = 0;
+		m_p_socket_stats->n_rx_ready_byte_count = 0;
+
+		unlock_rx_q();
+	}
+
 private:
 	int				fcntl_helper(int __cmd, unsigned long int __arg, bool& bexit);
 

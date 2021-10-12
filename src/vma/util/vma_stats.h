@@ -280,6 +280,7 @@ typedef struct {
 	uint64_t    n_tx_retransmits;
 	void*       p_ring_master;
 	uint32_t    n_tx_tls_contexts;
+	uint32_t    n_rx_tls_contexts;
 	ring_type_t n_type;
 	union {
 		struct {

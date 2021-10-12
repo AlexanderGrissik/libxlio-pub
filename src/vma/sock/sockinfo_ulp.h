@@ -119,8 +119,10 @@ private:
 
 	ring *m_p_ring;
 	xlio_tis *m_p_tis;
+	xlio_tir *m_p_tir;
 	uint32_t m_expected_seqno;
-	bool m_is_tls;
+	bool m_is_tls_tx;
+	bool m_is_tls_rx;
 	uint64_t m_next_record_number;
 	struct xlio_tls_info m_tls_info;
 

@@ -113,13 +113,24 @@ public:
 	xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
-		xlio_tis *tis;
 
-		tis = m_p_qp_mgr->tls_context_setup_tx(info);
+		xlio_tis *tis = m_p_qp_mgr->tls_context_setup_tx(info);
 		if (likely(tis != NULL)) {
 			++m_p_ring_stat->n_tx_tls_contexts;
 		}
 		return tis;
+	}
+	xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn)
+	{
+		/* Protect with TX lock since we post WQEs to the send queue. */
+		auto_unlocker lock(m_lock_ring_tx);
+		xlio_tir *tir;
+
+		tir = m_p_qp_mgr->tls_context_setup_rx(info, next_record_tcp_sn);
+		if (likely(tir != NULL)) {
+			++m_p_ring_stat->n_rx_tls_contexts;
+		}
+		return tir;
 	}
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{
@@ -130,6 +141,12 @@ public:
 	{
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_release_tis(tis);
+	}
+	void tls_release_tir(xlio_tir *tir)
+	{
+		/* TIR objects are protected with TX lock */
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_release_tir(tir);
 	}
 	void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
 	{
