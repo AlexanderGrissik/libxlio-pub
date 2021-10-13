@@ -776,11 +776,13 @@ void mce_sys_var::get_env_params()
 		progress_engine_interval_msec = MCE_CQ_DRAIN_INTERVAL_DISABLED;
 	}
 
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 	if ((env_ptr = getenv(SYS_VAR_STRQ_ENABLE)) != NULL) {
 		int temp = atoi(env_ptr);
 		enable_striding_rq = (temp == 1 ? true : false);
 		enable_dpcp_rq = (enable_striding_rq || (temp == 2 ? true : false));
 	}
+#endif
 
 	if (enable_striding_rq) {
 		rx_num_bufs = MCE_DEFAULT_STRQ_NUM_BUFS;

@@ -58,7 +58,7 @@ private:
     unique_ptr<dpcp::flow_rule> _dpcp_flow;
 };
 
-#endif // DEFINED_DPCP
+#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 
 #endif
 

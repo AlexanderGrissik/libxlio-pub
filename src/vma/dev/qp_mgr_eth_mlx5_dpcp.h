@@ -35,7 +35,7 @@
 
 #include <config.h>
 
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 #include <mellanox/dpcp.h>
 #include <memory>
 #include "vma/dev/qp_mgr_eth_mlx5.h"
@@ -74,6 +74,6 @@ private:
 	uint32_t _strq_wqe_reserved_seg = 0U;
 };
 
-#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
+#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 
 #endif

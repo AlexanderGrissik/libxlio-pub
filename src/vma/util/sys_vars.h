@@ -703,7 +703,12 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TX_NUM_SGE                        (2)
 #endif
 
+#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 #define MCE_DEFAULT_STRQ_ENABLE                       (true)
+#else
+#define MCE_DEFAULT_STRQ_ENABLE                       (false)
+#endif
+
 #define MCE_DEFAULT_STRQ_NUM_STRIDES                  (16384)
 #define MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES            (512)
 #define MCE_DEFAULT_STRQ_NUM_BUFS                     (64)
