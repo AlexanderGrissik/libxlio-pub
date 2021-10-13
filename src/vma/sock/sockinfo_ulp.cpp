@@ -303,9 +303,10 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_expected_seqno = 0;
 	m_is_tls_tx = false;
 	m_is_tls_rx = false;
-	m_next_record_number = 0;
-	memset(&m_tls_info, 0, sizeof(m_tls_info));
+	m_next_recno_tx = 0;
+	memset(&m_tls_info_tx, 0, sizeof(m_tls_info_tx));
 
+	m_p_tir = NULL;
 	m_p_evp_cipher = NULL;
 	m_p_cipher_ctx = NULL;
 	memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
@@ -320,175 +321,128 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 {
 	if (m_is_tls_tx) {
 		m_p_ring->tls_release_tis(m_p_tis);
-		si_ulp_loginfo("~sockinfo_tcp_ops_tls");
 		m_p_tis = NULL;
 	}
 	if (m_is_tls_rx) {
 		m_p_ring->tls_release_tir(m_p_tir);
 		m_p_tir = NULL;
+		while (!m_rx_bufs.empty()) {
+			mem_buf_desc_t *pdesc = m_rx_bufs.get_and_pop_front();
+			pbuf_free(&pdesc->lwip_pbuf.pbuf);
+		}
 	}
-	/* TODO Free unhandled RX buffers. */
 }
 
 int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen)
 {
-	if (__level == SOL_TLS && __optname == TLS_TX) {
-		uint64_t record_number_be64;
-		unsigned char *iv;
-		unsigned char *salt;
-		unsigned char *rec_seq;
-		unsigned char *key;
-		uint32_t keylen;
+	uint64_t recno_be64;
+	unsigned char *iv;
+	unsigned char *salt;
+	unsigned char *rec_seq;
+	unsigned char *key;
+	uint32_t keylen;
 
-		const struct tls_crypto_info *base_info =
-			(const struct tls_crypto_info *)__optval;
+	if (__level != SOL_TLS) {
+		return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
+	}
+	if (unlikely(__optname != TLS_TX && __optname != TLS_RX)) {
+		errno = EINVAL;
+		return -1;
+	}
 
-		if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128)) {
+	si_ulp_logdbg("TLS %s offload is requested", __optname == TLS_TX ? "TX" : "RX");
+
+	if (unlikely(__optname == TLS_RX && g_tls_api == NULL)) {
+		si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
+		errno = ENOPROTOOPT;
+		return -1;
+	}
+
+	const struct tls_crypto_info *base_info = (const struct tls_crypto_info *)__optval;
+
+	if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_128))) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (unlikely(base_info->version != TLS_1_2_VERSION)) {
+		si_ulp_logdbg("Unsupported TLS version.");
+		errno = ENOPROTOOPT;
+		return -1;
+	}
+
+	switch (base_info->cipher_type) {
+	case TLS_CIPHER_AES_GCM_128:
+		/* Wrap with a block to avoid initialization error */
+		{
+			struct tls12_crypto_info_aes_gcm_128 *crypto_info =
+				(struct tls12_crypto_info_aes_gcm_128 *)__optval;
+			iv = crypto_info->iv;
+			salt = crypto_info->salt;
+			rec_seq = crypto_info->rec_seq;
+			key = crypto_info->key;
+			keylen = TLS_CIPHER_AES_GCM_128_KEY_SIZE;
+			if (__optname == TLS_RX) {
+				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_128_gcm();
+			}
+		}
+		break;
+#ifdef DEFINED_UTLS_AES256
+	case TLS_CIPHER_AES_GCM_256:
+		if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_256))) {
 			errno = EINVAL;
 			return -1;
 		}
-		if (base_info->version != TLS_1_2_VERSION) {
-			si_ulp_logdbg("Unsupported TLS version.");
-			errno = ENOPROTOOPT;
-			return -1;
+		/* Wrap with a block to avoid initialization error */
+		{
+			struct tls12_crypto_info_aes_gcm_256 *crypto_info =
+				(struct tls12_crypto_info_aes_gcm_256 *)__optval;
+			iv = crypto_info->iv;
+			salt = crypto_info->salt;
+			rec_seq = crypto_info->rec_seq;
+			key = crypto_info->key;
+			keylen = TLS_CIPHER_AES_GCM_256_KEY_SIZE;
+			if (__optname == TLS_RX) {
+				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_256_gcm();
+			}
 		}
-
-		switch (base_info->cipher_type) {
-		case TLS_CIPHER_AES_GCM_128:
-			/* Wrap with a block to avoid initialization error */
-			{
-				struct tls12_crypto_info_aes_gcm_128 *crypto_info =
-					(struct tls12_crypto_info_aes_gcm_128 *)__optval;
-				iv = crypto_info->iv;
-				salt = crypto_info->salt;
-				rec_seq = crypto_info->rec_seq;
-				key = crypto_info->key;
-				keylen = TLS_CIPHER_AES_GCM_128_KEY_SIZE;
-			}
-			break;
-#ifdef DEFINED_UTLS_AES256
-		case TLS_CIPHER_AES_GCM_256:
-			if (__optlen < sizeof(tls12_crypto_info_aes_gcm_256)) {
-				errno = EINVAL;
-				return -1;
-			}
-			/* Wrap with a block to avoid initialization error */
-			{
-				struct tls12_crypto_info_aes_gcm_256 *crypto_info =
-					(struct tls12_crypto_info_aes_gcm_256 *)__optval;
-				iv = crypto_info->iv;
-				salt = crypto_info->salt;
-				rec_seq = crypto_info->rec_seq;
-				key = crypto_info->key;
-				keylen = TLS_CIPHER_AES_GCM_256_KEY_SIZE;
-			}
-			break;
+		break;
 #endif /* DEFINED_UTLS_AES256 */
-		default:
-			si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
-			errno = ENOPROTOOPT;
-			return -1;
-		}
+	default:
+		si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
+		errno = ENOPROTOOPT;
+		return -1;
+	}
 
+	if (unlikely(keylen > TLS_AES_GCM_KEY_MAX)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	xlio_tls_info *tls_info =
+			(__optname == TLS_TX) ? &m_tls_info_tx :
+						&m_tls_info_rx;
+	tls_info->key_len = keylen;
+	memcpy(tls_info->key, key, keylen);
+	memcpy(tls_info->iv, iv, TLS_AES_GCM_IV_LEN);
+	memcpy(tls_info->salt, salt, TLS_AES_GCM_SALT_LEN);
+	memcpy(tls_info->rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+	memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+
+	if (__optname == TLS_TX) {
 		m_expected_seqno = m_p_sock->get_next_tcp_seqno();
-		m_tls_info.key_len = keylen;
-		memcpy(m_tls_info.key, key, keylen);
-		memcpy(m_tls_info.iv, iv, TLS_AES_GCM_IV_LEN);
-		memcpy(m_tls_info.salt, salt, TLS_AES_GCM_SALT_LEN);
-		memcpy(m_tls_info.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
-		memcpy(&record_number_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
-		m_next_record_number = be64toh(record_number_be64);
-
-		m_p_tis = m_p_ring->tls_context_setup_tx(&m_tls_info);
+		m_next_recno_tx = be64toh(recno_be64);
+		m_p_tis = m_p_ring->tls_context_setup_tx(&m_tls_info_tx);
 		/* We don't need key for TX anymore */
-		memset(m_tls_info.key, 0, keylen);
+		memset(m_tls_info_tx.key, 0, keylen);
 		if (unlikely(m_p_tis == NULL)) {
 			errno = ENOPROTOOPT;
 			return -1;
 		}
 		m_is_tls_tx = true;
-
-		return 0;
-	}
-	if (__level == SOL_TLS && __optname != TLS_TX) {
-		uint64_t recno_be64;
-		unsigned char *iv;
-		unsigned char *key;
-		unsigned char *salt;
-		unsigned char *rec_seq;
-		uint32_t keylen;
-
-		const struct tls_crypto_info *base_info =
-			(const struct tls_crypto_info *)__optval;
-
-		si_ulp_loginfo("TLS RX offload is requested");
-
-		if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128)) {
-			errno = EINVAL;
-			return -1;
-		}
-		if (base_info->version != TLS_1_2_VERSION) {
-			si_ulp_logdbg("Unsupported TLS version.");
-			errno = ENOPROTOOPT;
-			return -1;
-		}
-		if (g_tls_api == NULL) {
-			si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
-			errno = ENOPROTOOPT;
-			return -1;
-		}
-
-		switch (base_info->cipher_type) {
-		case TLS_CIPHER_AES_GCM_128:
-			/* Wrap with a block to avoid initialization error */
-			{
-				struct tls12_crypto_info_aes_gcm_128 *crypto_info =
-					(struct tls12_crypto_info_aes_gcm_128 *)__optval;
-				iv = crypto_info->iv;
-				key = crypto_info->key;
-				salt = crypto_info->salt;
-				rec_seq = crypto_info->rec_seq;
-				keylen = TLS_CIPHER_AES_GCM_128_KEY_SIZE;
-				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_128_gcm();
-			}
-			break;
-#ifdef DEFINED_UTLS_AES256
-		case TLS_CIPHER_AES_GCM_256:
-			if (__optlen < sizeof(tls12_crypto_info_aes_gcm_256)) {
-				errno = EINVAL;
-				return -1;
-			}
-			/* Wrap with a block to avoid initialization error */
-			{
-				struct tls12_crypto_info_aes_gcm_256 *crypto_info =
-					(struct tls12_crypto_info_aes_gcm_256 *)__optval;
-				iv = crypto_info->iv;
-				key = crypto_info->key;
-				salt = crypto_info->salt;
-				rec_seq = crypto_info->rec_seq;
-				keylen = TLS_CIPHER_AES_GCM_256_KEY_SIZE;
-				m_p_evp_cipher = (void*)g_tls_api->EVP_aes_256_gcm();
-			}
-			break;
-#endif /* DEFINED_UTLS_AES256 */
-		default:
-			si_ulp_logdbg("Unsupported TLS cipher ID: %u.", base_info->cipher_type);
-			errno = ENOPROTOOPT;
-			return -1;
-		}
-
-		assert(keylen <= TLS_AES_GCM_KEY_MAX);
-
-		m_tls_info_rx.key_len = keylen;
-		memcpy(m_tls_info_rx.iv, iv, TLS_AES_GCM_IV_LEN);
-		memcpy(m_tls_info_rx.key, key, keylen);
-		memcpy(m_tls_info_rx.salt, salt, TLS_AES_GCM_SALT_LEN);
-		memcpy(m_tls_info_rx.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
-		memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
+	} else {
 		m_next_recno_rx = be64toh(recno_be64);
 
 		m_is_tls_rx = true;
-
 		m_p_cipher_ctx = (void*)g_tls_api->EVP_CIPHER_CTX_new();
 
 		m_p_sock->lock_tcp_con_public();
@@ -522,13 +476,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		}
 
 		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
-
 		m_p_sock->unlock_tcp_con_public();
-		si_ulp_loginfo("TLS RX offload is configured, keylen=%u", keylen);
-
-		return 0;
 	}
-	return m_p_sock->tcp_setsockopt(__level, __optname, __optval, __optlen);
+
+	si_ulp_logdbg("TLS %s offload is configured, keylen=%u",
+			__optname == TLS_TX ? "TX" : "RX", keylen);
+	return 0;
 }
 
 ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
@@ -543,7 +496,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	vma_tx_call_attr_t tls_arg;
 	struct iovec *p_iov;
 	struct iovec tls_iov[1];
-	uint64_t last_record_number;
+	uint64_t last_recno;
 	ssize_t ret;
 	size_t pos;
 	int errno_save;
@@ -564,7 +517,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 	tls_arg.priv.attr = PBUF_DESC_MDESC;
 
 	p_iov = tx_arg.attr.msg.iov;
-	last_record_number = m_next_record_number;
+	last_recno = m_next_recno_tx;
 	ret = 0;
 
 	for (ssize_t i = 0; i < tx_arg.attr.msg.sz_iov; ++i) {
@@ -593,7 +546,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 			}
 
 			rec = new tls_record(m_p_sock, m_p_sock->get_next_tcp_seqno(),
-					     m_next_record_number, m_tls_info.iv);
+					     m_next_recno_tx, m_tls_info_tx.iv);
 			if (unlikely(rec == NULL || rec->m_p_buf == NULL)) {
 				if (ret == 0) {
 					errno = ENOMEM;
@@ -604,7 +557,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				}
 				goto done;
 			}
-			++m_next_record_number;
+			++m_next_recno_tx;
 
 			/* Control sendmsg() support */
 			if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr != NULL) {
@@ -662,7 +615,7 @@ retry:
 				 * the record will be destroyed only when the last pbuf is freed.
 				 */
 				rec->put();
-				--m_next_record_number;
+				--m_next_recno_tx;
 				goto done;
 			}
 			ret += (ssize_t)tosend;
@@ -680,7 +633,7 @@ done:
 	/* Statistics */
 	if (ret > 0) {
 		errno = errno_save;
-		m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_records += m_next_record_number - last_record_number;
+		m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_records += m_next_recno_tx - last_recno;
 		m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_bytes += ret;
 	}
 	return ret;
@@ -692,7 +645,7 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 	if (m_is_tls_tx && seg != NULL && p->type != PBUF_RAM) {
 		if (seg->len != 0) {
 			if (unlikely(seg->seqno != m_expected_seqno)) {
-				uint64_t record_number_be64;
+				uint64_t recno_be64;
 				unsigned mss = m_p_sock->get_mss();
 				bool skip_static;
 
@@ -706,12 +659,12 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 
 				si_ulp_logdbg("TX resync flow: record_number=%lu seqno%u", rec->m_record_number, seg->seqno);
 
-				record_number_be64 = htobe64(rec->m_record_number);
-				skip_static = !memcmp(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
+				recno_be64 = htobe64(rec->m_record_number);
+				skip_static = !memcmp(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
 				if (!skip_static) {
-					memcpy(m_tls_info.rec_seq, &record_number_be64, TLS_AES_GCM_REC_SEQ_LEN);
+					memcpy(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
 				}
-				m_p_ring->tls_context_resync_tx(&m_tls_info, m_p_tis, skip_static);
+				m_p_ring->tls_context_resync_tx(&m_tls_info_tx, m_p_tis, skip_static);
 
 				uint8_t *addr = rec->m_p_buf->p_buffer;
 				uint32_t nr = (seg->seqno - rec->m_seqno + mss - 1) / mss;

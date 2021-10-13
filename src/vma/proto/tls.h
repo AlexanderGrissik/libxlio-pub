@@ -53,6 +53,13 @@
 
 #ifdef DEFINED_UTLS
 
+#ifndef TLS_TX
+#define TLS_TX 1
+#endif
+#ifndef TLS_RX
+#define TLS_RX 2
+#endif
+
 #ifndef TLS_1_2_VERSION
 #define TLS_1_2_VERSION 0x0303
 #endif

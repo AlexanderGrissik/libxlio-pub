@@ -119,15 +119,15 @@ private:
 
 	ring *m_p_ring;
 	xlio_tis *m_p_tis;
-	xlio_tir *m_p_tir;
 	uint32_t m_expected_seqno;
 	bool m_is_tls_tx;
 	bool m_is_tls_rx;
-	uint64_t m_next_record_number;
-	struct xlio_tls_info m_tls_info;
+	uint64_t m_next_recno_tx;
+	struct xlio_tls_info m_tls_info_tx;
 
-	uint64_t m_next_recno_rx;
 	struct xlio_tls_info m_tls_info_rx;
+	xlio_tir *m_p_tir;
+	uint64_t m_next_recno_rx;
 
 	/* OpenSSL objects for SW decryption. */
 	void *m_p_evp_cipher;
