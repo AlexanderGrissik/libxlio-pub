@@ -104,10 +104,10 @@ public:
 
 	union {
 		struct {
+			iovec 		frag; // Datagram part base address and length
 			sockaddr_in	src; // L3 info
 			sockaddr_in	dst; // L3 info
 
-			iovec 		frag; // Datagram part base address and length
 			size_t		sz_payload; // This is the total amount of data of the packet, if (sz_payload>sz_data) means fragmented packet.
 			uint64_t	hw_raw_timestamp;
 			timestamps_t	timestamps;
