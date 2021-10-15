@@ -1367,7 +1367,9 @@ inline void qp_mgr_eth_mlx5::tls_post_progress_params_wqe(
 
 	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_SET_PSV | (opmod << 24));
 	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
-	cseg->fm_ce_se = fence ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
+	/* Request completion for TLS RX offload to create TLS rule ASAP. */
+	cseg->fm_ce_se = (fence ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0) |
+			 (is_tx ? 0 : MLX5_WQE_CTRL_CQ_UPDATE);
 
 	tls_fill_progress_params_wqe(&wqe->params, tis_tir_number, next_record_tcp_sn);
 	store_current_wqe_prop(0, ti);
