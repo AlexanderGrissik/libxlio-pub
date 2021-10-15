@@ -439,6 +439,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			return -1;
 		}
 		m_is_tls_tx = true;
+		m_p_sock->m_p_socket_stats->tls_tx_offload = true;
 	} else {
 		m_next_recno_rx = be64toh(recno_be64);
 
@@ -476,8 +477,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		}
 
 		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
+		m_p_sock->m_p_socket_stats->tls_rx_offload = true;
 		m_p_sock->unlock_tcp_con_public();
 	}
+
+	m_p_sock->m_p_socket_stats->tls_version = base_info->version;
+	m_p_sock->m_p_socket_stats->tls_cipher = base_info->cipher_type;
 
 	si_ulp_logdbg("TLS %s offload is configured, keylen=%u",
 			__optname == TLS_TX ? "TX" : "RX", keylen);
@@ -1016,7 +1021,15 @@ next_buffer:
 				break;
 			}
 		}
+
+		/* Statistics */
+		m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records_enc += !!(decrypted_nr == 0);
+		m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records_partial += !!(decrypted_nr != 0);
 	}
+
+	/* Staticstics */
+	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records += 1U;
+	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_bytes += pres->tot_len;
 
 	++m_next_recno_rx;
 	tcp_recved(m_p_sock->get_pcb(), TLS_RECORD_OVERHEAD); // XXX TLS 1.3 has different overhead

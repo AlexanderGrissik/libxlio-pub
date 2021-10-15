@@ -205,6 +205,11 @@ void print_full_stats(socket_stats_t* p_si_stats, mc_grp_info_t* p_mc_grp_info, 
 		fprintf(filename, "Sendfile: fallbacks %u / overflows %u\n", p_si_stats->counters.n_tx_sendfile_fallbacks, p_si_stats->counters.n_tx_sendfile_overflows);
 	}
 
+#ifdef DEFINED_UTLS
+	if (p_si_stats->tls_tx_offload || p_si_stats->tls_rx_offload) {
+		fprintf(filename, "TLS Offload: version %04x / cipher %u / TX %s / RX %s\n", p_si_stats->tls_version, p_si_stats->tls_cipher,
+						p_si_stats->tls_tx_offload ? "On" : "Off", p_si_stats->tls_rx_offload ? "On" : "Off");
+	}
 	if (p_si_stats->tls_counters.n_tls_tx_records || p_si_stats->tls_counters.n_tls_tx_bytes) {
 		fprintf(filename, "TLS Tx Offload: %u / %u [kilobytes/records]%s\n", p_si_stats->tls_counters.n_tls_tx_bytes/BYTES_TRAFFIC_UNIT, p_si_stats->tls_counters.n_tls_tx_records, post_fix);
 		b_any_activiy = true;
@@ -212,6 +217,16 @@ void print_full_stats(socket_stats_t* p_si_stats, mc_grp_info_t* p_mc_grp_info, 
 	if (p_si_stats->tls_counters.n_tls_tx_resync || p_si_stats->tls_counters.n_tls_tx_resync_replay) {
 		fprintf(filename, "TLS Tx Resyncs: %u / %u [total/with data replay]%s\n", p_si_stats->tls_counters.n_tls_tx_resync, p_si_stats->tls_counters.n_tls_tx_resync_replay, post_fix);
 	}
+
+	if (p_si_stats->tls_counters.n_tls_rx_records || p_si_stats->tls_counters.n_tls_rx_bytes) {
+		fprintf(filename, "TLS Rx Offload: %u / %u / %u / %u [kilobytes/records/encrypted/mixed]%s\n", p_si_stats->tls_counters.n_tls_rx_bytes/BYTES_TRAFFIC_UNIT, p_si_stats->tls_counters.n_tls_rx_records,
+													p_si_stats->tls_counters.n_tls_rx_records_enc, p_si_stats->tls_counters.n_tls_rx_records_partial, post_fix);
+		b_any_activiy = true;
+	}
+	if (p_si_stats->tls_counters.n_tls_tx_resync || p_si_stats->tls_counters.n_tls_tx_resync_replay) {
+		fprintf(filename, "TLS Rx Resyncs: %u [total]%s\n", p_si_stats->tls_counters.n_tls_rx_resync, post_fix);
+	}
+#endif /* DEFINED_UTLS */
 
 	if (b_any_activiy == false) {
 		fprintf(filename, "Rx and Tx where not active\n");

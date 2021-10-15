@@ -209,6 +209,18 @@ void update_delta_stat(socket_stats_t* p_curr_stat, socket_stats_t* p_prev_stat)
 	p_prev_stat->strq_counters.n_strq_total_strides = (p_curr_stat->strq_counters.n_strq_total_strides - p_prev_stat->strq_counters.n_strq_total_strides) / delay;
 	p_prev_stat->strq_counters.n_strq_max_strides_per_packet = p_curr_stat->strq_counters.n_strq_max_strides_per_packet;
 
+#ifdef DEFINED_UTLS
+	p_prev_stat->tls_counters.n_tls_tx_records = (p_curr_stat->tls_counters.n_tls_tx_records - p_prev_stat->tls_counters.n_tls_tx_records) / delay;
+	p_prev_stat->tls_counters.n_tls_tx_bytes = (p_curr_stat->tls_counters.n_tls_tx_bytes - p_prev_stat->tls_counters.n_tls_tx_bytes) / delay;
+	p_prev_stat->tls_counters.n_tls_tx_resync = (p_curr_stat->tls_counters.n_tls_tx_resync - p_prev_stat->tls_counters.n_tls_tx_resync) / delay;
+	p_prev_stat->tls_counters.n_tls_tx_resync_replay = (p_curr_stat->tls_counters.n_tls_tx_resync_replay - p_prev_stat->tls_counters.n_tls_tx_resync_replay) / delay;
+	p_prev_stat->tls_counters.n_tls_rx_records = (p_curr_stat->tls_counters.n_tls_rx_records - p_prev_stat->tls_counters.n_tls_rx_records) / delay;
+	p_prev_stat->tls_counters.n_tls_rx_records_enc = (p_curr_stat->tls_counters.n_tls_rx_records_enc - p_prev_stat->tls_counters.n_tls_rx_records_enc) / delay;
+	p_prev_stat->tls_counters.n_tls_rx_records_partial = (p_curr_stat->tls_counters.n_tls_rx_records_partial - p_prev_stat->tls_counters.n_tls_rx_records_partial) / delay;
+	p_prev_stat->tls_counters.n_tls_rx_bytes = (p_curr_stat->tls_counters.n_tls_rx_bytes - p_prev_stat->tls_counters.n_tls_rx_bytes) / delay;
+	p_prev_stat->tls_counters.n_tls_rx_resync = (p_curr_stat->tls_counters.n_tls_rx_resync - p_prev_stat->tls_counters.n_tls_rx_resync) / delay;
+#endif /* DEFINED_UTLS */
+
 	p_prev_stat->threadid_last_rx = p_curr_stat->threadid_last_rx;
 	p_prev_stat->threadid_last_tx = p_curr_stat->threadid_last_tx;
 
@@ -242,7 +254,10 @@ void update_delta_ring_stat(ring_stats_t* p_curr_ring_stats, ring_stats_t* p_pre
 		p_prev_ring_stats->n_tx_byte_count = (p_curr_ring_stats->n_tx_byte_count - p_prev_ring_stats->n_tx_byte_count) / delay;
 		p_prev_ring_stats->n_tx_pkt_count = (p_curr_ring_stats->n_tx_pkt_count - p_prev_ring_stats->n_tx_pkt_count) / delay;
 		p_prev_ring_stats->n_tx_retransmits = (p_curr_ring_stats->n_tx_retransmits - p_prev_ring_stats->n_tx_retransmits) / delay;
+#ifdef DEFINED_UTLS
 		p_prev_ring_stats->n_tx_tls_contexts = (p_curr_ring_stats->n_tx_tls_contexts - p_prev_ring_stats->n_tx_tls_contexts) / delay;
+		p_prev_ring_stats->n_rx_tls_contexts = (p_curr_ring_stats->n_rx_tls_contexts - p_prev_ring_stats->n_rx_tls_contexts) / delay;
+#endif /* DEFINED_UTLS */
 		if (p_prev_ring_stats->n_type == RING_TAP) {
 			memcpy(p_prev_ring_stats->tap.s_tap_name, p_curr_ring_stats->tap.s_tap_name, sizeof(p_curr_ring_stats->tap.s_tap_name));
 			p_prev_ring_stats->tap.n_tap_fd = p_curr_ring_stats->tap.n_tap_fd;
@@ -313,9 +328,14 @@ void print_ring_stats(ring_instance_block_t* p_ring_inst_arr)
 				printf(FORMAT_STATS_64bit, "Retransmissions:", p_ring_stats->n_tx_retransmits, post_fix);
 			}
 
+#ifdef DEFINED_UTLS
 			if (p_ring_stats->n_tx_tls_contexts) {
-				printf(FORMAT_STATS_64bit, "TLS Context Setups:", (uint64_t)p_ring_stats->n_tx_tls_contexts, post_fix);
+				printf(FORMAT_STATS_64bit, "TLS TX Context Setups:", (uint64_t)p_ring_stats->n_tx_tls_contexts, post_fix);
 			}
+			if (p_ring_stats->n_rx_tls_contexts) {
+				printf(FORMAT_STATS_64bit, "TLS RX Context Setups:", (uint64_t)p_ring_stats->n_rx_tls_contexts, post_fix);
+			}
+#endif /* DEFINED_UTLS */
 
 			if (p_ring_stats->n_type == RING_TAP) {
 				printf(FORMAT_STATS_32bit, "Rx Buffers:", p_ring_stats->tap.n_rx_buffers);
@@ -1341,7 +1361,10 @@ void zero_ring_stats(ring_stats_t* p_ring_stats)
 	p_ring_stats->n_tx_pkt_count = 0;
 	p_ring_stats->n_tx_byte_count = 0;
 	p_ring_stats->n_tx_retransmits = 0;
+#ifdef DEFINED_UTLS
 	p_ring_stats->n_tx_tls_contexts = 0;
+	p_ring_stats->n_rx_tls_contexts = 0;
+#endif /* DEFINED_UTLS */
 	if (p_ring_stats->n_type == RING_TAP) {
 		p_ring_stats->tap.n_vf_plugouts = 0;
 	}
