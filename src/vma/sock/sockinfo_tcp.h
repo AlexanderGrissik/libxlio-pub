@@ -270,10 +270,8 @@ public:
 		delete m_ops;
 		m_ops = new sockinfo_tcp_ops(this);
 		assert(m_ops != NULL);
-		m_b_tls_rx = false;
 	}
 	sockinfo_tcp_ops *m_ops;
-	bool m_b_tls_rx;
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
 

@@ -113,9 +113,6 @@ public:
 			timestamps_t	timestamps;
 			void* 		context;
 
-			uint8_t		tls_decrypted;
-			uint8_t		tls_type;
-
 			union {
 				struct {
 					struct iphdr* 	p_ip_h;
@@ -132,6 +129,10 @@ public:
 			bool 		is_vma_thr; 	// specify whether packet drained from VMA internal thread or from user app thread
 			bool		is_sw_csum_need; // specify if software checksum is need for this packet
 			bool 		socketxtreme_polled;
+#ifdef DEFINED_UTLS
+			uint8_t		tls_decrypted;
+			uint8_t		tls_type;
+#endif /* DEFINED_UTLS */
 		} rx;
 		struct {
 			size_t		dev_mem_length; // Total data aligned to 4 bytes.

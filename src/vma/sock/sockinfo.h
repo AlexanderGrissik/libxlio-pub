@@ -472,9 +472,17 @@ protected:
 			m_rx_pkt_ready_offset = 0;	
 		}
 		else {
+#ifdef DEFINED_UTLS
+			uint8_t tls_type = pdesc->rx.tls_type;
+#endif /* DEFINED_UTLS */
 			for (int i = 0; i < sz_iov && pdesc; i++) {
 				pos = 0;
 				while (pos < p_iov[i].iov_len && pdesc) {
+#ifdef DEFINED_UTLS
+					if (unlikely(pdesc->rx.tls_type != tls_type)) {
+						break;
+					}
+#endif /* DEFINED_UTLS */
 					nbytes = p_iov[i].iov_len - pos;
 					if (nbytes > bytes_left) nbytes = bytes_left;
 					memcpy((char *)(p_iov[i].iov_base) + pos, iov_base, nbytes);

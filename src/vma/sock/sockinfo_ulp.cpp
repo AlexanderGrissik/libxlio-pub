@@ -474,7 +474,6 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		memcpy(m_tls_info_rx.rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 		m_next_recno_rx = be64toh(recno_be64);
-		m_p_sock->m_b_tls_rx = true;
 		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
 
 		/* TODO Check whether g_tls_api == NULL in proper place (attaching ULP?) */
