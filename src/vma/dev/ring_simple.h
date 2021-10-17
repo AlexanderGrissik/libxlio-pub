@@ -137,6 +137,14 @@ public:
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_context_resync_tx(info, tis, skip_static);
 	}
+	void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		if (lkey == LKEY_USE_DEFAULT) {
+			lkey = m_tx_lkey;
+		}
+		m_p_qp_mgr->tls_get_progress_params_rx(tir, buf, lkey);
+	}
 	void tls_release_tis(xlio_tis *tis)
 	{
 		auto_unlocker lock(m_lock_ring_tx);

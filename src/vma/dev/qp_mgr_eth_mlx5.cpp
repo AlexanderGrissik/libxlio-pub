@@ -1204,6 +1204,14 @@ xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(const xlio_tls_info *info, uint3
 	return tir;
 }
 
+void qp_mgr_eth_mlx5::tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
+{
+	/* Address must be aligned by 64. */
+	assert((uintptr_t)buf == ((uintptr_t)buf >> 6U << 6U));
+
+	tls_get_progress_params_wqe(tir, tir->get_tirn(), buf, lkey);
+}
+
 inline void qp_mgr_eth_mlx5::tls_fill_static_params_wqe(
 	struct mlx5_wqe_tls_static_params_seg* params,
 	const struct xlio_tls_info* info,
@@ -1380,6 +1388,48 @@ inline void qp_mgr_eth_mlx5::tls_post_progress_params_wqe(
 	ring_doorbell((uint64_t*)m_sq_wqe_hot, num_wqebbs);
 #endif
 	dbg_dump_wqe((uint32_t*)m_sq_wqe_hot, sizeof(mlx5_set_tls_progress_params_wqe));
+
+	// Preparing next WQE as Ethernet send WQE and index:
+	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];
+	m_sq_wqe_hot_index = m_sq_wqe_counter & (m_tx_num_wr - 1);
+	memset(m_sq_wqe_hot, 0, sizeof(mlx5_eth_wqe));
+
+	// Fill Ethernet segment with header inline:
+	struct mlx5_wqe_eth_seg* eth_seg = (struct mlx5_wqe_eth_seg*)((uint8_t*)m_sq_wqe_hot + sizeof(struct mlx5_wqe_ctrl_seg));
+	eth_seg->inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
+}
+
+inline void qp_mgr_eth_mlx5::tls_get_progress_params_wqe(
+	xlio_ti *ti, uint32_t tirn, void *buf, uint32_t lkey)
+{
+	uint16_t num_wqebbs = TLS_GET_PROGRESS_WQEBBS;
+
+	struct mlx5_get_tls_progress_params_wqe* wqe =
+			reinterpret_cast<struct mlx5_get_tls_progress_params_wqe*>(m_sq_wqe_hot);
+	struct vma_mlx5_wqe_ctrl_seg* cseg = &wqe->ctrl.ctrl;
+	struct vma_mlx5_seg_get_psv* psv = &wqe->psv;
+	uint8_t opmod = MLX5_OPC_MOD_TLS_TIR_PROGRESS_PARAMS;
+
+	memset(wqe, 0, sizeof(*wqe));
+
+#define PROGRESS_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
+
+	cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_GET_PSV | (opmod << 24));
+	cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
+	cseg->fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
+
+	psv->num_psv = 1U << 4U;
+	psv->l_key = htobe32(lkey);
+	psv->psv_index[0] = htobe32(tirn);
+	psv->va = htobe64((uintptr_t)buf);
+
+	store_current_wqe_prop(0, ti);
+
+#ifdef DEFINED_TSO
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, MLX5_DB_METHOD_DB, num_wqebbs);
+#else
+	ring_doorbell((uint64_t*)m_sq_wqe_hot, num_wqebbs);
+#endif
 
 	// Preparing next WQE as Ethernet send WQE and index:
 	m_sq_wqe_hot = &(*m_sq_wqes)[m_sq_wqe_counter & (m_tx_num_wr - 1)];

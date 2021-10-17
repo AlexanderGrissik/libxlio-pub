@@ -159,6 +159,12 @@ public:
 		NOT_IN_USE(tis);
 		NOT_IN_USE(skip_static);
 	}
+	virtual void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
+	{
+		NOT_IN_USE(tir);
+		NOT_IN_USE(buf);
+		NOT_IN_USE(lkey);
+	}
 	virtual void tls_release_tis(xlio_tis *tis)
 	{
 		NOT_IN_USE(tis);

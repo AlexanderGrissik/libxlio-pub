@@ -82,6 +82,20 @@ struct xlio_tls_info {
 	unsigned char rec_seq[TLS_AES_GCM_REC_SEQ_LEN];
 };
 
+/* Format of the buffer returned by ring::tls_get_progress_params_rx(). */
+/* This brings low-level knowledge to the TLS layer what is not a good idea. */
+struct xlio_tls_progress_params {
+	__be32 tis_tir_number;
+	__be32 next_record_tcp_sn;
+	__be32 hw_resync_tcp_sn;
+	/*
+	 * 7:6 bits - record_tracker_state
+	 * 5:4 bits - auth_state
+	 */
+	uint8_t state;
+	uint8_t hw_offset_record_number[3];
+} __attribute__((packed));
+
 #endif /* DEFINED_UTLS */
 
 #endif /* XLIO_TLS_H */
