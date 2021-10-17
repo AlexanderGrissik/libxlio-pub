@@ -93,6 +93,13 @@ struct xlio_tls_api {
 				 int*, const unsigned char*, int);
 	int (*EVP_CIPHER_CTX_ctrl)(EVP_CIPHER_CTX*, int, int, void*);
 	int (*EVP_DecryptFinal_ex)(EVP_CIPHER_CTX*, unsigned char*, int*);
+	int (*EVP_EncryptInit_ex)(EVP_CIPHER_CTX*,
+				  const EVP_CIPHER*, ENGINE*,
+				  const unsigned char*,
+				  const unsigned char*);
+	int (*EVP_EncryptUpdate)(EVP_CIPHER_CTX*, unsigned char*,
+				 int*, const unsigned char*, int);
+	int (*EVP_EncryptFinal_ex)(EVP_CIPHER_CTX*, unsigned char*, int*);
 };
 
 static struct xlio_tls_api *g_tls_api = NULL;
@@ -120,6 +127,9 @@ void xlio_tls_api_setup(void) {
 	XLIO_TLS_API_FIND(EVP_DecryptUpdate);
 	XLIO_TLS_API_FIND(EVP_CIPHER_CTX_ctrl);
 	XLIO_TLS_API_FIND(EVP_DecryptFinal_ex);
+	XLIO_TLS_API_FIND(EVP_EncryptInit_ex);
+	XLIO_TLS_API_FIND(EVP_EncryptUpdate);
+	XLIO_TLS_API_FIND(EVP_EncryptFinal_ex);
 	if (
 		s_tls_api.EVP_CIPHER_CTX_new  &&
 		s_tls_api.EVP_CIPHER_CTX_free  &&
@@ -129,7 +139,10 @@ void xlio_tls_api_setup(void) {
 		s_tls_api.EVP_DecryptInit_ex  &&
 		s_tls_api.EVP_DecryptUpdate  &&
 		s_tls_api.EVP_CIPHER_CTX_ctrl  &&
-		s_tls_api.EVP_DecryptFinal_ex
+		s_tls_api.EVP_DecryptFinal_ex &&
+		s_tls_api.EVP_EncryptInit_ex  &&
+		s_tls_api.EVP_EncryptUpdate  &&
+		s_tls_api.EVP_EncryptFinal_ex
 	) {
 		g_tls_api = &s_tls_api;
 	}
@@ -807,14 +820,76 @@ void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
 	assert(ret);
 
 	for (p = plist; p != NULL; p = p->next) {
+		if (((mem_buf_desc_t*)p)->rx.tls_decrypted == TLS_RX_DECRYPTED) {
+			/*
+			 * This is partially decrypted record, stop here
+			 * and don't verify authentication tag.
+			 */
+			return;
+		}
 		ret = g_tls_api->EVP_DecryptUpdate(tls_ctx,
 					(uint8_t*)p->payload, &len,
 					(uint8_t*)p->payload, p->len);
 		assert(ret);
 		/* XXX Can AES-GCM return len != p->len if not aligned to blocksize? */
 		assert(len == (int)p->len);
+		((mem_buf_desc_t*)p)->rx.tls_decrypted = TLS_RX_DECRYPTED;
 	}
 	ret = g_tls_api->EVP_DecryptFinal_ex(tls_ctx, buf /* XXX */, &len);
+	assert(ret);
+	assert(len == 0);
+	(void)ret;
+}
+
+void sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
+{
+	/* Multi-purpose buffer, TAG is the largest object. */
+	uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__ ((aligned (8)));
+	EVP_CIPHER_CTX *tls_ctx;
+	struct pbuf *p;
+	uint16_t rec_len = m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
+	int len;
+	int ret;
+
+	tls_ctx = (EVP_CIPHER_CTX*)m_p_cipher_ctx;
+	assert(tls_ctx != NULL);
+	ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
+	assert(ret);
+
+	/* Build nonce. XXX TLS 1.3 nonce is different! */
+	memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
+	copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN],
+			m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
+	ret = g_tls_api->EVP_EncryptInit_ex(tls_ctx, (EVP_CIPHER*)m_p_evp_cipher, NULL, m_tls_info_rx.key, buf);
+	assert(ret);
+
+	/* Set authentication tag. TODO We can avoid copy if the tag doesn't cross a pbuf boundary. */
+	copy_by_offset(buf, m_rx_offset + m_rx_rec_len - TLS_RECORD_TAG_LEN, TLS_RECORD_TAG_LEN);
+	ret = g_tls_api->EVP_CIPHER_CTX_ctrl(tls_ctx, EVP_CTRL_GCM_SET_TAG, TLS_RECORD_TAG_LEN, buf);
+	assert(ret);
+
+	/* Additional data for AEAD */
+	*((uint64_t*)buf) = htobe64(m_next_recno_rx);
+	copy_by_offset(buf + 8, m_rx_offset, 3);
+	buf[11] = rec_len >> 8U;
+	buf[12] = rec_len & 0xFFU;
+	ret = g_tls_api->EVP_EncryptUpdate(tls_ctx, NULL, &len, buf, 13);
+	assert(ret);
+
+	for (p = plist; p != NULL; p = p->next) {
+		if (((mem_buf_desc_t*)p)->rx.tls_decrypted != TLS_RX_DECRYPTED) {
+			/* This is partially encrypted record, stop here. */
+			return;
+		}
+		ret = g_tls_api->EVP_EncryptUpdate(tls_ctx,
+					(uint8_t*)p->payload, &len,
+					(uint8_t*)p->payload, p->len);
+		assert(ret);
+		/* XXX Can AES-GCM return len != p->len if not aligned to blocksize? */
+		assert(len == (int)p->len);
+		((mem_buf_desc_t*)p)->rx.tls_decrypted = TLS_RX_ENCRYPTED;
+	}
+	ret = g_tls_api->EVP_EncryptFinal_ex(tls_ctx, buf /* XXX */, &len);
 	assert(ret);
 	assert(len == 0);
 	(void)ret;
@@ -928,12 +1003,33 @@ next_buffer:
 		 * 5. E D E E - decrypted buffers in the middle
 		 */
 
-		/* TODO Currently we support only case #2. */
-		if (tls_decrypted == TLS_RX_ENCRYPTED && decrypted_nr == 0) {
+		/* XXX Currently we don't support failures in decryption.
+		 * In the final version we should send alert and terminate
+		 * the session in case #1.
+		 */
+		assert(tls_decrypted != TLS_RX_AUTH_FAIL);
+
+		if (decrypted_nr == 0 || tls_decrypted == TLS_RX_DECRYPTED) {
+			/* Case #2 and #3. */
 			tls_rx_decrypt(pres);
 			/* TODO Check for return code, send alert on decryption failure. */
 		} else {
-			assert(0); // XXX Not supported yet.
+			/* Case #4 and #5. */
+			switch (((mem_buf_desc_t*)pres)->rx.tls_decrypted) {
+			case TLS_RX_RESYNC:
+				/* Fallthrough */
+			case TLS_RX_ENCRYPTED:
+				tls_rx_decrypt(pres);
+				/* Fallthrough */
+			case TLS_RX_DECRYPTED:
+				tls_rx_encrypt(pres);
+				tls_rx_decrypt(pres);
+				break;
+			default:
+				/* Unexpected case. */
+				assert(0);
+				break;
+			}
 		}
 	}
 

@@ -96,8 +96,9 @@ private:
 	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);
 	uint16_t offset_to_host16(uint32_t offset);
 	void tls_rx_decrypt(struct pbuf *plist);
+	void tls_rx_encrypt(struct pbuf *plist);
 
-private:
+
 	enum tls_rx_state {
 		TLS_RX_SM_UNKNOWN = 0,
 		/* Initial state. The header of the first record is incomplete. */
@@ -112,7 +113,7 @@ private:
 	enum tls_rx_decrypted {
 		TLS_RX_ENCRYPTED = 0x0,
 		TLS_RX_DECRYPTED = 0x1,
-		TLS_RX_RESYNC = 0x2,
+		TLS_RX_RESYNC    = 0x2,
 		TLS_RX_AUTH_FAIL = 0x3,
 	};
 
