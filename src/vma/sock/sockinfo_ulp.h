@@ -89,14 +89,15 @@ public:
 	ssize_t tx(vma_tx_call_attr_t &tx_arg);
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
-	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
-
 private:
 	err_t recv(struct pbuf *p);
 	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);
 	uint16_t offset_to_host16(uint32_t offset);
 	void tls_rx_decrypt(struct pbuf *plist);
 	void tls_rx_encrypt(struct pbuf *plist);
+
+	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+	static void rx_comp_callback(void *arg);
 
 
 	enum tls_rx_state {

@@ -467,7 +467,8 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			memcpy(m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
 		}
 
-		m_p_tir = m_p_ring->tls_context_setup_rx(&m_tls_info_rx, m_p_sock->get_next_tcp_seqno_rx());
+		m_p_tir = m_p_ring->tls_context_setup_rx(&m_tls_info_rx, m_p_sock->get_next_tcp_seqno_rx(),
+							 &rx_comp_callback, this);
 		if (unlikely(m_p_tir == NULL)) {
 			si_ulp_loginfo("TLS RX offload setup failed");
 			m_is_tls_rx = false;
@@ -1027,7 +1028,7 @@ next_buffer:
 		m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records_partial += !!(decrypted_nr != 0);
 	}
 
-	/* Staticstics */
+	/* Statistics */
 	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records += 1U;
 	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_bytes += pres->tot_len;
 
@@ -1103,5 +1104,15 @@ err_t sockinfo_tcp_ops_tls::rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct p
 	if (likely(p != NULL && err == ERR_OK))
 		return ops->recv(p);
 	return sockinfo_tcp::rx_lwip_cb(arg, tpcb, p, err);
+}
+
+/* static */
+void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
+{
+	sockinfo_tcp_ops_tls *utls = reinterpret_cast<sockinfo_tcp_ops_tls*>(arg);
+
+	/* TODO Handle GET_PSV completion */
+	/* TODO Create TLS rule */
+	NOT_IN_USE(utls);
 }
 #endif /* DEFINED_UTLS */

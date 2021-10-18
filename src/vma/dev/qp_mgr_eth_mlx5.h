@@ -63,6 +63,14 @@ public:
 		m_type = XLIO_TI_UNKNOWN;
 		m_released = false;
 		m_ref = 0;
+		m_callback = NULL;
+		m_callback_arg = NULL;
+	}
+
+	inline void assign_callback(xlio_comp_cb_t callback, void *callback_arg)
+	{
+		m_callback = callback;
+		m_callback_arg = callback_arg;
 	}
 
 	/*
@@ -85,6 +93,9 @@ public:
 	uint8_t m_type;
 	bool m_released;
 	uint32_t m_ref;
+
+	xlio_comp_cb_t m_callback;
+	void *m_callback_arg;
 };
 
 /* WQE properties description. */
@@ -112,7 +123,8 @@ public:
 
 #ifdef DEFINED_UTLS
 	xlio_tis* tls_context_setup_tx(const xlio_tls_info *info);
-	xlio_tir* tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn);
+	xlio_tir* tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
+				       xlio_comp_cb_t callback, void *callback_arg);
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static);
 	void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey);
 	void tls_release_tis(xlio_tis *tis);

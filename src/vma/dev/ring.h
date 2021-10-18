@@ -42,6 +42,7 @@
 struct xlio_tls_info;
 class xlio_tis;
 class pkt_rcvr_sink;
+typedef void (*xlio_comp_cb_t)(void*); // Copied from qp_mgr.h
 
 #define ring_logpanic 		__log_info_panic
 #define ring_logerr			__log_info_err
@@ -143,10 +144,13 @@ public:
 		NOT_IN_USE(info);
 		return NULL;
 	}
-	virtual xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn)
+	virtual xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
+					       xlio_comp_cb_t callback, void *callback_arg)
 	{
 		NOT_IN_USE(info);
 		NOT_IN_USE(next_record_tcp_sn);
+		NOT_IN_USE(callback);
+		NOT_IN_USE(callback_arg);
 		return NULL;
 	}
 	virtual void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)

@@ -1153,7 +1153,9 @@ void qp_mgr_eth_mlx5::tls_context_resync_tx(
 	tls_post_progress_params_wqe(tis, tisn, 0, skip_static, true);
 }
 
-xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn)
+xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(
+	const xlio_tls_info *info, uint32_t next_record_tcp_sn,
+	xlio_comp_cb_t callback, void *callback_arg)
 {
 	xlio_tir *tir;
 	uint32_t tirn;
@@ -1194,9 +1196,10 @@ xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(const xlio_tls_info *info, uint3
 		return NULL;
 	}
 	tir->assign_dek(_dek);
+	tir->assign_callback(callback, callback_arg);
 	tirn = tir->get_tirn();
 
-	tls_post_static_params_wqe(tir, info, tirn, _dek->get_key_id(), 0, false, false);
+	tls_post_static_params_wqe(NULL, info, tirn, _dek->get_key_id(), 0, false, false);
 	tls_post_progress_params_wqe(tir, tirn, next_record_tcp_sn, false, false);
 
 	assert(!tir->m_released);

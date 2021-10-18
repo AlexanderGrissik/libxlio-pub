@@ -120,13 +120,15 @@ public:
 		}
 		return tis;
 	}
-	xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn)
+	xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
+				       xlio_comp_cb_t callback, void *callback_arg)
 	{
 		/* Protect with TX lock since we post WQEs to the send queue. */
 		auto_unlocker lock(m_lock_ring_tx);
 		xlio_tir *tir;
 
-		tir = m_p_qp_mgr->tls_context_setup_rx(info, next_record_tcp_sn);
+		tir = m_p_qp_mgr->tls_context_setup_rx(info, next_record_tcp_sn,
+							callback, callback_arg);
 		if (likely(tir != NULL)) {
 			++m_p_ring_stat->n_rx_tls_contexts;
 		}

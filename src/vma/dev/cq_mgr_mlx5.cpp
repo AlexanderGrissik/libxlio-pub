@@ -672,6 +672,10 @@ void cq_mgr_mlx5::handle_sq_wqe_prop(unsigned index)
 	do {
 		if (p->ti != NULL) {
 			xlio_ti *ti = p->ti;
+			if (ti->m_callback) {
+				ti->m_callback(ti->m_callback_arg);
+			}
+
 			ti->put();
 			if (unlikely(ti->m_released && ti->m_ref == 0)) {
 				m_qp->ti_released(ti);
