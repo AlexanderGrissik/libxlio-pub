@@ -26,6 +26,9 @@ style_dir=${WORKSPACE}/${prefix}/style
 tool_dir=${WORKSPACE}/${prefix}/tool
 commit_dir=${WORKSPACE}/${prefix}/commit
 
+prj_lib=libxlio.so
+prj_service=xliod
+
 nproc=$(grep processor /proc/cpuinfo|wc -l)
 make_opt="-j$(($nproc / 2 + 1))"
 if [ $(command -v timeout >/dev/null 2>&1 && echo $?) ]; then
@@ -41,6 +44,7 @@ function on_exit()
     echo "[${0##*/}]..................exit code = $rc"
     pkill -9 sockperf
     pkill -9 xlio
+    pkill -9 ${prj_service}
 }
 
 function do_cmd()

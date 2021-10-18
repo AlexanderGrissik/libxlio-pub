@@ -28,7 +28,7 @@ if [ ! -z "$(do_get_ip 'eth' 'mlx5')" ]; then
 	test_ip_list="${test_ip_list} eth:$(do_get_ip 'eth' 'mlx5')"
 fi
 test_list="tcp:--tcp udp:"
-test_lib=${vg_dir}/install/lib/libxlio.so
+test_lib=${vg_dir}/install/lib/${prj_lib}
 test_app=sockperf
 test_app_path=${test_dir}/sockperf/install/bin/sockperf
 vg_tool=/bin/valgrind
@@ -83,7 +83,7 @@ for test_link in $test_ip_list; do
 
 		if [ `ps -ef | grep $test_app | wc -l` -gt 1 ];
 		then
-			${sudo_cmd} pkill -SIGINT -f $test_app 2>/dev/null || true
+			${sudo_cmd} pkill -9 -f $test_app 2>/dev/null || true
 			sleep 10
 			# in case SIGINT didn't work
 			if [ `ps -ef | grep $test_app | wc -l` -gt 1 ];

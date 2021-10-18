@@ -264,13 +264,13 @@ for target_v in "${target_list[@]}"; do
         # Archive all logs in single file
         do_archive "${WORKSPACE}/${prefix}/${target_name}/*.tap"
 
-	    set +x
-	    gzip -f "${jenkins_test_artifacts}.tar"
-	    echo "======================================================"
-	    echo "Jenkins result for [${target_name}] target: return $rc"
-	    echo "Artifacts: ${jenkins_test_artifacts}.tar.gz"
-	    echo "======================================================"
-	    set -x
+        set +x
+        gzip -f "${jenkins_test_artifacts}.tar"
+        echo "======================================================"
+        echo "Jenkins result for [${target_name}] target: return $rc"
+        echo "Artifacts: ${jenkins_test_artifacts}.tar.gz"
+        echo "======================================================"
+        set -x
     fi
 
 done
