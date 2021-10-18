@@ -746,6 +746,10 @@ void mce_sys_var::get_env_params()
 #ifdef DEFINED_TSO
 	enable_tso		= MCE_DEFAULT_TSO;
 #endif /* DEFINED_TSO */
+#ifdef DEFINED_UTLS
+	enable_utls_rx = MCE_DEFAULT_UTLS_RX;
+	enable_utls_tx = MCE_DEFAULT_UTLS_TX;
+#endif /* DEFINED_UTLS */
 	enable_lro		= MCE_DEFAULT_LRO;
 	handle_fork		= MCE_DEFAULT_FORK_SUPPORT;
 	handle_bf		= MCE_DEFAULT_BF_FLAG;
@@ -1574,7 +1578,7 @@ void mce_sys_var::get_env_params()
 	if ((env_ptr = getenv(SYS_VAR_FORK)) != NULL)
 		handle_fork = atoi(env_ptr) ? true : false;
 
-	if((env_ptr = getenv(SYS_VAR_IPOIB )) != NULL)
+	if((env_ptr = getenv(SYS_VAR_IPOIB)) != NULL)
 		enable_ipoib = atoi(env_ptr) ? true : false;
 
 #ifdef DEFINED_TSO
@@ -1587,6 +1591,14 @@ void mce_sys_var::get_env_params()
 				SYS_VAR_RING_MIGRATION_RATIO_TX, -1, SYS_VAR_TSO);
 	}
 #endif /* DEFINED_TSO */
+
+#ifdef DEFINED_UTLS
+	if((env_ptr = getenv(SYS_VAR_UTLS_RX)) != NULL)
+		enable_utls_rx = atoi(env_ptr) ? true : false;
+
+	if((env_ptr = getenv(SYS_VAR_UTLS_TX)) != NULL)
+		enable_utls_tx = atoi(env_ptr) ? true : false;
+#endif /* DEFINED_UTLS */
 
 	if ((env_ptr = getenv(SYS_VAR_LRO)) != NULL){
 		enable_lro = option_3::from_str(env_ptr, MCE_DEFAULT_LRO);

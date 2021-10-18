@@ -72,6 +72,11 @@ protected:
 
 #ifdef DEFINED_UTLS
 
+enum xlio_utls_mode {
+	UTLS_MODE_TX = 1 << 0,
+	UTLS_MODE_RX = 1 << 1,
+};
+
 void xlio_tls_api_setup(void);
 
 class sockinfo_tcp_ulp_tls : public sockinfo_tcp_ulp {

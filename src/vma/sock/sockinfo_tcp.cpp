@@ -3862,14 +3862,17 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname,
 		case TCP_ULP:
 #ifdef DEFINED_UTLS
 			if (__optval && __optlen >= 3 && strncmp((char*)__optval, "tls", 3) == 0) {
-				si_tcp_logdbg("(TCP_ULP) val: tls");
-				sockinfo_tcp_ulp_tls *ulp = sockinfo_tcp_ulp_tls::instance();
-				lock_tcp_con();
-				ret = ulp->attach(this);
-				unlock_tcp_con();
-				return ret;
+				if (is_utls_supported(UTLS_MODE_TX | UTLS_MODE_RX)) {
+					si_tcp_logdbg("(TCP_ULP) val: tls");
+					sockinfo_tcp_ulp_tls *ulp = sockinfo_tcp_ulp_tls::instance();
+					lock_tcp_con();
+					ret = ulp->attach(this);
+					unlock_tcp_con();
+					return ret;
+				}
 			}
 #endif /* DEFINED_UTLS */
+			si_tcp_logdbg("(TCP_ULP) tls is not supported");
 			errno = ENOPROTOOPT;
 			ret = -1;
 			break;
@@ -5249,4 +5252,19 @@ void sockinfo_tcp::update_header_field(data_updater *updater)
 	}
 
 	unlock_tcp_con();
+}
+
+bool sockinfo_tcp::is_utls_supported(int direction)
+{
+	bool result = false;
+
+#ifdef DEFINED_UTLS
+	if (direction & UTLS_MODE_TX) {
+		result = result || safe_mce_sys().enable_utls_tx;
+	}
+	if (direction & UTLS_MODE_RX) {
+		result = result || safe_mce_sys().enable_utls_rx;
+	}
+#endif /* DEFINED_UTLS */
+	return result;
 }

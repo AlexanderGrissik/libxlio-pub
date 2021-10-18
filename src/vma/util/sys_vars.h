@@ -470,6 +470,10 @@ public:
 #endif /* DEFINED_TSO */
 	option_3::mode_t	enable_lro;
 	option_strq::mode_t	enable_strq_env;
+#ifdef DEFINED_UTLS
+	bool 		enable_utls_rx;
+	bool 		enable_utls_tx;
+#endif /* DEFINED_UTLS */
 	uint32_t	timer_netlink_update_msec;
 
 	//Neigh parameters
@@ -651,6 +655,11 @@ extern mce_sys_var & safe_mce_sys();
 #ifdef DEFINED_TSO
 #define SYS_VAR_TSO                                   "XLIO_TSO"
 #endif /* DEFINED_TSO */
+#ifdef DEFINED_UTLS
+#define SYS_VAR_UTLS_RX                               "XLIO_UTLS_RX"
+#define SYS_VAR_UTLS_TX                               "XLIO_UTLS_TX"
+#endif /* DEFINED_UTLS */
+
 #define SYS_VAR_LRO                                   "XLIO_LRO"
 
 #define SYS_VAR_INTERNAL_THREAD_AFFINITY              "XLIO_INTERNAL_THREAD_AFFINITY"
@@ -837,6 +846,11 @@ extern mce_sys_var & safe_mce_sys();
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TSO                               (true)
 #endif /* DEFINED_TSO */
+#ifdef DEFINED_UTLS
+#define MCE_DEFAULT_UTLS_RX                           (true)
+#define MCE_DEFAULT_UTLS_TX                           (true)
+#endif /* DEFINED_UTLS */
+
 #define MCE_DEFAULT_LRO                               (option_3::AUTO)
 #define MCE_DEFAULT_TCP_ABORT_ON_CLOSE                (false)
 #define MCE_DEFAULT_RX_POLL_ON_TX_TCP                 (false)

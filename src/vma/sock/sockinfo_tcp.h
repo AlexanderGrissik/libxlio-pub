@@ -284,6 +284,8 @@ public:
 
 	inline void lock_tcp_con_public(void)   { m_tcp_con_lock.lock(); }
 	inline void unlock_tcp_con_public(void) { m_tcp_con_lock.unlock(); }
+	bool is_utls_supported(int direction);
+
 protected:
 	virtual void		lock_rx_q();
 	virtual void		unlock_rx_q();

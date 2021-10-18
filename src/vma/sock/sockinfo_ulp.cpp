@@ -361,6 +361,22 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 
 	si_ulp_logdbg("TLS %s offload is requested", __optname == TLS_TX ? "TX" : "RX");
 
+	if (__optname == TLS_TX) {
+		/* TX offload checks. */
+		if (unlikely(!m_p_sock->is_utls_supported(UTLS_MODE_TX))) {
+			si_ulp_logdbg("TLS_TX is not supported.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+	} else {
+		/* RX offload checks. */
+		if (unlikely(!m_p_sock->is_utls_supported(UTLS_MODE_RX))) {
+			si_ulp_logdbg("TLS_RX is not supported.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+	}
+
 	if (unlikely(__optname == TLS_RX && g_tls_api == NULL)) {
 		si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
 		errno = ENOPROTOOPT;

@@ -568,13 +568,17 @@ void print_vma_global_settings()
 #ifdef DEFINED_TSO
 	VLOG_PARAM_STRING("TSO support", safe_mce_sys().enable_tso, MCE_DEFAULT_TSO, SYS_VAR_TSO, safe_mce_sys().enable_tso ? "Enabled " : "Disabled");
 #endif /* DEFINED_TSO */
+#ifdef DEFINED_UTLS
+	VLOG_PARAM_STRING("UTLS RX support", safe_mce_sys().enable_utls_rx, MCE_DEFAULT_UTLS_RX, SYS_VAR_UTLS_RX, safe_mce_sys().enable_utls_rx ? "Enabled " : "Disabled");
+	VLOG_PARAM_STRING("UTLS TX support", safe_mce_sys().enable_utls_tx, MCE_DEFAULT_UTLS_TX, SYS_VAR_UTLS_TX, safe_mce_sys().enable_utls_tx ? "Enabled " : "Disabled");
+#endif /* DEFINED_UTLS */
+
 	VLOG_STR_PARAM_STRING("LRO support", option_3::to_str(safe_mce_sys().enable_lro), option_3::to_str(MCE_DEFAULT_LRO), SYS_VAR_LRO, option_3::to_str(safe_mce_sys().enable_lro));
 	VLOG_PARAM_STRING("BF (Blue Flame)", safe_mce_sys().handle_bf, MCE_DEFAULT_BF_FLAG, SYS_VAR_BF, safe_mce_sys().handle_bf ? "Enabled " : "Disabled");
 #if defined(DEFINED_NGINX)
 	VLOG_PARAM_NUMBER("Src port stirde", safe_mce_sys().src_port_stride, MCE_DEFAULT_SRC_PORT_STRIDE, SYS_VAR_SRC_PORT_STRIDE);
 	VLOG_PARAM_NUMBER("Number of Nginx workers", safe_mce_sys().actual_nginx_workers_num, MCE_DEFAULT_NGINX_WORKERS_NUM, SYS_VAR_NGINX_WORKERS_NUM);
 	VLOG_PARAM_NUMBER("Size of UDP socket pool", safe_mce_sys().nginx_udp_socket_pool_size, MCE_DEFAULT_NGINX_UDP_POOL_SIZE, SYS_VAR_NGINX_UDP_POOL_SIZE);
-
 #endif
 	VLOG_PARAM_STRING("fork() support", safe_mce_sys().handle_fork, MCE_DEFAULT_FORK_SUPPORT, SYS_VAR_FORK, safe_mce_sys().handle_fork ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("close on dup2()", safe_mce_sys().close_on_dup2, MCE_DEFAULT_CLOSE_ON_DUP2, SYS_VAR_CLOSE_ON_DUP2, safe_mce_sys().close_on_dup2 ? "Enabled " : "Disabled");
