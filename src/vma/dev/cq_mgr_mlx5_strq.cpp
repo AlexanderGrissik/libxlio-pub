@@ -328,6 +328,9 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
 			_hot_buffer_stride->rx.flow_tag_id      = vma_get_flow_tag(cqe);
 			_hot_buffer_stride->rx.is_sw_csum_need = !(m_b_is_rx_hw_csum_on &&
 					(cqe->hds_ip_ext & MLX5_CQE_L4_OK) && (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
+#ifdef DEFINED_UTLS
+			_hot_buffer_stride->rx.tls_decrypted = (cqe->pkt_info >> 3) & 0x3;
+#endif /* DEFINED_UTLS */
 			if (cqe->lro_num_seg > 1) {
 				lro_update_hdr(cqe, _hot_buffer_stride);
 				m_p_cq_stat->n_rx_lro_packets++;
