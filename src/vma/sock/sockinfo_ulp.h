@@ -118,17 +118,26 @@ private:
 		TLS_RX_AUTH_FAIL = 0x3,
 	};
 
-	ring *m_p_ring;
+	ring *m_p_tx_ring;
+	ring *m_p_rx_ring;
+
+	/* Crypto info provided by application. */
+	struct xlio_tls_info m_tls_info_tx;
+	struct xlio_tls_info m_tls_info_rx;
+
+	/* TX specific fields */
 	xlio_tis *m_p_tis;
-	uint32_t m_expected_seqno;
+
+	/* Whether offload is configured. */
 	bool m_is_tls_tx;
 	bool m_is_tls_rx;
+	/* TX flow expects in-order TCP segments. */
+	uint32_t m_expected_seqno;
+	/* Track TX record number for TX resync flow. */
 	uint64_t m_next_recno_tx;
-	struct xlio_tls_info m_tls_info_tx;
 
-	struct xlio_tls_info m_tls_info_rx;
+	/* RX specific fields */
 	xlio_tir *m_p_tir;
-	uint64_t m_next_recno_rx;
 
 	/* OpenSSL objects for SW decryption. */
 	void *m_p_evp_cipher;
@@ -136,6 +145,8 @@ private:
 
 	/* List of RX buffers that contain unhandled records. */
 	vma_desc_list_t m_rx_bufs;
+	/* Record number of current or incomplete TLS record. */
+	uint64_t m_next_recno_rx;
 	/* Offset of the first unhandled record. */
 	uint32_t m_rx_offset;
 	/* Size of the first unhandled record. */

@@ -120,19 +120,28 @@ public:
 		}
 		return tis;
 	}
-	xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
-				       xlio_comp_cb_t callback, void *callback_arg)
+	xlio_tir *tls_create_tir(bool cached)
+	{
+		/*
+		 * This method can be called for either RX or TX ring.
+		 * Locking is required for TX ring with cached=true.
+		 */
+		auto_unlocker lock(m_lock_ring_tx);
+		return m_p_qp_mgr->tls_create_tir(cached);
+	}
+	int tls_context_setup_rx(xlio_tir *tir, const xlio_tls_info *info,
+				 uint32_t next_record_tcp_sn,
+				 xlio_comp_cb_t callback, void *callback_arg)
 	{
 		/* Protect with TX lock since we post WQEs to the send queue. */
 		auto_unlocker lock(m_lock_ring_tx);
-		xlio_tir *tir;
 
-		tir = m_p_qp_mgr->tls_context_setup_rx(info, next_record_tcp_sn,
-							callback, callback_arg);
-		if (likely(tir != NULL)) {
+		int rc = m_p_qp_mgr->tls_context_setup_rx(tir, info, next_record_tcp_sn,
+							  callback, callback_arg);
+		if (likely(rc == 0)) {
 			++m_p_ring_stat->n_rx_tls_contexts;
 		}
-		return tir;
+		return rc;
 	}
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{

@@ -260,7 +260,8 @@ public:
 	void handle_timer_expired(void* user_data);
 
 	ib_ctx_handler *get_ctx(void) { return m_p_connected_dst_entry->get_ctx(); }
-	ring *get_ring(void) { return m_p_connected_dst_entry->get_ring(); }
+	ring *get_tx_ring(void) { return m_p_connected_dst_entry->get_ring(); }
+	ring *get_rx_ring(void) { return m_p_rx_ring; }
 
 	/* Proxy to support ULP. TODO Refactor. */
 	inline sockinfo_tcp_ops *get_ops(void) { return m_ops; }

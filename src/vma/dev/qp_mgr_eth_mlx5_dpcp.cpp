@@ -265,7 +265,7 @@ void qp_mgr_eth_mlx5_dpcp::post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc)
 	post_recv_buffer_rq(p_mem_buf_desc);
 }
 
-dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()
+dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir(bool is_tls /*=false*/)
 {
 	dpcp::tir* tir_obj = nullptr;
 	dpcp::status status = dpcp::DPCP_OK;
@@ -281,6 +281,11 @@ dpcp::tir* qp_mgr_eth_mlx5_dpcp::create_tir()
 		tir_attr.lro.timeout_period_usecs = VMA_MLX5_PARAMS_LRO_TIMEOUT;
 		tir_attr.lro.enable_mask = 1;
 		tir_attr.lro.max_msg_sz = m_p_ring->m_lro.max_payload_sz >> 8;
+	}
+
+	if (is_tls) {
+		tir_attr.flags |= dpcp::TIR_ATTR_TLS;
+		tir_attr.tls_en = 1;
 	}
 
 	status = m_p_ib_ctx_handler->get_dpcp_adapter()->create_tir(tir_attr, tir_obj);

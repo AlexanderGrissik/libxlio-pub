@@ -123,8 +123,10 @@ public:
 
 #ifdef DEFINED_UTLS
 	xlio_tis* tls_context_setup_tx(const xlio_tls_info *info);
-	xlio_tir* tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
-				       xlio_comp_cb_t callback, void *callback_arg);
+	xlio_tir* tls_create_tir(bool cached);
+	int tls_context_setup_rx(xlio_tir *tir, const xlio_tls_info *info,
+				 uint32_t next_record_tcp_sn,
+				 xlio_comp_cb_t callback, void *callback_arg);
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static);
 	void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey);
 	void tls_release_tis(xlio_tis *tis);
@@ -183,6 +185,14 @@ private:
 		uint32_t next_record_tcp_sn, bool fence, bool is_tx);
 	inline void tls_get_progress_params_wqe(
 		xlio_ti *ti, uint32_t tirn, void *buf, uint32_t lkey);
+
+protected:
+	virtual dpcp::tir* create_tir(bool is_tls = false)
+	{
+		NOT_IN_USE(is_tls);
+		return NULL;
+	}
+private:
 #endif /* DEFINED_UTLS */
 #ifdef DEFINED_TSO
 	inline int	fill_wqe_send(vma_ibv_send_wr* pswr);

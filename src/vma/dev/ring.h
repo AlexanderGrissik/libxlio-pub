@@ -144,14 +144,21 @@ public:
 		NOT_IN_USE(info);
 		return NULL;
 	}
-	virtual xlio_tir *tls_context_setup_rx(const xlio_tls_info *info, uint32_t next_record_tcp_sn,
-					       xlio_comp_cb_t callback, void *callback_arg)
+	virtual xlio_tir *tls_create_tir(bool cached)
 	{
+		NOT_IN_USE(cached);
+		return NULL;
+	}
+	virtual int tls_context_setup_rx(xlio_tir *tir, const xlio_tls_info *info,
+					 uint32_t next_record_tcp_sn,
+					 xlio_comp_cb_t callback, void *callback_arg)
+	{
+		NOT_IN_USE(tir);
 		NOT_IN_USE(info);
 		NOT_IN_USE(next_record_tcp_sn);
 		NOT_IN_USE(callback);
 		NOT_IN_USE(callback_arg);
-		return NULL;
+		return -1;
 	}
 	virtual void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{

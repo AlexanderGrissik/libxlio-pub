@@ -62,7 +62,7 @@ protected:
 
 private:
 
-	dpcp::tir* create_tir();
+	dpcp::tir* create_tir(bool is_tls = false);
 	bool configure_rq_dpcp();
 	bool prepare_rq(uint32_t cqn);
 	bool store_rq_mlx5_params(dpcp::basic_rq& new_rq);

@@ -1153,47 +1153,41 @@ void qp_mgr_eth_mlx5::tls_context_resync_tx(
 	tls_post_progress_params_wqe(tis, tisn, 0, skip_static, true);
 }
 
-xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(
-	const xlio_tls_info *info, uint32_t next_record_tcp_sn,
-	xlio_comp_cb_t callback, void *callback_arg)
+xlio_tir *qp_mgr_eth_mlx5::tls_create_tir(bool cached)
 {
-	xlio_tir *tir;
-	uint32_t tirn;
-	dpcp::tir *_tir;
-	dpcp::dek *_dek;
-	dpcp::status status;
-	dpcp::tir::attr tir_attr;
-	dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
+	xlio_tir *tir = NULL;
 
-	if (m_tir_cache.empty()) {
-		memset(&tir_attr, 0, sizeof(tir_attr));
-		tir_attr.flags = dpcp::TIR_ATTR_INLINE_RQN | dpcp::TIR_ATTR_TRANSPORT_DOMAIN | dpcp::TIR_ATTR_TLS;
-		tir_attr.inline_rqn = m_mlx5_qp.rqn;
-		tir_attr.transport_domain = adapter->get_td();
-		tir_attr.tls_en = 1;
-
-		status = adapter->create_tir(tir_attr, _tir);
-		if (unlikely(status != dpcp::DPCP_OK)) {
-			qp_logerr("Failed to create TIR with TLS enabled, status: %d", status);
-			return NULL;
-		}
-
-		tir = new xlio_tir(_tir);
-		if (unlikely(tir == NULL)) {
-			delete _tir;
-			return NULL;
-		}
-	} else {
+	if (cached && !m_tir_cache.empty()) {
 		tir = m_tir_cache.back();
 		m_tir_cache.pop_back();
+	} else if (!cached) {
+		dpcp::tir *_tir = create_tir(true);
+
+		if (_tir != NULL) {
+			tir = new xlio_tir(_tir);
+		}
+		if (unlikely(tir == NULL && _tir != NULL)) {
+			delete _tir;
+		}
 	}
+	return tir;
+}
+
+int qp_mgr_eth_mlx5::tls_context_setup_rx(
+	xlio_tir *tir, const xlio_tls_info *info,
+	uint32_t next_record_tcp_sn,
+	xlio_comp_cb_t callback, void *callback_arg)
+{
+	uint32_t tirn;
+	dpcp::dek *_dek;
+	dpcp::status status;
+	dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
 
 	status = adapter->create_dek(dpcp::ENCRYPTION_KEY_TYPE_TLS,
 				     (void *)info->key, info->key_len, _dek);
 	if (unlikely(status != dpcp::DPCP_OK)) {
 		qp_logerr("Failed to create DEK, status: %d", status);
-		m_tir_cache.push_back(tir);
-		return NULL;
+		return -1;
 	}
 	tir->assign_dek(_dek);
 	tir->assign_callback(callback, callback_arg);
@@ -1204,7 +1198,7 @@ xlio_tir *qp_mgr_eth_mlx5::tls_context_setup_rx(
 
 	assert(!tir->m_released);
 
-	return tir;
+	return 0;
 }
 
 void qp_mgr_eth_mlx5::tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)

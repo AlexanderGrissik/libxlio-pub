@@ -200,7 +200,7 @@ class tls_record : public mem_desc {
 public:
 	tls_record(sockinfo_tcp *sock, uint32_t seqno, uint64_t record_number, uint8_t *iv)
 	{
-		m_p_ring = sock->get_ring();
+		m_p_tx_ring = sock->get_tx_ring();
 		/* Allocate record with a taken reference. */
 		atomic_set(&m_ref, 1);
 		m_seqno = seqno;
@@ -225,7 +225,7 @@ public:
 		 * is closed. Therefore, we cannot return m_p_buf to the socket.
 		 */
 		if (likely(m_p_buf != NULL)) {
-			m_p_ring->mem_buf_desc_return_single_to_owner_tx(m_p_buf);
+			m_p_tx_ring->mem_buf_desc_return_single_to_owner_tx(m_p_buf);
 		}
 	}
 
@@ -287,7 +287,7 @@ public:
 	uint64_t m_record_number;
 	size_t m_size;
 	mem_buf_desc_t *m_p_buf;
-	ring *m_p_ring;
+	ring *m_p_tx_ring;
 };
 
 /*
@@ -298,18 +298,20 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	sockinfo_tcp_ops(sock)
 {
 	/* We don't support ring migration with TLS offload */
-	m_p_ring = sock->get_ring();
+	m_p_tx_ring = sock->get_tx_ring();
+	m_p_rx_ring = sock->get_rx_ring();
+	memset(&m_tls_info_tx, 0, sizeof(m_tls_info_tx));
+	memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
+
 	m_p_tis = NULL;
-	m_expected_seqno = 0;
 	m_is_tls_tx = false;
 	m_is_tls_rx = false;
+	m_expected_seqno = 0;
 	m_next_recno_tx = 0;
-	memset(&m_tls_info_tx, 0, sizeof(m_tls_info_tx));
 
 	m_p_tir = NULL;
 	m_p_evp_cipher = NULL;
 	m_p_cipher_ctx = NULL;
-	memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
 	m_next_recno_rx = 0;
 	m_rx_offset = 0;
 	m_rx_rec_len = 0;
@@ -320,11 +322,11 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 {
 	if (m_is_tls_tx) {
-		m_p_ring->tls_release_tis(m_p_tis);
+		m_p_tx_ring->tls_release_tis(m_p_tis);
 		m_p_tis = NULL;
 	}
 	if (m_is_tls_rx) {
-		m_p_ring->tls_release_tir(m_p_tir);
+		m_p_tx_ring->tls_release_tir(m_p_tir);
 		m_p_tir = NULL;
 		while (!m_rx_bufs.empty()) {
 			mem_buf_desc_t *pdesc = m_rx_bufs.get_and_pop_front();
@@ -354,6 +356,11 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 
 	if (unlikely(__optname == TLS_RX && g_tls_api == NULL)) {
 		si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
+		errno = ENOPROTOOPT;
+		return -1;
+	}
+	if (unlikely(__optname == TLS_RX && m_p_rx_ring == NULL)) {
+		si_ulp_logdbg("Cannot determine RX ring, TLS RX offload is impossible.");
 		errno = ENOPROTOOPT;
 		return -1;
 	}
@@ -431,7 +438,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 	if (__optname == TLS_TX) {
 		m_expected_seqno = m_p_sock->get_next_tcp_seqno();
 		m_next_recno_tx = be64toh(recno_be64);
-		m_p_tis = m_p_ring->tls_context_setup_tx(&m_tls_info_tx);
+		m_p_tis = m_p_tx_ring->tls_context_setup_tx(&m_tls_info_tx);
 		/* We don't need key for TX anymore */
 		memset(m_tls_info_tx.key, 0, keylen);
 		if (unlikely(m_p_tis == NULL)) {
@@ -441,10 +448,15 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		m_is_tls_tx = true;
 		m_p_sock->m_p_socket_stats->tls_tx_offload = true;
 	} else {
-		m_next_recno_rx = be64toh(recno_be64);
-
-		m_is_tls_rx = true;
 		m_p_cipher_ctx = (void*)g_tls_api->EVP_CIPHER_CTX_new();
+		if (m_p_cipher_ctx == NULL) {
+			si_ulp_logdbg("OpenSSL initialization failed.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
+
+		m_next_recno_rx = be64toh(recno_be64);
+		m_is_tls_rx = true;
 
 		m_p_sock->lock_tcp_con_public();
 		if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0) {
@@ -467,13 +479,26 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			memcpy(m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
 		}
 
-		m_p_tir = m_p_ring->tls_context_setup_rx(&m_tls_info_rx, m_p_sock->get_next_tcp_seqno_rx(),
-							 &rx_comp_callback, this);
+		/*
+		 * First, get TIR from the TX ring cache. Create new one in
+		 * the RX ring if the cache is empty.
+		 */
+		m_p_tir = m_p_tx_ring->tls_create_tir(true) ?:
+			  m_p_rx_ring->tls_create_tir(false);
+		if (m_p_tir != NULL) {
+			uint32_t next_seqno_rx = m_p_sock->get_next_tcp_seqno_rx();
+			int rc = m_p_tx_ring->tls_context_setup_rx(m_p_tir, &m_tls_info_rx,
+						next_seqno_rx, &rx_comp_callback, this);
+			if (unlikely(rc != 0)) {
+				m_p_tx_ring->tls_release_tir(m_p_tir);
+				m_p_tir = NULL;
+			}
+		}
 		if (unlikely(m_p_tir == NULL)) {
-			si_ulp_loginfo("TLS RX offload setup failed");
+			si_ulp_logdbg("TLS RX offload setup failed");
 			m_is_tls_rx = false;
-			errno = ENOPROTOOPT;
 			m_p_sock->unlock_tcp_con_public();
+			errno = ENOPROTOOPT;
 			return -1;
 		}
 
@@ -670,7 +695,7 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 				if (!skip_static) {
 					memcpy(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
 				}
-				m_p_ring->tls_context_resync_tx(&m_tls_info_tx, m_p_tis, skip_static);
+				m_p_tx_ring->tls_context_resync_tx(&m_tls_info_tx, m_p_tis, skip_static);
 
 				uint8_t *addr = rec->m_p_buf->p_buffer;
 				uint32_t nr = (seg->seqno - rec->m_seqno + mss - 1) / mss;
@@ -678,13 +703,13 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 				uint32_t lkey = LKEY_USE_DEFAULT;
 
 				if (nr == 0) {
-					m_p_ring->post_nop_fence();
+					m_p_tx_ring->post_nop_fence();
 				}
 				for (uint32_t i = 0; i < nr; ++i) {
 					len = (i == nr - 1) ? (seg->seqno - rec->m_seqno) % mss : mss;
 					if (len == 0)
 						len = mss;
-					m_p_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey, (i == 0));
+					m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey, (i == 0));
 					addr += mss;
 				}
 
