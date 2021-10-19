@@ -230,7 +230,12 @@ bool ring_slave::attach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink *sink)
 				delete p_tmp_rfs;
 			} else {
 				p_rfs = p_tmp_rfs;
-				m_flow_udp_uc_map.set(rfs_key, p_rfs);
+#if defined(DEFINED_NGINX)
+				if (!g_b_add_second_4t_rule)
+#endif
+				{
+					m_flow_udp_uc_map.set(rfs_key, p_rfs);
+				}
 			}
 		}
 	} else if (flow_spec_5t.is_udp_mc()) {
