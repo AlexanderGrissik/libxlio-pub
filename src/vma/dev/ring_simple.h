@@ -118,6 +118,14 @@ public:
 		if (likely(tis != NULL)) {
 			++m_p_ring_stat->n_tx_tls_contexts;
 		}
+
+		/* Do polling to speedup handling of the completion. */
+		int ret;
+		do {
+			uint64_t cq_poll_sn = 0;
+			ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&cq_poll_sn);
+		} while (ret == 1);
+
 		return tis;
 	}
 	xlio_tir *tls_create_tir(bool cached)
@@ -141,12 +149,25 @@ public:
 		if (likely(rc == 0)) {
 			++m_p_ring_stat->n_rx_tls_contexts;
 		}
+
+		/* Do polling to speedup handling of the completion. */
+		int ret;
+		do {
+			uint64_t cq_poll_sn = 0;
+			ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&cq_poll_sn);
+		} while (ret == 1);
+
 		return rc;
 	}
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
 	{
 		auto_unlocker lock(m_lock_ring_tx);
 		m_p_qp_mgr->tls_context_resync_tx(info, tis, skip_static);
+	}
+	void tls_resync_rx(xlio_tir *tir, const xlio_tls_info *info, uint32_t hw_resync_tcp_sn)
+	{
+		auto_unlocker lock(m_lock_ring_tx);
+		m_p_qp_mgr->tls_resync_rx(tir, info, hw_resync_tcp_sn);
 	}
 	void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
 	{
@@ -155,6 +176,12 @@ public:
 			lkey = m_tx_lkey;
 		}
 		m_p_qp_mgr->tls_get_progress_params_rx(tir, buf, lkey);
+		/* Do polling to speedup handling of the completion. */
+		int ret;
+		do {
+			uint64_t cq_poll_sn = 0;
+			ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&cq_poll_sn);
+		} while (ret == 1);
 	}
 	void tls_release_tis(xlio_tis *tis)
 	{

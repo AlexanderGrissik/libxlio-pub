@@ -318,6 +318,8 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_rx_rec_rcvd = 0;
 	m_rx_sm = TLS_RX_SM_HEADER;
 	m_rx_rule = NULL;
+	m_rx_psv_buf = NULL;
+	m_rx_resync_recno = 0;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -733,7 +735,7 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 
 void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len)
 {
-	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	auto iter = m_rx_bufs.begin();
 	mem_buf_desc_t *pdesc = *iter;
 	struct pbuf *p;
 
@@ -769,7 +771,7 @@ void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_
 /* More efficient method to get 16bit value in the buffer list. */
 uint16_t sockinfo_tcp_ops_tls::offset_to_host16(uint32_t offset)
 {
-	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	auto iter = m_rx_bufs.begin();
 	mem_buf_desc_t *pdesc = *iter;
 	struct pbuf *p;
 	uint16_t res = 0;
@@ -927,7 +929,21 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
 
 	m_rx_rec_rcvd += p->tot_len;
 	m_rx_bufs.push_back(pdesc);
-	/* TODO Check for requested resync flow. */
+
+	if (unlikely(pdesc->rx.tls_decrypted == TLS_RX_RESYNC &&
+		     m_rx_psv_buf == NULL)) {
+		m_rx_psv_buf = m_p_sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
+		m_rx_psv_buf->lwip_pbuf.pbuf.payload =
+			(void*)(((uintptr_t)m_rx_psv_buf->p_buffer + 63U) >> 6U << 6U);
+		uint8_t *payload = (uint8_t*)m_rx_psv_buf->lwip_pbuf.pbuf.payload;
+		if (likely(m_rx_psv_buf->sz_buffer >=
+			   (size_t)(payload - m_rx_psv_buf->p_buffer + 64))) {
+			memset(m_rx_psv_buf->lwip_pbuf.pbuf.payload, 0, 64);
+			m_rx_resync_recno = m_next_recno_rx;
+			m_p_tx_ring->tls_get_progress_params_rx(m_p_tir, payload, LKEY_USE_DEFAULT);
+			++m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_resync;
+		}
+	}
 
 check_single_record:
 
@@ -944,7 +960,7 @@ check_single_record:
 
 	/* The first record is complete - push the payload to application. */
 
-	list_iterator_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> iter = m_rx_bufs.begin();
+	auto iter = m_rx_bufs.begin();
 	struct pbuf *pi;
 	struct pbuf *pres = NULL;
 	struct pbuf *ptmp;
@@ -1136,13 +1152,41 @@ err_t sockinfo_tcp_ops_tls::rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct p
 	return sockinfo_tcp::rx_lwip_cb(arg, tpcb, p, err);
 }
 
+uint64_t sockinfo_tcp_ops_tls::find_recno(uint32_t seqno)
+{
+	/*
+	 * TODO Find proper record number for specific seqno.
+	 * Current implementation is a speculation. We need to track TCP seqno
+	 * of TLS records to provide correct record number and verify the the
+	 * seqno points to a TLS header.
+	 */
+	NOT_IN_USE(seqno);
+	return m_rx_resync_recno;
+}
+
 /* static */
 void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
 {
 	sockinfo_tcp_ops_tls *utls = reinterpret_cast<sockinfo_tcp_ops_tls*>(arg);
 
-	/* TODO Handle GET_PSV completion */
-	{
+	if (utls->m_rx_psv_buf != NULL) {
+		/* Resync flow, GET_PSV is completed. */
+		struct xlio_tls_progress_params *params =
+			(struct xlio_tls_progress_params *)utls->m_rx_psv_buf->lwip_pbuf.pbuf.payload;
+		uint32_t resync_seqno = be32toh(params->hw_resync_tcp_sn);
+		int tracker = params->state >> 6U;
+		int auth = (params->state >> 4U) & 0x3U;
+		if (tracker == TLS_TRACKER_TRACKING && auth == TLS_AUTH_NO_OFFLOAD) {
+			uint64_t recno_be64 = htobe64(utls->find_recno(resync_seqno));
+			memcpy(utls->m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
+			utls->m_p_tx_ring->tls_resync_rx(utls->m_p_tir, &utls->m_tls_info_rx, resync_seqno);
+		} else {
+			/* TODO Investigate this case. It isn't described in PRM. */
+		}
+		utls->m_p_tx_ring->mem_buf_desc_return_single_to_owner_tx(utls->m_rx_psv_buf);
+		utls->m_rx_psv_buf = NULL;
+	} else if (utls->m_rx_rule == NULL) {
+		/* Initial setup flow. */
 		flow_tuple_with_local_if tuple = utls->m_p_sock->get_flow_tuple();
 		utls->m_rx_rule = utls->m_p_rx_ring->tls_rx_create_rule(tuple, utls->m_p_tir);
 		if (utls->m_rx_rule == NULL) {

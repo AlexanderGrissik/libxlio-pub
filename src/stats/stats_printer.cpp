@@ -223,7 +223,7 @@ void print_full_stats(socket_stats_t* p_si_stats, mc_grp_info_t* p_mc_grp_info, 
 													p_si_stats->tls_counters.n_tls_rx_records_enc, p_si_stats->tls_counters.n_tls_rx_records_partial, post_fix);
 		b_any_activiy = true;
 	}
-	if (p_si_stats->tls_counters.n_tls_tx_resync || p_si_stats->tls_counters.n_tls_tx_resync_replay) {
+	if (p_si_stats->tls_counters.n_tls_rx_resync) {
 		fprintf(filename, "TLS Rx Resyncs: %u [total]%s\n", p_si_stats->tls_counters.n_tls_rx_resync, post_fix);
 	}
 #endif /* DEFINED_UTLS */

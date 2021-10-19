@@ -128,6 +128,7 @@ public:
 				 uint32_t next_record_tcp_sn,
 				 xlio_comp_cb_t callback, void *callback_arg);
 	void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static);
+	void tls_resync_rx(xlio_tir *tir, const xlio_tls_info *info, uint32_t hw_resync_tcp_sn);
 	void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey);
 	void tls_release_tis(xlio_tis *tis);
 	void tls_release_tir(xlio_tir *tir);

@@ -173,6 +173,12 @@ public:
 		NOT_IN_USE(tis);
 		NOT_IN_USE(skip_static);
 	}
+	virtual void tls_resync_rx(xlio_tir *tir, const xlio_tls_info *info, uint32_t hw_resync_tcp_sn)
+	{
+		NOT_IN_USE(tir);
+		NOT_IN_USE(info);
+		NOT_IN_USE(hw_resync_tcp_sn);
+	}
 	virtual void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
 	{
 		NOT_IN_USE(tir);

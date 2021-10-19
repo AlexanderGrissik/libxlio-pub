@@ -1202,6 +1202,14 @@ int qp_mgr_eth_mlx5::tls_context_setup_rx(
 	return 0;
 }
 
+void qp_mgr_eth_mlx5::tls_resync_rx(
+	xlio_tir *tir, const xlio_tls_info *info,
+	uint32_t hw_resync_tcp_sn)
+{
+	tls_post_static_params_wqe(tir, info, tir->get_tirn(), tir->get_dek_id(),
+				   hw_resync_tcp_sn, false, false);
+}
+
 void qp_mgr_eth_mlx5::tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
 {
 	/* Address must be aligned by 64. */
@@ -1494,6 +1502,7 @@ void qp_mgr_eth_mlx5::tls_release_tir(xlio_tir *tir)
 	/* TODO We don't have to lock ring to destroy DEK object (a garbage collector?). */
 
 	tir->m_released = true;
+	tir->assign_callback(NULL, NULL);
 	if (tir->m_ref == 0) {
 		tir->reset();
 		m_tir_cache.push_back(tir);

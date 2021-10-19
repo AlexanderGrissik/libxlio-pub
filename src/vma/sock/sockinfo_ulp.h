@@ -96,6 +96,8 @@ private:
 	void tls_rx_decrypt(struct pbuf *plist);
 	void tls_rx_encrypt(struct pbuf *plist);
 
+	uint64_t find_recno(uint32_t seqno);
+
 	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 	static void rx_comp_callback(void *arg);
 
@@ -116,6 +118,18 @@ private:
 		TLS_RX_DECRYPTED = 0x1,
 		TLS_RX_RESYNC    = 0x2,
 		TLS_RX_AUTH_FAIL = 0x3,
+	};
+
+	enum tls_record_tracker_state {
+		TLS_TRACKER_START     = 0x0,
+		TLS_TRACKER_TRACKING  = 0x1,
+		TLS_TRACKER_SEARCHING = 0x2,
+	};
+
+	enum tls_auth_state {
+		TLS_AUTH_NO_OFFLOAD     = 0x0,
+		TLS_AUTH_OFFLOAD        = 0x1,
+		TLS_AUTH_AUTHENTICATION = 0x2,
 	};
 
 	ring *m_p_tx_ring;
@@ -157,6 +171,10 @@ private:
 	enum tls_rx_state m_rx_sm;
 	/* TLS flow steering rule. Created from an existing TCP rfs object. */
 	rfs_rule *m_rx_rule;
+	/* Buffer to hold GET_PSV data during resync. */
+	mem_buf_desc_t *m_rx_psv_buf;
+	/* Record number where resync request was received. */
+	uint64_t m_rx_resync_recno;
 };
 
 #endif /* DEFINED_UTLS */
