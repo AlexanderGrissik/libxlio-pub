@@ -214,15 +214,29 @@ namespace vma_spec {
 	const char * to_str(vma_spec_t level);
 }
 
+#define AUTO_ON_OFF_DEF \
+	AUTO = -1, \
+	OFF = 0, \
+	ON = 1
+
+#define OPTIONS_FROM_TO_STR_DEF \
+	mode_t from_str(const char* str, mode_t def_value); \
+	mode_t from_int(const int option, mode_t def_value); \
+	const char * to_str(mode_t option)
+
 namespace option_3 {
 	typedef enum {
-		AUTO = -1,
-		OFF = 0,
-		ON = 1,
+		AUTO_ON_OFF_DEF
 	} mode_t;
-	mode_t from_str(const char* str, mode_t def_value);
-	mode_t from_int(const int option, mode_t def_value);
-	const char * to_str(mode_t option);
+	OPTIONS_FROM_TO_STR_DEF;
+}
+
+namespace option_strq {
+	typedef enum {
+		AUTO_ON_OFF_DEF,
+		REGULAR_RQ = 2
+	} mode_t;
+	OPTIONS_FROM_TO_STR_DEF;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -454,7 +468,8 @@ public:
 #ifdef DEFINED_TSO
 	bool 		enable_tso;
 #endif /* DEFINED_TSO */
-	option_3::mode_t enable_lro;
+	option_3::mode_t	enable_lro;
+	option_strq::mode_t	enable_strq_env;
 	uint32_t	timer_netlink_update_msec;
 
 	//Neigh parameters
@@ -551,7 +566,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TX_NONBLOCKED_EAGAINS                 "XLIO_TX_NONBLOCKED_EAGAINS"
 #define SYS_VAR_TX_PREFETCH_BYTES                     "XLIO_TX_PREFETCH_BYTES"
 
-#define SYS_VAR_STRQ_ENABLE                           "XLIO_STRQ_ENABLE"
+#define SYS_VAR_STRQ                                  "XLIO_STRQ"
 #define SYS_VAR_STRQ_NUM_STRIDES                      "XLIO_STRQ_NUM_STRIDES"
 #define SYS_VAR_STRQ_STRIDE_SIZE_BYTES                "XLIO_STRQ_STRIDE_SIZE_BYTES"
 #define SYS_VAR_STRQ_STRIDES_NUM_BUFS                 "XLIO_STRQ_STRIDES_NUM_BUFS"
@@ -704,9 +719,9 @@ extern mce_sys_var & safe_mce_sys();
 #endif
 
 #if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
-#define MCE_DEFAULT_STRQ_ENABLE                       (true)
+#define MCE_DEFAULT_STRQ                              (option_strq::ON)
 #else
-#define MCE_DEFAULT_STRQ_ENABLE                       (false)
+#define MCE_DEFAULT_STRQ                              (option_strq::OFF)
 #endif
 
 #define MCE_DEFAULT_STRQ_NUM_STRIDES                  (16384)

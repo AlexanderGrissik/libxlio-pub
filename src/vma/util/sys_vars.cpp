@@ -163,22 +163,12 @@ namespace vma_spec {
 
 }
 
-namespace option_3 {
-	static struct {
-		mode_t option;
-		const char *  output_name;
-		const char * input_names[3];
-	} options[] = {
-			{AUTO, "auto", {"auto", NULL, NULL}},
-			{ON, "on", {"on", "enabled", NULL}},
-			{OFF, "off", {"off", "disabled", NULL}}
-	};
-
-	mode_t from_str(const char* str, mode_t def_value)
+namespace option_x {
+	template <typename MODE, typename OPT, size_t N>
+	MODE from_str(const char* str, MODE def_value, const OPT(&options)[N])
 	{
-		size_t total_options = sizeof(options) / sizeof(options[0]);
-		for (size_t i = 0; i < total_options; ++i) {
-			const char ** input_name = options[i].input_names;
+		for (size_t i = 0; i < N; ++i) {
+			const char * const* input_name = options[i].input_names;
 			while (*input_name) {
 				if (strcasecmp(str, *input_name) == 0)
 					return options[i].option;
@@ -189,30 +179,57 @@ namespace option_3 {
 		return def_value;
 	}
 
-	mode_t from_int(const int option, mode_t def_value)
+	template <typename MODE, typename OPT, size_t N>
+	MODE from_int(const int option, MODE def_value, const OPT(&options)[N])
 	{
-		size_t total_options = sizeof(options) / sizeof(options[0]);
-		for (size_t i = 0; i < total_options; ++i) {
-			if ((int)options[i].option == option) {
-					return options[i].option;
-			}
-		}
+		for (size_t i = 0; i < N; ++i)
+			if ((int)options[i].option == option)
+				return options[i].option;
 
 		return def_value;
 	}
 
-	const char * to_str(mode_t option)
+	template <typename MODE, typename OPT, size_t N>
+	const char * to_str(MODE option, const OPT(&options)[N])
 	{
-		size_t total_options = sizeof(options) / sizeof(options[0]);
-		for (size_t i = 0; i < total_options; ++i) {
-			if (options[i].option == option) {
-					return options[i].output_name;
-			}
-		}
+		for (size_t i = 0; i < N; ++i)
+			if (options[i].option == option)
+				return options[i].output_name;
 
 		return NULL;
 	}
+}
 
+#define OPTION_FROM_TO_STR_IMPL \
+	mode_t from_str(const char* str, mode_t def_value) { return option_x::from_str(str, def_value, options); } \
+	mode_t from_int(const int option, mode_t def_value) { return option_x::from_int(option, def_value, options); } \
+	const char * to_str(mode_t option) { return option_x::to_str(option, options); }
+
+#define AUTO_ON_OFF_IMPL \
+	{AUTO, "auto", {"auto", NULL, NULL}}, \
+	{ON, "on", {"on", "enabled", NULL}}, \
+	{OFF, "off", {"off", "disabled", NULL}}
+
+template <typename MODE>
+struct option_t {
+	MODE option;
+	const char *  output_name;
+	const char * input_names[3];
+};
+
+namespace option_3 {
+	static option_t<mode_t> options[] = {
+		AUTO_ON_OFF_IMPL
+	};
+	OPTION_FROM_TO_STR_IMPL
+}
+
+namespace option_strq {
+	static option_t<mode_t> options[] = {
+		AUTO_ON_OFF_IMPL,
+		{REGULAR_RQ, "regular_rq", {"regular_rq", NULL, NULL}}
+	};
+	OPTION_FROM_TO_STR_IMPL
 }
 
 int mce_sys_var::list_to_cpuset(char *cpulist, cpu_set_t *cpu_set)
@@ -674,8 +691,7 @@ void mce_sys_var::get_env_params()
 	rx_cq_drain_rate_nsec 	= MCE_DEFAULT_RX_CQ_DRAIN_RATE;
 	rx_delta_tsc_between_cq_polls = 0;
 
-	enable_striding_rq        = MCE_DEFAULT_STRQ_ENABLE;
-	enable_dpcp_rq            = MCE_DEFAULT_STRQ_ENABLE;
+	enable_strq_env           = MCE_DEFAULT_STRQ;
 	strq_stride_num_per_rwqe  = MCE_DEFAULT_STRQ_NUM_STRIDES;
 	strq_stride_size_bytes    = MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES;
 	strq_strides_num_bufs     = MCE_DEFAULT_STRQ_STRIDES_NUM_BUFS;
@@ -777,12 +793,12 @@ void mce_sys_var::get_env_params()
 	}
 
 #if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
-	if ((env_ptr = getenv(SYS_VAR_STRQ_ENABLE)) != NULL) {
-		int temp = atoi(env_ptr);
-		enable_striding_rq = (temp == 1 ? true : false);
-		enable_dpcp_rq = (enable_striding_rq || (temp == 2 ? true : false));
-	}
+	if ((env_ptr = getenv(SYS_VAR_STRQ)) != NULL)
+		enable_strq_env = option_strq::from_str(env_ptr, MCE_DEFAULT_STRQ);
 #endif
+
+	enable_striding_rq = (enable_strq_env == option_strq::ON || enable_strq_env == option_strq::AUTO);
+	enable_dpcp_rq = (enable_striding_rq || (enable_strq_env == option_strq::REGULAR_RQ));
 
 	if (enable_striding_rq) {
 		rx_num_bufs = MCE_DEFAULT_STRQ_NUM_BUFS;

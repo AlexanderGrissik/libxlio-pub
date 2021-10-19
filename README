@@ -648,11 +648,30 @@ Forces the use of flow tag acceleration for multicast flows where setsockopt(SO_
 set.
 Applicable if there are no other sockets opened for the same flow in system.
 
-XLIO_STRQ_ENABLE
+XLIO_STRQ
 Enable/Disable Striding Receive Queues.
 Each WQE in a Striding RQ may receive several packets.
 Thus, the WQE buffer size is controlled by XLIO_STRQ_NUM_STRIDES x XLIO_STRQ_STRIDE_SIZE_BYTES
-Default: 1 (Enabled)
+Values: on, off
+Default: on (Enabled)
+
+XLIO_STRQ_NUM_STRIDES
+The number of strides in each receive WQE. Must be power of two and in range [512 - 65536]
+Default: 16384
+
+XLIO_STRQ_STRIDE_SIZE_BYTES
+The size, in bytes, of each stride in a receive WQE. Must be power of two and in range [64 - 8192]
+Default: 512
+
+XLIO_STRQ_STRIDES_NUM_BUFS
+The initial number of stride objects in the strides pool. Each received packet is represented by a stride object.
+Each stride object points to a portion of a buffer allocated for a receive WQE.
+When the pool runs out of stride objects it exapnds by another portion of this value.
+Default: 262144
+
+XLIO_STRQ_STRIDES_COMPENSATION_LEVEL
+Number of spare stride objects a CQ holds to allow faster allocation of a stride object when a packet arrives.
+Default: 16384
 
 XLIO_SELECT_POLL
 The duration in micro-seconds (usec) in which to poll the hardware on Rx path before

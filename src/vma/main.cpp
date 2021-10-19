@@ -487,7 +487,7 @@ void print_vma_global_settings()
 	VLOG_PARAM_STRING("UDP 3T rules", safe_mce_sys().udp_3t_rules, MCE_DEFAULT_UDP_3T_RULES, SYS_VAR_UDP_3T_RULES, safe_mce_sys().udp_3t_rules ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("ETH MC L2 only rules", safe_mce_sys().eth_mc_l2_only_rules, MCE_DEFAULT_ETH_MC_L2_ONLY_RULES, SYS_VAR_ETH_MC_L2_ONLY_RULES, safe_mce_sys().eth_mc_l2_only_rules ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Force Flowtag for MC", safe_mce_sys().mc_force_flowtag, MCE_DEFAULT_MC_FORCE_FLOWTAG, SYS_VAR_MC_FORCE_FLOWTAG, safe_mce_sys().mc_force_flowtag ? "Enabled " : "Disabled");
-	VLOG_PARAM_STRING("Striding RQ", safe_mce_sys().enable_striding_rq, MCE_DEFAULT_STRQ_ENABLE, SYS_VAR_STRQ_ENABLE, safe_mce_sys().enable_striding_rq ? "Enabled " : "Disabled");
+	VLOG_STR_PARAM_STRING("Striding RQ", option_strq::to_str(safe_mce_sys().enable_strq_env), option_strq::to_str(MCE_DEFAULT_STRQ), SYS_VAR_STRQ, option_strq::to_str(safe_mce_sys().enable_strq_env));
 	VLOG_PARAM_NUMBER("STRQ Strides per RWQE", safe_mce_sys().strq_stride_num_per_rwqe, MCE_DEFAULT_STRQ_NUM_STRIDES, SYS_VAR_STRQ_NUM_STRIDES);
 	VLOG_PARAM_NUMBER("STRQ Stride Size (Bytes)", safe_mce_sys().strq_stride_size_bytes, MCE_DEFAULT_STRQ_STRIDE_SIZE_BYTES, SYS_VAR_STRQ_STRIDE_SIZE_BYTES);
 	VLOG_PARAM_NUMBER("STRQ Initial Strides Per Ring", safe_mce_sys().strq_strides_num_bufs, MCE_DEFAULT_STRQ_STRIDES_NUM_BUFS, SYS_VAR_STRQ_STRIDES_NUM_BUFS);
