@@ -139,6 +139,8 @@ public:
 	inline int get_if_index() { return m_if_index; }
 
 #ifdef DEFINED_UTLS
+	virtual bool tls_tx_supported(void) { return false; }
+	virtual bool tls_rx_supported(void) { return false; }
 	virtual xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
 	{
 		NOT_IN_USE(info);

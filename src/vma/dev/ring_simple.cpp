@@ -143,6 +143,9 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 #ifdef DEFINED_TSO
 	memset(&m_tso, 0, sizeof(m_tso));
 #endif /* DEFINED_TSO */
+#ifdef DEFINED_UTLS
+	memset(&m_tls, 0, sizeof(m_tls));
+#endif /* DEFINED_UTLS */
 	memset(&m_lro, 0, sizeof(m_lro));
 
 	m_socketxtreme.active = safe_mce_sys().enable_socketxtreme;
@@ -319,6 +322,19 @@ void ring_simple::create_resources()
 			m_lro.timer_supported_periods[2],
 			m_lro.timer_supported_periods[3]);
 	ring_logdbg("ring attributes: m_lro:max_payload_sz = %d", m_lro.max_payload_sz);
+
+#ifdef DEFINED_UTLS
+	{
+		dpcp::adapter_hca_capabilities caps;
+		if (m_p_ib_ctx->get_dpcp_adapter() &&
+				(dpcp::DPCP_OK == m_p_ib_ctx->get_dpcp_adapter()->get_hca_capabilities(caps))) {
+			m_tls.tls_tx = caps.tls_tx;
+			m_tls.tls_rx = caps.tls_rx;
+		}
+		ring_logdbg("ring attributes: m_tls:tls_tx = %d", m_tls.tls_tx);
+		ring_logdbg("ring attributes: m_tls:tls_rx = %d", m_tls.tls_rx);
+	}
+#endif /* DEFINED_UTLS */
 
 	m_flow_tag_enabled = m_p_ib_ctx->get_flow_tag_capability();
 #if defined(DEFINED_NGINX)

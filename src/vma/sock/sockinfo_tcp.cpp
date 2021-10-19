@@ -5259,12 +5259,22 @@ bool sockinfo_tcp::is_utls_supported(int direction)
 	bool result = false;
 
 #ifdef DEFINED_UTLS
+	ring *p_ring = get_tx_ring();
+
 	if (direction & UTLS_MODE_TX) {
-		result = result || safe_mce_sys().enable_utls_tx;
+		result = result || (safe_mce_sys().enable_utls_tx &&
+				    p_ring && p_ring->tls_tx_supported());
 	}
 	if (direction & UTLS_MODE_RX) {
-		result = result || safe_mce_sys().enable_utls_rx;
+		/*
+		 * For RX support we still can use TX ring capabilities,
+		 * because it refers to the same NIC as RX ring.
+		 */
+		result = result || (safe_mce_sys().enable_utls_rx &&
+				    p_ring && p_ring->tls_rx_supported());
 	}
+#else
+	NOT_IN_USE(direction);
 #endif /* DEFINED_UTLS */
 	return result;
 }
