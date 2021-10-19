@@ -494,6 +494,17 @@ bool ring_slave::detach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink* sink)
 	return true;
 }
 
+
+#ifdef DEFINED_UTLS
+rfs_rule* ring_slave::tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir)
+{
+	flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
+				flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
+	rfs *p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
+	return p_rfs->create_rule(tir);
+}
+#endif /* DEFINED_UTLS */
+
 // calling sockinfo callback with RFS bypass
 static inline bool check_rx_packet(sockinfo *si, mem_buf_desc_t* p_rx_wc_buf_desc, void *fd_ready_array)
 {

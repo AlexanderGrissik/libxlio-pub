@@ -207,14 +207,25 @@ void qp_mgr_eth_mlx5_dpcp::down()
 	qp_mgr_eth_mlx5::down();
 }
 
-rfs_rule* qp_mgr_eth_mlx5_dpcp::create_rfs_rule(vma_ibv_flow_attr& attrs)
+rfs_rule* qp_mgr_eth_mlx5_dpcp::create_rfs_rule(vma_ibv_flow_attr& attrs, xlio_tir *tir_ext)
 {
+	// TODO Remove copypaste.
+#ifdef DEFINED_UTLS
+	if (tir_ext && m_p_ib_ctx_handler && m_p_ib_ctx_handler->get_dpcp_adapter()) {
+		std::unique_ptr<rfs_rule_dpcp> new_rule(new rfs_rule_dpcp());
+		attrs.priority = 0; // Override priority with the highest possible
+		if (new_rule->create(attrs, *xlio_tir_to_dpcp_tir(tir_ext), *m_p_ib_ctx_handler->get_dpcp_adapter()))
+			return new_rule.release();
+	} else
+#endif /* DEFINED_UTLS */
 	if (_tir && m_p_ib_ctx_handler && m_p_ib_ctx_handler->get_dpcp_adapter()) {
 		std::unique_ptr<rfs_rule_dpcp> new_rule(new rfs_rule_dpcp());
+		++attrs.priority; // Guarrantee that TLS rule will be with the highest priotiry
 		if (new_rule->create(attrs, *_tir, *m_p_ib_ctx_handler->get_dpcp_adapter()))
 			return new_rule.release();
 	}
 
+	NOT_IN_USE(tir_ext);
 	return nullptr;
 }
 

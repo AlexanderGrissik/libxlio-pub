@@ -76,7 +76,7 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dp
     mp.ip_version = 4U;
     
     dpcp::flow_rule* new_rule = nullptr;
-    dpcp::status status_out = in_adapter.create_flow_rule(3, match_msk, new_rule);
+    dpcp::status status_out = in_adapter.create_flow_rule(attrs.priority, match_msk, new_rule);
 	if (status_out != dpcp::DPCP_OK) {
         rfs_logerr("Failed dpcp_adpater::create_flow_rule(), Type: %u, Priority %" PRIu16 ", Status: %d" , 
             static_cast<unsigned int>(attrs.type), attrs.priority, static_cast<int>(status_out));

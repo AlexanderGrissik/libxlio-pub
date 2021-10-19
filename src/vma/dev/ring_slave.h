@@ -141,6 +141,11 @@ public:
 	virtual bool        attach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink* sink);
 	virtual bool        detach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink* sink);
 
+#ifdef DEFINED_UTLS
+	/* Call this method in an RX ring. */
+	rfs_rule*           tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir);
+#endif /* DEFINED_UTLS */
+
 	inline bool         is_simple() const { return m_type != RING_TAP; }
 	transport_type_t    get_transport_type() const { return m_transport_type; }
 	inline ring_type_t  get_type() const { return m_type; }

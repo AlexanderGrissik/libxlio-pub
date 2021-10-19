@@ -244,9 +244,10 @@ public:
 		return m_dek_id;
 	}
 
+	dpcp::tir *m_p_tir;
+
 private:
 	dpcp::dek *m_p_dek;
-	dpcp::tir *m_p_tir;
 	uint32_t m_tirn;
 	uint32_t m_dek_id;
 };
@@ -1497,6 +1498,11 @@ void qp_mgr_eth_mlx5::tls_release_tir(xlio_tir *tir)
 		tir->reset();
 		m_tir_cache.push_back(tir);
 	}
+}
+
+dpcp::tir* qp_mgr_eth_mlx5::xlio_tir_to_dpcp_tir(xlio_tir *tir)
+{
+	return tir->m_p_tir;
 }
 
 #endif /* DEFINED_UTLS */

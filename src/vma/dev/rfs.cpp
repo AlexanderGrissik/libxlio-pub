@@ -297,11 +297,24 @@ bool rfs::detach_flow(pkt_rcvr_sink *sink)
 	return ret;
 }
 
+#ifdef DEFINED_UTLS
+rfs_rule* rfs::create_rule(xlio_tir* tir)
+{
+	rfs_rule *rule = NULL;
+
+	if (m_attach_flow_data_vector.size() == 1) {
+		attach_flow_data_t* iter = m_attach_flow_data_vector[0];
+		rule = iter->p_qp_mgr->create_rfs_rule(iter->ibv_flow_attr, tir);
+	}
+	return  rule;
+}
+#endif /* DEFINED_UTLS */
+
 bool rfs::create_flow()
 {
 	for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
 		attach_flow_data_t* iter = m_attach_flow_data_vector[i];
-		iter->rfs_flow = iter->p_qp_mgr->create_rfs_rule(iter->ibv_flow_attr);
+		iter->rfs_flow = iter->p_qp_mgr->create_rfs_rule(iter->ibv_flow_attr, NULL);
 		if (!iter->rfs_flow) {
 			rfs_logerr("Create RFS flow failed, Tag: %" PRIu32 ", Flow: %s, Priority: %" PRIu16 ", errno: %d - %m",
 				   m_flow_tag_id, m_flow_tuple.to_str(), iter->ibv_flow_attr.priority, errno); //TODO ALEXR - Add info about QP, spec into log msg

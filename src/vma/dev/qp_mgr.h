@@ -143,7 +143,7 @@ public:
 	static inline bool  is_lib_mlx5(const char* device_name) {return strstr(device_name, "mlx5");}
 	virtual void        dm_release_data(mem_buf_desc_t* buff) { NOT_IN_USE(buff); }
 	
-	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs);
+	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs, xlio_tir *tir_ext);
 
 #ifdef DEFINED_UTLS
 	virtual xlio_tis *tls_context_setup_tx(const xlio_tls_info* info)

@@ -51,7 +51,7 @@ public:
 	virtual void up() override;
 	virtual void down() override;
 
-	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs) override;
+	virtual rfs_rule* create_rfs_rule(vma_ibv_flow_attr& attrs, xlio_tir *tir_ext) override;
 	virtual void modify_qp_to_ready_state() override;
 	virtual void modify_qp_to_error_state() override;
 	virtual void post_recv_buffer(mem_buf_desc_t* p_mem_buf_desc) override;

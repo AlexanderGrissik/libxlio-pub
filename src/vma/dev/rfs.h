@@ -225,6 +225,9 @@ public:
 	 */
 	bool 			attach_flow(pkt_rcvr_sink *sink); // Add a sink. If this is the first sink --> map the sink and attach flow to QP
 	bool 			detach_flow(pkt_rcvr_sink *sink); // Delete a sink. If this is the last sink --> delete it and detach flow from QP
+#ifdef DEFINED_UTLS
+	rfs_rule*		create_rule(xlio_tir* tir); // Create a duplicate rule which points to specific TIR, caller is owner of the rule
+#endif /* DEFINED_UTLS */
 
 	uint32_t 		get_num_of_sinks() const { return m_n_sinks_list_entries; }
 	virtual bool 		rx_dispatch_packet(mem_buf_desc_t* p_rx_wc_buf_desc, void* pv_fd_ready_array) = 0;

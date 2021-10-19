@@ -187,6 +187,7 @@ private:
 		xlio_ti *ti, uint32_t tirn, void *buf, uint32_t lkey);
 
 protected:
+	dpcp::tir* xlio_tir_to_dpcp_tir(xlio_tir *tir);
 	virtual dpcp::tir* create_tir(bool is_tls = false)
 	{
 		NOT_IN_USE(is_tls);

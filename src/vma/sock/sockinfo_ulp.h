@@ -155,6 +155,8 @@ private:
 	uint32_t m_rx_rec_rcvd;
 	/* State machine for TLS RX stream. */
 	enum tls_rx_state m_rx_sm;
+	/* TLS flow steering rule. Created from an existing TCP rfs object. */
+	rfs_rule *m_rx_rule;
 };
 
 #endif /* DEFINED_UTLS */

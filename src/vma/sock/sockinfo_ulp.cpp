@@ -317,6 +317,7 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_rx_rec_len = 0;
 	m_rx_rec_rcvd = 0;
 	m_rx_sm = TLS_RX_SM_HEADER;
+	m_rx_rule = NULL;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -326,6 +327,10 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 		m_p_tis = NULL;
 	}
 	if (m_is_tls_rx) {
+		if (m_rx_rule != NULL) {
+			delete m_rx_rule;
+			m_rx_rule = NULL;
+		}
 		m_p_tx_ring->tls_release_tir(m_p_tir);
 		m_p_tir = NULL;
 		while (!m_rx_bufs.empty()) {
@@ -1137,7 +1142,12 @@ void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
 	sockinfo_tcp_ops_tls *utls = reinterpret_cast<sockinfo_tcp_ops_tls*>(arg);
 
 	/* TODO Handle GET_PSV completion */
-	/* TODO Create TLS rule */
-	NOT_IN_USE(utls);
+	{
+		flow_tuple_with_local_if tuple = utls->m_p_sock->get_flow_tuple();
+		utls->m_rx_rule = utls->m_p_rx_ring->tls_rx_create_rule(tuple, utls->m_p_tir);
+		if (utls->m_rx_rule == NULL) {
+			vlog_printf(VLOG_ERROR, "TLS rule failed for %s\n", tuple.to_str());
+		}
+	}
 }
 #endif /* DEFINED_UTLS */

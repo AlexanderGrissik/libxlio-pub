@@ -899,8 +899,14 @@ int qp_mgr::modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t r
 	return 0;
 }
 
-rfs_rule* qp_mgr::create_rfs_rule(vma_ibv_flow_attr& attrs)
+rfs_rule* qp_mgr::create_rfs_rule(vma_ibv_flow_attr& attrs, xlio_tir *tir_ext)
 {
+	if (unlikely(tir_ext != NULL)) {
+		qp_logwarn("Requested steering rule cannot be created. Consider "
+			"building XLIO with DPCP support or disabling legacy RQ mode.");
+		return nullptr;
+	}
+
 	unique_ptr<rfs_rule_ibv> new_rule(new rfs_rule_ibv());
 	if (new_rule->create(attrs, this->get_ibv_qp()))
 		return new_rule.release();
