@@ -95,6 +95,7 @@ public:
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
 
 private:
+	err_t tls_rx_consume_ready_packets(void);
 	err_t recv(struct pbuf *p);
 	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);
 	uint16_t offset_to_host16(uint32_t offset);

@@ -481,33 +481,21 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		m_next_recno_rx = be64toh(recno_be64);
 		m_is_tls_rx = true;
 
-		m_p_sock->lock_tcp_con_public();
-		if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0) {
-			descq_t descs_rx_ready;
-			err_t ret;
-
-			si_ulp_logdbg("There are pending packets (nr=%u)!", m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count);
-			m_p_sock->sock_pop_descs_rx_ready(&descs_rx_ready);
-			for (size_t i = 0 ; i < descs_rx_ready.size(); i++) {
-				mem_buf_desc_t *temp;
-				temp = descs_rx_ready.front();
-				descs_rx_ready.pop_front();
-				ret = recv(&temp->lwip_pbuf.pbuf);
-				if (unlikely(ERR_OK != ret)) {
-					si_ulp_loginfo("failed to recv pbuf number %d in the list", i);
-				}
-			}
-
-			recno_be64 = htobe64(m_next_recno_rx);
-			memcpy(m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
-		}
-
 		/*
 		 * First, get TIR from the TX ring cache. Create new one in
 		 * the RX ring if the cache is empty.
 		 */
 		m_p_tir = m_p_tx_ring->tls_create_tir(true) ?:
 			  m_p_rx_ring->tls_create_tir(false);
+
+		m_p_sock->lock_tcp_con();
+		if (m_p_tir != NULL) {
+			err_t err = tls_rx_consume_ready_packets();
+			if (unlikely(err != ERR_OK)) {
+				si_ulp_logdbg("Cannot consume ready packets, TLS RX offload will likely fail.");
+			}
+		}
+
 		if (m_p_tir != NULL) {
 			uint32_t next_seqno_rx = m_p_sock->get_next_tcp_seqno_rx();
 			int rc = m_p_tx_ring->tls_context_setup_rx(m_p_tir, &m_tls_info_rx,
@@ -520,14 +508,14 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		if (unlikely(m_p_tir == NULL)) {
 			si_ulp_logdbg("TLS RX offload setup failed");
 			m_is_tls_rx = false;
-			m_p_sock->unlock_tcp_con_public();
+			m_p_sock->unlock_tcp_con();
 			errno = ENOPROTOOPT;
 			return -1;
 		}
 
 		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp_ops_tls::rx_lwip_cb);
 		m_p_sock->m_p_socket_stats->tls_rx_offload = true;
-		m_p_sock->unlock_tcp_con_public();
+		m_p_sock->unlock_tcp_con();
 	}
 
 	m_p_sock->m_p_socket_stats->tls_version = base_info->version;
@@ -536,6 +524,37 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 	si_ulp_logdbg("TLS %s offload is configured, keylen=%u",
 			__optname == TLS_TX ? "TX" : "RX", keylen);
 	return 0;
+}
+
+err_t sockinfo_tcp_ops_tls::tls_rx_consume_ready_packets(void)
+{
+	err_t ret = ERR_OK;
+
+	/* Must be called under socket lock. */
+	/*
+	 * If there are ready packets in the TCP socket's queue, we need to
+	 * process them through TLS SW engine, otherwise, application will
+	 * receive encrypted TLS records with header and TAG after successful
+	 * setsockopt() call.
+	 */
+	if (m_p_sock->m_p_socket_stats->n_rx_ready_pkt_count != 0) {
+		descq_t descs_rx_ready;
+
+		m_p_sock->sock_pop_descs_rx_ready(&descs_rx_ready);
+		for (size_t i = 0 ; i < descs_rx_ready.size(); i++) {
+			mem_buf_desc_t *temp;
+			temp = descs_rx_ready.front();
+			descs_rx_ready.pop_front();
+			ret = recv(&temp->lwip_pbuf.pbuf);
+			if (unlikely(ERR_OK != ret)) {
+				break;
+			}
+		}
+		/* Update initial record number. */
+		uint64_t recno_be64 = htobe64(m_next_recno_rx);
+		memcpy(m_tls_info_rx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
+	}
+	return ret;
 }
 
 ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)

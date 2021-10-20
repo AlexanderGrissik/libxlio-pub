@@ -114,24 +114,6 @@ static bool is_inherited_option(int __level, int __optname)
 	return ret;
 }
 
-/**/
-/** inlining functions can only help if they are implemented before their usage **/
-/**/
-
-inline void sockinfo_tcp::lock_tcp_con()
-{
-	m_tcp_con_lock.lock();
-}
-
-inline void sockinfo_tcp::unlock_tcp_con()
-{
-	if (m_timer_pending) {
-		tcp_timer();
-	}
-
-	m_tcp_con_lock.unlock();
-}
-
 inline void sockinfo_tcp::init_pbuf_custom(mem_buf_desc_t *p_desc)
 {
 	p_desc->lwip_pbuf.pbuf.flags = PBUF_FLAG_IS_CUSTOM;

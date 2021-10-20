@@ -282,9 +282,19 @@ public:
 
 	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
 
-	inline void lock_tcp_con_public(void)   { m_tcp_con_lock.lock(); }
-	inline void unlock_tcp_con_public(void) { m_tcp_con_lock.unlock(); }
 	bool is_utls_supported(int direction);
+
+	inline void lock_tcp_con(void)
+	{
+		m_tcp_con_lock.lock();
+	}
+	inline void unlock_tcp_con(void)
+	{
+		if (m_timer_pending) {
+			tcp_timer();
+		}
+		m_tcp_con_lock.unlock();
+	}
 
 protected:
 	virtual void		lock_rx_q();
@@ -366,8 +376,6 @@ private:
 
 	inline void init_pbuf_custom(mem_buf_desc_t *p_desc);
 
-	inline void lock_tcp_con();
-	inline void unlock_tcp_con();
 	void tcp_timer();
 
 	bool prepare_listen_to_close();
