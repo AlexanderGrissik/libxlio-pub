@@ -403,6 +403,7 @@ int init_child_process_for_nginx()
 	}
 
 	srdr_logdbg("g_worker_index: %d Size is: %d", g_worker_index, g_p_fd_collection_parent_process->get_fd_map_size());
+
 	map_port_list_t map_port_list;
 	list<uint16_t> port_list = {};
 	for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {

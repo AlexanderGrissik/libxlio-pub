@@ -142,8 +142,8 @@ public:
 	 */
 	inline bool set_immediate_os_sample(int fd);
 
-	inline void add_one_sockfd(int fd, socket_fd_api *p_sfd_api_obj);
-	inline void remove_pending_sockfd(socket_fd_api *p_sfd_api_obj);
+	inline void reuse_sockfd(int fd, socket_fd_api *p_sfd_api_obj);
+	inline void destroy_sockfd(socket_fd_api *p_sfd_api_obj);
 	/**
 	 * Get sock_fd_api (sockinfo or pipeinfo) by fd.
 	 */
@@ -204,7 +204,7 @@ private:
 
 	epfd_info_list_t		m_epfd_lst;
 	//Contains fds which are in closing process
-	sock_fd_api_list_t              m_pendig_to_remove_lst;
+	sock_fd_api_list_t              m_pending_to_remove_lst;
 
 	const bool			m_b_sysvar_offloaded_sockets;
 
@@ -271,18 +271,19 @@ inline bool fd_collection::set_immediate_os_sample(int fd)
 	return false;
 }
 
-inline void fd_collection::add_one_sockfd(int fd, socket_fd_api *p_sfd_api_obj)
+inline void fd_collection::reuse_sockfd(int fd, socket_fd_api *p_sfd_api_obj)
 {
 	lock();
-	m_pendig_to_remove_lst.erase(p_sfd_api_obj);
+	m_pending_to_remove_lst.erase(p_sfd_api_obj);
 	m_p_sockfd_map[fd] = p_sfd_api_obj;
 	unlock();
 }
 
-inline void fd_collection::remove_pending_sockfd(socket_fd_api *p_sfd_api_obj)
+inline void fd_collection::destroy_sockfd(socket_fd_api *p_sfd_api_obj)
 {
 	lock();
-	m_pendig_to_remove_lst.erase(p_sfd_api_obj);
+	m_pending_to_remove_lst.erase(p_sfd_api_obj);
+	p_sfd_api_obj->clean_obj();
 	unlock();
 }
 

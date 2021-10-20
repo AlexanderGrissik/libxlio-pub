@@ -588,6 +588,7 @@ bool sockinfo::try_un_offloading() // un-offload the socket if possible
 ////////////////////////////////////////////////////////////////////////////////
 int sockinfo::get_sock_by_L3_L4(in_protocol_t protocol, in_addr_t ip, in_port_t  port)
 {
+	assert(g_p_fd_collection);
 	int map_size = g_p_fd_collection->get_fd_map_size();
 	for (int i = 0; i < map_size; i++) {
 		socket_fd_api* p_sock_i = g_p_fd_collection->get_sockfd(i);

@@ -123,11 +123,6 @@ static int free_libvma_resources()
 		g_p_fd_collection->prepare_to_close();
 	}
 
-	/* Probably this timeout is needless as far as all TCP connections
-	 * are closed with shutdown option (tcp_abort()->tcp_abandon())
-	 */
-	usleep(50000);
-
 	//Handle pending received data, this is critical for proper TCP connection termination
 	if (g_p_net_device_table_mgr) {
 		g_p_net_device_table_mgr->global_ring_drain_and_procces();
@@ -137,7 +132,6 @@ static int free_libvma_resources()
 		igmp_mgr* g_p_igmp_mgr_tmp = g_p_igmp_mgr;
 		g_p_igmp_mgr = NULL;
 		delete g_p_igmp_mgr_tmp;
-		usleep(50000);
 	}
 
 	if (g_p_event_handler_manager)

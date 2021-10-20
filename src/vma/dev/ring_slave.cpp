@@ -553,6 +553,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, void* pv_fd
 		sockinfo* si = NULL;
 		// trying to get sockinfo per flow_tag_id-1 as it was incremented at attach
 		// to allow mapping sockfd=0
+		assert(g_p_fd_collection);
 		si = static_cast <sockinfo* >(g_p_fd_collection->get_sockfd(p_rx_wc_buf_desc->rx.flow_tag_id-1));
 
 		if (likely((si != NULL) && si->flow_tag_enabled())) {

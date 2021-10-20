@@ -709,7 +709,7 @@ int epfd_info::ring_wait_for_notification_and_process_element(uint64_t *p_poll_s
 		int fd = m_ready_cq_fd_q.back();
 		m_ready_cq_fd_q.pop_back();
 		unlock();
-
+		assert(g_p_fd_collection);
 		cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(fd);
 		if (p_cq_ch_info) {
 			ring* p_ready_ring = p_cq_ch_info->get_ring();

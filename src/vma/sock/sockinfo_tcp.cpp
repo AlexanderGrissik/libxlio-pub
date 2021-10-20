@@ -3140,7 +3140,8 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 
 	listen_sock->m_received_syn_num++;
 	listen_sock->m_tcp_con_lock.unlock();
-	g_p_fd_collection->add_one_sockfd(new_sock->m_fd, new_sock);
+	assert(g_p_fd_collection);
+	g_p_fd_collection->reuse_sockfd(new_sock->m_fd, new_sock);
 
 	return ERR_OK;
 }
@@ -4426,6 +4427,7 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool blocking)
 		}
 
 		// poll cq. fd == cq channel fd.
+		assert(g_p_fd_collection);
 		cq_channel_info* p_cq_ch_info = g_p_fd_collection->get_cq_channel_fd(fd);
 		if (p_cq_ch_info) {
 			ring* p_ring = p_cq_ch_info->get_ring();
@@ -5131,10 +5133,18 @@ void tcp_timers_collection::handle_timer_expired(void* user_data)
 	while (iter) {
 		__log_funcall("timer expired on %p", iter->handler);
 		p_sock = dynamic_cast<sockinfo_tcp*>(iter->handler);
-		iter->handler->handle_timer_expired(iter->user_data);
-		if (p_sock && p_sock->is_destroyable_lock()) {
-			g_p_fd_collection->remove_pending_sockfd(p_sock);
-			p_sock->clean_obj();
+
+		/* It is not guaranteed that the same sockinfo object is met once
+		 * in this loop.
+		 * So in case sockinfo object is destroyed other processing
+		 * of the same object mast be ingored.
+		 * TODO Check on is_cleaned() is not safe completely.
+		 */
+		if (!(p_sock && p_sock->is_cleaned())) {
+			iter->handler->handle_timer_expired(iter->user_data);
+			if (p_sock && p_sock->is_destroyable_lock()) {
+				g_p_fd_collection->destroy_sockfd(p_sock);
+			}
 		}
 		iter = iter->next;
 	}

@@ -113,8 +113,8 @@ fd_collection::~fd_collection()
 	delete [] m_p_tap_map;
 	m_p_tap_map = NULL;
 
-	// TODO: check if NOT empty - apparently one of them contains 1 element according to debug printout from ~vma_list_t
 	m_epfd_lst.clear_without_cleanup();
+	m_pending_to_remove_lst.clear_without_cleanup();
 }
 
 //Triggers connection close of all handled fds.
@@ -147,8 +147,11 @@ void fd_collection::clear()
 
 	lock();
 
-	while (!m_pendig_to_remove_lst.empty()) {
-		socket_fd_api *p_sfd_api = m_pendig_to_remove_lst.get_and_pop_back();
+	/* internal thread should be already dead and
+	 * these sockets can not be deleted through the it.
+	 */
+	while (!m_pending_to_remove_lst.empty()) {
+		socket_fd_api *p_sfd_api = m_pending_to_remove_lst.get_and_pop_back();
 		p_sfd_api->clean_obj();
 	}
 
@@ -163,10 +166,7 @@ void fd_collection::clear()
 					p_sfd_api->clean_obj();
 				}
 			}
-			/**** Problem here - if one sockinfo is in a blocked call rx()/tx() then this will block too!!!
-			 * also - statistics_print() and destructor_helper() should not be called in two lines above, because they are called from the dtor
-			 *delete m_p_sockfd_map[fd];
-			 */
+
 			m_p_sockfd_map[fd] = NULL;
 			fdcoll_logdbg("destroyed fd=%d", fd);
 		}
@@ -547,7 +547,7 @@ int fd_collection::del_sockfd(int fd, bool b_cleanup /*=false*/)
 			//This will be done from fd_col timer handler.
 			if (m_p_sockfd_map[fd] == p_sfd_api) {
 				m_p_sockfd_map[fd] = NULL;
-				m_pendig_to_remove_lst.push_front(p_sfd_api);
+				m_pending_to_remove_lst.push_front(p_sfd_api);
 			}
 
 			unlock();
@@ -649,7 +649,7 @@ bool fd_collection::pop_socket_pool(int& fd, bool& add_to_udp_pool, int type)
 		fd = sockfd->get_fd();
 		if (m_p_sockfd_map[fd] == NULL) {
 			m_p_sockfd_map[fd] = sockfd;
-			m_pendig_to_remove_lst.erase(sockfd);
+			m_pending_to_remove_lst.erase(sockfd);
 		}
 		sockfd->prepare_to_close_socket_pool(false);
 		m_socket_pool.pop();
