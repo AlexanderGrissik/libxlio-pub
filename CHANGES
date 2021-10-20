@@ -1,3 +1,13 @@
+Version 1.1.2-1:
+Date + Time 2021-10-20
+=============================================================
+Added:
+        - RM #2355757 Striding-RQ support
+        - RM #2621445 Move knowledge of DevX out of sockets
+        - RM #2436876 Add C++11 Support requirement to a compiler
+Fixed:
+        - RM #2822230 Suppress unwanted error when cq fd is removed
+
 Version 1.1.1-1:
 Date + Time 2021-10-11
 =============================================================
