@@ -79,9 +79,12 @@ enum {
 
 struct xlio_tls_info {
 	uint32_t key_len;
-	int tls_version;
-	int tls_cipher;
-	unsigned char iv[TLS_AES_GCM_IV_LEN];
+	uint16_t tls_version;
+	uint16_t tls_cipher;
+	union {
+		unsigned char iv[TLS_AES_GCM_IV_LEN];
+		uint64_t iv64;
+	};
 	unsigned char key[TLS_AES_GCM_KEY_MAX];
 	unsigned char salt[TLS_AES_GCM_SALT_LEN];
 	unsigned char rec_seq[TLS_AES_GCM_REC_SEQ_LEN];

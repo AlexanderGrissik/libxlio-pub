@@ -652,6 +652,8 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 				goto done;
 			}
 			++m_next_recno_tx;
+			/* Prepare unique explicit_nonce for the next TLS1.2 record. */
+			++m_tls_info_tx.iv64;
 
 			/* Control sendmsg() support */
 			if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr != NULL) {
