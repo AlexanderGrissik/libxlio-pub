@@ -409,6 +409,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 			errno = ENOPROTOOPT;
 			return -1;
 		}
+		if (unlikely(m_p_tx_ring->get_ctx(0) != m_p_rx_ring->get_ctx(0))) {
+			si_ulp_logdbg("TLS_RX doesn't support scenario where TX "
+				      "and RX rings are on different IB contexts.");
+			errno = ENOPROTOOPT;
+			return -1;
+		}
 	}
 
 	switch (base_info->cipher_type) {
