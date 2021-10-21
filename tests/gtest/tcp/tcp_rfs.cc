@@ -73,6 +73,8 @@ TEST_F(tcp_rfs, single_rule_send) {
 		rc = send(fd, (const void*)buf, sizeof(buf), 0);
 		EXPECT_GE(rc, 0);
 
+		peer_wait(fd);
+
 		close(fd);
 
 		/* This exit is very important, otherwise the fork
@@ -87,7 +89,7 @@ TEST_F(tcp_rfs, single_rule_send) {
 		memset(buf, 0, sizeof(buf));
 
 		l_fd = tcp_base::sock_create();
-		ASSERT_LE(0, fd);
+		ASSERT_LE(0, l_fd);
 
 		rc = bind(l_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 		ASSERT_EQ(0, rc);
