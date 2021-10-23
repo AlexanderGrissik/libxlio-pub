@@ -323,6 +323,7 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 	m_rx_rec_len = 0;
 	m_rx_rec_rcvd = 0;
 	m_rx_sm = TLS_RX_SM_HEADER;
+	m_refused_data = NULL;
 	m_rx_rule = NULL;
 	m_rx_psv_buf = NULL;
 	m_rx_resync_recno = 0;
@@ -344,6 +345,13 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 		while (!m_rx_bufs.empty()) {
 			mem_buf_desc_t *pdesc = m_rx_bufs.get_and_pop_front();
 			pbuf_free(&pdesc->lwip_pbuf.pbuf);
+		}
+		/* TODO We can free list of pbufs in more efficient way. */
+		while (m_refused_data != NULL) {
+			struct pbuf *p = m_refused_data;
+			m_refused_data = p->next;
+			p->next = NULL;
+			m_p_sock->tcp_tx_mem_buf_free(reinterpret_cast<mem_buf_desc_t*>(p));
 		}
 	}
 }
@@ -1015,6 +1023,19 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
 		}
 	}
 
+	if (unlikely(m_refused_data != NULL)) {
+		err = sockinfo_tcp::rx_lwip_cb((void*)m_p_sock, m_p_sock->get_pcb(), m_refused_data, ERR_OK);
+		if (unlikely(err != ERR_OK)) {
+			/*
+			 * We queue all incoming packets and never return an error.
+			 * If application stops reading the data we expect to queue
+			 * not more than the TCP receive window.
+			 */
+			return ERR_OK;
+		}
+		m_refused_data = NULL;
+	}
+
 check_single_record:
 
 	if (m_rx_sm == TLS_RX_SM_HEADER && m_rx_rec_rcvd >= TLS_RECORD_HDR_LEN) {
@@ -1147,19 +1168,19 @@ next_buffer:
 	/* Statistics */
 	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records += 1U;
 	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_bytes += pres->tot_len;
+	/* Adjust TCP counters with received TLS header/trailer. */
+	m_p_sock->m_p_socket_stats->counters.n_rx_bytes += TLS_RECORD_OVERHEAD; // XXX TLS 1.3 has different overhead
 
 	++m_next_recno_rx;
+
 	tcp_recved(m_p_sock->get_pcb(), TLS_RECORD_OVERHEAD); // XXX TLS 1.3 has different overhead
 	err = sockinfo_tcp::rx_lwip_cb((void*)m_p_sock, m_p_sock->get_pcb(), pres, ERR_OK);
-	(void)err; // TODO Handle return code
+	if (err != ERR_OK) {
+		/* Underlying buffers are held by 'pres', we can free them below. */
+		m_refused_data = pres;
+	}
 
 	/* Free received underlying buffers. */
-
-	/* TODO We can optimize the loop using the fact, that there can be 2 scenarios:
-	 * 1. All buffers must be freed since they don't hold other records;
-	 * 2. Only the last buffer contains other records.
-	 * Using m_rx_rec_len, m_rx_rec_rcvd and m_rx_bufs.back()->tot_len we can avoid all the math in the loop.
-	 */
 
 	while (m_rx_rec_len > 0) {
 		if (unlikely(m_rx_bufs.empty())) {
@@ -1204,7 +1225,7 @@ next_buffer:
 	}
 
 	m_rx_sm = TLS_RX_SM_HEADER;
-	if (pdesc != NULL) {
+	if (pdesc != NULL && err == ERR_OK) {
 		/* Check for other complete records in the last buffer. */
 		goto check_single_record;
 	}

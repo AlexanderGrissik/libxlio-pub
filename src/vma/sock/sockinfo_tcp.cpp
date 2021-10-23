@@ -4802,8 +4802,27 @@ mem_buf_desc_t* sockinfo_tcp::tcp_tx_mem_buf_alloc(pbuf_type type)
 		desc = p_dst->get_buffer(type, NULL);
 		m_tcp_con_lock.unlock();
 	}
-
 	return desc;
+}
+
+void sockinfo_tcp::tcp_tx_mem_buf_free(mem_buf_desc_t *p_desc)
+{
+	dst_entry_tcp *p_dst = (dst_entry_tcp *)(m_p_connected_dst_entry);
+
+	if (likely(p_dst)) {
+		p_dst->put_buffer(p_desc);
+	} else {
+		//potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
+		if (likely(p_desc->lwip_pbuf_get_ref_count()))
+			p_desc->lwip_pbuf_dec_ref_count();
+		else
+			__log_err("ref count of %p is already zero, double free??", p_desc);
+
+		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+			p_desc->p_next_desc = NULL;
+			buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf.pbuf);
+		}
+	}
 }
 
 struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
@@ -4853,23 +4872,9 @@ void sockinfo_tcp::tcp_rx_pbuf_free(struct pbuf *p_buff)
 void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
-	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 
-	if (likely(p_dst)) {
-		p_dst->put_buffer((mem_buf_desc_t *)p_buff);
-	} else if (p_buff){
-		mem_buf_desc_t * p_desc = (mem_buf_desc_t *)p_buff;
-
-		//potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
-		if (likely(p_desc->lwip_pbuf_get_ref_count()))
-			p_desc->lwip_pbuf_dec_ref_count();
-		else
-			__log_err("ref count of %p is already zero, double free??", p_desc);
-
-		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
-			p_desc->p_next_desc = NULL;
-			buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
-		}
+	if (likely(p_buff)) {
+		p_si_tcp->tcp_tx_mem_buf_free(reinterpret_cast<mem_buf_desc_t*>(p_buff));
 	}
 }
 

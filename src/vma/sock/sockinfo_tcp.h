@@ -194,6 +194,7 @@ public:
 	void abort_connection();
 
 	mem_buf_desc_t *tcp_tx_mem_buf_alloc(pbuf_type type);
+	void tcp_tx_mem_buf_free(mem_buf_desc_t *p_desc);
 	static struct pbuf * tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buf);
 	static void tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff);
 	static void tcp_rx_pbuf_free(struct pbuf *p_buff);
