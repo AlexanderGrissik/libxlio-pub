@@ -501,7 +501,7 @@ rfs_rule* ring_slave::tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir
 	flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
 				flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
 	rfs *p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
-	return p_rfs->create_rule(tir);
+	return p_rfs->create_rule(tir, flow_spec_5t);
 }
 #endif /* DEFINED_UTLS */
 

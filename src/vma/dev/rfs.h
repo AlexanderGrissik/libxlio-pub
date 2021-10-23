@@ -47,6 +47,16 @@
 class qp_mgr;
 class pkt_rcvr_sink;
 
+/*
+ * Priority description:
+ *  2 - 3T rules
+ *  1 - 5T/4T rules
+ *  0 - 5T TLS rules
+ *
+ * TLS rules must take over from TCP rules, but we want to keep the TCP rules in
+ * shadow for socket reuse feature.
+ */
+
 /* ETHERNET
  */
 typedef struct attach_flow_data_eth_ipv4_tcp_udp_t {
@@ -64,7 +74,7 @@ typedef struct attach_flow_data_eth_ipv4_tcp_udp_t {
 			attr.size = sizeof(struct ibv_flow_attr_eth_ipv4_tcp_udp) - sizeof(flow_tag);			
 			attr.num_of_specs = 3;
 			attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-			attr.priority = 1; // almost highest priority, 0 is used for 5-tuple later
+			attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
 			attr.port = port;
 		}
 		inline void add_flow_tag_spec(void) {
@@ -93,7 +103,7 @@ typedef struct attach_flow_data_ib_v2_t {
 			attr.size = sizeof(struct ibv_flow_attr_ib_v2);
 			attr.num_of_specs = 2;
 			attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-			attr.priority = 1; // almost highest priority, 0 is used for 5-tuple later
+			attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
 			attr.port = port;
 		}
 	} ibv_flow_attr;
@@ -117,7 +127,7 @@ typedef struct attach_flow_data_ib_v1_t {
 			attr.size = sizeof(struct ibv_flow_attr_ib_v1);
 			attr.num_of_specs = 1;
 			attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-			attr.priority = 1; // almost highest priority, 0 is used for 5-tuple later
+			attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
 			attr.port = port;
 		}
 	} ibv_flow_attr;
@@ -145,7 +155,7 @@ typedef struct attach_flow_data_ib_ipv4_tcp_udp_v2_t {
 			attr.size = sizeof(struct ibv_flow_attr_ib_ipv4_tcp_udp_v2);
 			attr.num_of_specs = 2;
 			attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-			attr.priority = 1; // almost highest priority, 0 is used for 5-tuple later
+			attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
 			attr.port = port;
 		}
 	} ibv_flow_attr;
@@ -171,7 +181,7 @@ typedef struct attach_flow_data_ib_ipv4_tcp_udp_v1_t {
 			attr.size = sizeof(struct ibv_flow_attr_ib_ipv4_tcp_udp_v1);
 			attr.num_of_specs = 3;
 			attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-			attr.priority = 1; // almost highest priority, 0 is used for 5-tuple later
+			attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
 			attr.port = port;
 		}
 	} ibv_flow_attr;
@@ -226,7 +236,7 @@ public:
 	bool 			attach_flow(pkt_rcvr_sink *sink); // Add a sink. If this is the first sink --> map the sink and attach flow to QP
 	bool 			detach_flow(pkt_rcvr_sink *sink); // Delete a sink. If this is the last sink --> delete it and detach flow from QP
 #ifdef DEFINED_UTLS
-	rfs_rule*		create_rule(xlio_tir* tir); // Create a duplicate rule which points to specific TIR, caller is owner of the rule
+	rfs_rule*		create_rule(xlio_tir* tir, flow_tuple &flow_spec); // Create a duplicate rule which points to specific TIR, caller is owner of the rule
 #endif /* DEFINED_UTLS */
 
 	uint32_t 		get_num_of_sinks() const { return m_n_sinks_list_entries; }

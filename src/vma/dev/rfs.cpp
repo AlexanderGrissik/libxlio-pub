@@ -298,15 +298,33 @@ bool rfs::detach_flow(pkt_rcvr_sink *sink)
 }
 
 #ifdef DEFINED_UTLS
-rfs_rule* rfs::create_rule(xlio_tir* tir)
+rfs_rule* rfs::create_rule(xlio_tir* tir, flow_tuple &flow_spec)
 {
 	rfs_rule *rule = NULL;
 
 	if (m_attach_flow_data_vector.size() == 1) {
 		attach_flow_data_t* iter = m_attach_flow_data_vector[0];
-		rule = iter->p_qp_mgr->create_rfs_rule(iter->ibv_flow_attr, tir);
+		attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp *p_attr =
+			reinterpret_cast<attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp*>(&iter->ibv_flow_attr);
+
+		if (unlikely(p_attr->eth.type != VMA_IBV_FLOW_SPEC_ETH)) {
+			// We support only ETH rules for now
+			return NULL;
+		}
+
+		attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp flow_attr(*p_attr);
+		if (!m_flow_tuple.is_5_tuple()) {
+			// We need the most specific 5T rule
+			flow_attr.ipv4.val.src_ip = flow_spec.get_src_ip();
+			flow_attr.ipv4.mask.src_ip = FS_MASK_ON_32;
+			flow_attr.tcp_udp.val.src_port = flow_spec.get_src_port();
+			flow_attr.tcp_udp.mask.src_port = FS_MASK_ON_16;
+		}
+		// The highest priority to override TCP rule
+		flow_attr.attr.priority = 0;
+		rule = iter->p_qp_mgr->create_rfs_rule(flow_attr.attr, tir);
 	}
-	return  rule;
+	return rule;
 }
 #endif /* DEFINED_UTLS */
 
