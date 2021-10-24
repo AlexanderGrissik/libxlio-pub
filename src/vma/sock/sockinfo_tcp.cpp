@@ -2009,7 +2009,12 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 
 	while (m_rx_ready_byte_count < total_iov_sz) {
 		if (unlikely(g_b_exit || !is_rtr() || (rx_wait_lockless(poll_count, block_this_run) < 0))) {
-			return handle_rx_error(block_this_run);
+			int ret = handle_rx_error(block_this_run);
+			if (__msg && ret == 0) {
+				/* We don't return a control message in this case. */
+				__msg->msg_controllen = 0;
+			}
+			return ret;
 		}
 	}
 
