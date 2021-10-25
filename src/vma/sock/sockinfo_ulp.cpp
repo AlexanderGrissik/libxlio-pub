@@ -815,34 +815,26 @@ void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_
 {
 	auto iter = m_rx_bufs.begin();
 	mem_buf_desc_t *pdesc = *iter;
-	struct pbuf *p;
 
 	/* Skip leading buffers */
-	while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.tot_len <= offset) {
-		offset -= pdesc->lwip_pbuf.pbuf.tot_len;
-		pdesc = *(++iter);
-	}
-	p = &pdesc->lwip_pbuf.pbuf; // handles NULL pointer
-	while (p != NULL && p->len <= offset) {
-		offset -= p->len;
-		p = p->next;
+	if (unlikely(pdesc->lwip_pbuf.pbuf.len <= offset)) {
+		while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.len <= offset) {
+			offset -= pdesc->lwip_pbuf.pbuf.len;
+			pdesc = *(++iter);
+		}
 	}
 
 	/* Copy */
-	while (p != NULL && len > 0) {
-		uint32_t buflen = std::min<uint32_t>(p->len - offset, len);
+	while (likely(pdesc != NULL) && len > 0) {
+		uint32_t buflen =
+			std::min<uint32_t>(pdesc->lwip_pbuf.pbuf.len - offset, len);
 
-		memcpy(dst, (uint8_t*)p->payload + offset, buflen);
+		memcpy(dst, (uint8_t*)pdesc->lwip_pbuf.pbuf.payload + offset, buflen);
 		len -= buflen;
 		dst += buflen;
 		offset = 0;
-		p = p->next;
-		if (p == NULL) {
-			pdesc = *(++iter);
-			if (pdesc != NULL) {
-				p = &pdesc->lwip_pbuf.pbuf;
-			}
-		}
+
+		pdesc = *(++iter);
 	}
 }
 
@@ -851,36 +843,27 @@ uint16_t sockinfo_tcp_ops_tls::offset_to_host16(uint32_t offset)
 {
 	auto iter = m_rx_bufs.begin();
 	mem_buf_desc_t *pdesc = *iter;
-	struct pbuf *p;
 	uint16_t res = 0;
 
 	/* Skip leading buffers */
-	while (likely(pdesc != NULL) && pdesc->lwip_pbuf.pbuf.tot_len <= offset) {
-		offset -= pdesc->lwip_pbuf.pbuf.tot_len;
-		pdesc = *(++iter);
-	}
-	p = &pdesc->lwip_pbuf.pbuf; // handles NULL pointer
-	while (likely(p != NULL) && p->len <= offset) {
-		offset -= p->len;
-		p = p->next;
+	if (unlikely(pdesc->lwip_pbuf.pbuf.len <= offset)) {
+		while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.len <= offset) {
+			offset -= pdesc->lwip_pbuf.pbuf.len;
+			pdesc = *(++iter);
+		}
 	}
 
-	if (likely(p != NULL)) {
-		res = (uint32_t)((uint8_t*)p->payload)[offset] << 8U;
+	if (likely(pdesc != NULL)) {
+		res = (uint16_t)((uint8_t*)pdesc->lwip_pbuf.pbuf.payload)[offset] << 8U;
 		++offset;
-		if (unlikely(offset >= p->len)) {
+		if (unlikely(offset >= pdesc->lwip_pbuf.pbuf.len)) {
 			offset = 0;
-			p = p->next;
-			if (p == NULL) {
-				pdesc = *(++iter);
-				p = &pdesc->lwip_pbuf.pbuf;
+			pdesc = *(++iter);
+			if (unlikely(pdesc == NULL)) {
+				return 0;
 			}
 		}
-		if (likely(p != NULL)) {
-			res |= (uint32_t)((uint8_t*)p->payload)[offset];
-		} else {
-			res = 0;
-		}
+		res |= (uint16_t)((uint8_t*)pdesc->lwip_pbuf.pbuf.payload)[offset];
 	}
 	return res;
 }
@@ -998,7 +981,7 @@ void sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
 
 err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
 {
-	mem_buf_desc_t *pdesc = (mem_buf_desc_t*)p;
+	bool resync_requested = false;
 	err_t err;
 
 	if (m_rx_bufs.empty()) {
@@ -1006,10 +989,20 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
 	}
 
 	m_rx_rec_rcvd += p->tot_len;
-	m_rx_bufs.push_back(pdesc);
+	while (p != NULL) {
+		mem_buf_desc_t *pdesc = reinterpret_cast<mem_buf_desc_t*>(p);
+		struct pbuf *ptmp = p->next;
 
-	if (unlikely(pdesc->rx.tls_decrypted == TLS_RX_RESYNC &&
-		     m_rx_psv_buf == NULL)) {
+		if (unlikely(pdesc->rx.tls_decrypted == TLS_RX_RESYNC)) {
+			resync_requested = true;
+		}
+		p->tot_len = p->len;
+		p->next = NULL;
+		m_rx_bufs.push_back(pdesc);
+		p = ptmp;
+	}
+
+	if (unlikely(resync_requested && m_rx_psv_buf == NULL)) {
 		m_rx_psv_buf = m_p_sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
 		m_rx_psv_buf->lwip_pbuf.pbuf.payload =
 			(void*)(((uintptr_t)m_rx_psv_buf->p_buffer + 63U) >> 6U << 6U);
@@ -1062,19 +1055,20 @@ check_single_record:
 	uint8_t tls_type;
 	uint8_t tls_decrypted = 0;
 
-	pdesc = *iter;
-	pi = &pdesc->lwip_pbuf.pbuf;
+	mem_buf_desc_t *pdesc = *iter;
 	/* TODO For TLS 1.3 the type field is in the last or 1 but last buffer.
 	 * We can find it going from the tail. This will work for the case
 	 * if the buffer is decrypted. Otherwise, we will need to find
 	 * the type after SW decryption.
 	 */
-	tls_type = ((uint8_t*)pi->payload)[m_rx_offset]; // XXX for TLS 1.3 this is different value!
+	tls_type = ((uint8_t*)pdesc->lwip_pbuf.pbuf.payload)[m_rx_offset]; // XXX for TLS 1.3 this is different value!
 	while (remain > 0) {
 		if (unlikely(pdesc == NULL)) {
 			/* TODO Handle this situation, buffers chain is broken. */
 			break;
 		}
+
+		pi = &pdesc->lwip_pbuf.pbuf;
 		if (pi->len <= offset) {
 			offset -= pi->len;
 			goto next_buffer;
@@ -1110,11 +1104,7 @@ check_single_record:
 		offset = 0;
 
 next_buffer:
-		pi = pi->next;
-		if (pi == NULL) {
-			pdesc = *(++iter);
-			pi = &pdesc->lwip_pbuf.pbuf;
-		}
+		pdesc = *(++iter);
 	}
 
 	assert(pres->tot_len == (m_rx_rec_len - TLS_RECORD_OVERHEAD));
@@ -1188,41 +1178,22 @@ next_buffer:
 			pdesc = NULL;
 			break;
 		}
-		pdesc = m_rx_bufs.get_and_pop_front();
-		if (pdesc->lwip_pbuf.pbuf.tot_len > (m_rx_rec_len + m_rx_offset)) {
+		pdesc = m_rx_bufs.front();
+		if (pdesc->lwip_pbuf.pbuf.len > (m_rx_rec_len + m_rx_offset)) {
 			break;
 		}
-		m_rx_rec_len -= pdesc->lwip_pbuf.pbuf.tot_len - m_rx_offset;
+		m_rx_bufs.pop_front();
+		m_rx_rec_len -= pdesc->lwip_pbuf.pbuf.len - m_rx_offset;
+		m_rx_rec_rcvd -= pdesc->lwip_pbuf.pbuf.len - m_rx_offset;
 		m_rx_offset = 0;
+		/*
+		 * pbuf_free() is slow when it actually frees a buffer, however,
+		 * we expect to only reduce ref counter with this call.
+		 */
 		pbuf_free(&pdesc->lwip_pbuf.pbuf);
 	}
-	if (pdesc && m_rx_rec_len > 0) {
-		ptmp = NULL;
-		for (pi = &pdesc->lwip_pbuf.pbuf; pi != NULL; pi = pi->next) {
-			if (pi->len > m_rx_rec_len + m_rx_offset) {
-				break;
-			}
-			m_rx_rec_len -= pi->len - m_rx_offset;
-			m_rx_offset = 0;
-			ptmp = pi;
-		}
-		assert(pi != NULL);
-		if (ptmp != NULL) {
-			/* Split pbuf chain into two and free the left part. */
-			assert(ptmp->next == pi);
-			ptmp->next = NULL;
-			pbuf_free(&pdesc->lwip_pbuf.pbuf);
-			pdesc = (mem_buf_desc_t*)pi;
-		}
-
-		m_rx_offset += m_rx_rec_len;
-		m_rx_rec_rcvd = pdesc->lwip_pbuf.pbuf.tot_len - m_rx_offset;
-		assert(m_rx_bufs.empty());
-		m_rx_bufs.push_front(pdesc);
-	} else {
-		m_rx_offset = 0;
-		m_rx_rec_rcvd = 0;
-	}
+	m_rx_offset += m_rx_rec_len;
+	m_rx_rec_rcvd -= m_rx_rec_len;
 
 	m_rx_sm = TLS_RX_SM_HEADER;
 	if (pdesc != NULL && err == ERR_OK) {
