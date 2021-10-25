@@ -1,3 +1,11 @@
+Version 1.1.3-1:
+Date + Time 2021-10-25
+=============================================================
+Fixed:
+        - RM #2821060 Fix for NGINX quic with non-power of 2 workers
+        - RM #2824476 Fix for unsafe m_pendig_to_remove_lst processing
+        - RM #2436876 Remove C++ Technical Report 1 (TR1) usage
+
 Version 1.1.2-1:
 Date + Time 2021-10-20
 =============================================================
