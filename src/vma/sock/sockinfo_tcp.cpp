@@ -183,10 +183,26 @@ inline void sockinfo_tcp::reuse_buffer(mem_buf_desc_t *buff)
 {
 	/* Special case when ZC buffers are used in RX path. */
 	if (buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) {
-		/* TODO Accumulating ZC buffers in the dst_entry cache would
-		 * be more efficient. */
-		g_buffer_pool_zc->put_buffers_thread_safe(buff);
-		return;
+		dst_entry_tcp *p_dst = (dst_entry_tcp *)(m_p_connected_dst_entry);
+		mem_buf_desc_t *underlying =
+			reinterpret_cast<mem_buf_desc_t*>(buff->lwip_pbuf.pbuf.desc.mdesc);
+
+		buff->lwip_pbuf.pbuf.desc.mdesc = NULL;
+		if (likely(p_dst)) {
+			p_dst->put_zc_buffer(buff);
+		} else {
+			g_buffer_pool_zc->put_buffers_thread_safe(buff);
+		}
+
+		if (underlying->lwip_pbuf.pbuf.ref > 1) {
+			--underlying->lwip_pbuf.pbuf.ref;
+			return;
+		}
+		/* Continue and release the underlying buffer. */
+		buff = underlying;
+		buff->lwip_pbuf.pbuf.ref = 1;
+		buff->lwip_pbuf.pbuf.next = NULL;
+		buff->p_next_desc = NULL;
 	}
 
 	set_rx_reuse_pending(false);
@@ -332,6 +348,9 @@ sockinfo_tcp::~sockinfo_tcp()
 
 	delete m_ops;
 	m_ops = NULL;
+	// Return buffers released in the TLS layer destructor
+	m_rx_reuse_buf_postponed = m_rx_reuse_buff.n_buff_num > 0;
+	return_reuse_buffers_postponed();
 
 	destructor_helper();
 
@@ -4805,24 +4824,9 @@ mem_buf_desc_t* sockinfo_tcp::tcp_tx_mem_buf_alloc(pbuf_type type)
 	return desc;
 }
 
-void sockinfo_tcp::tcp_tx_mem_buf_free(mem_buf_desc_t *p_desc)
+void sockinfo_tcp::tcp_rx_mem_buf_free(mem_buf_desc_t *p_desc)
 {
-	dst_entry_tcp *p_dst = (dst_entry_tcp *)(m_p_connected_dst_entry);
-
-	if (likely(p_dst)) {
-		p_dst->put_buffer(p_desc);
-	} else {
-		//potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
-		if (likely(p_desc->lwip_pbuf_get_ref_count()))
-			p_desc->lwip_pbuf_dec_ref_count();
-		else
-			__log_err("ref count of %p is already zero, double free??", p_desc);
-
-		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
-			p_desc->p_next_desc = NULL;
-			buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf.pbuf);
-		}
-	}
+	reuse_buffer(p_desc);
 }
 
 struct pbuf * sockinfo_tcp::tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
@@ -4872,9 +4876,23 @@ void sockinfo_tcp::tcp_rx_pbuf_free(struct pbuf *p_buff)
 void sockinfo_tcp::tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff)
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb*)p_conn)->my_container);
+	dst_entry_tcp *p_dst = (dst_entry_tcp *)(p_si_tcp->m_p_connected_dst_entry);
 
-	if (likely(p_buff)) {
-		p_si_tcp->tcp_tx_mem_buf_free(reinterpret_cast<mem_buf_desc_t*>(p_buff));
+	if (likely(p_dst)) {
+		p_dst->put_buffer((mem_buf_desc_t *)p_buff);
+	} else if (p_buff){
+		mem_buf_desc_t * p_desc = (mem_buf_desc_t *)p_buff;
+
+		//potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
+		if (likely(p_desc->lwip_pbuf_get_ref_count()))
+			p_desc->lwip_pbuf_dec_ref_count();
+		else
+			__log_err("ref count of %p is already zero, double free??", p_desc);
+
+		if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+			p_desc->p_next_desc = NULL;
+			buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
+		}
 	}
 }
 

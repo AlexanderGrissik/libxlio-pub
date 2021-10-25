@@ -53,11 +53,6 @@ inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 			(pbuf_custom->pbuf.desc.attr == PBUF_DESC_MAP)) {
 		mapping_t *mapping = (mapping_t *)pbuf_custom->pbuf.desc.map;
 		mapping->put();
-	} else if ((pbuf_custom->pbuf.type == PBUF_ZEROCOPY) &&
-			(pbuf_custom->pbuf.desc.attr == PBUF_DESC_TLS_RX)) {
-		struct pbuf *p = (struct pbuf *)pbuf_custom->pbuf.desc.mdesc;
-		pbuf_free(p);
-		pbuf_custom->pbuf.desc.mdesc = NULL;
 	}
 
 	if (p_desc->m_flags & mem_buf_desc_t::ZCOPY) {

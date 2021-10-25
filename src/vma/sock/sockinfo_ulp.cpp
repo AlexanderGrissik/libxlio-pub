@@ -331,27 +331,44 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock) :
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 {
+	/* Destroy TLS object under TCP connection lock. */
+
 	if (m_is_tls_tx) {
 		m_p_tx_ring->tls_release_tis(m_p_tis);
 		m_p_tis = NULL;
 	}
 	if (m_is_tls_rx) {
+		tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp::rx_drop_lwip_cb);
 		if (m_rx_rule != NULL) {
 			delete m_rx_rule;
 			m_rx_rule = NULL;
 		}
 		m_p_tx_ring->tls_release_tir(m_p_tir);
 		m_p_tir = NULL;
-		while (!m_rx_bufs.empty()) {
-			mem_buf_desc_t *pdesc = m_rx_bufs.get_and_pop_front();
-			pbuf_free(&pdesc->lwip_pbuf.pbuf);
-		}
-		/* TODO We can free list of pbufs in more efficient way. */
 		while (m_refused_data != NULL) {
 			struct pbuf *p = m_refused_data;
 			m_refused_data = p->next;
 			p->next = NULL;
-			m_p_sock->tcp_tx_mem_buf_free(reinterpret_cast<mem_buf_desc_t*>(p));
+			/* Free ZC buffers as RX buffers, further this is handled. */
+			m_p_sock->tcp_rx_mem_buf_free(reinterpret_cast<mem_buf_desc_t*>(p));
+		}
+		if (!m_rx_bufs.empty()) {
+			/*
+			 * The 1st buffer is special. We can have ZC buffers in the
+			 * TCP layer that point to it. To avoid reuse buffers list
+			 * corruption and similar mistakes, just reduce reference
+			 * counting for the 1st buffer if there are more than 1
+			 * users. Note, we are under TCP connection lock here.
+			 */
+			mem_buf_desc_t *pdesc = m_rx_bufs.front();
+			if (pdesc->lwip_pbuf.pbuf.ref > 1) {
+				m_rx_bufs.pop_front();
+				pbuf_free(&pdesc->lwip_pbuf.pbuf);
+			}
+			while (!m_rx_bufs.empty()) {
+				pdesc = m_rx_bufs.get_and_pop_front();
+				m_p_sock->tcp_rx_mem_buf_free(pdesc);
+			}
 		}
 	}
 }
@@ -996,6 +1013,7 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
 		if (unlikely(pdesc->rx.tls_decrypted == TLS_RX_RESYNC)) {
 			resync_requested = true;
 		}
+		pdesc->rx.n_frags = 1;
 		p->tot_len = p->len;
 		p->next = NULL;
 		m_rx_bufs.push_back(pdesc);

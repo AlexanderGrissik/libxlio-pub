@@ -194,7 +194,7 @@ public:
 	void abort_connection();
 
 	mem_buf_desc_t *tcp_tx_mem_buf_alloc(pbuf_type type);
-	void tcp_tx_mem_buf_free(mem_buf_desc_t *p_desc);
+	void tcp_rx_mem_buf_free(mem_buf_desc_t *p_desc);
 	static struct pbuf * tcp_tx_pbuf_alloc(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buf);
 	static void tcp_tx_pbuf_free(void* p_conn, struct pbuf *p_buff);
 	static void tcp_rx_pbuf_free(struct pbuf *p_buff);
@@ -416,8 +416,8 @@ private:
 	static err_t ack_recvd_lwip_cb(void *arg, struct tcp_pcb *tpcb, u16_t space);
 public:
 	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
-private:
 	static err_t rx_drop_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+private:
         
 	// Be sure that m_pcb is initialized
 	void set_conn_properties_from_pcb();

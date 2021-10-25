@@ -572,3 +572,14 @@ void dst_entry_tcp::put_buffer(mem_buf_desc_t * p_desc)
 		}
 	}
 }
+
+void dst_entry_tcp::put_zc_buffer(mem_buf_desc_t * p_desc)
+{
+	if (likely(p_desc->lwip_pbuf.pbuf.ref <= 1)) {
+		p_desc->lwip_pbuf.pbuf.ref = 1;
+		p_desc->p_next_desc = m_p_zc_mem_buf_desc_list;
+		m_p_zc_mem_buf_desc_list = p_desc;
+	} else {
+		p_desc->lwip_pbuf.pbuf.ref--;
+	}
+}

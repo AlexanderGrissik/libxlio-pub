@@ -134,17 +134,15 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
  * pbuf_free. */
 void buffer_pool::free_rx_lwip_pbuf_custom(struct pbuf *p_buff)
 {
-	buffer_pool *pool;
-
-	pool = (p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_rx_ptr;
+	buffer_pool *pool =
+		(p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_rx_ptr;
 	pool->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
 }
 
 void buffer_pool::free_tx_lwip_pbuf_custom(struct pbuf *p_buff)
 {
-	buffer_pool *pool;
-
-	pool = (p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_tx;
+	buffer_pool *pool =
+		(p_buff->type == PBUF_ZEROCOPY) ? g_buffer_pool_zc : g_buffer_pool_tx;
 	pool->put_buffers_thread_safe((mem_buf_desc_t *)p_buff);
 }
 

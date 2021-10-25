@@ -64,6 +64,7 @@ public:
 
 	mem_buf_desc_t* get_buffer(pbuf_type type, pbuf_desc *desc, bool b_blocked = false);
 	void put_buffer(mem_buf_desc_t * p_desc);
+	void put_zc_buffer(mem_buf_desc_t * p_desc);
 
 protected:
 	transport_t 		get_transport(sockaddr_in to);

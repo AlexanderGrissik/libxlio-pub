@@ -111,7 +111,6 @@ private:
 	static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 	static void rx_comp_callback(void *arg);
 
-
 	enum tls_rx_state {
 		TLS_RX_SM_UNKNOWN = 0,
 		/* Initial state. The header of the first record is incomplete. */
