@@ -2060,28 +2060,28 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 	si_tcp_logfunc("something in rx queues: %d %p", m_n_rx_pkt_ready_list_count, m_rx_pkt_ready_list.front());
 
 	bool process_cmsg = true;
+	if (total_iov_sz > 0) {
 #ifdef DEFINED_UTLS
-	/*
-	 * kTLS API doesn't require to set TLS_GET_RECORD_TYPE control message
-	 * for application data records (type 0x17). However, OpenSSL returns
-	 * an error if we don't insert 0x17 record type.
-	 */
-	if (__msg && __msg->msg_control) {
-		mem_buf_desc_t *pdesc = get_front_m_rx_pkt_ready_list();
-		/* TODO Check for buffer overflow. */
-		if (pdesc->rx.tls_type != 0) {
-			struct cmsghdr *cmsg = CMSG_FIRSTHDR(__msg);
-			cmsg->cmsg_level = SOL_TLS;
-			cmsg->cmsg_type = TLS_GET_RECORD_TYPE;
-			cmsg->cmsg_len = CMSG_LEN(1);
-			*CMSG_DATA(cmsg) = pdesc->rx.tls_type;
-			__msg->msg_controllen = CMSG_SPACE(1);
-			process_cmsg = false;
+		/*
+		 * kTLS API doesn't require to set TLS_GET_RECORD_TYPE control
+		 * message for application data records (type 0x17). However,
+		 * OpenSSL returns an error if we don't insert 0x17 record type.
+		 */
+		if (__msg && __msg->msg_control) {
+			mem_buf_desc_t *pdesc = get_front_m_rx_pkt_ready_list();
+			if (pdesc && pdesc->rx.tls_type != 0 &&
+			    likely(__msg->msg_controllen >= CMSG_SPACE(1))) {
+				struct cmsghdr *cmsg = CMSG_FIRSTHDR(__msg);
+				cmsg->cmsg_level = SOL_TLS;
+				cmsg->cmsg_type = TLS_GET_RECORD_TYPE;
+				cmsg->cmsg_len = CMSG_LEN(1);
+				*CMSG_DATA(cmsg) = pdesc->rx.tls_type;
+				__msg->msg_controllen = CMSG_SPACE(1);
+				process_cmsg = false;
+			}
 		}
-	}
 #endif /* DEFINED_UTLS */
 
-	if (total_iov_sz > 0) {
 		total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
 		if (total_rx < 0) {
 			unlock_tcp_con();
