@@ -192,6 +192,7 @@ public:
 	virtual void update_header_field(data_updater *updater);
 	virtual bool rx_input_cb(mem_buf_desc_t* p_rx_pkt_mem_buf_desc_info, void* pv_fd_ready_array);
 	void abort_connection();
+	void tcp_shutdown_rx(void);
 
 	mem_buf_desc_t *tcp_tx_mem_buf_alloc(pbuf_type type);
 	void tcp_rx_mem_buf_free(mem_buf_desc_t *p_desc);

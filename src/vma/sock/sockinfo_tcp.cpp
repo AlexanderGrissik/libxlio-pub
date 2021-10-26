@@ -1671,6 +1671,34 @@ err_t sockinfo_tcp::ack_recvd_lwip_cb(void *arg, struct tcp_pcb *tpcb, u16_t ack
 	return ERR_OK;
 }
 
+void sockinfo_tcp::tcp_shutdown_rx(void)
+{
+	/* Call this method under connection lock */
+
+	NOTIFY_ON_EVENTS(this, EPOLLIN|EPOLLRDHUP);
+
+	/* SOCKETXTREME comment:
+	 * Add this fd to the ready fd list
+	 * Note: No issue is expected in case socketxtreme_poll() usage because 'pv_fd_ready_array' is null
+	 * in such case and as a result update_fd_array() call means nothing
+	 */
+	io_mux_call::update_fd_array(m_iomux_ready_fd_array, m_fd);
+	do_wakeup();
+
+	tcp_shutdown(&m_pcb, 1, 0);
+
+	if (is_rts() || ((m_sock_state == TCP_SOCK_ASYNC_CONNECT) && (m_conn_state == TCP_CONN_CONNECTED))) {
+		m_sock_state = TCP_SOCK_CONNECTED_WR;
+	} else {
+		m_sock_state = TCP_SOCK_BOUND;
+	}
+	/*
+	 * We got FIN or fatal error, means that we will not receive any new
+	 * data. Need to remove the callback functions
+	 */
+	tcp_recv(&m_pcb, sockinfo_tcp::rx_drop_lwip_cb);
+}
+
 err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
                         struct pbuf *p, err_t err)
 {
@@ -1694,31 +1722,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb,
 			return ERR_OK;
 		}
 
-		NOTIFY_ON_EVENTS(conn, EPOLLIN|EPOLLRDHUP);
-				
-		/* SOCKETXTREME comment:
-		 * Add this fd to the ready fd list
-		 * Note: No issue is expected in case socketxtreme_poll() usage because 'pv_fd_ready_array' is null
-		 * in such case and as a result update_fd_array() call means nothing
-		 */
-		io_mux_call::update_fd_array(conn->m_iomux_ready_fd_array, conn->m_fd);
-		conn->do_wakeup();
-
-		//tcp_close(&(conn->m_pcb));
-		//TODO: should be a move into half closed state (shut rx) instead of complete close
-		tcp_shutdown(&(conn->m_pcb), 1, 0);
 		__log_dbg("[fd=%d] null pbuf sock(%p %p) err=%d\n", conn->m_fd, &(conn->m_pcb), pcb, err);
-
-		if (conn->is_rts() || ((conn->m_sock_state == TCP_SOCK_ASYNC_CONNECT) && (conn->m_conn_state == TCP_CONN_CONNECTED))) {
-			conn->m_sock_state = TCP_SOCK_CONNECTED_WR;
-		} else {
-			conn->m_sock_state = TCP_SOCK_BOUND;
-		}
-		/*
-		 * We got FIN, means that we will not receive any new data
-		 * Need to remove the callback functions
-		 */
-		tcp_recv(&(conn->m_pcb), sockinfo_tcp::rx_drop_lwip_cb);
+		conn->tcp_shutdown_rx();
 
 		if (conn->m_parent != NULL) {
 			//in case we got FIN before we accepted the connection

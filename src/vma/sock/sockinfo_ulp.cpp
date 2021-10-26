@@ -148,6 +148,33 @@ void xlio_tls_api_setup(void) {
 	}
 }
 
+static inline uint8_t get_alert_level(uint8_t alert_type)
+{
+	switch (alert_type) {
+	case TLS_CLOSE_NOTIFY:
+	case TLS_RECORD_OVERFLOW:
+	case TLS_BAD_CERTIFICATE:
+	case TLS_UNSUPPORTED_CERTIFICATE:
+	case TLS_CERTIFICATE_REVOKED:
+	case TLS_CERTIFICATE_EXPIRED:
+	case TLS_CERTIFICATE_UNKNOWN:
+	case TLS_DECRYPT_ERROR:
+	case TLS_USER_CANCELED:
+	case TLS_UNSUPPORTED_EXTENSION:
+	case TLS_UNRECOGNIZED_NAME:
+	case TLS_BAD_CERTIFICATE_STATUS_RESPONSE:
+	case TLS_NO_RENEGOTIATION:
+	case TLS_CERTIFICATE_UNOBTAINABLE:
+	case TLS_BAD_CERTIFICATE_HASH_VALUE:
+	case TLS_DECRYPTION_FAILED:
+	case TLS_NO_CERTIFICATE:
+		return TLS_ALERT_LEVEL_WARNING;
+	default:
+		break;
+	}
+	return TLS_ALERT_LEVEL_FATAL;
+}
+
 /*
  * sockinfo_tcp_ulp_tls
  */
@@ -342,6 +369,11 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 		}
 		m_p_tx_ring->tls_release_tir(m_p_tir);
 		m_p_tir = NULL;
+		if (m_p_cipher_ctx != NULL) {
+			g_tls_api->EVP_CIPHER_CTX_free(
+				reinterpret_cast<EVP_CIPHER_CTX*>(m_p_cipher_ctx));
+			m_p_cipher_ctx = NULL;
+		}
 		while (m_refused_data != NULL) {
 			struct pbuf *p = m_refused_data;
 			m_refused_data = p->next;
@@ -826,6 +858,57 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 	return 0;
 }
 
+int sockinfo_tcp_ops_tls::send_alert(uint8_t alert_type)
+{
+	unsigned char record_type = TLS_ALERT;
+	struct msghdr msg = {};
+	struct cmsghdr *cmsg;
+	uint8_t buf[CMSG_SPACE(sizeof(record_type))];
+	struct iovec msg_iov;
+
+	if (!m_is_tls_tx) {
+		/*
+		 * We reuse TLS TX offload functionality to build and encrypt
+		 * TLS record. Currently we don't support manual alert record
+		 * construction.
+		 */
+		return -1;
+	}
+
+	msg.msg_control = buf;
+	msg.msg_controllen = sizeof(buf);
+	cmsg = CMSG_FIRSTHDR(&msg);
+	cmsg->cmsg_level = SOL_TLS;
+	cmsg->cmsg_type = TLS_SET_RECORD_TYPE;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(record_type));
+	*CMSG_DATA(cmsg) = record_type;
+	msg.msg_controllen = cmsg->cmsg_len;
+
+	uint8_t alert[2] = { alert_type, get_alert_level(alert_type) };
+	msg_iov.iov_base = alert;
+	msg_iov.iov_len = sizeof(alert);
+	msg.msg_iov = &msg_iov;
+	msg.msg_iovlen = 1;
+
+	/* Send alert through TLS offloaded sendmsg() path. */
+	vma_tx_call_attr_t tx_arg;
+	tx_arg.opcode = TX_SENDMSG;
+	tx_arg.attr.msg.iov = msg.msg_iov;
+	tx_arg.attr.msg.sz_iov = (ssize_t)msg.msg_iovlen;
+	tx_arg.attr.msg.flags = 0;
+	tx_arg.attr.msg.hdr = &msg;
+	ssize_t ret = tx(tx_arg);
+
+	return ret > 0 ? 0 : -1;
+}
+
+void sockinfo_tcp_ops_tls::terminate_session_fatal(uint8_t alert_type)
+{
+	(void)send_alert(alert_type);
+	m_p_sock->tcp_shutdown_rx();
+	m_rx_sm = TLS_RX_SM_FAIL;
+}
+
 void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len)
 {
 	auto iter = m_rx_bufs.begin();
@@ -883,7 +966,7 @@ uint16_t sockinfo_tcp_ops_tls::offset_to_host16(uint32_t offset)
 	return res;
 }
 
-void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
+int sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
 {
 	/* Multi-purpose buffer, TAG is the largest object. */
 	uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__ ((aligned (8)));
@@ -896,19 +979,25 @@ void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
 	tls_ctx = (EVP_CIPHER_CTX*)m_p_cipher_ctx;
 	assert(tls_ctx != NULL);
 	ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Build nonce. XXX TLS 1.3 nonce is different! */
 	memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
 	copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN],
 			m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
 	ret = g_tls_api->EVP_DecryptInit_ex(tls_ctx, (EVP_CIPHER*)m_p_evp_cipher, NULL, m_tls_info_rx.key, buf);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Set authentication tag. TODO We can avoid copy if the tag doesn't cross a pbuf boundary. */
 	copy_by_offset(buf, m_rx_offset + m_rx_rec_len - TLS_RECORD_TAG_LEN, TLS_RECORD_TAG_LEN);
 	ret = g_tls_api->EVP_CIPHER_CTX_ctrl(tls_ctx, EVP_CTRL_GCM_SET_TAG, TLS_RECORD_TAG_LEN, buf);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Additional data for AEAD */
 	*((uint64_t*)buf) = htobe64(m_next_recno_rx);
@@ -916,7 +1005,9 @@ void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
 	buf[11] = rec_len >> 8U;
 	buf[12] = rec_len & 0xFFU;
 	ret = g_tls_api->EVP_DecryptUpdate(tls_ctx, NULL, &len, buf, 13);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	for (p = plist; p != NULL; p = p->next) {
 		if (((mem_buf_desc_t*)p)->rx.tls_decrypted == TLS_RX_DECRYPTED) {
@@ -924,23 +1015,26 @@ void sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
 			 * This is partially decrypted record, stop here
 			 * and don't verify authentication tag.
 			 */
-			return;
+			return 0;
 		}
 		ret = g_tls_api->EVP_DecryptUpdate(tls_ctx,
 					(uint8_t*)p->payload, &len,
 					(uint8_t*)p->payload, p->len);
-		assert(ret);
 		/* XXX Can AES-GCM return len != p->len if not aligned to blocksize? */
-		assert(len == (int)p->len);
+		if (unlikely(!ret || len != (int)p->len)) {
+			return TLS_DECRYPT_INTERNAL;
+		}
 		((mem_buf_desc_t*)p)->rx.tls_decrypted = TLS_RX_DECRYPTED;
 	}
+
 	ret = g_tls_api->EVP_DecryptFinal_ex(tls_ctx, buf /* XXX */, &len);
-	assert(ret);
-	assert(len == 0);
-	(void)ret;
+	if (unlikely(!ret || len != 0)) {
+		return ret ? TLS_DECRYPT_INTERNAL : TLS_DECRYPT_BAD_MAC;
+	}
+	return 0;
 }
 
-void sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
+int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
 {
 	/* Multi-purpose buffer, TAG is the largest object. */
 	uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__ ((aligned (8)));
@@ -953,19 +1047,25 @@ void sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
 	tls_ctx = (EVP_CIPHER_CTX*)m_p_cipher_ctx;
 	assert(tls_ctx != NULL);
 	ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Build nonce. XXX TLS 1.3 nonce is different! */
 	memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
 	copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN],
 			m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
 	ret = g_tls_api->EVP_EncryptInit_ex(tls_ctx, (EVP_CIPHER*)m_p_evp_cipher, NULL, m_tls_info_rx.key, buf);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Set authentication tag. TODO We can avoid copy if the tag doesn't cross a pbuf boundary. */
 	copy_by_offset(buf, m_rx_offset + m_rx_rec_len - TLS_RECORD_TAG_LEN, TLS_RECORD_TAG_LEN);
 	ret = g_tls_api->EVP_CIPHER_CTX_ctrl(tls_ctx, EVP_CTRL_GCM_SET_TAG, TLS_RECORD_TAG_LEN, buf);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	/* Additional data for AEAD */
 	*((uint64_t*)buf) = htobe64(m_next_recno_rx);
@@ -973,25 +1073,30 @@ void sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
 	buf[11] = rec_len >> 8U;
 	buf[12] = rec_len & 0xFFU;
 	ret = g_tls_api->EVP_EncryptUpdate(tls_ctx, NULL, &len, buf, 13);
-	assert(ret);
+	if (unlikely(!ret)) {
+		return TLS_DECRYPT_INTERNAL;
+	}
 
 	for (p = plist; p != NULL; p = p->next) {
 		if (((mem_buf_desc_t*)p)->rx.tls_decrypted != TLS_RX_DECRYPTED) {
 			/* This is partially encrypted record, stop here. */
-			return;
+			return 0;
 		}
 		ret = g_tls_api->EVP_EncryptUpdate(tls_ctx,
 					(uint8_t*)p->payload, &len,
 					(uint8_t*)p->payload, p->len);
-		assert(ret);
 		/* XXX Can AES-GCM return len != p->len if not aligned to blocksize? */
-		assert(len == (int)p->len);
+		if (unlikely(!ret || len != (int)p->len)) {
+			return TLS_DECRYPT_INTERNAL;
+		}
 		((mem_buf_desc_t*)p)->rx.tls_decrypted = TLS_RX_ENCRYPTED;
 	}
+
 	ret = g_tls_api->EVP_EncryptFinal_ex(tls_ctx, buf /* XXX */, &len);
-	assert(ret);
-	assert(len == 0);
-	(void)ret;
+	if (unlikely(!ret || len != 0)) {
+		return ret ? TLS_DECRYPT_INTERNAL : TLS_DECRYPT_BAD_MAC;
+	}
+	return 0;
 }
 
 err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
@@ -1051,7 +1156,10 @@ check_single_record:
 		m_rx_rec_len = offset_to_host16(m_rx_offset + 3) + TLS_RECORD_HDR_LEN;
 		m_rx_sm = TLS_RX_SM_RECORD;
 		assert(offset_to_host16(m_rx_offset + 1) == 0x0303U);
-		assert(m_rx_rec_len >= TLS_RECORD_OVERHEAD); // XXX For TLS 1.3 overhead is different!
+		if (unlikely(m_rx_rec_len < TLS_RECORD_OVERHEAD)) {
+			terminate_session_fatal(TLS_UNEXPECTED_MESSAGE);
+			return ERR_OK;
+		}
 	}
 
 	if (m_rx_sm != TLS_RX_SM_RECORD || m_rx_rec_rcvd < m_rx_rec_len) {
@@ -1123,8 +1231,7 @@ next_buffer:
 		pdesc = *(++iter);
 	}
 
-	assert(pres->tot_len == (m_rx_rec_len - TLS_RECORD_OVERHEAD));
-
+	int ret = 0;
 	if (bufs_nr != decrypted_nr) {
 		/*
 		 * tls_decrypted holds value for the last buffer.
@@ -1137,27 +1244,24 @@ next_buffer:
 		 * 5. E D E E - decrypted buffers in the middle
 		 */
 
-		/* XXX Currently we don't support failures in decryption.
-		 * In the final version we should send alert and terminate
-		 * the session in case #1.
-		 */
-		assert(tls_decrypted != TLS_RX_AUTH_FAIL);
-
 		if (decrypted_nr == 0 || tls_decrypted == TLS_RX_DECRYPTED) {
 			/* Case #2 and #3. */
-			tls_rx_decrypt(pres);
-			/* TODO Check for return code, send alert on decryption failure. */
+			ret = tls_rx_decrypt(pres);
+		} else if (tls_decrypted == TLS_RX_AUTH_FAIL) {
+			/* Case #1. */
+			ret = TLS_DECRYPT_BAD_MAC;
 		} else {
 			/* Case #4 and #5. */
 			switch (((mem_buf_desc_t*)pres)->rx.tls_decrypted) {
 			case TLS_RX_RESYNC:
 				/* Fallthrough */
 			case TLS_RX_ENCRYPTED:
-				tls_rx_decrypt(pres);
+				ret = tls_rx_decrypt(pres);
 				/* Fallthrough */
 			case TLS_RX_DECRYPTED:
-				tls_rx_encrypt(pres);
-				tls_rx_decrypt(pres);
+				ret =  ret
+				    ?: tls_rx_encrypt(pres)
+				    ?: tls_rx_decrypt(pres);
 				break;
 			default:
 				/* Unexpected case. */
@@ -1170,6 +1274,16 @@ next_buffer:
 		m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records_enc += !!(decrypted_nr == 0);
 		m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records_partial += !!(decrypted_nr != 0);
 	}
+
+	/* Handle decryption failures. */
+	if (unlikely(ret != 0)) {
+		terminate_session_fatal(ret == TLS_DECRYPT_BAD_MAC ?
+					TLS_BAD_RECORD_MAC : TLS_INTERNAL_ERROR);
+		m_refused_data = pres;
+		return ERR_OK;
+	}
+
+	assert(pres->tot_len == (m_rx_rec_len - TLS_RECORD_OVERHEAD));
 
 	/* Statistics */
 	m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records += 1U;

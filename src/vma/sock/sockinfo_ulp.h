@@ -99,12 +99,15 @@ private:
 		return m_tls_info_tx.tls_version == TLS_1_3_VERSION;
 	}
 
+	int send_alert(uint8_t alert_type);
+	void terminate_session_fatal(uint8_t alert_type);
+
 	err_t tls_rx_consume_ready_packets(void);
 	err_t recv(struct pbuf *p);
 	void copy_by_offset(uint8_t *dst, uint32_t offset, uint32_t len);
 	uint16_t offset_to_host16(uint32_t offset);
-	void tls_rx_decrypt(struct pbuf *plist);
-	void tls_rx_encrypt(struct pbuf *plist);
+	int tls_rx_decrypt(struct pbuf *plist);
+	int tls_rx_encrypt(struct pbuf *plist);
 
 	uint64_t find_recno(uint32_t seqno);
 
@@ -119,6 +122,12 @@ private:
 		TLS_RX_SM_RECORD,
 		/* Terminal state when decryption/authentication fails. */
 		TLS_RX_SM_FAIL,
+	};
+
+	enum tls_decrypt_error {
+		TLS_DECRYPT_OK       =  0,
+		TLS_DECRYPT_INTERNAL = -1,
+		TLS_DECRYPT_BAD_MAC  = -2,
 	};
 
 	/* Values for the tls_offload field in CQE. */
