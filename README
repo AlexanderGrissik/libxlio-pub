@@ -164,6 +164,8 @@ Example:
  XLIO DETAILS: IPOIB support                  Enabled                    [XLIO_IPOIB]
  XLIO DETAILS: SocketXtreme mode              Disabled                   [XLIO_SOCKETXTREME]
  XLIO DETAILS: TSO support                    Enabled                    [XLIO_TSO]
+ XLIO DETAILS: UTLS RX support                Enabled                    [XLIO_UTLS_RX]
+ XLIO DETAILS: UTLS TX support                Enabled                    [XLIO_UTLS_TX]
  XLIO DETAILS: LRO support                    auto                       [XLIO_LRO]
  XLIO DETAILS: BF (Blue Flame)                Enabled                    [XLIO_BF]
  XLIO DETAILS: Src port stirde                2                          [XLIO_SRC_PORT_STRIDE]
@@ -504,6 +506,17 @@ prototype TCP and IP headers of the incoming send buffer to carve out segments
 of required size. Copying the prototype header and options, then calculating
 the sequence number and checksum fields creates TCP segment headers.
 Expected benefits: Throughput increase and CPU unload.
+Default value is 1 (Enable)
+
+XLIO_UTLS_RX
+UTLS provides TLS data path acceleration. This is achieved by offloading Linux
+kTLS API. Refer to your TLS library documentation for kTLS support information.
+When this parameter is enabled, XLIO offloads TLS RX path if possible.
+Default value is 1 (Enable)
+
+XLIO_UTLS_TX
+When this parameter is enabled, XLIO offloads TLS TX path through kTLS API if
+possible. See XLIO_UTLS_RX for details.
 Default value is 1 (Enable)
 
 XLIO_LRO
