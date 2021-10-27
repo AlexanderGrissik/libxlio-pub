@@ -392,9 +392,10 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 		return -1;
 	}
 
-	if (__optlen < sizeof(tls12_crypto_info_aes_gcm_128) ||
-		__optval == nullptr) {
+	if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_128) ||
+		     __optval == NULL)) {
 		errno = EINVAL;
+		return -1;
 	}
 
 	si_ulp_logdbg("TLS %s offload is requested", __optname == TLS_TX ? "TX" : "RX");
