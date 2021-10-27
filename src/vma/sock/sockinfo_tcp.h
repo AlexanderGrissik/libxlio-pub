@@ -260,9 +260,9 @@ public:
 
 	void handle_timer_expired(void* user_data);
 
-	ib_ctx_handler *get_ctx(void) { return m_p_connected_dst_entry->get_ctx(); }
-	ring *get_tx_ring(void) { return m_p_connected_dst_entry->get_ring(); }
-	ring *get_rx_ring(void) { return m_p_rx_ring; }
+	inline ib_ctx_handler *get_ctx(void) { return m_p_connected_dst_entry->get_ctx(); }
+	inline ring *get_tx_ring(void) { return m_p_connected_dst_entry->get_ring(); }
+	inline ring *get_rx_ring(void) { return m_p_rx_ring; }
 	flow_tuple_with_local_if get_flow_tuple(void)
 	{
 		/* XXX Dosn't handle empty map and a map with multiple elements. */
@@ -272,16 +272,21 @@ public:
 
 	/* Proxy to support ULP. TODO Refactor. */
 	inline sockinfo_tcp_ops *get_ops(void) { return m_ops; }
-	void set_ops(sockinfo_tcp_ops *ops) { m_ops = ops; }
-	void reset_ops(void)
+	inline void set_ops(sockinfo_tcp_ops *ops)
 	{
-		delete m_ops;
-		m_ops = new sockinfo_tcp_ops(this);
-		assert(m_ops != NULL);
+		sockinfo_tcp_ops *old_ops = m_ops;
+		m_ops = ops;
+		if (old_ops != m_ops_tcp) {
+			delete old_ops;
+		}
 	}
-	sockinfo_tcp_ops *m_ops;
-
-	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
+	inline void reset_ops(void)
+	{
+		if (m_ops != m_ops_tcp) {
+			delete m_ops;
+			m_ops = m_ops_tcp;
+		}
+	}
 
 	bool is_utls_supported(int direction);
 
@@ -297,13 +302,18 @@ public:
 		m_tcp_con_lock.unlock();
 	}
 
+	list_node<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> accepted_conns_node;
+
 protected:
-	virtual void		lock_rx_q();
-	virtual void		unlock_rx_q();
+	virtual void lock_rx_q();
+	virtual void unlock_rx_q();
 	virtual bool try_un_offloading(); // un-offload the socket if possible
 
 private:
 	int fcntl_helper(int __cmd, unsigned long int __arg, bool& bexit);
+
+	sockinfo_tcp_ops *m_ops;
+	sockinfo_tcp_ops *m_ops_tcp;
 
 	//lwip specific things
 	struct tcp_pcb m_pcb;
@@ -314,6 +324,7 @@ private:
 	sockinfo_tcp *m_parent;
 	//received packet source (true if its from internal thread)
 	bool m_vma_thr;
+	bool is_attached;
 	/* connection state machine */
 	int m_conn_timeout;
 	/* SNDBUF acconting */
@@ -525,7 +536,6 @@ private:
 	void process_rx_ctl_packets();
 	bool check_dummy_send_conditions(const int flags, const iovec* p_iov, const ssize_t sz_iov);
 	static void put_agent_msg(void *arg);
-	bool is_attached;
 };
 typedef struct tcp_seg tcp_seg;
 

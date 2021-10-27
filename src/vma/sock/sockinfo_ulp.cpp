@@ -157,7 +157,6 @@ sockinfo_tcp_ulp_tls g_sockinfo_tcp_ulp_tls;
 int sockinfo_tcp_ulp_tls::attach(sockinfo_tcp *sock)
 {
 	sockinfo_tcp_ops_tls *ops;
-	sockinfo_tcp_ops *ops_old;
 
 	if (unlikely(!sock->is_rts())) {
 		errno = ENOTCONN;
@@ -169,9 +168,7 @@ int sockinfo_tcp_ulp_tls::attach(sockinfo_tcp *sock)
 		errno = ENOMEM;
 		return -1;
 	}
-	ops_old = sock->get_ops();
 	sock->set_ops(ops);
-	delete ops_old;
 
 	return 0;
 }

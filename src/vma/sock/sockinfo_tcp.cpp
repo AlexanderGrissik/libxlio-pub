@@ -242,7 +242,7 @@ sockinfo_tcp::sockinfo_tcp(int fd):
 {
 	si_tcp_logfuncall("");
 
-	m_ops = new sockinfo_tcp_ops(this);
+	m_ops = m_ops_tcp = new sockinfo_tcp_ops(this);
 	assert(m_ops != NULL); /* XXX */
 
 	m_accepted_conns.set_id("sockinfo_tcp (%p), fd = %d : m_accepted_conns", this, m_fd);
@@ -346,8 +346,12 @@ sockinfo_tcp::~sockinfo_tcp()
 
 	do_wakeup();
 
+	if (m_ops_tcp != m_ops) {
+		delete m_ops_tcp;
+	}
 	delete m_ops;
 	m_ops = NULL;
+
 	// Return buffers released in the TLS layer destructor
 	m_rx_reuse_buf_postponed = m_rx_reuse_buff.n_buff_num > 0;
 	return_reuse_buffers_postponed();
@@ -1240,6 +1244,15 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void*
 {
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)pcb_container;
 	p_si_tcp->m_p_socket_stats->tcp_state = new_state;
+
+	if (new_state == CLOSED || new_state == TIME_WAIT) {
+		/*
+		 * We don't need ULP for a closed socket. TLS layer releases
+		 * TIS/TIR/DEK objects on reset, so we try to do this in
+		 * the main thread to mitigate ring lock contention.
+		 */
+		p_si_tcp->reset_ops();
+	}
 
 	/* Update daemon about actual state for offloaded connection */
 	if (likely(p_si_tcp->m_sock_offload == TCP_SOCK_LWIP)) {
