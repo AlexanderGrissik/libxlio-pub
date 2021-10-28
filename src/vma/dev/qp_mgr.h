@@ -111,16 +111,12 @@ public:
 	void                post_recv_buffers(descq_t* p_buffers, size_t count); // Post for receive a list of mem_buf_desc
 	int                 send(vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 
-#ifdef DEFINED_TSO
 	inline uint32_t     get_max_inline_data() const {
 		return m_qp_cap.max_inline_data;
 	}
 	inline uint32_t     get_max_send_sge() const {
 		return m_qp_cap.max_send_sge;
 	}
-#else
-	uint32_t            get_max_inline_data() const {return m_max_inline_data; }
-#endif /* DEFINED_TSO */
 	int                 get_port_num() const { return m_port_num; }
 	virtual uint16_t    get_partiton() const { return 0; };
 	virtual uint32_t    get_underly_qpn() const { return 0; };
@@ -212,11 +208,7 @@ protected:
 	uint8_t             m_port_num;
 	ib_ctx_handler*     m_p_ib_ctx_handler;
 
-#ifdef DEFINED_TSO
 	struct ibv_qp_cap   m_qp_cap;
-#else
-	uint32_t            m_max_inline_data;
-#endif /* DEFINED_TSO */
 	uint32_t            m_max_qp_wr;
 
 	cq_mgr*             m_p_cq_mgr_rx;

@@ -88,15 +88,15 @@ qp_mgr::qp_mgr(struct qp_mgr_desc *desc, const uint32_t tx_num_wr):
 	,m_n_ip_id_base(0)
 	,m_n_ip_id_offset(0)
 {
-#ifdef DEFINED_TSO
 	memset(&m_qp_cap, 0, sizeof(m_qp_cap));
 	m_qp_cap.max_inline_data = safe_mce_sys().tx_max_inline;
-	m_qp_cap.max_send_sge = (m_p_ring->is_tso() ?
-		m_p_ib_ctx_handler->get_ibv_device_attr()->max_sge : MCE_DEFAULT_TX_NUM_SGE);
-        m_qp_cap.max_recv_sge = (m_p_ring->is_socketxtreme()) ? 1 : MCE_DEFAULT_RX_NUM_SGE;
+#ifdef DEFINED_TSO
+    m_qp_cap.max_send_sge = (m_p_ring->is_tso() ?
+                             m_p_ib_ctx_handler->get_ibv_device_attr()->max_sge : MCE_DEFAULT_TX_NUM_SGE);
 #else
-	m_max_inline_data = 0;
+	m_qp_cap.max_send_sge = MCE_DEFAULT_TX_NUM_SGE;
 #endif /* DEFINED_TSO */
+	m_qp_cap.max_recv_sge = (m_p_ring->is_socketxtreme()) ? 1 : MCE_DEFAULT_RX_NUM_SGE;
 
 	m_ibv_rx_sg_array = new ibv_sge[m_n_sysvar_rx_num_wr_to_post_recv];
 	m_ibv_rx_wr_array = new ibv_recv_wr[m_n_sysvar_rx_num_wr_to_post_recv];
@@ -215,7 +215,6 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
 	vma_ibv_qp_init_attr qp_init_attr;
 	memset(&qp_init_attr, 0, sizeof(qp_init_attr));
 
-#ifdef DEFINED_TSO
 	// TODO: m_tx_num_wr and m_rx_num_wr should be part of m_qp_cap
 	// and assigned as a result of ibv_query_qp()
 	m_qp_cap.max_send_wr = m_tx_num_wr;
@@ -229,7 +228,15 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
 	// In case of enabled TSO we need to take into account amount of SGE together with header inline
 	// Per PRM maximum of CTRL + ETH + ETH_HEADER_INLINE+DATA_PTR*NUM_SGE+MAX_INLINE+INLINE_SIZE
 	// MLX5 return 32678 WQEBBs at max so minimal number 
-	int max_wqe_sz = 16+14+m_p_ring->m_tso.max_header_sz+16*qp_init_attr.cap.max_send_sge+qp_init_attr.cap.max_inline_data+4;
+	int max_wqe_sz = 16 + 14 + 
+        16*qp_init_attr.cap.max_send_sge + 
+        qp_init_attr.cap.max_inline_data + 4;
+#ifdef DEFINED_TSO
+    max_wqe_sz += m_p_ring->m_tso.max_header_sz;
+#else
+    /* Fix for compilation purposes */
+    max_wqe_sz += 94;
+#endif /* DEFINED_TSO */
 	int num_wr = 32678*64/max_wqe_sz;
 	qp_logdbg("calculated max_wqe_sz=%d num_wr=%d", max_wqe_sz, num_wr);
 	if (num_wr < (signed)m_tx_num_wr) {
@@ -286,30 +293,6 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
 			m_qp_cap.max_send_wr, m_qp_cap.max_recv_wr,
 			m_qp_cap.max_send_sge, m_qp_cap.max_recv_sge,
 			m_qp_cap.max_inline_data);
-#else
-	// Check device capabilities for max SG elements
-	uint32_t tx_max_inline = safe_mce_sys().tx_max_inline;
-	uint32_t rx_num_sge = (m_p_ring->is_socketxtreme() ? 1 : MCE_DEFAULT_RX_NUM_SGE);
-	uint32_t tx_num_sge = MCE_DEFAULT_TX_NUM_SGE;
-
-	qp_init_attr.cap.max_send_wr = m_tx_num_wr;
-	qp_init_attr.cap.max_recv_wr = m_rx_num_wr;
-	qp_init_attr.cap.max_inline_data = tx_max_inline;
-	qp_init_attr.cap.max_send_sge = tx_num_sge;
-	qp_init_attr.cap.max_recv_sge = rx_num_sge;
-	qp_init_attr.recv_cq = m_p_cq_mgr_rx->get_ibv_cq_hndl();
-	qp_init_attr.send_cq = m_p_cq_mgr_tx->get_ibv_cq_hndl();
-	qp_init_attr.sq_sig_all = 0;
-
-	// Create the QP
-	if (prepare_ibv_qp(qp_init_attr)) {
-		return -1;
-	}
-
-	qp_logdbg("Created QP (num=%d) with %d tx wre and inline=%d and %d rx "
-		"wre and %d sge", m_qp->qp_num, m_tx_num_wr, m_max_inline_data,
-		m_rx_num_wr, rx_num_sge);
-#endif /* DEFINED_TSO */
 
 #if defined(DEFINED_ROCE_LAG)
 	if (desc->slave && desc->slave->lag_tx_port_affinity > 0) {
@@ -735,26 +718,6 @@ int qp_mgr_eth::prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr)
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
 
-#ifdef DEFINED_TSO
-#else
-	enum ibv_qp_attr_mask attr_mask = IBV_QP_CAP;
-	struct ibv_qp_attr tmp_ibv_qp_attr;
-	struct ibv_qp_init_attr tmp_ibv_qp_init_attr;
-	IF_VERBS_FAILURE(ibv_query_qp(m_qp, &tmp_ibv_qp_attr, attr_mask,
-			 &tmp_ibv_qp_init_attr)) {
-			qp_logerr("ibv_query_qp failed (errno=%d %m)", errno);
-			return -1;
-	} ENDIF_VERBS_FAILURE;
-	uint32_t tx_max_inline = safe_mce_sys().tx_max_inline;
-	m_max_inline_data = min(tmp_ibv_qp_attr.cap.max_inline_data, tx_max_inline);
-	qp_logdbg("requested max inline = %d QP, actual max inline = %d, "
-		PRODUCT_NAME " max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
-		"max_recv_sge=%d, max_send_sge=%d",
-		tx_max_inline, tmp_ibv_qp_init_attr.cap.max_inline_data,
-		m_max_inline_data, tmp_ibv_qp_attr.cap.max_send_wr,
-		tmp_ibv_qp_attr.cap.max_recv_wr, tmp_ibv_qp_attr.cap.max_recv_sge,
-		tmp_ibv_qp_attr.cap.max_send_sge);
-#endif /* DEFINED_TSO */
 	return 0;
 }
 
@@ -814,27 +777,6 @@ int qp_mgr_ib::prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr)
 		return ret;
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
-
-#ifdef DEFINED_TSO
-#else
-	enum ibv_qp_attr_mask attr_mask = IBV_QP_CAP;
-	struct ibv_qp_attr tmp_ibv_qp_attr;
-	struct ibv_qp_init_attr tmp_ibv_qp_init_attr;
-	IF_VERBS_FAILURE(ibv_query_qp(m_qp, &tmp_ibv_qp_attr, attr_mask,
-			 &tmp_ibv_qp_init_attr)) {
-			qp_logerr("ibv_query_qp failed (errno=%d %m)", errno);
-			return -1;
-	} ENDIF_VERBS_FAILURE;
-	uint32_t tx_max_inline = safe_mce_sys().tx_max_inline;
-	m_max_inline_data = min(tmp_ibv_qp_attr.cap.max_inline_data, tx_max_inline);
-	qp_logdbg("requested max inline = %d QP, actual max inline = %d, "
-		PRODUCT_NAME " max inline set to %d, max_send_wr=%d, max_recv_wr=%d, "
-		"max_recv_sge=%d, max_send_sge=%d",
-		tx_max_inline, tmp_ibv_qp_init_attr.cap.max_inline_data,
-		m_max_inline_data, tmp_ibv_qp_attr.cap.max_send_wr,
-		tmp_ibv_qp_attr.cap.max_recv_wr, tmp_ibv_qp_attr.cap.max_recv_sge,
-		tmp_ibv_qp_attr.cap.max_send_sge);
-#endif /* DEFINED_TSO */
 
 	return 0;
 }

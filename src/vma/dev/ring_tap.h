@@ -72,14 +72,14 @@ public:
 	void inc_cq_moderation_stats(size_t sz_data) { NOT_IN_USE(sz_data); }
 	virtual uint32_t get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) { NOT_IN_USE(p_mapping); NOT_IN_USE(addr); NOT_IN_USE(length); return (uint32_t)-1; }
 	virtual uint32_t get_underly_qpn() { return -1; }
-        virtual uint32_t get_max_inline_data() { return 0; }
+	virtual uint32_t get_max_inline_data() { return 0; }
 	ib_ctx_handler*  get_ctx(ring_user_id_t id) { NOT_IN_USE(id); return NULL; }
 #ifdef DEFINED_TSO
-        virtual uint32_t get_max_send_sge(void) { return 1; }
-        virtual uint32_t get_max_payload_sz(void) { return 0; }
-        virtual uint16_t get_max_header_sz(void) { return 0; }
+	virtual uint32_t get_max_send_sge(void) { return 1; }
+	virtual uint32_t get_max_payload_sz(void) { return 0; }
+	virtual uint16_t get_max_header_sz(void) { return 0; }
 	virtual uint32_t get_tx_lkey(ring_user_id_t id) { NOT_IN_USE(id); return 0; }
-        virtual bool is_tso(void) { return false; }
+	virtual bool is_tso(void) { return false; }
 #endif /* DEFINED_TSO */
 
 	inline void set_tap_data_available() { m_tap_data_available = true; }

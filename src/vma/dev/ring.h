@@ -119,13 +119,13 @@ public:
 	virtual ring_user_id_t	generate_id(const address_t src_mac, const address_t dst_mac, uint16_t eth_proto, uint16_t encap_proto, uint32_t src_ip, uint32_t dst_ip, uint16_t src_port, uint16_t dst_port) = 0;
 	virtual int		modify_ratelimit(struct xlio_rate_limit_t &rate_limit) = 0;
 	virtual uint32_t        get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) = 0;
-        virtual uint32_t	get_max_inline_data() = 0;
+	virtual uint32_t	get_max_inline_data() = 0;
 #ifdef DEFINED_TSO
-        virtual uint32_t	get_max_send_sge(void) = 0;
-        virtual uint32_t	get_max_payload_sz(void) = 0;
-        virtual uint16_t	get_max_header_sz(void) = 0;
+	virtual uint32_t	get_max_send_sge(void) = 0;
+	virtual uint32_t	get_max_payload_sz(void) = 0;
+	virtual uint16_t	get_max_header_sz(void) = 0;
 	virtual uint32_t	get_tx_lkey(ring_user_id_t id) = 0;
-        virtual bool		is_tso(void) = 0;
+	virtual bool		is_tso(void) = 0;
 #endif /* DEFINED_TSO */
 	virtual ib_ctx_handler*	get_ctx(ring_user_id_t id) = 0;
 
