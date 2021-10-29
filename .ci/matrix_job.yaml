@@ -1,6 +1,8 @@
 ---
 job: LIBXLIO
 
+step_allow_single_selector: false
+
 registry_host: harbor.mellanox.com
 registry_auth: swx-storage
 
