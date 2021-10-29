@@ -204,6 +204,8 @@ fi
 %{_mandir}/man8/xlio_stats.*
 
 %changelog
+* Fri Oct 29 2021 Igor Ivanov <igori@nvidia.com> 1.1.5-1
+- Bump version to 1.1.5
 * Mon Oct 25 2021 Igor Ivanov <igori@nvidia.com> 1.1.4-1
 - Bump version to 1.1.4
 * Mon Oct 25 2021 Igor Ivanov <igori@nvidia.com> 1.1.3-1

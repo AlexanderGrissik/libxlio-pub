@@ -1,3 +1,11 @@
+Version 1.1.5-1:
+Date + Time 2021-10-29
+=============================================================
+Fixed:
+        - RM #2621445 Improve TLS RX flow
+        - RM #2838719 Fix segfault in sendmsg() for empty iov
+        - RM #2833836 Fix compilation issue --disable-tso --with-dpcp
+
 Version 1.1.4-1:
 Date + Time 2021-10-25
 =============================================================
