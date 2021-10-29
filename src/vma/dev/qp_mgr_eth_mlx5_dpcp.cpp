@@ -100,7 +100,11 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
 	}
 
 	// user_index Unused.
-	dpcp::rq_attr rqattrs { 0U, 0U, 0U, cqn, m_qp_cap.max_recv_wr, m_qp_cap.max_recv_sge };
+	dpcp::rq_attr rqattrs;
+	memset(&rqattrs, 0, sizeof(rqattrs));
+	rqattrs.cqn = cqn;
+	rqattrs.wqe_num = m_qp_cap.max_recv_wr; 
+	rqattrs.wqe_sz = m_qp_cap.max_recv_sge;
 
 	unique_ptr<dpcp::basic_rq> new_rq;
 	dpcp::status rc = dpcp::DPCP_OK;
