@@ -168,10 +168,19 @@ namespace option_x {
 	MODE from_str(const char* str, MODE def_value, const OPT(&options)[N])
 	{
 		for (size_t i = 0; i < N; ++i) {
+			/* option integer value can be used as valid name
+			 * during environment name processing so
+			 * check it first
+			 */
+			std::string str_option = std::to_string((int)options[i].option);
+			if (strcasecmp(str, str_option.c_str()) == 0) {
+				return options[i].option;
+			}
 			const char * const* input_name = options[i].input_names;
 			while (*input_name) {
-				if (strcasecmp(str, *input_name) == 0)
+				if (strcasecmp(str, *input_name) == 0) {
 					return options[i].option;
+				}
 				input_name++;
 			}
 		}
