@@ -1133,6 +1133,8 @@ xlio_tis *qp_mgr_eth_mlx5::tls_context_setup_tx(const xlio_tls_info *info)
 
 	tls_post_static_params_wqe(tis, info, tisn, _dek->get_key_id(), 0, false, true);
 	tls_post_progress_params_wqe(tis, tisn, 0, false, true);
+	/* The 1st post after TLS configuration must be with fence. */
+	post_nop_fence();
 
 	assert(!tis->m_released);
 
