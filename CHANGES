@@ -1,3 +1,11 @@
+Version 1.1.6-1:
+Date + Time 2021-11-01
+=============================================================
+Fixed:
+        - RM #2621445 Reset TLS layer only after close()
+        - RM #2688021 Insert fence after TLS configuration
+        - RM #2355757 Add numeric value support for XLIO_LRO and XLIO_STRQ
+
 Version 1.1.5-1:
 Date + Time 2021-10-29
 =============================================================
