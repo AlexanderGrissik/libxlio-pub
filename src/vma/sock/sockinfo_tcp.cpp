@@ -567,6 +567,7 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 	state = is_closable();
 	if (state) {
 		m_state = SOCKINFO_CLOSED;
+		reset_ops();
 	}
 
 	unlock_tcp_con();
@@ -1245,7 +1246,8 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void*
 	sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)pcb_container;
 	p_si_tcp->m_p_socket_stats->tcp_state = new_state;
 
-	if (new_state == CLOSED || new_state == TIME_WAIT) {
+	if (p_si_tcp->m_state == SOCKINFO_CLOSING &&
+	    (new_state == CLOSED || new_state == TIME_WAIT)) {
 		/*
 		 * We don't need ULP for a closed socket. TLS layer releases
 		 * TIS/TIR/DEK objects on reset, so we try to do this in
