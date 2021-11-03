@@ -901,7 +901,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MAX_STATS_FD_NUM                              1024
 #define MAX_WINDOW_SCALING                            14
 
-#define STRQ_MIN_STRIDES_NUM 		8
+#define STRQ_MIN_STRIDES_NUM 		512
 #define STRQ_MAX_STRIDES_NUM 		65536
 #define STRQ_MIN_STRIDE_SIZE_BYTES 	64
 #define STRQ_MAX_STRIDE_SIZE_BYTES 	8192
