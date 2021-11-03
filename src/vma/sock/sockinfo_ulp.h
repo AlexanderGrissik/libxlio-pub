@@ -63,6 +63,7 @@ public:
 	virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
 	virtual ssize_t tx(vma_tx_call_attr_t &tx_arg);
 	virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
+	virtual bool handle_send_ret(ssize_t ret, struct tcp_seg *seg);
 
 	virtual err_t recv(struct pbuf *p) { NOT_IN_USE(p); return ERR_OK; };
 
@@ -93,6 +94,7 @@ public:
 	int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
 	ssize_t tx(vma_tx_call_attr_t &tx_arg);
 	int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
+	bool handle_send_ret(ssize_t ret, struct tcp_seg *seg);
 
 private:
 	inline bool is_tx_tls13(void) {

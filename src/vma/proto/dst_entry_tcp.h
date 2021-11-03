@@ -81,7 +81,7 @@ private:
 	const uint32_t       m_n_sysvar_user_huge_page_size;
 	uint64_t             m_user_huge_page_mask;
 
-	inline void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
+	inline int		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
 	{
 		if (unlikely(is_set(attr, VMA_TX_PACKET_DUMMY))) {
 			if (m_p_ring->get_hw_dummy_send_support(id, p_send_wqe)) {
@@ -93,9 +93,10 @@ private:
 			/* one for caller, and one for completion. for completion, we ref count in    */
 			/* send_lwip_buffer(). Since we are not going in, the caller will free the    */
 			/* buffer. */
-		} else {
-			m_p_ring->send_lwip_buffer(id, p_send_wqe, attr, tis);
+			return 0;
 		}
+			
+		return m_p_ring->send_lwip_buffer(id, p_send_wqe, attr, tis);
 	}
 
 };

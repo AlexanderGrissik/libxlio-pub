@@ -244,8 +244,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, vma_s
 			}
 		}
 
-		send_lwip_buffer(m_id, m_p_send_wqe, attr.flags, attr.tis);
-
+		ret = send_lwip_buffer(m_id, m_p_send_wqe, attr.flags, attr.tis);
 	} else { // We don'nt support inline in this case, since we believe that this a very rare case
 		mem_buf_desc_t *p_mem_buf_desc;
 		size_t total_packet_len = 0;
@@ -372,7 +371,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool 
 		p_tcp_iov[0].p_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
 		p_tcp_iov[0].p_desc->tx.p_tcp_h =(struct tcphdr*)((uint8_t*)(&(p_pkt->hdr.m_ip_hdr))+sizeof(p_pkt->hdr.m_ip_hdr));
 
-		send_lwip_buffer(m_id, m_p_send_wqe, attr, 0);
+		ret = send_lwip_buffer(m_id, m_p_send_wqe, attr, 0);
 
 		/* for DEBUG */
 		if ((uint8_t*)m_sge[0].addr < p_tcp_iov[0].p_desc->p_buffer || (uint8_t*)p_pkt < p_tcp_iov[0].p_desc->p_buffer) {

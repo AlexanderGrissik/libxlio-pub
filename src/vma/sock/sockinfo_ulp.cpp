@@ -75,6 +75,14 @@ int sockinfo_tcp_ops::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_
 	return 0;
 }
 
+/*virtual*/
+bool sockinfo_tcp_ops::handle_send_ret(ssize_t ret, struct tcp_seg *seg)
+{
+	NOT_IN_USE(ret);
+	NOT_IN_USE(seg);
+	return true;
+}
+
 #ifdef DEFINED_UTLS
 
 #include <openssl/evp.h>
@@ -856,6 +864,16 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 		}
 	}
 	return 0;
+}
+
+bool sockinfo_tcp_ops_tls::handle_send_ret(ssize_t ret, struct tcp_seg *seg)
+{
+	if (ret < 0 && seg) {
+		m_expected_seqno -= seg->len;
+		return false;
+	}
+
+	return true;
 }
 
 int sockinfo_tcp_ops_tls::send_alert(uint8_t alert_type)

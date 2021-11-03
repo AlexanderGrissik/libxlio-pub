@@ -87,7 +87,7 @@ public:
 	virtual mem_buf_desc_t*	mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type, int n_num_mem_bufs = 1);
 	virtual int		mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock = false);
 	virtual void		send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr);
-	virtual void		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
+	virtual int		send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
 	virtual void		mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t* p_mem_buf_desc);
 	virtual bool 		get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr* p_send_wqe);
 	inline void 		convert_hw_time_to_system_time(uint64_t hwtime, struct timespec* systime) { m_p_ib_ctx->convert_hw_time_to_system_time(hwtime, systime); }
@@ -311,6 +311,7 @@ private:
 	bool			m_b_qp_tx_first_flushed_completion_handled;
 	uint32_t		m_missing_buf_ref_count;
 	uint32_t		m_tx_lkey; // this is the registered memory lkey for a given specific device for the buffer pool use
+	uint32_t		m_tx_free_wre_busy_loops;
 	gro_mgr			m_gro_mgr;
 	bool			m_up;
 	struct ibv_comp_channel* m_p_rx_comp_event_channel;

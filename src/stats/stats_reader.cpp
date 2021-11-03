@@ -254,6 +254,7 @@ void update_delta_ring_stat(ring_stats_t* p_curr_ring_stats, ring_stats_t* p_pre
 		p_prev_ring_stats->n_tx_byte_count = (p_curr_ring_stats->n_tx_byte_count - p_prev_ring_stats->n_tx_byte_count) / delay;
 		p_prev_ring_stats->n_tx_pkt_count = (p_curr_ring_stats->n_tx_pkt_count - p_prev_ring_stats->n_tx_pkt_count) / delay;
 		p_prev_ring_stats->n_tx_retransmits = (p_curr_ring_stats->n_tx_retransmits - p_prev_ring_stats->n_tx_retransmits) / delay;
+		p_prev_ring_stats->simple.n_tx_dropped_wqes = (p_curr_ring_stats->simple.n_tx_dropped_wqes - p_prev_ring_stats->simple.n_tx_dropped_wqes) / delay;
 #ifdef DEFINED_UTLS
 		p_prev_ring_stats->n_tx_tls_contexts = (p_curr_ring_stats->n_tx_tls_contexts - p_prev_ring_stats->n_tx_tls_contexts) / delay;
 		p_prev_ring_stats->n_rx_tls_contexts = (p_curr_ring_stats->n_rx_tls_contexts - p_prev_ring_stats->n_rx_tls_contexts) / delay;
@@ -326,6 +327,10 @@ void print_ring_stats(ring_instance_block_t* p_ring_inst_arr)
 
 			if (p_ring_stats->n_tx_retransmits) {
 				printf(FORMAT_STATS_64bit, "Retransmissions:", p_ring_stats->n_tx_retransmits, post_fix);
+			}
+
+			if (p_ring_stats->simple.n_tx_dropped_wqes) {
+				printf(FORMAT_STATS_64bit, "TX Dropped Send Reqs:", p_ring_stats->simple.n_tx_dropped_wqes, post_fix);
 			}
 
 #ifdef DEFINED_UTLS
@@ -1371,6 +1376,7 @@ void zero_ring_stats(ring_stats_t* p_ring_stats)
 	else {
 		p_ring_stats->simple.n_rx_interrupt_received = 0;
 		p_ring_stats->simple.n_rx_interrupt_requests = 0;
+		p_ring_stats->simple.n_tx_dropped_wqes = 0;
 		p_ring_stats->simple.n_tx_dev_mem_byte_count = 0;
 		p_ring_stats->simple.n_tx_dev_mem_pkt_count = 0;
 		p_ring_stats->simple.n_tx_dev_mem_oob = 0;

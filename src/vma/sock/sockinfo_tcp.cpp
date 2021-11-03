@@ -1172,27 +1172,30 @@ send_iov:
 		return ERR_OK;
 	}
 
+	ssize_t ret = 0;
 #ifdef DEFINED_TSO
 	if (likely((p_dst->is_valid()))) {
-		p_dst->fast_send((struct iovec *)lwip_iovec, count, attr);
+		ret = p_dst->fast_send((struct iovec *)lwip_iovec, count, attr);
 	} else {
-		p_dst->slow_send((struct iovec *)lwip_iovec, count, attr, p_si_tcp->m_so_ratelimit);
+		ret = p_dst->slow_send((struct iovec *)lwip_iovec, count, attr, p_si_tcp->m_so_ratelimit);
 	}
 #else
 	bool is_dummy = !!(flags & TF_SEG_OPTS_DUMMY_MSG);
 	bool is_rexmit = !!(flags & TCP_WRITE_REXMIT);
 	if (likely((p_dst->is_valid()))) {
-		p_dst->fast_send((struct iovec *)lwip_iovec, count, is_dummy, false, is_rexmit);
+		ret = p_dst->fast_send((struct iovec *)lwip_iovec, count, is_dummy, false, is_rexmit);
 	} else {
-		p_dst->slow_send((struct iovec *)lwip_iovec, count, is_dummy, p_si_tcp->m_so_ratelimit, false, is_rexmit);
+		ret = p_dst->slow_send((struct iovec *)lwip_iovec, count, is_dummy, p_si_tcp->m_so_ratelimit, false, is_rexmit);
 	}
 #endif
+
+	rc = p_si_tcp->m_ops->handle_send_ret(ret, seg);
 
 	if (p_dst->try_migrate_ring(p_si_tcp->m_tcp_con_lock)) {
 		p_si_tcp->m_p_socket_stats->counters.n_tx_migrations++;
 	}
 
-	if (is_set(attr.flags, VMA_TX_PACKET_REXMIT)) {
+	if (rc && is_set(attr.flags, VMA_TX_PACKET_REXMIT)) {
 		p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
 	}
 
