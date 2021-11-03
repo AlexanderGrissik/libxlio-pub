@@ -1,3 +1,10 @@
+Version 1.1.7-1:
+Date + Time 2021-11-03
+=============================================================
+Fixed:
+        - RM #2842211 TLS data corruption fix for ring silent dropped wqes
+        - RM #2833527 Limit strides in STRQ to 512
+
 Version 1.1.6-1:
 Date + Time 2021-11-01
 =============================================================
