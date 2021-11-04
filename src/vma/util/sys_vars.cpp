@@ -678,7 +678,6 @@ void mce_sys_var::get_env_params()
 	tx_max_inline		= MCE_DEFAULT_TX_MAX_INLINE;
 	tx_mc_loopback_default  = MCE_DEFAULT_TX_MC_LOOPBACK;
 	tx_nonblocked_eagains   = MCE_DEFAULT_TX_NONBLOCKED_EAGAINS;
-	tx_free_wre_busy_loops  = MCE_DEFAULT_TX_WAIT_WRE_BUSY_LOOPS;
 	tx_prefetch_bytes 	= MCE_DEFAULT_TX_PREFETCH_BYTES;
 	tx_bufs_batch_udp	= MCE_DEFAULT_TX_BUFS_BATCH_UDP;
 	tx_bufs_batch_tcp	= MCE_DEFAULT_TX_BUFS_BATCH_TCP;
@@ -1190,12 +1189,6 @@ void mce_sys_var::get_env_params()
 
 	if ((env_ptr = getenv(SYS_VAR_TX_NONBLOCKED_EAGAINS)) != NULL)
 		tx_nonblocked_eagains = atoi(env_ptr)? true : false;
-
-	if ((env_ptr = getenv(SYS_VAR_TX_WAIT_WRE_BUSY_LOOP)) != NULL) {
-		tx_free_wre_busy_loops = atoi(env_ptr);
-		if (tx_free_wre_busy_loops <= 0 || tx_free_wre_busy_loops > 1000000000U)
-			tx_free_wre_busy_loops = MCE_DEFAULT_TX_WAIT_WRE_BUSY_LOOPS;
-	}
 
 	if ((env_ptr = getenv(SYS_VAR_TX_PREFETCH_BYTES)) != NULL)
 		tx_prefetch_bytes = (uint32_t)atoi(env_ptr);

@@ -1199,7 +1199,7 @@ send_iov:
 		p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
 	}
 
-	return ERR_OK;
+	return (ret >= 0 ? ERR_OK : ERR_WOULDBLOCK);
 }
 
 err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void* v_p_conn, uint16_t flags)

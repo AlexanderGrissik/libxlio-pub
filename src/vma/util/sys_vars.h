@@ -378,7 +378,6 @@ public:
 	uint32_t 	tx_max_inline;
 	bool 		tx_mc_loopback_default;
 	bool		tx_nonblocked_eagains;
-	uint32_t        tx_free_wre_busy_loops;
 	uint32_t	tx_prefetch_bytes;
 	uint32_t        tx_bufs_batch_udp;
 	uint32_t        tx_bufs_batch_tcp;
@@ -570,7 +569,6 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TX_MC_LOOPBACK                        "XLIO_TX_MC_LOOPBACK"
 #define SYS_VAR_TX_NONBLOCKED_EAGAINS                 "XLIO_TX_NONBLOCKED_EAGAINS"
 #define SYS_VAR_TX_PREFETCH_BYTES                     "XLIO_TX_PREFETCH_BYTES"
-#define SYS_VAR_TX_WAIT_WRE_BUSY_LOOP                 "XLIO_TX_WAIT_WRE_BUSY_LOOPS"
 
 #define SYS_VAR_STRQ                                  "XLIO_STRQ"
 #define SYS_VAR_STRQ_NUM_STRIDES                      "XLIO_STRQ_NUM_STRIDES"
@@ -719,7 +717,6 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TX_BUILD_IP_CHKSUM                (true)
 #define MCE_DEFAULT_TX_MC_LOOPBACK                    (true)
 #define MCE_DEFAULT_TX_NONBLOCKED_EAGAINS             (false)
-#define MCE_DEFAULT_TX_WAIT_WRE_BUSY_LOOPS            (1)
 #define MCE_DEFAULT_TX_PREFETCH_BYTES                 (256)
 #define MCE_DEFAULT_TX_BUFS_BATCH_UDP                 (8)
 #define MCE_DEFAULT_TX_BUFS_BATCH_TCP                 (16)

@@ -113,7 +113,6 @@ ring_simple::ring_simple(int if_index, ring* parent, ring_type_t type):
 	m_tx_num_bufs(0), m_zc_num_bufs(0), m_tx_num_wr(0), m_tx_num_wr_free(0),
 	m_b_qp_tx_first_flushed_completion_handled(false), m_missing_buf_ref_count(0),
 	m_tx_lkey(0),
-	m_tx_free_wre_busy_loops(safe_mce_sys().tx_free_wre_busy_loops),
 	m_gro_mgr(safe_mce_sys().gro_streams_max, MAX_GRO_BUFS), m_up(false),
 	m_p_rx_comp_event_channel(NULL), m_p_tx_comp_event_channel(NULL), m_p_l2_addr(NULL)
 {
@@ -777,13 +776,14 @@ bool ring_simple::is_available_qp_wr(bool b_block)
 {
 	int ret = 0;
 	uint64_t poll_sn = 0;
-	uint32_t try_count = m_tx_free_wre_busy_loops;
-	
-	while (m_tx_num_wr_free <= 0 && 0 < try_count--) {
+
+	while (m_tx_num_wr_free <= 0) {
 		// Try to poll once in the hope that we get a few freed tx mem_buf_desc
 		ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&poll_sn);
 		if (ret < 0) {
 			ring_logdbg("failed polling on tx cq_mgr (qp_mgr=%p, cq_mgr_tx=%p) (ret=%d %m)", m_p_qp_mgr, m_p_cq_mgr_tx, ret);
+			/* coverity[missing_unlock] */
+			return false;
 		} else if (ret > 0) {
 			ring_logfunc("polling succeeded on tx cq_mgr (%d wce)", ret);
 		} else if (b_block){
@@ -855,12 +855,9 @@ bool ring_simple::is_available_qp_wr(bool b_block)
 			m_lock_ring_tx_buf_wait.unlock();
 			/* coverity[double_lock] TODO: RM#1049980 */
 			m_lock_ring_tx.lock();
-		} 
-	}
-
-	if (m_tx_num_wr_free <= 0) {
-		/* coverity[missing_unlock] */
-		return false;
+		} else {
+			return false;
+		}
 	}
 
 	--m_tx_num_wr_free;

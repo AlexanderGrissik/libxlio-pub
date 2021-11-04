@@ -311,7 +311,6 @@ private:
 	bool			m_b_qp_tx_first_flushed_completion_handled;
 	uint32_t		m_missing_buf_ref_count;
 	uint32_t		m_tx_lkey; // this is the registered memory lkey for a given specific device for the buffer pool use
-	uint32_t		m_tx_free_wre_busy_loops;
 	gro_mgr			m_gro_mgr;
 	bool			m_up;
 	struct ibv_comp_channel* m_p_rx_comp_event_channel;

@@ -1808,7 +1808,6 @@ tcp_output(struct tcp_pcb *pcb)
          ++i;
        #endif /* TCP_CWND_DEBUG */
 
-       pcb->unsent = seg->next;
        // Send ack now if the packet is a dummy packet
        if (LWIP_IS_DUMMY_SEGMENT(seg) && (pcb->flags & (TF_ACK_DELAY | TF_ACK_NOW))) {
          tcp_send_empty_ack(pcb);
@@ -1825,9 +1824,12 @@ tcp_output(struct tcp_pcb *pcb)
 
        rc = tcp_output_segment(seg, pcb);
        if (rc != ERR_OK) {
+         if (rc == ERR_WOULDBLOCK)
+           break;
          return rc;
        }
 
+       pcb->unsent = seg->next;
        snd_nxt = seg->seqno + TCP_TCPLEN(seg);
        if (TCP_SEQ_LT(pcb->snd_nxt, snd_nxt) && !LWIP_IS_DUMMY_SEGMENT(seg)) {
          pcb->snd_nxt = snd_nxt;
@@ -2014,9 +2016,8 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   flags |= seg->flags & TF_SEG_OPTS_TSO;
   flags |= (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ? TCP_WRITE_REXMIT : 0);
   flags |= seg->flags & TF_SEG_OPTS_ZEROCOPY;
-  pcb->ip_output(p, seg, pcb, flags);
 
-  return ERR_OK;
+  return pcb->ip_output(p, seg, pcb, flags);
 }
 
 /**
