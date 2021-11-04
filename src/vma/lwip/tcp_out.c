@@ -1041,7 +1041,7 @@ tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   /* Ignore retransmitted segments and special segments
    */
   if (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) ||
-      (seg->flags & (TF_SEG_OPTS_TSO | TF_SEG_OPTS_DUMMY_MSG)) ||
+      (seg->flags & (TF_SEG_OPTS_TSO | TF_SEG_OPTS_DUMMY_MSG | TF_SEG_OPTS_NOMERGE)) ||
       ((TCPH_FLAGS(seg->tcphdr) & (~(TCP_ACK | TCP_PSH))) != 0)) {
     goto err;
   }
@@ -1237,7 +1237,7 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
   u8_t optflags = 0;
   u8_t optlen = 0;
   u32_t seqno = 0;
-  u16_t pbuf_tot_len_orig = 0;
+  u32_t pbuf_tot_len_orig = 0;
 
   LWIP_ASSERT("tcp_rexmit_segment: sanity check", (seg && seg->p));
 
@@ -1364,6 +1364,86 @@ tcp_rexmit_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
    return seg;
 }
 #endif /* LWIP_TSO */
+
+/**
+ * Called by tcp_output() to split a retransmitted multi-pbuf segment. This is
+ * done to handle spurious retransmissions concurrently with incoming TCP ACK.
+ * If we don't split multi-pbuf segments, an internal pbuf may be freed while
+ * its payload is used by the retransmission WQE.
+ *
+ * @param pcb the tcp_pcb for the TCP connection
+ * @param seg the tcp_seg to split
+ */
+void
+tcp_split_rexmit(struct tcp_pcb *pcb, struct tcp_seg *seg)
+{
+  struct tcp_seg *cur_seg = NULL;
+  struct tcp_seg *new_seg = NULL;
+  struct pbuf *cur_p = NULL;
+  int tcp_hlen_delta;
+  u8_t optflags = 0;
+  u8_t optlen = 0;
+  u32_t seqno = 0;
+  u32_t pbuf_tot_len_orig = 0;
+
+#if LWIP_TCP_TIMESTAMPS
+  if ((pcb->flags & TF_TIMESTAMP)) {
+    optflags |= TF_SEG_OPTS_TS;
+  }
+#endif /* LWIP_TCP_TIMESTAMPS */
+
+  optlen = LWIP_TCP_OPT_LENGTH(optflags);
+
+  if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
+    optlen = 0;
+    optflags |= TF_SEG_OPTS_ZEROCOPY;
+    tcp_hlen_delta = 0;
+  } else {
+    tcp_hlen_delta = TCP_HLEN;
+  }
+
+  seg->flags |= TF_SEG_OPTS_NOMERGE;
+  cur_seg = seg;
+  cur_p = seg->p->next;
+
+  while (cur_p) {
+    pbuf_tot_len_orig = cur_p->tot_len;
+    cur_p->len += optlen;
+    cur_p->tot_len = cur_p->len;
+    cur_p->payload = (u8_t *)cur_p->payload - optlen;
+
+    seqno = cur_seg->seqno + cur_seg->p->len - tcp_hlen_delta - optlen;
+    if (NULL == (new_seg = tcp_create_segment(pcb, cur_p, 0,  seqno, optflags))) {
+      /* Avoid corrupting original segment's buffer in case of failure */
+      cur_p->len -= optlen;
+      cur_p->tot_len = pbuf_tot_len_orig;
+      cur_p->payload = (u8_t*)cur_p->payload + optlen;
+      return;
+    }
+
+    /* New segment update */
+    new_seg->next = cur_seg->next;
+    new_seg->flags = cur_seg->flags;
+
+    /* Original segment update */
+    cur_seg->next = new_seg;
+    cur_seg->len = cur_seg->p->len - tcp_hlen_delta - optlen;
+    cur_seg->p->tot_len = cur_seg->p->len;
+    cur_seg->p->next = NULL;
+
+    if (pcb->last_unsent == cur_seg) {
+      /* We have split the last unsent segment, update last_unsent */
+      pcb->last_unsent = new_seg;
+#if TCP_OVERSIZE
+      pcb->unsent_oversize = 0;
+#endif /* TCP_OVERSIZE */
+    }
+
+    tcp_seg_move_flags(cur_seg, new_seg, TCP_FIN | TCP_RST);
+    cur_seg = new_seg;
+    cur_p = cur_seg->p->next;
+  }
+}
 
 void
 tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
@@ -1671,10 +1751,12 @@ tcp_output(struct tcp_pcb *pcb)
      * Clear TSO flag, tcp_split_segment() and tcp_tso_segment() will handle
      * all scenarios further.
      */
-    if (seg->flags & TF_SEG_OPTS_TSO) {
-      seg->flags &= ~TF_SEG_OPTS_TSO;
-    }
+    seg->flags &= ~TF_SEG_OPTS_TSO;
 #endif /* LWIP_TSO */
+
+    if (TCP_SEQ_LT(seg->seqno, pcb->snd_nxt) && seg->p && seg->p->len != seg->p->tot_len) {
+      tcp_split_rexmit(pcb, seg);
+    }
 
     /* Split the segment in case of a small window */
     if ((NULL == pcb->unacked) && (wnd) && ((seg->len + seg->seqno - pcb->lastack) > wnd)) {
