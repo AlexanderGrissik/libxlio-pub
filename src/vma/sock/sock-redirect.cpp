@@ -37,6 +37,7 @@
 #include <iostream>
 #include <fcntl.h>
 
+#include "utils/compiler.h"
 #include "utils/lock_wrapper.h"
 #include <vma/proto/ip_frag.h>
 #include <vma/dev/buffer_pool.h>
@@ -846,7 +847,7 @@ extern "C" int vma_ioctl(void *cmsg_hdr, size_t cmsg_len)
 /* Create a new socket of type TYPE in domain DOMAIN, using
    protocol PROTOCOL.  If PROTOCOL is zero, one is chosen automatically.
    Returns a file descriptor for the new socket, or -1 for errors.  */
-extern "C" int socket(int __domain, int __type, int __protocol)
+extern "C" EXPORT_SYMBOL int socket(int __domain, int __type, int __protocol)
 {
     return socket_internal(__domain, __type, __protocol, true);
 }
@@ -906,7 +907,7 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
     return fd;
 }
 
-extern "C" int close(int __fd)
+extern "C" EXPORT_SYMBOL int close(int __fd)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.close) {
@@ -922,7 +923,7 @@ extern "C" int close(int __fd)
     return rc;
 }
 
-extern "C" void __res_iclose(res_state statp, bool free_addr)
+extern "C" EXPORT_SYMBOL void __res_iclose(res_state statp, bool free_addr)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.__res_iclose) {
@@ -946,7 +947,7 @@ extern "C" void __res_iclose(res_state statp, bool free_addr)
      SHUT_WR   = No more transmissions;
      SHUT_RDWR = No more receptions or transmissions.
    Returns 0 on success, -1 for errors.  */
-extern "C" int shutdown(int __fd, int __how)
+extern "C" EXPORT_SYMBOL int shutdown(int __fd, int __how)
 {
     srdr_logdbg_entry("fd=%d, how=%d", __fd, __how);
 
@@ -965,7 +966,7 @@ extern "C" int shutdown(int __fd, int __how)
     return orig_os_api.shutdown(__fd, __how);
 }
 
-extern "C" int listen(int __fd, int backlog)
+extern "C" EXPORT_SYMBOL int listen(int __fd, int backlog)
 {
     srdr_logdbg_entry("fd=%d, backlog=%d", __fd, backlog);
 
@@ -1003,7 +1004,7 @@ extern "C" int listen(int __fd, int backlog)
     return orig_os_api.listen(__fd, backlog);
 }
 
-extern "C" int accept(int __fd, struct sockaddr *__addr, socklen_t *__addrlen)
+extern "C" EXPORT_SYMBOL int accept(int __fd, struct sockaddr *__addr, socklen_t *__addrlen)
 {
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
@@ -1020,7 +1021,8 @@ extern "C" int accept(int __fd, struct sockaddr *__addr, socklen_t *__addrlen)
     return orig_os_api.accept(__fd, __addr, __addrlen);
 }
 
-extern "C" int accept4(int __fd, struct sockaddr *__addr, socklen_t *__addrlen, int __flags)
+extern "C" EXPORT_SYMBOL int accept4(int __fd, struct sockaddr *__addr, socklen_t *__addrlen,
+                                     int __flags)
 {
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
@@ -1038,7 +1040,7 @@ extern "C" int accept4(int __fd, struct sockaddr *__addr, socklen_t *__addrlen, 
 }
 
 /* Give the socket FD the local address ADDR (which is LEN bytes long).  */
-extern "C" int bind(int __fd, const struct sockaddr *__addr, socklen_t __addrlen)
+extern "C" EXPORT_SYMBOL int bind(int __fd, const struct sockaddr *__addr, socklen_t __addrlen)
 {
     int errno_tmp = errno;
 
@@ -1085,7 +1087,7 @@ extern "C" int bind(int __fd, const struct sockaddr *__addr, socklen_t __addrlen
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" int connect(int __fd, const struct sockaddr *__to, socklen_t __tolen)
+extern "C" EXPORT_SYMBOL int connect(int __fd, const struct sockaddr *__to, socklen_t __tolen)
 {
     int errno_tmp = errno;
 
@@ -1135,8 +1137,8 @@ extern "C" int connect(int __fd, const struct sockaddr *__to, socklen_t __tolen)
 /* Set socket FD's option OPTNAME at protocol level LEVEL
    to *OPTVAL (which is OPTLEN bytes long).
    Returns 0 on success, -1 for errors.  */
-extern "C" int setsockopt(int __fd, int __level, int __optname, __const void *__optval,
-                          socklen_t __optlen)
+extern "C" EXPORT_SYMBOL int setsockopt(int __fd, int __level, int __optname,
+                                        __const void *__optval, socklen_t __optlen)
 {
     srdr_logdbg_entry("fd=%d, level=%d, optname=%d", __fd, __level, __optname);
 
@@ -1172,7 +1174,8 @@ extern "C" int setsockopt(int __fd, int __level, int __optname, __const void *__
 /* Get socket FD's option OPTNAME at protocol level LEVEL
    to *OPTVAL (which is OPTLEN bytes long).
    Returns 0 on success, -1 for errors.  */
-extern "C" int getsockopt(int __fd, int __level, int __optname, void *__optval, socklen_t *__optlen)
+extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, void *__optval,
+                                        socklen_t *__optlen)
 {
     srdr_logdbg_entry("fd=%d, level=%d, optname=%d", __fd, __level, __optname);
 
@@ -1256,7 +1259,7 @@ extern "C" int getsockopt(int __fd, int __level, int __optname, void *__optval, 
    user requested explicitly that VMA will throw an exception in such a case
    by setting VMA_EXCEPTION_HANDLING accordingly (see README.txt)
    */
-extern "C" int fcntl(int __fd, int __cmd, ...)
+extern "C" EXPORT_SYMBOL int fcntl(int __fd, int __cmd, ...)
 {
     srdr_logfunc_entry("fd=%d, cmd=%d", __fd, __cmd);
 
@@ -1303,7 +1306,7 @@ extern "C" int fcntl(int __fd, int __cmd, ...)
    by setting VMA_EXCEPTION_HANDLING accordingly (see README.txt)
    */
 
-extern "C" int fcntl64(int __fd, int __cmd, ...)
+extern "C" EXPORT_SYMBOL int fcntl64(int __fd, int __cmd, ...)
 {
     srdr_logfunc_entry("fd=%d, cmd=%d", __fd, __cmd);
 
@@ -1352,7 +1355,7 @@ extern "C" int fcntl64(int __fd, int __cmd, ...)
 /* Perform the I/O control operation specified by REQUEST on FD.
    One argument may follow; its presence and type depend on REQUEST.
    Return value depends on REQUEST.  Usually -1 indicates error. */
-extern "C" int ioctl(int __fd, unsigned long int __request, ...)
+extern "C" EXPORT_SYMBOL int ioctl(int __fd, unsigned long int __request, ...)
 {
     srdr_logfunc_entry("fd=%d, request=%d", __fd, __request);
 
@@ -1385,7 +1388,7 @@ extern "C" int ioctl(int __fd, unsigned long int __request, ...)
     return res;
 }
 
-extern "C" int getsockname(int __fd, struct sockaddr *__name, socklen_t *__namelen)
+extern "C" EXPORT_SYMBOL int getsockname(int __fd, struct sockaddr *__name, socklen_t *__namelen)
 {
     srdr_logdbg_entry("fd=%d", __fd);
 
@@ -1420,7 +1423,7 @@ extern "C" int getsockname(int __fd, struct sockaddr *__name, socklen_t *__namel
     return ret;
 }
 
-extern "C" int getpeername(int __fd, struct sockaddr *__name, socklen_t *__namelen)
+extern "C" EXPORT_SYMBOL int getpeername(int __fd, struct sockaddr *__name, socklen_t *__namelen)
 {
     srdr_logdbg_entry("fd=%d", __fd);
 
@@ -1451,7 +1454,7 @@ extern "C" int getpeername(int __fd, struct sockaddr *__name, socklen_t *__namel
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t read(int __fd, void *__buf, size_t __nbytes)
+extern "C" EXPORT_SYMBOL ssize_t read(int __fd, void *__buf, size_t __nbytes)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1482,7 +1485,7 @@ extern "C" ssize_t read(int __fd, void *__buf, size_t __nbytes)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t __read_chk(int __fd, void *__buf, size_t __nbytes, size_t __buflen)
+extern "C" EXPORT_SYMBOL ssize_t __read_chk(int __fd, void *__buf, size_t __nbytes, size_t __buflen)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1517,7 +1520,7 @@ extern "C" ssize_t __read_chk(int __fd, void *__buf, size_t __nbytes, size_t __b
    This function is a cancellation point and therefore not marked with
    __THROW.  */
 
-extern "C" ssize_t readv(int __fd, const struct iovec *iov, int iovcnt)
+extern "C" EXPORT_SYMBOL ssize_t readv(int __fd, const struct iovec *iov, int iovcnt)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1542,7 +1545,7 @@ extern "C" ssize_t readv(int __fd, const struct iovec *iov, int iovcnt)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t recv(int __fd, void *__buf, size_t __nbytes, int __flags)
+extern "C" EXPORT_SYMBOL ssize_t recv(int __fd, void *__buf, size_t __nbytes, int __flags)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1571,7 +1574,8 @@ extern "C" ssize_t recv(int __fd, void *__buf, size_t __nbytes, int __flags)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t __recv_chk(int __fd, void *__buf, size_t __nbytes, size_t __buflen, int __flags)
+extern "C" EXPORT_SYMBOL ssize_t __recv_chk(int __fd, void *__buf, size_t __nbytes, size_t __buflen,
+                                            int __flags)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1604,7 +1608,7 @@ extern "C" ssize_t __recv_chk(int __fd, void *__buf, size_t __nbytes, size_t __b
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t recvmsg(int __fd, struct msghdr *__msg, int __flags)
+extern "C" EXPORT_SYMBOL ssize_t recvmsg(int __fd, struct msghdr *__msg, int __flags)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1650,7 +1654,7 @@ struct mmsghdr {
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C"
+extern "C" EXPORT_SYMBOL
 #ifdef RECVMMSG_WITH_CONST_TIMESPEC
     int
     recvmmsg(int __fd, struct mmsghdr *__mmsghdr, unsigned int __vlen, int __flags,
@@ -1726,8 +1730,8 @@ extern "C"
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t recvfrom(int __fd, void *__buf, size_t __nbytes, int __flags,
-                            struct sockaddr *__from, socklen_t *__fromlen)
+extern "C" EXPORT_SYMBOL ssize_t recvfrom(int __fd, void *__buf, size_t __nbytes, int __flags,
+                                          struct sockaddr *__from, socklen_t *__fromlen)
 {
     ssize_t ret_val = 0;
 
@@ -1776,8 +1780,9 @@ extern "C" ssize_t recvfrom(int __fd, void *__buf, size_t __nbytes, int __flags,
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t __recvfrom_chk(int __fd, void *__buf, size_t __nbytes, size_t __buflen,
-                                  int __flags, struct sockaddr *__from, socklen_t *__fromlen)
+extern "C" EXPORT_SYMBOL ssize_t __recvfrom_chk(int __fd, void *__buf, size_t __nbytes,
+                                                size_t __buflen, int __flags,
+                                                struct sockaddr *__from, socklen_t *__fromlen)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1809,7 +1814,7 @@ extern "C" ssize_t __recvfrom_chk(int __fd, void *__buf, size_t __nbytes, size_t
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t write(int __fd, __const void *__buf, size_t __nbytes)
+extern "C" EXPORT_SYMBOL ssize_t write(int __fd, __const void *__buf, size_t __nbytes)
 {
     srdr_logfuncall_entry("fd=%d, nbytes=%d", __fd, __nbytes);
 
@@ -1838,7 +1843,7 @@ extern "C" ssize_t write(int __fd, __const void *__buf, size_t __nbytes)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t writev(int __fd, const struct iovec *iov, int iovcnt)
+extern "C" EXPORT_SYMBOL ssize_t writev(int __fd, const struct iovec *iov, int iovcnt)
 {
     srdr_logfuncall_entry("fd=%d, %d iov blocks", __fd, iovcnt);
 
@@ -1866,7 +1871,7 @@ extern "C" ssize_t writev(int __fd, const struct iovec *iov, int iovcnt)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t send(int __fd, __const void *__buf, size_t __nbytes, int __flags)
+extern "C" EXPORT_SYMBOL ssize_t send(int __fd, __const void *__buf, size_t __nbytes, int __flags)
 {
     srdr_logfuncall_entry("fd=%d, nbytes=%d", __fd, __nbytes);
 
@@ -1903,7 +1908,7 @@ extern "C" ssize_t send(int __fd, __const void *__buf, size_t __nbytes, int __fl
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
+extern "C" EXPORT_SYMBOL ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -1957,7 +1962,8 @@ extern "C" ssize_t sendmsg(int __fd, __const struct msghdr *__msg, int __flags)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" int sendmmsg(int __fd, struct mmsghdr *__mmsghdr, unsigned int __vlen, int __flags)
+extern "C" EXPORT_SYMBOL int sendmmsg(int __fd, struct mmsghdr *__mmsghdr, unsigned int __vlen,
+                                      int __flags)
 {
     int num_of_msg = 0;
 
@@ -2016,8 +2022,8 @@ extern "C" int sendmmsg(int __fd, struct mmsghdr *__mmsghdr, unsigned int __vlen
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern "C" ssize_t sendto(int __fd, __const void *__buf, size_t __nbytes, int __flags,
-                          const struct sockaddr *__to, socklen_t __tolen)
+extern "C" EXPORT_SYMBOL ssize_t sendto(int __fd, __const void *__buf, size_t __nbytes, int __flags,
+                                        const struct sockaddr *__to, socklen_t __tolen)
 {
 #ifdef RDTSC_MEASURE_TX_SENDTO_TO_AFTER_POST_SEND
     RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_SENDTO_TO_AFTER_POST_SEND]);
@@ -2238,7 +2244,7 @@ static ssize_t sendfile_helper(socket_fd_api *p_socket_object, int in_fd, __off6
     return totSent;
 }
 
-extern "C" ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
+extern "C" EXPORT_SYMBOL ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
 {
     srdr_logfuncall_entry("out_fd=%d, in_fd=%d, offset=%p, *offset=%zu, count=%d", out_fd, in_fd,
                           offset, offset ? *offset : 0, count);
@@ -2254,7 +2260,7 @@ extern "C" ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
     return sendfile_helper(p_socket_object, in_fd, offset, count);
 }
 
-extern "C" ssize_t sendfile64(int out_fd, int in_fd, __off64_t *offset, size_t count)
+extern "C" EXPORT_SYMBOL ssize_t sendfile64(int out_fd, int in_fd, __off64_t *offset, size_t count)
 {
     srdr_logfuncall_entry("out_fd=%d, in_fd=%d, offset=%p, *offset=%zu, count=%d", out_fd, in_fd,
                           offset, offset ? *offset : 0, count);
@@ -2272,7 +2278,7 @@ extern "C" ssize_t sendfile64(int out_fd, int in_fd, __off64_t *offset, size_t c
 
 // Format a fd_set into a string for logging
 // Check nfd to know how many 32 bits hexs do we want to sprintf into user buffer
-const char *sprintf_fdset(char *buf, int buflen, int __nfds, fd_set *__fds)
+const char *dbg_sprintf_fdset(char *buf, int buflen, int __nfds, fd_set *__fds)
 {
     if (buflen < 1) {
         return "(null)";
@@ -2323,8 +2329,8 @@ const char *sprintf_fdset(char *buf, int buflen, int __nfds, fd_set *__fds)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-int select_helper(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__exceptfds,
-                  struct timeval *__timeout, const sigset_t *__sigmask = NULL)
+static int select_helper(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__exceptfds,
+                         struct timeval *__timeout, const sigset_t *__sigmask = NULL)
 {
     int off_rfds_buffer[__nfds];
     io_mux_call::offloaded_mode_t off_modes_buffer[__nfds];
@@ -2336,8 +2342,8 @@ int select_helper(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__e
         NOT_IN_USE(tmpbuf); /* to suppress warning in case MAX_DEFINED_LOG_LEVEL */
         NOT_IN_USE(tmpbuf2); /* to suppress warning in case MAX_DEFINED_LOG_LEVEL */
         srdr_logfunc("readfds: %s, writefds: %s",
-                     sprintf_fdset(tmpbuf, tmpbufsize, __nfds, __readfds),
-                     sprintf_fdset(tmpbuf2, tmpbufsize, __nfds, __writefds));
+                     dbg_sprintf_fdset(tmpbuf, tmpbufsize, __nfds, __readfds),
+                     dbg_sprintf_fdset(tmpbuf2, tmpbufsize, __nfds, __writefds));
     }
 
     try {
@@ -2352,8 +2358,8 @@ int select_helper(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__e
             NOT_IN_USE(tmpbuf); /* to suppress warning in case MAX_DEFINED_LOG_LEVEL */
             NOT_IN_USE(tmpbuf2); /* to suppress warning in case MAX_DEFINED_LOG_LEVEL */
             srdr_logfunc_exit("readfds: %s, writefds: %s",
-                              sprintf_fdset(tmpbuf, tmpbufsize, __nfds, __readfds),
-                              sprintf_fdset(tmpbuf2, tmpbufsize, __nfds, __writefds));
+                              dbg_sprintf_fdset(tmpbuf, tmpbufsize, __nfds, __readfds),
+                              dbg_sprintf_fdset(tmpbuf2, tmpbufsize, __nfds, __writefds));
         }
 
         return rc;
@@ -2363,8 +2369,8 @@ int select_helper(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__e
     }
 }
 
-extern "C" int select(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__exceptfds,
-                      struct timeval *__timeout)
+extern "C" EXPORT_SYMBOL int select(int __nfds, fd_set *__readfds, fd_set *__writefds,
+                                    fd_set *__exceptfds, struct timeval *__timeout)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2385,8 +2391,9 @@ extern "C" int select(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set 
     return select_helper(__nfds, __readfds, __writefds, __exceptfds, __timeout);
 }
 
-extern "C" int pselect(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__errorfds,
-                       const struct timespec *__timeout, const sigset_t *__sigmask)
+extern "C" EXPORT_SYMBOL int pselect(int __nfds, fd_set *__readfds, fd_set *__writefds,
+                                     fd_set *__errorfds, const struct timespec *__timeout,
+                                     const sigset_t *__sigmask)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2416,8 +2423,8 @@ extern "C" int pselect(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set
    an event to occur; if TIMis -1, block until an event occurs.
    Returns the number of file descriptors with events, zero if timed out,
    or -1 for errors.  */
-int poll_helper(struct pollfd *__fds, nfds_t __nfds, int __timeout,
-                const sigset_t *__sigmask = NULL)
+static int poll_helper(struct pollfd *__fds, nfds_t __nfds, int __timeout,
+                       const sigset_t *__sigmask = NULL)
 {
     int off_rfd_buffer[__nfds];
     io_mux_call::offloaded_mode_t off_modes_buffer[__nfds];
@@ -2437,7 +2444,7 @@ int poll_helper(struct pollfd *__fds, nfds_t __nfds, int __timeout,
     }
 }
 
-extern "C" int poll(struct pollfd *__fds, nfds_t __nfds, int __timeout)
+extern "C" EXPORT_SYMBOL int poll(struct pollfd *__fds, nfds_t __nfds, int __timeout)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2454,7 +2461,8 @@ extern "C" int poll(struct pollfd *__fds, nfds_t __nfds, int __timeout)
 }
 
 #if defined HAVE___POLL_CHK
-extern "C" int __poll_chk(struct pollfd *__fds, nfds_t __nfds, int __timeout, size_t __fdslen)
+extern "C" EXPORT_SYMBOL int __poll_chk(struct pollfd *__fds, nfds_t __nfds, int __timeout,
+                                        size_t __fdslen)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2477,8 +2485,8 @@ extern "C" int __poll_chk(struct pollfd *__fds, nfds_t __nfds, int __timeout, si
 }
 #endif
 
-extern "C" int ppoll(struct pollfd *__fds, nfds_t __nfds, const struct timespec *__timeout,
-                     const sigset_t *__sigmask)
+extern "C" EXPORT_SYMBOL int ppoll(struct pollfd *__fds, nfds_t __nfds,
+                                   const struct timespec *__timeout, const sigset_t *__sigmask)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2498,8 +2506,9 @@ extern "C" int ppoll(struct pollfd *__fds, nfds_t __nfds, const struct timespec 
 }
 
 #if defined HAVE___PPOLL_CHK
-extern "C" int __ppoll_chk(struct pollfd *__fds, nfds_t __nfds, const struct timespec *__timeout,
-                           const sigset_t *__sigmask, size_t __fdslen)
+extern "C" EXPORT_SYMBOL int __ppoll_chk(struct pollfd *__fds, nfds_t __nfds,
+                                         const struct timespec *__timeout,
+                                         const sigset_t *__sigmask, size_t __fdslen)
 {
     if (!g_p_fd_collection) {
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2526,7 +2535,7 @@ extern "C" int __ppoll_chk(struct pollfd *__fds, nfds_t __nfds, const struct tim
 }
 #endif
 
-void vma_epoll_create(int epfd, int size)
+static void vma_epoll_create(int epfd, int size)
 {
     if (g_p_fd_collection) {
         // Sanity check to remove any old sockinfo object using the same fd!!
@@ -2541,7 +2550,7 @@ void vma_epoll_create(int epfd, int size)
    The "size" parameter is a hint specifying the number of file
    descriptors to be associated with the new instance.  The fd
    returned by epoll_create() should be closed with close().  */
-extern "C" int epoll_create(int __size)
+extern "C" EXPORT_SYMBOL int epoll_create(int __size)
 {
     DO_GLOBAL_CTORS();
 
@@ -2569,7 +2578,7 @@ extern "C" int epoll_create(int __size)
     return epfd;
 }
 
-extern "C" int epoll_create1(int __flags)
+extern "C" EXPORT_SYMBOL int epoll_create1(int __flags)
 {
     DO_GLOBAL_CTORS();
 
@@ -2597,7 +2606,7 @@ extern "C" int epoll_create1(int __flags)
    constants defined above. The "fd" parameter is the target of the
    operation. The "event" parameter describes which events the caller
    is interested in and any associated user data.  */
-extern "C" int epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event)
+extern "C" EXPORT_SYMBOL int epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event)
 {
     const static char *op_names[] = {"<null>", "ADD", "DEL", "MOD"};
     NOT_IN_USE(op_names); /* to suppress warning in case MAX_DEFINED_LOG_LEVEL */
@@ -2659,7 +2668,8 @@ inline int epoll_wait_helper(int __epfd, struct epoll_event *__events, int __max
     }
 }
 
-extern "C" int epoll_wait(int __epfd, struct epoll_event *__events, int __maxevents, int __timeout)
+extern "C" EXPORT_SYMBOL int epoll_wait(int __epfd, struct epoll_event *__events, int __maxevents,
+                                        int __timeout)
 {
     srdr_logfunc_entry("epfd=%d, maxevents=%d, timeout=(%d milli-sec)", __epfd, __maxevents,
                        __timeout);
@@ -2667,8 +2677,8 @@ extern "C" int epoll_wait(int __epfd, struct epoll_event *__events, int __maxeve
     return epoll_wait_helper(__epfd, __events, __maxevents, __timeout);
 }
 
-extern "C" int epoll_pwait(int __epfd, struct epoll_event *__events, int __maxevents, int __timeout,
-                           const sigset_t *__sigmask)
+extern "C" EXPORT_SYMBOL int epoll_pwait(int __epfd, struct epoll_event *__events, int __maxevents,
+                                         int __timeout, const sigset_t *__sigmask)
 {
     srdr_logfunc_entry("epfd=%d, maxevents=%d, timeout=(%d milli-sec)", __epfd, __maxevents,
                        __timeout);
@@ -2680,7 +2690,7 @@ extern "C" int epoll_pwait(int __epfd, struct epoll_event *__events, int __maxev
    protocol PROTOCOL, which are connected to each other, and put file
    descriptors for them in FDS[0] and FDS[1].  If PROTOCOL is zero,
    one will be chosen automatically.  Returns 0 on success, -1 for errors.  */
-extern "C" int socketpair(int __domain, int __type, int __protocol, int __sv[2])
+extern "C" EXPORT_SYMBOL int socketpair(int __domain, int __type, int __protocol, int __sv[2])
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.socketpair) {
@@ -2707,7 +2717,7 @@ extern "C" int socketpair(int __domain, int __type, int __protocol, int __sv[2])
    If successful, two file descriptors are stored in PIPEDES;
    bytes written on PIPEDES[1] can be read from PIPEDES[0].
    Returns 0 if successful, -1 if not.  */
-extern "C" int pipe(int __filedes[2])
+extern "C" EXPORT_SYMBOL int pipe(int __filedes[2])
 {
     bool offload_pipe = safe_mce_sys().mce_spec == MCE_SPEC_29WEST_LBM_29 ||
         safe_mce_sys().mce_spec == MCE_SPEC_WOMBAT_FH_LBM_554;
@@ -2740,7 +2750,7 @@ extern "C" int pipe(int __filedes[2])
     return ret;
 }
 
-extern "C" int open(__const char *__file, int __oflag, ...)
+extern "C" EXPORT_SYMBOL int open(__const char *__file, int __oflag, ...)
 {
     va_list va;
     va_start(va, __oflag);
@@ -2763,7 +2773,7 @@ extern "C" int open(__const char *__file, int __oflag, ...)
     return fd;
 }
 
-extern "C" int creat(const char *__pathname, mode_t __mode)
+extern "C" EXPORT_SYMBOL int creat(const char *__pathname, mode_t __mode)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.creat) {
@@ -2782,7 +2792,7 @@ extern "C" int creat(const char *__pathname, mode_t __mode)
 }
 
 /* Duplicate FD, returning a new file descriptor on the same file.  */
-extern "C" int dup(int __fd)
+extern "C" EXPORT_SYMBOL int dup(int __fd)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.dup) {
@@ -2801,7 +2811,7 @@ extern "C" int dup(int __fd)
 }
 
 /* Duplicate FD to FD2, closing FD2 and making it open on the same file.  */
-extern "C" int dup2(int __fd, int __fd2)
+extern "C" EXPORT_SYMBOL int dup2(int __fd, int __fd2)
 {
     if (safe_mce_sys().close_on_dup2 && __fd != __fd2) {
         srdr_logdbg("oldfd=%d, newfd=%d. Closing %d in VMA.\n", __fd, __fd2, __fd2);
@@ -2825,7 +2835,8 @@ extern "C" int dup2(int __fd, int __fd2)
 }
 
 #ifdef _CHANGE_CLONE_PROTO_IN_SLES_10_
-extern "C" int clone(int (*__fn)(void *), void *__child_stack, int __flags, void *__arg)
+extern "C" EXPORT_SYMBOL int clone(int (*__fn)(void *), void *__child_stack, int __flags,
+                                   void *__arg)
 {
     srdr_logfunc_entry("flags=%#x", __flags);
 
@@ -2842,7 +2853,7 @@ extern "C" int clone(int (*__fn)(void *), void *__child_stack, int __flags, void
    Return -1 for errors, 0 to the new process,
    and the process ID of the new process to the old process.  */
 
-extern "C" pid_t fork(void)
+extern "C" EXPORT_SYMBOL pid_t fork(void)
 {
     srdr_logdbg("ENTER: **********\n");
 
@@ -2934,7 +2945,7 @@ extern "C" pid_t fork(void)
 }
 
 /* Redirect vfork to fork  */
-extern "C" pid_t vfork(void)
+extern "C" EXPORT_SYMBOL pid_t vfork(void)
 {
     return fork();
 }
@@ -2942,7 +2953,7 @@ extern "C" pid_t vfork(void)
 /* Put the program in the background, and dissociate from the controlling
    terminal.  If NOCHDIR is zero, do `chdir ("/")'.  If NOCLOSE is zero,
    redirects stdin, stdout, and stderr to /dev/null.  */
-extern "C" int daemon(int __nochdir, int __noclose)
+extern "C" EXPORT_SYMBOL int daemon(int __nochdir, int __noclose)
 {
     srdr_logdbg("ENTER: ***** (%d, %d) *****\n", __nochdir, __noclose);
 
@@ -3003,7 +3014,8 @@ static void handler_intr(int sig)
     }
 }
 
-extern "C" int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+extern "C" EXPORT_SYMBOL int sigaction(int signum, const struct sigaction *act,
+                                       struct sigaction *oldact)
 {
     int ret = 0;
 
@@ -3074,7 +3086,7 @@ static void handle_signal(int signum)
     }
 }
 
-extern "C" sighandler_t signal(int signum, sighandler_t handler)
+extern "C" EXPORT_SYMBOL sighandler_t signal(int signum, sighandler_t handler)
 {
     srdr_logdbg_entry("signum=%d, handler=%p", signum, handler);
 
@@ -3095,7 +3107,7 @@ extern "C" sighandler_t signal(int signum, sighandler_t handler)
 
 #if defined(DEFINED_NGINX)
 
-extern "C" int setuid(uid_t uid)
+extern "C" EXPORT_SYMBOL int setuid(uid_t uid)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.setuid) {

@@ -93,10 +93,6 @@ extern map_udp_bounded_port_t g_map_udp_bounded_port;
 
 struct mmsghdr;
 
-// Format a fd_set into a string for logging
-// Check nfd to know how many 32 bits hexs do we want to sprintf into user buffer
-const char *sprintf_fdset(char *buf, int buflen, int __nfds, fd_set *__fds);
-
 /**
  *-----------------------------------------------------------------------------
  *  variables to hold the function-pointers to original functions
