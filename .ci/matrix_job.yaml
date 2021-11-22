@@ -151,9 +151,9 @@ steps:
   - name: Style
     enable: ${do_style}
     containerSelector:
-      - "{name: 'skip-container'}"
+      - "{name: 'toolbox', category: 'tool', variant:1}"
     agentSelector:
-      - "{nodeLabel: 'r-aa-fatty09'}"
+      - "{nodeLabel: 'skip-agent'}"
     run: |
       [ "x${do_style}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_style=${action} ./contrib/test_jenkins.sh
@@ -356,7 +356,7 @@ steps:
   - name: Commit
     enable: ${do_commit}
     containerSelector:
-      - "{name: 'coverity', category:'tool', variant:1}"
+      - "{name: 'toolbox', category: 'tool', variant:1}"
     agentSelector:
       - "{nodeLabel: 'skip-agent'}"
     run: |
