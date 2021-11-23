@@ -30,21 +30,21 @@
  * SOFTWARE.
  */
 
-
 #include "ring.h"
 #include "vma/proto/route_table_mgr.h"
 
-#undef  MODULE_NAME
-#define MODULE_NAME     "ring"
-#undef  MODULE_HDR
-#define MODULE_HDR      MODULE_NAME "%d:%s() "
+#undef MODULE_NAME
+#define MODULE_NAME "ring"
+#undef MODULE_HDR
+#define MODULE_HDR MODULE_NAME "%d:%s() "
 
-ring::ring() :
-	m_p_n_rx_channel_fds(NULL), m_parent(NULL)
+ring::ring()
+    : m_p_n_rx_channel_fds(NULL)
+    , m_parent(NULL)
 {
-	m_if_index = 0;
+    m_if_index = 0;
 
-	print_val();
+    print_val();
 }
 
 ring::~ring()
@@ -53,6 +53,6 @@ ring::~ring()
 
 void ring::print_val()
 {
-	ring_logdbg("%d: %p: parent %p",
-			m_if_index, this, ((uintptr_t)this == (uintptr_t)m_parent ? 0 : m_parent));
+    ring_logdbg("%d: %p: parent %p", m_if_index, this,
+                ((uintptr_t)this == (uintptr_t)m_parent ? 0 : m_parent));
 }

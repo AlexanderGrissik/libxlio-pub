@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef TYPES_H
 #define TYPES_H
 
@@ -49,15 +48,15 @@
 #endif
 
 #ifndef likely
-#define likely(x)			__builtin_expect(!!(x), 1)
+#define likely(x) __builtin_expect(!!(x), 1)
 #endif
 
 #ifndef unlikely
-#define unlikely(x)			__builtin_expect(!!(x), 0)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 #endif
 
 #ifndef NOT_IN_USE
-#define NOT_IN_USE(a)			((void)(a))
+#define NOT_IN_USE(a) ((void)(a))
 #endif
 
-#endif //TYPES_H
+#endif // TYPES_H

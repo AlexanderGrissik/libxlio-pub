@@ -45,52 +45,52 @@
  * to use upstream specific approach as a basis
  */
 struct mlx5dv_qp {
-	volatile uint32_t *dbrec;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} sq;
-	struct {
-		void *buf;
-		uint32_t wqe_cnt;
-		uint32_t stride;
-	} rq;
-	struct {
-		void *reg;
-		uint32_t size;
-	} bf;
-	uint64_t comp_mask;
-	uint32_t tirn;
-	uint32_t tisn;
-	uint32_t rqn;
-	uint32_t sqn;
+    volatile uint32_t *dbrec;
+    struct {
+        void *buf;
+        uint32_t wqe_cnt;
+        uint32_t stride;
+    } sq;
+    struct {
+        void *buf;
+        uint32_t wqe_cnt;
+        uint32_t stride;
+    } rq;
+    struct {
+        void *reg;
+        uint32_t size;
+    } bf;
+    uint64_t comp_mask;
+    uint32_t tirn;
+    uint32_t tisn;
+    uint32_t rqn;
+    uint32_t sqn;
 };
 
 struct mlx5dv_cq {
-	void *buf;
-	volatile uint32_t *dbrec;
-	uint32_t cqe_cnt;
-	uint32_t cqe_size;
-	void *cq_uar;
-	uint32_t cqn;
-	uint64_t comp_mask;
+    void *buf;
+    volatile uint32_t *dbrec;
+    uint32_t cqe_cnt;
+    uint32_t cqe_size;
+    void *cq_uar;
+    uint32_t cqn;
+    uint64_t comp_mask;
 };
 
 struct mlx5dv_obj {
-	struct {
-		struct ibv_qp *in;
-		struct mlx5dv_qp *out;
-	} qp;
-	struct {
-		struct ibv_cq *in;
-		struct mlx5dv_cq *out;
-	} cq;
+    struct {
+        struct ibv_qp *in;
+        struct mlx5dv_qp *out;
+    } qp;
+    struct {
+        struct ibv_cq *in;
+        struct mlx5dv_cq *out;
+    } cq;
 };
 
 enum mlx5dv_obj_type {
-	MLX5DV_OBJ_QP = 1 << 0,
-	MLX5DV_OBJ_CQ = 1 << 1,
+    MLX5DV_OBJ_QP = 1 << 0,
+    MLX5DV_OBJ_CQ = 1 << 1,
 };
 
 #endif /* (DEFINED_DIRECT_VERBS == 2) */

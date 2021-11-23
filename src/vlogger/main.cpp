@@ -30,13 +30,12 @@
  * SOFTWARE.
  */
 
-
 #include <stdlib.h>
 
 #include "vlogger.h"
 
 #if _BullseyeCoverage
-    #pragma BullseyeCoverage off
+#pragma BullseyeCoverage off
 #endif
 
 int main(int argc, char **argv)
@@ -60,9 +59,9 @@ int main(int argc, char **argv)
 
     vlog_stop();
 
-	return 0;
+    return 0;
 }
 
 #if _BullseyeCoverage
-    #pragma BullseyeCoverage on
+#pragma BullseyeCoverage on
 #endif

@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 extern int main_init(void);
 extern int main_destroy(void);
 
@@ -40,10 +39,10 @@ __attribute__((constructor)) causes the function to be called when
 library is firsrt loaded */
 int __attribute__((constructor)) sock_redirect_lib_load_constructor(void)
 {
-        return main_init();
+    return main_init();
 }
 
 int __attribute__((destructor)) sock_redirect_lib_load_destructor(void)
 {
-        return main_destroy();
+    return main_destroy();
 }

@@ -30,26 +30,25 @@
  * SOFTWARE.
  */
 
-
 #ifndef ASMARM64_H_
 #define ASMARM64_H_
 
 #include <stdint.h>
 #include <unistd.h>
 
-#define COPY_64B_NT(dst, src)	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++;	\
-	*dst++ = *src++
+#define COPY_64B_NT(dst, src)                                                                      \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++;                                                                               \
+    *dst++ = *src++
 
-#define mb()	asm volatile("dsb sy" ::: "memory")
-#define rmb()	asm volatile("dsb ld" ::: "memory")
-#define wmb()	asm volatile("dsb st" ::: "memory")
+#define mb()     asm volatile("dsb sy" ::: "memory")
+#define rmb()    asm volatile("dsb ld" ::: "memory")
+#define wmb()    asm volatile("dsb st" ::: "memory")
 #define wc_wmb() wmb()
 
 /**
@@ -60,7 +59,7 @@
  */
 static inline int atomic_fetch_and_add(int i, volatile int *ptr)
 {
-	return __atomic_fetch_add(ptr, i, __ATOMIC_ACQUIRE);
+    return __atomic_fetch_add(ptr, i, __ATOMIC_ACQUIRE);
 }
 
 /**
@@ -71,7 +70,7 @@ static inline int atomic_fetch_and_add(int i, volatile int *ptr)
  */
 static inline int atomic_fetch_and_add_relaxed(int i, volatile int *ptr)
 {
-	return __atomic_fetch_add(ptr, i, __ATOMIC_RELAXED);
+    return __atomic_fetch_add(ptr, i, __ATOMIC_RELAXED);
 }
 
 /**
@@ -79,32 +78,30 @@ static inline int atomic_fetch_and_add_relaxed(int i, volatile int *ptr)
  */
 static inline void gettimeoftsc(unsigned long long *p_tscval)
 {
-	// Read Time Stamp Counter
-	asm volatile("isb" : : : "memory");
-	asm volatile("mrs %0, cntvct_el0" : "=r" ((unsigned long long)*p_tscval));
+    // Read Time Stamp Counter
+    asm volatile("isb" : : : "memory");
+    asm volatile("mrs %0, cntvct_el0" : "=r"((unsigned long long)*p_tscval));
 }
 
 /**
  * Cache Line Prefetch - Arch specific!
  */
 #ifndef L1_CACHE_BYTES
-#define L1_CACHE_BYTES		64
+#define L1_CACHE_BYTES 64
 #endif
 
 static inline void prefetch(void *x)
 {
-	//__builtin_prefetch();
-	asm volatile("prfm pldl1keep, %a0\n" : : "p" (x));
+    //__builtin_prefetch();
+    asm volatile("prfm pldl1keep, %a0\n" : : "p"(x));
 }
 
 static inline void prefetch_range(void *addr, size_t len)
 {
-	char *cp = (char*)addr;
-	char *end = (char*)addr + len;
-	for (; cp < end; cp += L1_CACHE_BYTES)
-		prefetch(cp);
+    char *cp = (char *)addr;
+    char *end = (char *)addr + len;
+    for (; cp < end; cp += L1_CACHE_BYTES)
+        prefetch(cp);
 }
-
-
 
 #endif

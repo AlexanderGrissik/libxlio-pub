@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef MEM_BUF_DESC_H
 #define MEM_BUF_DESC_H
 
@@ -43,10 +42,9 @@
 
 class ring_slave;
 
-struct timestamps_t
-{
-	struct timespec sw;
-	struct timespec	hw;
+struct timestamps_t {
+    struct timespec sw;
+    struct timespec hw;
 };
 
 /**
@@ -61,171 +59,156 @@ struct timestamps_t
  */
 class mem_buf_desc_t {
 public:
-	enum flags {
-		TYPICAL = 0,
-		CLONED  = 0x01,
-		ZCOPY   = 0x02
-	};
+    enum flags { TYPICAL = 0, CLONED = 0x01, ZCOPY = 0x02 };
 
 public:
-	mem_buf_desc_t(uint8_t *buffer, size_t size, pbuf_type type,
-			pbuf_free_custom_fn custom_free_function) :
-		p_buffer(buffer),
-		m_flags(mem_buf_desc_t::TYPICAL),
-		lkey(0),
-		p_next_desc(0),
-		p_prev_desc(0),
-		sz_buffer(size),
-		sz_data(0),
-		p_desc_owner(0),
-		strides_num(0U) {
+    mem_buf_desc_t(uint8_t *buffer, size_t size, pbuf_type type,
+                   pbuf_free_custom_fn custom_free_function)
+        : p_buffer(buffer)
+        , m_flags(mem_buf_desc_t::TYPICAL)
+        , lkey(0)
+        , p_next_desc(0)
+        , p_prev_desc(0)
+        , sz_buffer(size)
+        , sz_data(0)
+        , p_desc_owner(0)
+        , strides_num(0U)
+    {
 
-		memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
-		memset(&rx, 0, sizeof(rx));
-		memset(&tx, 0, sizeof(tx));
-		memset(&ee, 0, sizeof(ee));
-		reset_ref_count();
+        memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
+        memset(&rx, 0, sizeof(rx));
+        memset(&tx, 0, sizeof(tx));
+        memset(&ee, 0, sizeof(ee));
+        reset_ref_count();
 
-		lwip_pbuf.pbuf.type = type;
-		lwip_pbuf.custom_free_function = custom_free_function;
-	}
+        lwip_pbuf.pbuf.type = type;
+        lwip_pbuf.custom_free_function = custom_free_function;
+    }
 
-	/* This filed should be first in this class
-	 * It encapsulates pbuf structure from lwip
-	 * and extra fields to proceed customer specific requirements
-	 */
-	struct pbuf_custom lwip_pbuf;
-	uint8_t* p_buffer;
+    /* This filed should be first in this class
+     * It encapsulates pbuf structure from lwip
+     * and extra fields to proceed customer specific requirements
+     */
+    struct pbuf_custom lwip_pbuf;
+    uint8_t *p_buffer;
 
-	static inline size_t buffer_node_offset(void) {
-		return NODE_OFFSET(mem_buf_desc_t, buffer_node);
-	}
-	list_node<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> buffer_node;
+    static inline size_t buffer_node_offset(void)
+    {
+        return NODE_OFFSET(mem_buf_desc_t, buffer_node);
+    }
+    list_node<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> buffer_node;
 
-	union {
-		struct {
-			iovec 		frag; // Datagram part base address and length
-			sockaddr_in	src; // L3 info
-			sockaddr_in	dst; // L3 info
+    union {
+        struct {
+            iovec frag; // Datagram part base address and length
+            sockaddr_in src; // L3 info
+            sockaddr_in dst; // L3 info
 
-			size_t		sz_payload; // This is the total amount of data of the packet, if (sz_payload>sz_data) means fragmented packet.
-			uint64_t	hw_raw_timestamp;
-			timestamps_t	timestamps;
-			void* 		context;
+            size_t sz_payload; // This is the total amount of data of the packet, if
+                               // (sz_payload>sz_data) means fragmented packet.
+            uint64_t hw_raw_timestamp;
+            timestamps_t timestamps;
+            void *context;
 
-			union {
-				struct {
-					struct iphdr* 	p_ip_h;
-					struct tcphdr* 	p_tcp_h;
-					size_t		n_transport_header_len;
-				} tcp;
-				struct {
-					in_addr_t	local_if; // L3 info
-				} udp;
-			};
+            union {
+                struct {
+                    struct iphdr *p_ip_h;
+                    struct tcphdr *p_tcp_h;
+                    size_t n_transport_header_len;
+                } tcp;
+                struct {
+                    in_addr_t local_if; // L3 info
+                } udp;
+            };
 
-			uint32_t	flow_tag_id; // Flow Tag ID of this received packet
-			int8_t		n_frags;	//number of fragments
-			bool 		is_vma_thr; 	// specify whether packet drained from VMA internal thread or from user app thread
-			bool		is_sw_csum_need; // specify if software checksum is need for this packet
-			bool 		socketxtreme_polled;
+            uint32_t flow_tag_id; // Flow Tag ID of this received packet
+            int8_t n_frags; // number of fragments
+            bool is_vma_thr; // specify whether packet drained from VMA internal thread or from user
+                             // app thread
+            bool is_sw_csum_need; // specify if software checksum is need for this packet
+            bool socketxtreme_polled;
 #ifdef DEFINED_UTLS
-			uint8_t		tls_decrypted;
-			uint8_t		tls_type;
+            uint8_t tls_decrypted;
+            uint8_t tls_type;
 #endif /* DEFINED_UTLS */
-		} rx;
-		struct {
-			size_t		dev_mem_length; // Total data aligned to 4 bytes.
-			struct		iphdr* 	p_ip_h;
-			union {
-				struct		udphdr* p_udp_h;
-				struct		tcphdr* p_tcp_h;
-			};
-			struct {
-				/* This structure allows to track tx zerocopy flow
-				 * including start send id and range in count field
-				 * with total bytes length as len
-				 * where
-				 * id -> ee.ee_info
-				 * id + count -1 -> ee.ee_data
-				 */
-				uint32_t id;
-				uint32_t len;
-				uint16_t count;
-				void *ctx;
-				void (*callback)(mem_buf_desc_t *);
-			} zc;
-		} tx;
-	};
+        } rx;
+        struct {
+            size_t dev_mem_length; // Total data aligned to 4 bytes.
+            struct iphdr *p_ip_h;
+            union {
+                struct udphdr *p_udp_h;
+                struct tcphdr *p_tcp_h;
+            };
+            struct {
+                /* This structure allows to track tx zerocopy flow
+                 * including start send id and range in count field
+                 * with total bytes length as len
+                 * where
+                 * id -> ee.ee_info
+                 * id + count -1 -> ee.ee_data
+                 */
+                uint32_t id;
+                uint32_t len;
+                uint16_t count;
+                void *ctx;
+                void (*callback)(mem_buf_desc_t *);
+            } zc;
+        } tx;
+    };
 
-	/* This field is needed for error queue processing */
-	struct sock_extended_err	ee;
-	int    m_flags; /* object description */
-	uint32_t	lkey;      	// Buffers lkey for QP access
-	mem_buf_desc_t* p_next_desc;	// A general purpose linked list of mem_buf_desc
-	mem_buf_desc_t* p_prev_desc;
-	size_t  sz_buffer; 	// this is the size of the buffer
-	size_t	sz_data;   	// this is the amount of data inside the buffer (sz_data <= sz_buffer)
+    /* This field is needed for error queue processing */
+    struct sock_extended_err ee;
+    int m_flags; /* object description */
+    uint32_t lkey; // Buffers lkey for QP access
+    mem_buf_desc_t *p_next_desc; // A general purpose linked list of mem_buf_desc
+    mem_buf_desc_t *p_prev_desc;
+    size_t sz_buffer; // this is the size of the buffer
+    size_t sz_data; // this is the amount of data inside the buffer (sz_data <= sz_buffer)
 
-	// Tx: qp_mgr owns the mem_buf_desc and the associated data buffer
-	// Rx: cq_mgr owns the mem_buf_desc and the associated data buffer
-	ring_slave* p_desc_owner;
+    // Tx: qp_mgr owns the mem_buf_desc and the associated data buffer
+    // Rx: cq_mgr owns the mem_buf_desc and the associated data buffer
+    ring_slave *p_desc_owner;
 
 private:
-	atomic_t	n_ref_count;	// number of interested receivers (sockinfo) [can be modified only in cq_mgr context]
+    atomic_t n_ref_count; // number of interested receivers (sockinfo) [can be modified only in
+                          // cq_mgr context]
 
 public:
+    uint16_t strides_num;
 
-	uint16_t strides_num;
+    inline mem_buf_desc_t *clone()
+    {
+        mem_buf_desc_t *p_desc = new mem_buf_desc_t(*this);
+        INIT_LIST_HEAD(&p_desc->buffer_node.head);
+        p_desc->m_flags |= mem_buf_desc_t::CLONED;
+        return p_desc;
+    }
 
-	inline mem_buf_desc_t* clone() {
-		mem_buf_desc_t* p_desc = new mem_buf_desc_t(*this);
-		INIT_LIST_HEAD(&p_desc->buffer_node.head);
-		p_desc->m_flags |= mem_buf_desc_t::CLONED;
-		return p_desc;
-	}
+    inline int get_ref_count() const { return atomic_read(&n_ref_count); }
 
-	inline int get_ref_count() const {
-		return atomic_read(&n_ref_count);
-	}
+    inline void reset_ref_count() { atomic_set(&n_ref_count, 0); }
 
-	inline void  reset_ref_count() {
-		atomic_set(&n_ref_count, 0);
-	}
+    inline void set_ref_count(int x) { atomic_set(&n_ref_count, x); }
 
-	inline void  set_ref_count(int x) {
-		atomic_set(&n_ref_count, x);
-	}
+    inline int inc_ref_count() { return atomic_fetch_and_inc(&n_ref_count); }
 
-	inline int inc_ref_count() {
-		return atomic_fetch_and_inc(&n_ref_count);
-	}
+    inline int dec_ref_count() { return atomic_fetch_and_dec(&n_ref_count); }
 
-	inline int dec_ref_count() {
-		return atomic_fetch_and_dec(&n_ref_count);
-	}
+    inline int add_ref_count(int x) { return atomic_fetch_add_relaxed(x, &n_ref_count); }
 
-	inline int add_ref_count(int x) {
-		return atomic_fetch_add_relaxed(x, &n_ref_count);
-	}
+    inline unsigned int lwip_pbuf_inc_ref_count() { return ++lwip_pbuf.pbuf.ref; }
 
-	inline unsigned int lwip_pbuf_inc_ref_count() {
-		return ++lwip_pbuf.pbuf.ref;
-	}
+    inline unsigned int lwip_pbuf_dec_ref_count()
+    {
+        if (likely(lwip_pbuf.pbuf.ref)) {
+            --lwip_pbuf.pbuf.ref;
+        }
+        return lwip_pbuf.pbuf.ref;
+    }
 
-	inline unsigned int lwip_pbuf_dec_ref_count() {
-		if (likely(lwip_pbuf.pbuf.ref)) {
-			--lwip_pbuf.pbuf.ref;
-		}
-		return lwip_pbuf.pbuf.ref;
-	}
-
-	inline unsigned int lwip_pbuf_get_ref_count() const {
-		return lwip_pbuf.pbuf.ref;
-	}
+    inline unsigned int lwip_pbuf_get_ref_count() const { return lwip_pbuf.pbuf.ref; }
 };
 
 typedef vma_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> descq_t;
 
 #endif
-

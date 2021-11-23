@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef CQ_MGR_INL_H
 #define CQ_MGR_INL_H
 
@@ -41,69 +40,69 @@
 /** inlining functions can only help if they are implemented before their usage **/
 /**/
 
-inline void cq_mgr::process_recv_buffer(mem_buf_desc_t* p_mem_buf_desc, void* pv_fd_ready_array)
+inline void cq_mgr::process_recv_buffer(mem_buf_desc_t *p_mem_buf_desc, void *pv_fd_ready_array)
 {
-	// Assume locked!!!
+    // Assume locked!!!
 
-	// Pass the Rx buffer ib_comm_mgr for further IP processing
-	if (!m_p_ring->rx_process_buffer(p_mem_buf_desc, pv_fd_ready_array)) {
-		// If buffer is dropped by callback - return to RX pool
-		reclaim_recv_buffer_helper(p_mem_buf_desc);
-	}
+    // Pass the Rx buffer ib_comm_mgr for further IP processing
+    if (!m_p_ring->rx_process_buffer(p_mem_buf_desc, pv_fd_ready_array)) {
+        // If buffer is dropped by callback - return to RX pool
+        reclaim_recv_buffer_helper(p_mem_buf_desc);
+    }
 }
 
-inline uint32_t cq_mgr::process_recv_queue(void* pv_fd_ready_array)
+inline uint32_t cq_mgr::process_recv_queue(void *pv_fd_ready_array)
 {
-	// Assume locked!!!
-	// If we have packets in the queue, dequeue one and process it
-	// until reaching cq_poll_batch_max or empty queue
-	uint32_t processed = 0;
+    // Assume locked!!!
+    // If we have packets in the queue, dequeue one and process it
+    // until reaching cq_poll_batch_max or empty queue
+    uint32_t processed = 0;
 
-	while (!m_rx_queue.empty()) {
-		mem_buf_desc_t* buff = m_rx_queue.get_and_pop_front();
-		process_recv_buffer(buff, pv_fd_ready_array);
-		if (++processed >= m_n_sysvar_cq_poll_batch_max)
-			break;
-	}
-	m_p_cq_stat->n_rx_sw_queue_len = m_rx_queue.size();
-	return processed;
+    while (!m_rx_queue.empty()) {
+        mem_buf_desc_t *buff = m_rx_queue.get_and_pop_front();
+        process_recv_buffer(buff, pv_fd_ready_array);
+        if (++processed >= m_n_sysvar_cq_poll_batch_max)
+            break;
+    }
+    m_p_cq_stat->n_rx_sw_queue_len = m_rx_queue.size();
+    return processed;
 }
 
-inline bool is_eth_tcp_frame(mem_buf_desc_t* buff)
+inline bool is_eth_tcp_frame(mem_buf_desc_t *buff)
 {
-	struct ethhdr* p_eth_h = (struct ethhdr*)(buff->p_buffer);
-	uint16_t h_proto = p_eth_h->h_proto;
+    struct ethhdr *p_eth_h = (struct ethhdr *)(buff->p_buffer);
+    uint16_t h_proto = p_eth_h->h_proto;
 
-	size_t transport_header_len = ETH_HDR_LEN;
-	struct vlanhdr* p_vlan_hdr = NULL;
-	if (h_proto == htons(ETH_P_8021Q)) {
-		p_vlan_hdr = (struct vlanhdr*)((uint8_t*)p_eth_h + transport_header_len);
-		transport_header_len = ETH_VLAN_HDR_LEN;
-		h_proto = p_vlan_hdr->h_vlan_encapsulated_proto;
-	}
-	struct iphdr *p_ip_h = (struct iphdr*)(buff->p_buffer + transport_header_len);
-	if (likely(h_proto == htons(ETH_P_IP)) && (p_ip_h->protocol == IPPROTO_TCP)) {
-		return true;
-	}
-	return false;
+    size_t transport_header_len = ETH_HDR_LEN;
+    struct vlanhdr *p_vlan_hdr = NULL;
+    if (h_proto == htons(ETH_P_8021Q)) {
+        p_vlan_hdr = (struct vlanhdr *)((uint8_t *)p_eth_h + transport_header_len);
+        transport_header_len = ETH_VLAN_HDR_LEN;
+        h_proto = p_vlan_hdr->h_vlan_encapsulated_proto;
+    }
+    struct iphdr *p_ip_h = (struct iphdr *)(buff->p_buffer + transport_header_len);
+    if (likely(h_proto == htons(ETH_P_IP)) && (p_ip_h->protocol == IPPROTO_TCP)) {
+        return true;
+    }
+    return false;
 }
 
-inline bool is_ib_tcp_frame(mem_buf_desc_t* buff)
+inline bool is_ib_tcp_frame(mem_buf_desc_t *buff)
 {
-	struct ipoibhdr* p_ipoib_h = (struct ipoibhdr*)(buff->p_buffer + GRH_HDR_LEN);
+    struct ipoibhdr *p_ipoib_h = (struct ipoibhdr *)(buff->p_buffer + GRH_HDR_LEN);
 
-	// Validate IPoIB header
-	if (unlikely(p_ipoib_h->ipoib_header != htonl(IPOIB_HEADER))) {
-		return false;
-	}
+    // Validate IPoIB header
+    if (unlikely(p_ipoib_h->ipoib_header != htonl(IPOIB_HEADER))) {
+        return false;
+    }
 
-	size_t transport_header_len = GRH_HDR_LEN + IPOIB_HDR_LEN;
+    size_t transport_header_len = GRH_HDR_LEN + IPOIB_HDR_LEN;
 
-	struct iphdr * p_ip_h = (struct iphdr*)(buff->p_buffer + transport_header_len);
-	if (likely(p_ip_h->protocol == IPPROTO_TCP)) {
-		return true;
-	}
-	return false;
+    struct iphdr *p_ip_h = (struct iphdr *)(buff->p_buffer + transport_header_len);
+    if (likely(p_ip_h->protocol == IPPROTO_TCP)) {
+        return true;
+    }
+    return false;
 }
 
-#endif//CQ_MGR_INL_H
+#endif // CQ_MGR_INL_H

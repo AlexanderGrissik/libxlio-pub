@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef WAKEUP_PIPE_H
 #define WAKEUP_PIPE_H
 
@@ -40,21 +39,17 @@
 #include "wakeup.h"
 #include "utils/atomic.h"
 
-class wakeup_pipe : public wakeup
-{
+class wakeup_pipe : public wakeup {
 public:
-	wakeup_pipe(void);
-	~wakeup_pipe();
-	virtual void do_wakeup();
-	virtual inline bool is_wakeup_fd(int fd)
-	{
-		return fd == g_wakeup_pipes[0];
-	};
-	virtual void remove_wakeup_fd();
+    wakeup_pipe(void);
+    ~wakeup_pipe();
+    virtual void do_wakeup();
+    virtual inline bool is_wakeup_fd(int fd) { return fd == g_wakeup_pipes[0]; };
+    virtual void remove_wakeup_fd();
 
 private:
-	static int g_wakeup_pipes[2];
-	static atomic_t ref_count;
+    static int g_wakeup_pipes[2];
+    static atomic_t ref_count;
 };
 
 #endif /* WAKEUP_PIPE_H */

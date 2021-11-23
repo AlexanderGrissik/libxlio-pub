@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef ASM_H_
 #define ASM_H_
 

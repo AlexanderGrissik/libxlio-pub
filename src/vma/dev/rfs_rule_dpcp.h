@@ -45,20 +45,16 @@
 
 using namespace std;
 
-class rfs_rule_dpcp : public rfs_rule
-{
+class rfs_rule_dpcp : public rfs_rule {
 public:
-
     virtual ~rfs_rule_dpcp();
 
-    bool create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dpcp::adapter& in_adapter);
+    bool create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir, dpcp::adapter &in_adapter);
 
 private:
-
     unique_ptr<dpcp::flow_rule> _dpcp_flow;
 };
 
 #endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
 
 #endif
-

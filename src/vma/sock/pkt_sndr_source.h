@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef PKT_SNDR_SOURCE_H
 #define PKT_SNDR_SOURCE_H
 
@@ -40,11 +39,9 @@
  * When no packet transmitters (or receivers) are registered the objects will be
  * deleted.
  */
-class pkt_sndr_source
-{
+class pkt_sndr_source {
 public:
-	virtual ~pkt_sndr_source() {};
+    virtual ~pkt_sndr_source() {};
 };
-
 
 #endif

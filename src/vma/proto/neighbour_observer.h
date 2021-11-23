@@ -30,18 +30,15 @@
  * SOFTWARE.
  */
 
-
-
 #ifndef NEIGHBOUR_OBSERVER_H
 #define NEIGHBOUR_OBSERVER_H
 
 #include "vma/util/sys_vars.h"
 #include "vma/infra/subject_observer.h"
 
-class neigh_observer : public observer
-{
+class neigh_observer : public observer {
 public:
-	virtual transport_type_t get_obs_transport_type() const = 0;
+    virtual transport_type_t get_obs_transport_type() const = 0;
 };
 
 #endif /* NEIGHBOUR_OBSERVER_H */

@@ -43,20 +43,22 @@ rfs_rule_dpcp::~rfs_rule_dpcp()
 {
 }
 
-bool rfs_rule_dpcp::create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dpcp::adapter& in_adapter)
+bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
+                           dpcp::adapter &in_adapter)
 {
-    const attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp& attrs_tcpudp(
-        reinterpret_cast<const attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp&>(attrs));
-    
+    const attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp &attrs_tcpudp(
+        reinterpret_cast<
+            const attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp &>(attrs));
+
     dpcp::match_params mp;
     dpcp::match_params match_msk;
-    
+
     memset(&mp, 0, sizeof(mp));
     memset(&match_msk, 0, sizeof(match_msk));
 
     memset(&match_msk.dst_mac, 0xFF, sizeof(match_msk.dst_mac));
-    memcpy(&mp.dst_mac, attrs_tcpudp.eth.val.dst_mac, 
-       min(sizeof(mp.dst_mac), sizeof(attrs_tcpudp.eth.val.dst_mac)));
+    memcpy(&mp.dst_mac, attrs_tcpudp.eth.val.dst_mac,
+           min(sizeof(mp.dst_mac), sizeof(attrs_tcpudp.eth.val.dst_mac)));
 
     match_msk.ethertype = htons(attrs_tcpudp.eth.mask.ether_type);
     mp.ethertype = htons(attrs_tcpudp.eth.val.ether_type);
@@ -74,50 +76,57 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dp
     mp.protocol = (attrs_tcpudp.tcp_udp.type == VMA_IBV_FLOW_SPEC_TCP ? 6U : 17U);
     match_msk.ip_version = 0xF;
     mp.ip_version = 4U;
-    
-    dpcp::flow_rule* new_rule = nullptr;
+
+    dpcp::flow_rule *new_rule = nullptr;
     dpcp::status status_out = in_adapter.create_flow_rule(attrs.priority, match_msk, new_rule);
-	if (status_out != dpcp::DPCP_OK) {
-        rfs_logerr("Failed dpcp_adpater::create_flow_rule(), Type: %u, Priority %" PRIu16 ", Status: %d" , 
+    if (status_out != dpcp::DPCP_OK) {
+        rfs_logerr(
+            "Failed dpcp_adpater::create_flow_rule(), Type: %u, Priority %" PRIu16 ", Status: %d",
             static_cast<unsigned int>(attrs.type), attrs.priority, static_cast<int>(status_out));
         return false;
     }
 
-    rfs_logdbg("Succeeded dpcp_adpater::create_flow_rule(), Type: %u, Priority %" PRIu16 ", rfs_rule_dpcp %p, dpcp_flow: %p", 
-            static_cast<unsigned int>(attrs.type), attrs.priority, this, new_rule);
+    rfs_logdbg("Succeeded dpcp_adpater::create_flow_rule(), Type: %u, Priority %" PRIu16
+               ", rfs_rule_dpcp %p, dpcp_flow: %p",
+               static_cast<unsigned int>(attrs.type), attrs.priority, this, new_rule);
 
     _dpcp_flow.reset(new_rule);
 
     status_out = _dpcp_flow->set_match_value(mp);
     if (status_out != dpcp::DPCP_OK) {
-        rfs_logerr("Failed dpcp_flow_rule::set_match_value(), Status: %d, dpcp_flow: %p", static_cast<int>(status_out), new_rule);
+        rfs_logerr("Failed dpcp_flow_rule::set_match_value(), Status: %d, dpcp_flow: %p",
+                   static_cast<int>(status_out), new_rule);
         return false;
     }
 
     status_out = _dpcp_flow->add_dest_tir(&in_tir);
     if (status_out != dpcp::DPCP_OK) {
-        rfs_logerr("Failed dpcp_flow_rule::add_dest_tir(), Status: %d, dpcp_flow: %p", static_cast<int>(status_out), new_rule);
+        rfs_logerr("Failed dpcp_flow_rule::add_dest_tir(), Status: %d, dpcp_flow: %p",
+                   static_cast<int>(status_out), new_rule);
         return false;
-    } 
-      
+    }
+
     uint32_t tirn = 0U;
     in_tir.get_id(tirn);
-    rfs_logdbg("Added dpcp_flow_rule::add_dest_tir() TIR %" PRIu32 ", dpcp_flow: %p", tirn, new_rule);
-    
+    rfs_logdbg("Added dpcp_flow_rule::add_dest_tir() TIR %" PRIu32 ", dpcp_flow: %p", tirn,
+               new_rule);
+
     if (attrs_tcpudp.flow_tag.type == VMA_IBV_FLOW_SPEC_ACTION_TAG) {
-        rfs_logdbg("Setting flow tag dpcp_adpater::set_flow_id(), Tag: %" PRIu32 ", dpcp_flow: %p", 
-            attrs_tcpudp.flow_tag.tag_id, new_rule);
+        rfs_logdbg("Setting flow tag dpcp_adpater::set_flow_id(), Tag: %" PRIu32 ", dpcp_flow: %p",
+                   attrs_tcpudp.flow_tag.tag_id, new_rule);
 
         status_out = _dpcp_flow->set_flow_id(attrs_tcpudp.flow_tag.tag_id);
         if (status_out != dpcp::DPCP_OK) {
-            rfs_logerr("Failed dpcp_flow_rule::set_flow_id(), Status: %d, dpcp_flow: %p", static_cast<int>(status_out), new_rule);
+            rfs_logerr("Failed dpcp_flow_rule::set_flow_id(), Status: %d, dpcp_flow: %p",
+                       static_cast<int>(status_out), new_rule);
             return false;
         }
     }
-    
+
     status_out = _dpcp_flow->apply_settings();
     if (status_out != dpcp::DPCP_OK) {
-        rfs_logerr("Failed dpcp_flow_rule::apply_settings(), Status: %d, dpcp_flow: %p", static_cast<int>(status_out), new_rule);
+        rfs_logerr("Failed dpcp_flow_rule::apply_settings(), Status: %d, dpcp_flow: %p",
+                   static_cast<int>(status_out), new_rule);
         return false;
     }
 
@@ -125,4 +134,3 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr& attrs, dpcp::tir& in_tir, dp
 }
 
 #endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10113)
-

@@ -30,10 +30,9 @@
  * SOFTWARE.
  */
 
-
 /*
  * Bullseye Coverage Definitions
-*/
+ */
 #ifndef BULLSEYE_H_
 #define BULLSEYE_H_
 
@@ -42,12 +41,11 @@
 #endif
 
 #if _BullseyeCoverage
-#define BULLSEYE_EXCLUDE_BLOCK_START	"BullseyeCoverage save off";
-#define BULLSEYE_EXCLUDE_BLOCK_END	"BullseyeCoverage restore";
+#define BULLSEYE_EXCLUDE_BLOCK_START "BullseyeCoverage save off";
+#define BULLSEYE_EXCLUDE_BLOCK_END   "BullseyeCoverage restore";
 #else
 #define BULLSEYE_EXCLUDE_BLOCK_START
 #define BULLSEYE_EXCLUDE_BLOCK_END
 #endif
-
 
 #endif /* BULLSEYE_H_ */

@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-
 #ifndef MAIN_H
 #define MAIN_H
 
@@ -49,4 +48,4 @@ extern "C" void sock_redirect_exit(void);
 
 extern bool g_init_ibv_fork_done;
 
-#endif //MAIN_H
+#endif // MAIN_H

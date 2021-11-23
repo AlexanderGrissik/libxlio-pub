@@ -30,10 +30,9 @@
  * SOFTWARE.
  */
 
-
 #include "sender_info_dst.h"
 
-sender::send_info_dst(ibv_send_wr *send_wqe, dst_entry *dst_entry): sender::send_info(send_wqe)
+sender::send_info_dst(ibv_send_wr *send_wqe, dst_entry *dst_entry)
+    : sender::send_info(send_wqe)
 {
-
 }

@@ -30,20 +30,18 @@
  * SOFTWARE.
  */
 
-
 /* This class should be inherited by all classed that need to be printed
-*/
+ */
 #ifndef TO_STR_H_
 #define TO_STR_H_
 
 #include <string>
 
 /* coverity[missing_move_assignment] */
-class tostr
-{
+class tostr {
 public:
-	virtual ~tostr(){};
-	virtual const std::string to_str() const { return std::string(""); };
+    virtual ~tostr() {};
+    virtual const std::string to_str() const { return std::string(""); };
 };
 
 #endif /* TO_STR_H_ */

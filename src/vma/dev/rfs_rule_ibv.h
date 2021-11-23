@@ -40,26 +40,20 @@
 
 using namespace std;
 
-template <typename T>
-using deleter_func = void(*)(T*);
+template <typename T> using deleter_func = void (*)(T *);
 
-template <typename T>
-using unique_ptr_delfunc = std::unique_ptr<T, deleter_func<T>>;
+template <typename T> using unique_ptr_delfunc = std::unique_ptr<T, deleter_func<T>>;
 
-class rfs_rule_ibv : public rfs_rule
-{
+class rfs_rule_ibv : public rfs_rule {
 public:
-
     virtual ~rfs_rule_ibv();
 
-    bool create(vma_ibv_flow_attr& attrs, ibv_qp* qp);
+    bool create(vma_ibv_flow_attr &attrs, ibv_qp *qp);
 
 private:
-
-    static void destory_ibv_flow(vma_ibv_flow* flow);
+    static void destory_ibv_flow(vma_ibv_flow *flow);
 
     unique_ptr_delfunc<vma_ibv_flow> _ibv_flow {nullptr, destory_ibv_flow};
 };
 
 #endif
-
