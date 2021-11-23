@@ -19,16 +19,34 @@ class MyClass {
     ...
 };
 
+namespace MyNestedNamespace {
+
+class MyOtherClass {
+    MyOtherClass();
+    ...
+};
+
+}
+
 }
 ```
 **Wrong:**
 ```
 namespace MyNamespace {
 
-class MyClass {
-    MyClass();
-    ...
-};
+    class MyClass {
+        MyClass();
+        ...
+    };
+
+    namespace MyNestedNamespace {
+
+        class MyOtherClass {
+            MyOtherClass();
+            ...
+        };
+
+    }
 
 }
 ```
@@ -96,29 +114,6 @@ int Function() {
 }
 ```
 
-- Inline functions defined inside class: place the open brace on the line preceding the code block.
-
-**Right:**
-```
-class MyClass {
-    inline int Function1() {
-        ...
-    }
-    inline int Function2() { ... }
-    ...
-};
-```
-**Wrong:**
-```
-class MyClass {
-    inline int Function1()
-    {
-        ...
-    }
-    ...
-};
-```
-
 - Other braces: place the open brace on the line preceding the code block; place the close brace on its own line.
 
 **Right:**
@@ -153,7 +148,7 @@ for (int i = 0; i < 10; ++i)
 }
 ```
 
-- Always brace controlled statements, even a single-line consequent of `if else else`. This is redundant, typically, but it avoids dangling else bugs, so it’s safer at scale than fine-tuning.
+- Always brace controlled statements, even a single-line consequent of `if else`. This is redundant, typically, but it avoids dangling else bugs, so it's safer at scale than fine-tuning.
 
 **Right:**
 ```
@@ -324,7 +319,7 @@ bool fooBar(bool Baz, char *str, std::vector<int> &Result);
 ```
 **Wrong:**
 ```
-bool fooBar(bool Baz, char *str, std::vector<int> &Result);
+bool fooBar(bool Baz, char* str, std::vector<int>& Result);
 ```
 
 ## #include Statements
