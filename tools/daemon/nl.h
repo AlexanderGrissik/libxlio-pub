@@ -36,21 +36,19 @@
 #include <linux/rtnetlink.h>
 #include <linux/netlink.h>
 
-
 /* The nl_t opaque data type
  */
-typedef struct nl_object* nl_t;
+typedef struct nl_object *nl_t;
 
-#define NLMSG_BUF	(16384)
-#define NLMSG_TAIL(nl_msg) \
-	((struct rtattr *) (((char *) (nl_msg)) + NLMSG_ALIGN((nl_msg)->nlmsg_len)))
+#define NLMSG_BUF (16384)
+#define NLMSG_TAIL(nl_msg)                                                                         \
+    ((struct rtattr *)(((char *)(nl_msg)) + NLMSG_ALIGN((nl_msg)->nlmsg_len)))
 
 struct nl_req {
-	struct nlmsghdr hdr;
-	struct tcmsg msg;
-	char buf[NLMSG_BUF];
+    struct nlmsghdr hdr;
+    struct tcmsg msg;
+    char buf[NLMSG_BUF];
 };
-
 
 /**
  * Initialize a netlink object for communicating with the kernel.
@@ -114,8 +112,8 @@ int nl_recv(nl_t nt, int (*cb)(struct nlmsghdr *, void *arg), void *arg);
  * @return
  *     @a none
  */
-void nl_attr_add(struct nlmsghdr *nl_msg, unsigned short type,
-		const void *data, unsigned int data_len);
+void nl_attr_add(struct nlmsghdr *nl_msg, unsigned short type, const void *data,
+                 unsigned int data_len);
 
 struct rtattr *nl_attr_nest_start(struct nlmsghdr *nl_msg, int type);
 
