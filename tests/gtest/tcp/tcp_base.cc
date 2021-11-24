@@ -39,7 +39,7 @@
 
 void tcp_base::SetUp()
 {
-	errno = EOK;
+    errno = EOK;
 }
 
 void tcp_base::TearDown()
@@ -48,58 +48,58 @@ void tcp_base::TearDown()
 
 int tcp_base::sock_create(void)
 {
-	int rc;
-	int fd;
-	int opt_val = 0;
+    int rc;
+    int fd;
+    int opt_val = 0;
 
-	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
-	if (fd < 0) {
-		log_error("failed socket() %s\n", strerror(errno));
-		return -1;
-	}
+    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    if (fd < 0) {
+        log_error("failed socket() %s\n", strerror(errno));
+        return -1;
+    }
 
-	rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-	if (rc < 0) {
-		log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
-		goto err;
-	}
+    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+    if (rc < 0) {
+        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
+        goto err;
+    }
 
-	return fd;
+    return fd;
 
 err:
-	close(fd);
+    close(fd);
 
-	return (-1);
+    return (-1);
 }
 
 int tcp_base::sock_create_nb(void)
 {
-	int rc;
-	int fd;
-	int opt_val = 0;
+    int rc;
+    int fd;
+    int opt_val = 0;
 
-	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
-	if (fd < 0) {
-		log_error("failed socket() %s\n", strerror(errno));
-		goto err;
-	}
+    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    if (fd < 0) {
+        log_error("failed socket() %s\n", strerror(errno));
+        goto err;
+    }
 
-	rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-	if (rc < 0) {
-		log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
-		goto err;
-	}
+    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+    if (rc < 0) {
+        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
+        goto err;
+    }
 
-	rc = test_base::sock_noblock(fd);
-	if (rc < 0) {
-		log_error("failed sock_noblock() %s\n", strerror(errno));
-		goto err;
-	}
+    rc = test_base::sock_noblock(fd);
+    if (rc < 0) {
+        log_error("failed sock_noblock() %s\n", strerror(errno));
+        goto err;
+    }
 
-	return fd;
+    return fd;
 
 err:
-	close(fd);
+    close(fd);
 
-	return (-1);
+    return (-1);
 }

@@ -37,13 +37,10 @@
 #include "common/sys.h"
 #include "common/base.h"
 
-
-class mix_base : public testing::Test, public test_base
-{
+class mix_base : public testing::Test, public test_base {
 protected:
-	virtual void SetUp();
-	virtual void TearDown();
+    virtual void SetUp();
+    virtual void TearDown();
 };
 
-#endif //TESTS_GTEST_MIX_VASE_H_
-
+#endif // TESTS_GTEST_MIX_VASE_H_

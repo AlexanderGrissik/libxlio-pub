@@ -39,31 +39,31 @@ int test_base::m_break_signal = 0;
 
 test_base::test_base()
 {
-	port = gtest_conf.port;
-	memcpy(&client_addr, &gtest_conf.client_addr, sizeof(client_addr));
-	memcpy(&server_addr, &gtest_conf.server_addr, sizeof(server_addr));
-	memcpy(&remote_addr, &gtest_conf.remote_addr, sizeof(remote_addr));
-	remote_addr.sin_port = htons(17000);
+    port = gtest_conf.port;
+    memcpy(&client_addr, &gtest_conf.client_addr, sizeof(client_addr));
+    memcpy(&server_addr, &gtest_conf.server_addr, sizeof(server_addr));
+    memcpy(&remote_addr, &gtest_conf.remote_addr, sizeof(remote_addr));
+    remote_addr.sin_port = htons(17000);
 
-	bogus_port = 49999;
-	bogus_addr.sin_family = PF_INET;
-	bogus_addr.sin_addr.s_addr = inet_addr("1.1.1.1");
-	bogus_addr.sin_port = 0;
+    bogus_port = 49999;
+    bogus_addr.sin_family = PF_INET;
+    bogus_addr.sin_addr.s_addr = inet_addr("1.1.1.1");
+    bogus_addr.sin_port = 0;
 
-	m_efd_signal = 0;
-	m_efd = eventfd(m_efd_signal, 0);
+    m_efd_signal = 0;
+    m_efd = eventfd(m_efd_signal, 0);
 
-	m_break_signal = 0;
+    m_break_signal = 0;
 }
 
 test_base::~test_base()
 {
-	m_break_signal = 0;
+    m_break_signal = 0;
 }
 
 void *test_base::thread_func(void *arg)
 {
-    test_base *self = reinterpret_cast<test_base*>(arg);
+    test_base *self = reinterpret_cast<test_base *>(arg);
     self->barrier(); /* Let all threads start in the same time */
     return NULL;
 }
@@ -84,117 +84,118 @@ bool test_base::barrier()
     } else if (ret == PTHREAD_BARRIER_SERIAL_THREAD) {
         return true;
     } else {
-    	log_fatal("pthread_barrier_wait() failed\n");
+        log_fatal("pthread_barrier_wait() failed\n");
     }
     return false;
 }
 
 int test_base::sock_noblock(int fd)
 {
-	int rc = 0;
-	int flag;
+    int rc = 0;
+    int flag;
 
-	flag = fcntl(fd, F_GETFL);
-	if (flag < 0) {
-		rc = -errno;
-		log_error("failed to get socket flags errno: %s\n", strerror(errno));
-	}
-	flag |= O_NONBLOCK;
-	rc = fcntl(fd, F_SETFL, flag);
-	if (rc < 0) {
-		rc = -errno;
-		log_error("failed to set socket flags errno: %s\n", strerror(errno));
-	}
+    flag = fcntl(fd, F_GETFL);
+    if (flag < 0) {
+        rc = -errno;
+        log_error("failed to get socket flags errno: %s\n", strerror(errno));
+    }
+    flag |= O_NONBLOCK;
+    rc = fcntl(fd, F_SETFL, flag);
+    if (rc < 0) {
+        rc = -errno;
+        log_error("failed to set socket flags errno: %s\n", strerror(errno));
+    }
 
-	return rc;
+    return rc;
 }
 
 int test_base::event_wait(struct epoll_event *event)
 {
-	int rc = 0;
-	int fd;
-	int efd = -1;
-	int timeout = 10 * 1000;
+    int rc = 0;
+    int fd;
+    int efd = -1;
+    int timeout = 10 * 1000;
 
-	if (!event) {
-		return -1;
-	}
+    if (!event) {
+        return -1;
+    }
 
-	fd = event->data.fd;
-	efd = epoll_create1(0);
-	rc = epoll_ctl(efd, EPOLL_CTL_ADD, fd, event);
-	if (rc < 0) {
-		log_error("failed epoll_ctl() errno: %s\n", strerror(errno));
-		goto err;
-	}
+    fd = event->data.fd;
+    efd = epoll_create1(0);
+    rc = epoll_ctl(efd, EPOLL_CTL_ADD, fd, event);
+    if (rc < 0) {
+        log_error("failed epoll_ctl() errno: %s\n", strerror(errno));
+        goto err;
+    }
 
-	event->events = 0;
-	rc = epoll_wait(efd, event, 1, timeout);
-	if (rc < 0) {
-		log_error("failed epoll_wait() errno: %s\n", strerror(errno));
-	}
+    event->events = 0;
+    rc = epoll_wait(efd, event, 1, timeout);
+    if (rc < 0) {
+        log_error("failed epoll_wait() errno: %s\n", strerror(errno));
+    }
 
-	epoll_ctl(efd, EPOLL_CTL_DEL, fd, NULL);
+    epoll_ctl(efd, EPOLL_CTL_DEL, fd, NULL);
 
 err:
-	close(efd);
+    close(efd);
 
-	return rc;
+    return rc;
 }
 
 int test_base::wait_fork(int pid)
 {
-	int status;
+    int status;
 
-	pid = waitpid(pid, &status, 0);
-	if (0 > pid) {
-		log_error("failed waitpid() errno: %s\n", strerror(errno));
-		return (-1);
-	}
-	if (WIFEXITED(status)) {
-		const int exit_status = WEXITSTATUS(status);
-		if (exit_status != 0) {
-			log_trace("non-zero exit status: %d from waitpid() errno: %s\n", exit_status, strerror(errno));
-		}
-		return exit_status;
-	} else {
-		log_error("non-normal exit from child process errno: %s\n", strerror(errno));
-		return (-2);
-	}
+    pid = waitpid(pid, &status, 0);
+    if (0 > pid) {
+        log_error("failed waitpid() errno: %s\n", strerror(errno));
+        return (-1);
+    }
+    if (WIFEXITED(status)) {
+        const int exit_status = WEXITSTATUS(status);
+        if (exit_status != 0) {
+            log_trace("non-zero exit status: %d from waitpid() errno: %s\n", exit_status,
+                      strerror(errno));
+        }
+        return exit_status;
+    } else {
+        log_error("non-normal exit from child process errno: %s\n", strerror(errno));
+        return (-2);
+    }
 }
 
 void test_base::barrier_fork(int pid)
 {
-	ssize_t ret;
+    ssize_t ret;
 
-	m_break_signal = 0;
-	if (0 == pid) {
-		prctl(PR_SET_PDEATHSIG, SIGTERM);
-		do {
-			ret = read(m_efd, &m_efd_signal, sizeof(m_efd_signal));
-			if (ret == -1 && errno == EINTR)
-				continue;
-		} while (0 == m_efd_signal);
-		m_efd_signal = 0;
-		ret = write(m_efd, &m_efd_signal, sizeof(m_efd_signal));
-	} else {
-		signal(SIGCHLD, handle_signal);
-		m_efd_signal++;
-		ret = write(m_efd, &m_efd_signal, sizeof(m_efd_signal));
-	}
-	if (ret != sizeof(m_efd_signal)) {
-		log_error("write() failed\n");
-	}
+    m_break_signal = 0;
+    if (0 == pid) {
+        prctl(PR_SET_PDEATHSIG, SIGTERM);
+        do {
+            ret = read(m_efd, &m_efd_signal, sizeof(m_efd_signal));
+            if (ret == -1 && errno == EINTR)
+                continue;
+        } while (0 == m_efd_signal);
+        m_efd_signal = 0;
+        ret = write(m_efd, &m_efd_signal, sizeof(m_efd_signal));
+    } else {
+        signal(SIGCHLD, handle_signal);
+        m_efd_signal++;
+        ret = write(m_efd, &m_efd_signal, sizeof(m_efd_signal));
+    }
+    if (ret != sizeof(m_efd_signal)) {
+        log_error("write() failed\n");
+    }
 }
 
 void test_base::handle_signal(int signo)
 {
-	switch (signo) {
-	case SIGCHLD:
-		/* Child is exiting so parent should complete test too */
-		m_break_signal++;
-		break;
-	default:
-		return;
-	}
+    switch (signo) {
+    case SIGCHLD:
+        /* Child is exiting so parent should complete test too */
+        m_break_signal++;
+        break;
+    default:
+        return;
+    }
 }

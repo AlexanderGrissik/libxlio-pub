@@ -41,26 +41,25 @@ namespace cmn {
 
 class test_skip_exception : public std::exception {
 public:
-    test_skip_exception(const std::string& reason = "") : m_reason("[  SKIPPED ] ") {
+    test_skip_exception(const std::string &reason = "")
+        : m_reason("[  SKIPPED ] ")
+    {
         m_reason += reason;
     }
-    virtual ~test_skip_exception() _GLIBCXX_NOTHROW {
-    }
+    virtual ~test_skip_exception() _GLIBCXX_NOTHROW {}
 
-    const char* what() const _GLIBCXX_NOTHROW {
-        return m_reason.c_str();
-    }
+    const char *what() const _GLIBCXX_NOTHROW { return m_reason.c_str(); }
 
 private:
     std::string m_reason;
 };
 
-#define SKIP_TRUE(_expr, _reason) \
-    if (!(_expr)) { \
-		log_warn(_reason "\n"); \
-		GTEST_SKIP(); \
+#define SKIP_TRUE(_expr, _reason)                                                                  \
+    if (!(_expr)) {                                                                                \
+        log_warn(_reason "\n");                                                                    \
+        GTEST_SKIP();                                                                              \
     }
 
-} /* namespace: cmn */
+} // namespace cmn
 
 #endif /* TESTS_GTEST_COMMON_CMN_H_ */

@@ -35,11 +35,9 @@
 
 void mix_base::SetUp()
 {
-	errno = EOK;
+    errno = EOK;
 }
 
 void mix_base::TearDown()
 {
-
 }
-

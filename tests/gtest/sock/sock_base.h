@@ -33,14 +33,13 @@
 #ifndef TESTS_GTEST_SOCK_BASE_H_
 #define TESTS_GTEST_SOCK_BASE_H_
 
-
 /**
  * SOCK Base class for tests
  */
 class sock_base : public testing::Test, public test_base {
 protected:
-	virtual void SetUp();
-	virtual void TearDown();
+    virtual void SetUp();
+    virtual void TearDown();
 };
 
 #endif /* TESTS_GTEST_SOCK_BASE_H_ */

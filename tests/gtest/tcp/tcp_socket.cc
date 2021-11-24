@@ -37,7 +37,8 @@
 
 #include "tcp_base.h"
 
-class tcp_socket : public tcp_base {};
+class tcp_socket : public tcp_base {
+};
 
 /**
  * @test tcp_socket.ti_1
@@ -45,12 +46,13 @@ class tcp_socket : public tcp_base {};
  *    Create TCP socket
  * @details
  */
-TEST_F(tcp_socket, ti_1) {
-	int fd;
+TEST_F(tcp_socket, ti_1)
+{
+    int fd;
 
-	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
-	EXPECT_LE(0, fd);
-	EXPECT_EQ(errno, EOK);
+    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    EXPECT_LE(0, fd);
+    EXPECT_EQ(errno, EOK);
 
-	close(fd);
+    close(fd);
 }

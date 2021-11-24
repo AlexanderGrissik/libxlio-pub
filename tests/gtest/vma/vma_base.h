@@ -48,12 +48,12 @@
  */
 class vma_base : virtual public testing::Test, virtual public test_base {
 protected:
-	virtual void SetUp();
-	virtual void TearDown();
+    virtual void SetUp();
+    virtual void TearDown();
 
 protected:
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
-	struct xlio_api_t *xlio_api;
+    struct xlio_api_t *xlio_api;
 #endif /* EXTRA_API_ENABLED */
 };
 

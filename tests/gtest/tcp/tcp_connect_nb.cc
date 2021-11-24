@@ -37,7 +37,8 @@
 
 #include "tcp_base.h"
 
-class tcp_connect_nb : public tcp_base {};
+class tcp_connect_nb : public tcp_base {
+};
 
 /**
  * @test tcp_connect_nb.ti_1
@@ -45,5 +46,6 @@ class tcp_connect_nb : public tcp_base {};
  *    Loop of blocking connect() to ip on the same node
  * @details
  */
-TEST_F(tcp_connect_nb, ti_1) {
+TEST_F(tcp_connect_nb, ti_1)
+{
 }

@@ -33,7 +33,6 @@
 #ifndef TESTS_GTEST_UDP_BASE_H_
 #define TESTS_GTEST_UDP_BASE_H_
 
-
 /**
  * UDP Base class for tests
  */
@@ -43,8 +42,8 @@ public:
     static int sock_create_nb(void);
 
 protected:
-	virtual void SetUp();
-	virtual void TearDown();
+    virtual void SetUp();
+    virtual void TearDown();
 };
 
 #endif /* TESTS_GTEST_UDP_BASE_H_ */

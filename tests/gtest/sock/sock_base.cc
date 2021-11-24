@@ -39,7 +39,7 @@
 
 void sock_base::SetUp()
 {
-	errno = EOK;
+    errno = EOK;
 }
 
 void sock_base::TearDown()
