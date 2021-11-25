@@ -79,7 +79,7 @@ static inline const char *__vma_get_transport_str(transport_t transport)
         return "OS";
         break;
     case TRANS_VMA:
-        return "VMA";
+        return "XLIO";
         break;
     case TRANS_SDP:
         return "SDP";

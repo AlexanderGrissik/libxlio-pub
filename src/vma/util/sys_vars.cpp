@@ -136,7 +136,7 @@ static const vma_spec_names specs[] = {
     {MCE_SPEC_NGINX_DPU_670, "Nginx Profile for DPU", (const char **)spec_names_nginx_dpu},
 };
 
-// convert str to vVMA_spec_t; upon error - returns the given 'def_value'
+// convert str to _spec_t; upon error - returns the given 'def_value'
 vma_spec_t from_str(const char *str, vma_spec_t def_value)
 {
     size_t num_levels = sizeof(specs) / sizeof(specs[0]);
@@ -153,7 +153,7 @@ vma_spec_t from_str(const char *str, vma_spec_t def_value)
     return def_value; // not found. use given def_value
 }
 
-// convert int to vVMA_spec_t; upon error - returns the given 'def_value'
+// convert int to _spec_t; upon error - returns the given 'def_value'
 vma_spec_t from_int(const int int_spec, vma_spec_t def_value)
 {
     if (int_spec >= MCE_SPEC_NONE && int_spec <= MCE_SPEC_ALL) {
@@ -1262,9 +1262,9 @@ void mce_sys_var::get_env_params()
     unsigned int cx4_max_tx_wre_for_inl =
         (16 * 1024 * 64) / (VMA_ALIGN(VMA_ALIGN(tx_max_inline - 12, 64) + 12, 64));
     if (tx_num_wr > cx4_max_tx_wre_for_inl) {
-        vlog_printf(VLOG_WARNING,
-                    "For the given %s [%d], VMA_TX_WRE [%d] must be smaller than %d\n",
-                    SYS_VAR_TX_MAX_INLINE, tx_max_inline, tx_num_wr, cx4_max_tx_wre_for_inl);
+        vlog_printf(VLOG_WARNING, "For the given %s [%d], %s [%d] must be smaller than %d\n",
+                    SYS_VAR_TX_MAX_INLINE, tx_max_inline, SYS_VAR_TX_NUM_WRE, tx_num_wr,
+                    cx4_max_tx_wre_for_inl);
         tx_num_wr = cx4_max_tx_wre_for_inl;
     }
 

@@ -296,20 +296,19 @@ void *event_handler_thread(void *_p_tgtObject)
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         fclose(fp);
-        evh_logdbg("VMA Internal thread added to cpuset %s.",
-                   safe_mce_sys().internal_thread_cpuset);
+        evh_logdbg("Internal thread added to cpuset %s.", safe_mce_sys().internal_thread_cpuset);
 
         // do set affinity now that we are on correct cpuset
         cpu_set_t cpu_set = safe_mce_sys().internal_thread_affinity;
         if (strcmp(safe_mce_sys().internal_thread_affinity_str, "-1")) {
             if (pthread_setaffinity_np(g_n_internal_thread_id, sizeof(cpu_set), &cpu_set)) {
-                evh_logdbg("VMA Internal thread affinity failed. Did you try to set affinity "
+                evh_logdbg("Internal thread affinity failed. Did you try to set affinity "
                            "outside of cpuset?");
             } else {
-                evh_logdbg("VMA Internal thread affinity is set.");
+                evh_logdbg("Internal thread affinity is set.");
             }
         } else {
-            evh_logdbg("VMA Internal thread affinity not set.");
+            evh_logdbg("Internal thread affinity not set.");
         }
         /* cppcheck-suppress resourceLeak */
     }
@@ -350,7 +349,7 @@ int event_handler_manager::start_thread()
         }
         BULLSEYE_EXCLUDE_BLOCK_END
     } else {
-        evh_logdbg("VMA Internal thread affinity not set.");
+        evh_logdbg("Internal thread affinity not set.");
     }
 
     int ret = pthread_create(&m_event_handler_tid, &tattr, event_handler_thread, this);

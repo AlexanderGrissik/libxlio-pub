@@ -50,7 +50,7 @@
 #include <vlogger/vlogger.h>
 
 /*
- * VMA specific includes
+ * Specific includes
  */
 #include "libvma.h"
 #include "vma/util/sys_vars.h"
@@ -439,7 +439,7 @@ static transport_t get_family_by_first_matching_rule(transport_t my_transport,
         }
     }
 
-    match_logdbg("No matching rule. Using VMA (default)");
+    match_logdbg("No matching rule. Using (default)");
     return TRANS_VMA; // No matching rule or no rule at all. Don't continue to next application-id
 }
 
@@ -640,7 +640,7 @@ transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id
     bool b_found_app_id_match = false;
 
     if (__vma_config_empty()) {
-        match_logdbg("Configuration file is empty. Using VMA (default)");
+        match_logdbg("Configuration file is empty. Using (default)");
         target_family = TRANS_VMA;
     } else {
         struct dbl_lst_node *node = __instance_list.head;

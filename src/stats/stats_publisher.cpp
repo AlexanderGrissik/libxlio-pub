@@ -350,9 +350,8 @@ void vma_stats_instance_create_socket_block(socket_stats_t *local_stats_addr)
     } else {
         if (!printed_sock_limit_info) {
             printed_sock_limit_info = true;
-            vlog_printf(VLOG_INFO,
-                        "VMA Statistics can monitor up to %d sockets - increase VMA_STATS_FD_NUM\n",
-                        safe_mce_sys().stats_fd_num_max);
+            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d sockets - increase %s\n",
+                        safe_mce_sys().stats_fd_num_max, SYS_VAR_STATS_FD_NUM);
         }
         goto out;
     }
@@ -469,7 +468,7 @@ void vma_stats_instance_create_ring_block(ring_stats_t *local_stats_addr)
     if (p_instance_ring == NULL) {
         if (!printed_ring_limit_info) {
             printed_ring_limit_info = true;
-            vlog_printf(VLOG_INFO, "VMA Statistics can monitor up to %d ring elements\n",
+            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d ring elements\n",
                         NUM_OF_SUPPORTED_RINGS);
         }
     } else {
@@ -532,7 +531,7 @@ void vma_stats_instance_create_cq_block(cq_stats_t *local_stats_addr)
     if (p_instance_cq == NULL) {
         if (!printed_cq_limit_info) {
             printed_cq_limit_info = true;
-            vlog_printf(VLOG_INFO, "VMA Statistics can monitor up to %d cq elements\n",
+            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d cq elements\n",
                         NUM_OF_SUPPORTED_CQS);
         }
     } else {
@@ -593,7 +592,7 @@ void vma_stats_instance_create_bpool_block(bpool_stats_t *local_stats_addr)
     if (p_instance_bpool == NULL) {
         if (!printed_bpool_limit_info) {
             printed_bpool_limit_info = true;
-            vlog_printf(VLOG_INFO, "VMA Statistics can monitor up to %d buffer pools\n",
+            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d buffer pools\n",
                         NUM_OF_SUPPORTED_BPOOLS);
         }
     } else {
@@ -660,7 +659,7 @@ void vma_stats_instance_create_epoll_block(int fd, iomux_func_stats_t *local_sta
         }
     }
 
-    vlog_printf(VLOG_INFO, "VMA Statistics can monitor up to %d epoll fds", NUM_OF_SUPPORTED_EPFDS);
+    vlog_printf(VLOG_INFO, "Statistics can monitor up to %d epoll fds", NUM_OF_SUPPORTED_EPFDS);
     g_lock_iomux.unlock();
     return;
 }

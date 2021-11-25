@@ -53,7 +53,7 @@ const char *ring_profile::get_xlio_ring_type_str()
 {
     switch (m_ring_desc.ring_type) {
     case XLIO_RING_PACKET:
-        return "VMA_PKTS_RING";
+        return "XLIO_PKTS_RING";
     default:
         return "";
     }

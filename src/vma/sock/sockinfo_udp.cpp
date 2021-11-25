@@ -759,7 +759,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         case SO_SNDBUF:
             si_udp_logdbg("SOL_SOCKET, %s=%d", setsockopt_so_opt_to_str(__optname),
                           *(int *)__optval);
-            // this is supported without doing something special because VMA send immediately
+            // this is supported without doing something special because send immediately
             // without buffering
             break;
 
@@ -836,7 +836,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
                     // Do not fall back to kernel in this case.
                     // The kernel's support for packet pacing is of no consequence
-                    // to the VMA user and may only confuse the calling application.
+                    // to the user and may only confuse the calling application.
                     return -1;
                 }
 
@@ -964,9 +964,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         case IP_ADD_SOURCE_MEMBERSHIP:
         case IP_DROP_SOURCE_MEMBERSHIP: {
             if (!m_sock_offload) {
-                si_udp_logdbg(
-                    "VMA Rx Offload is Disabled! calling OS setsockopt() for IPPROTO_IP, %s",
-                    setsockopt_ip_opt_to_str(__optname));
+                si_udp_logdbg("Rx Offload is Disabled! calling OS setsockopt() for IPPROTO_IP, %s",
+                              setsockopt_ip_opt_to_str(__optname));
                 break;
             }
 

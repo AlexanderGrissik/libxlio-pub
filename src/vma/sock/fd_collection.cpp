@@ -206,9 +206,9 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     int sock_flags = type & ~SOCK_TYPE_MASK;
 
     if (check_offload && !create_offloaded_sockets()) {
-        fdcoll_logdbg("socket [fd=%d, domain=%d, type=%d] is not offloaded by thread rules or by "
-                      "VMA_OFFLOADED_SOCKETS",
-                      fd, domain, type);
+        fdcoll_logdbg(
+            "socket [fd=%d, domain=%d, type=%d] is not offloaded by thread rules or by %s", fd,
+            domain, type, SYS_VAR_OFFLOADED_SOCKETS);
         return -1;
     }
 
@@ -242,24 +242,20 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
         case SOCK_DGRAM: {
             transport = __vma_match_by_program(PROTO_UDP, safe_mce_sys().app_id);
             if (transport == TRANS_OS) {
-                fdcoll_logdbg(
-                    "All UDP rules are consistent and instructing to use OS. TRANSPORT: OS");
+                fdcoll_logdbg("All UDP rules are consistent and instructing to use OS.");
                 return -1;
             }
-            fdcoll_logdbg(
-                "UDP rules are either not consistent or instructing to use VMA. TRANSPORT: VMA");
+            fdcoll_logdbg("UDP rules are either not consistent or instructing to use XLIO.");
             p_sfd_api_obj = new sockinfo_udp(fd);
             break;
         }
         case SOCK_STREAM: {
             transport = __vma_match_by_program(PROTO_TCP, safe_mce_sys().app_id);
             if (transport == TRANS_OS) {
-                fdcoll_logdbg(
-                    "All TCP rules are consistent and instructing to use OS.transport == USE_OS");
+                fdcoll_logdbg("All TCP rules are consistent and instructing to use OS.");
                 return -1;
             }
-            fdcoll_logdbg("TCP rules are either not consistent or instructing to use VMA.transport "
-                          "== USE_VMA");
+            fdcoll_logdbg("TCP rules are either not consistent or instructing to use XLIO.");
             p_sfd_api_obj = new sockinfo_tcp(fd);
             break;
         }
