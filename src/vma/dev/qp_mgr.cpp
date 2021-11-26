@@ -89,12 +89,8 @@ qp_mgr::qp_mgr(struct qp_mgr_desc *desc, const uint32_t tx_num_wr)
 {
     memset(&m_qp_cap, 0, sizeof(m_qp_cap));
     m_qp_cap.max_inline_data = safe_mce_sys().tx_max_inline;
-#ifdef DEFINED_TSO
     m_qp_cap.max_send_sge = (m_p_ring->is_tso() ? m_p_ib_ctx_handler->get_ibv_device_attr()->max_sge
                                                 : MCE_DEFAULT_TX_NUM_SGE);
-#else
-    m_qp_cap.max_send_sge = MCE_DEFAULT_TX_NUM_SGE;
-#endif /* DEFINED_TSO */
     m_qp_cap.max_recv_sge = (m_p_ring->is_socketxtreme()) ? 1 : MCE_DEFAULT_RX_NUM_SGE;
 
     m_ibv_rx_sg_array = new ibv_sge[m_n_sysvar_rx_num_wr_to_post_recv];
@@ -233,12 +229,7 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
     // MLX5 return 32678 WQEBBs at max so minimal number
     int max_wqe_sz =
         16 + 14 + 16 * qp_init_attr.cap.max_send_sge + qp_init_attr.cap.max_inline_data + 4;
-#ifdef DEFINED_TSO
-    max_wqe_sz += m_p_ring->m_tso.max_header_sz;
-#else
-    /* Fix for compilation purposes */
-    max_wqe_sz += 94;
-#endif /* DEFINED_TSO */
+    max_wqe_sz += (m_p_ring->is_tso() ? m_p_ring->m_tso.max_header_sz : 94);
     int num_wr = 32678 * 64 / max_wqe_sz;
     qp_logdbg("calculated max_wqe_sz=%d num_wr=%d", max_wqe_sz, num_wr);
     if (num_wr < (signed)m_tx_num_wr) {
@@ -726,12 +717,10 @@ int qp_mgr_eth::prepare_ibv_qp(vma_ibv_qp_init_attr &qp_init_attr)
     qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
     vma_ibv_qp_init_attr_comp_mask(m_p_ib_ctx_handler->get_ibv_pd(), qp_init_attr);
 
-#ifdef DEFINED_TSO
     if (m_p_ring->is_tso()) {
         vma_ibv_qp_init_attr_tso(qp_init_attr, m_p_ring->get_max_header_sz());
         qp_logdbg("create qp with max_tso_header = %d", m_p_ring->get_max_header_sz());
     }
-#endif /* DEFINED_TSO */
 
     m_qp = vma_ibv_create_qp(m_p_ib_ctx_handler->get_ibv_pd(), &qp_init_attr);
 
@@ -777,12 +766,10 @@ int qp_mgr_ib::prepare_ibv_qp(vma_ibv_qp_init_attr &qp_init_attr)
     qp_init_attr.qp_type = IBV_QPT_UD;
     vma_ibv_qp_init_attr_comp_mask(m_p_ib_ctx_handler->get_ibv_pd(), qp_init_attr);
 
-#ifdef DEFINED_TSO
     if (m_p_ring->is_tso()) {
         vma_ibv_qp_init_attr_tso(qp_init_attr, m_p_ring->get_max_header_sz());
         qp_logdbg("create qp with max_tso_header = %d", m_p_ring->get_max_header_sz());
     }
-#endif /* DEFINED_TSO */
 
     if (m_underly_qpn) {
         ibv_source_qpn_set(qp_init_attr, m_underly_qpn);

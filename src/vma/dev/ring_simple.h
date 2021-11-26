@@ -119,7 +119,6 @@ public:
         NOT_IN_USE(id);
         return m_p_ib_ctx;
     }
-#ifdef DEFINED_TSO
     virtual uint32_t get_max_send_sge(void);
     virtual uint32_t get_max_payload_sz(void);
     virtual uint16_t get_max_header_sz(void);
@@ -129,7 +128,6 @@ public:
         return m_tx_lkey;
     }
     virtual bool is_tso(void);
-#endif /* DEFINED_TSO */
 
     struct ibv_comp_channel *get_tx_comp_event_channel() { return m_p_tx_comp_event_channel; }
     void modify_cq_moderation(uint32_t period, uint32_t count);
@@ -351,7 +349,6 @@ private:
     L2_address *m_p_l2_addr;
     uint32_t m_mtu;
 
-#ifdef DEFINED_TSO
     struct {
         /* Maximum length of TCP payload for TSO */
         uint32_t max_payload_sz;
@@ -359,7 +356,6 @@ private:
         /* Maximum length of header for TSO */
         uint16_t max_header_sz;
     } m_tso;
-#endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
     struct {
         /* TLS TX offload is supported */

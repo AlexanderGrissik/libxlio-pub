@@ -678,10 +678,8 @@ void mce_sys_var::get_env_params()
     zc_cache_threshold = MCE_DEFAULT_ZC_CACHE_THRESHOLD;
     tx_num_segs_tcp = MCE_DEFAULT_TX_NUM_SEGS_TCP;
     tx_num_bufs = MCE_DEFAULT_TX_NUM_BUFS;
-#ifdef DEFINED_TSO
     tx_buf_size = MCE_DEFAULT_TX_BUF_SIZE;
     zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
-#endif /* DEFINED_TSO */
     tx_num_wr = MCE_DEFAULT_TX_NUM_WRE;
     tx_num_wr_to_signal = MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL;
     tx_max_inline = MCE_DEFAULT_TX_MAX_INLINE;
@@ -761,9 +759,7 @@ void mce_sys_var::get_env_params()
     mem_alloc_type = MCE_DEFAULT_MEM_ALLOC_TYPE;
     enable_ipoib = MCE_DEFAULT_IPOIB_FLAG;
     enable_socketxtreme = MCE_DEFAULT_SOCKETXTREME;
-#ifdef DEFINED_TSO
     enable_tso = MCE_DEFAULT_TSO;
-#endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
     enable_utls_rx = MCE_DEFAULT_UTLS_RX;
     enable_utls_tx = MCE_DEFAULT_UTLS_TX;
@@ -859,9 +855,7 @@ void mce_sys_var::get_env_params()
         tx_bufs_batch_tcp = 1; // MCE_DEFAULT_TX_BUFS_BATCH_TCP;
         rx_bufs_batch = 4; // MCE_DEFAULT_RX_BUFS_BATCH (64)
         rx_poll_num = -1; // MCE_DEFAULT_RX_NUM_POLLS
-#ifdef DEFINED_TSO
         enable_tso = false; // MCE_DEFAULT_TSO (true)
-#endif /* DEFINED_TSO */
         rx_udp_poll_os_ratio = 0; // MCE_DEFAULT_RX_UDP_POLL_OS_RATIO
         rx_prefetch_bytes = MCE_DEFAULT_RX_PREFETCH_BYTES; //(256)
         rx_prefetch_bytes_before_poll = 256; // MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL 0
@@ -898,9 +892,7 @@ void mce_sys_var::get_env_params()
         rx_bufs_batch = 4; // MCE_DEFAULT_RX_BUFS_BATCH (64)
 
         rx_poll_num = -1; // MCE_DEFAULT_RX_NUM_POLLS (100000)
-#ifdef DEFINED_TSO
         enable_tso = false; // MCE_DEFAULT_TSO (true)
-#endif /* DEFINED_TSO */
         rx_prefetch_bytes_before_poll = 256; // MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL (0)
         select_poll_num = -1; // MCE_DEFAULT_SELECT_NUM_POLLS (100000)
         avoid_sys_calls_on_tcp_fd = true; // MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD (false)
@@ -1016,10 +1008,8 @@ void mce_sys_var::get_env_params()
             1000000; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated.
         tx_num_segs_tcp = 4000000; // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP
                                    // segments in the pool.
-#ifdef DEFINED_TSO
-        tx_buf_size = 0; // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
+	tx_buf_size = 0; // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
         zc_tx_size = 32768; // MCE_DEFAULT_ZC_TX_SIZE (32768), zero copy segment maximum size.
-#endif // DEFINED_TSO
         progress_engine_interval_msec = 0; // MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC (10),
                                            // Disable internal thread CQ draining logic.
         cq_moderation_period_usec =
@@ -1034,10 +1024,8 @@ void mce_sys_var::get_env_params()
                                           // threaded mode to reduce locking.
         rx_poll_on_tx_tcp = true; // MCE_DEFAULT_RX_POLL_ON_TX_TCP(false), Do polling on RX queue on
                                   // TX operations, helpful to maintain TCP stack management.
-#ifdef DEFINED_TSO
         enable_tso =
             true; // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
-#endif // DEFINED_TSO
         tx_num_wr = 4096; // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
         timer_resolution_msec = 256; // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread
                                      // timer resolution, reduce CPU utilization of internal thread.
@@ -1077,10 +1065,8 @@ void mce_sys_var::get_env_params()
         tx_num_segs_tcp =
             200000; // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP segments in the pool.
         rx_bufs_batch = 8; // MCE_DEFAULT_RX_BUFS_BATCH (64), RX buffers batch size.
-#ifdef DEFINED_TSO
         tx_buf_size = 0; // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
         zc_tx_size = 32768; // MCE_DEFAULT_ZC_TX_SIZE (32768), zero copy segment maximum size.
-#endif // DEFINED_TSO
         progress_engine_interval_msec = 0; // MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC (10),
                                            // Disable internal thread CQ draining logic.
         cq_moderation_period_usec =
@@ -1093,10 +1079,8 @@ void mce_sys_var::get_env_params()
             128; // MCE_DEFAULT_CQ_POLL_BATCH (16), Maximum CQEs to poll in one batch.
         thread_mode = THREAD_MODE_SINGLE; // MCE_DEFAULT_THREAD_MODE (THREAD_MODE_MULTI), Single
                                           // threaded mode to reduce locking.
-#ifdef DEFINED_TSO
         enable_tso =
             true; // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
-#endif // DEFINED_TSO
         tx_num_wr = 4096; // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
         timer_resolution_msec = 32; // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer
                                     // resolution, reduce CPU utilization of internal thread.
@@ -1238,6 +1222,9 @@ void mce_sys_var::get_env_params()
             zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
         }
     }
+#else
+    tx_buf_size = MCE_DEFAULT_TX_BUF_SIZE;
+    zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
 #endif /* DEFINED_TSO */
 
     if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE)) != NULL) {

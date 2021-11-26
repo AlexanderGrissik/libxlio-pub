@@ -678,7 +678,6 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
             ret_val = m_p_connected_dst_entry->prepare_to_send(m_so_ratelimit, false, true);
         }
 
-#ifdef DEFINED_TSO
         if (ret_val) {
             /* dst_entry has resolved tx ring,
              * so it is a time to provide TSO information to PCB
@@ -694,7 +693,6 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
             safe_mce_sys().zc_tx_size =
                 std::min(safe_mce_sys().zc_tx_size, m_pcb.tso.max_payload_sz);
         }
-#endif /* DEFINED_TSO */
     }
     return ret_val;
 }
@@ -1126,11 +1124,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
 {
     sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb *)v_p_conn)->my_container);
     dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
-#ifdef DEFINED_TSO
     int max_count = p_si_tcp->m_pcb.tso.max_send_sge;
-#else
-    int max_count = 64;
-#endif
     tcp_iovec lwip_iovec[max_count];
     vma_send_attr attr = {(vma_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
     int count = 0;
@@ -1198,22 +1192,11 @@ send_iov:
     }
 
     ssize_t ret = 0;
-#ifdef DEFINED_TSO
     if (likely((p_dst->is_valid()))) {
         ret = p_dst->fast_send((struct iovec *)lwip_iovec, count, attr);
     } else {
         ret = p_dst->slow_send((struct iovec *)lwip_iovec, count, attr, p_si_tcp->m_so_ratelimit);
     }
-#else
-    bool is_dummy = !!(flags & TF_SEG_OPTS_DUMMY_MSG);
-    bool is_rexmit = !!(flags & TCP_WRITE_REXMIT);
-    if (likely((p_dst->is_valid()))) {
-        ret = p_dst->fast_send((struct iovec *)lwip_iovec, count, is_dummy, false, is_rexmit);
-    } else {
-        ret = p_dst->slow_send((struct iovec *)lwip_iovec, count, is_dummy,
-                               p_si_tcp->m_so_ratelimit, false, is_rexmit);
-    }
-#endif
 
     rc = p_si_tcp->m_ops->handle_send_ret(ret, seg);
 

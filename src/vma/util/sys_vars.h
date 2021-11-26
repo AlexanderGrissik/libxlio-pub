@@ -373,10 +373,8 @@ public:
     uint32_t zc_cache_threshold;
     uint32_t tx_num_segs_tcp;
     uint32_t tx_num_bufs;
-#ifdef DEFINED_TSO
     uint32_t tx_buf_size;
     uint32_t zc_tx_size;
-#endif /* DEFINED_TSO */
     uint32_t tx_num_wr;
     uint32_t tx_num_wr_to_signal;
     uint32_t tx_max_inline;
@@ -469,9 +467,7 @@ public:
 
     bool enable_ipoib;
     bool enable_socketxtreme;
-#ifdef DEFINED_TSO
     bool enable_tso;
-#endif /* DEFINED_TSO */
     option_3::mode_t enable_lro;
     option_strq::mode_t enable_strq_env;
 #ifdef DEFINED_UTLS
@@ -561,14 +557,12 @@ extern mce_sys_var &safe_mce_sys();
 #define SYS_VAR_RING_LIMIT_PER_INTERFACE "XLIO_RING_LIMIT_PER_INTERFACE"
 #define SYS_VAR_RING_DEV_MEM_TX          "XLIO_RING_DEV_MEM_TX"
 
-#define SYS_VAR_ZC_NUM_BUFS        "XLIO_ZC_BUFS"
-#define SYS_VAR_ZC_CACHE_THRESHOLD "XLIO_ZC_CACHE_THRESHOLD"
-#define SYS_VAR_TX_NUM_SEGS_TCP    "XLIO_TX_SEGS_TCP"
-#define SYS_VAR_TX_NUM_BUFS        "XLIO_TX_BUFS"
-#ifdef DEFINED_TSO
-#define SYS_VAR_TX_BUF_SIZE "XLIO_TX_BUF_SIZE"
-#define SYS_VAR_ZC_TX_SIZE  "XLIO_ZC_TX_SIZE"
-#endif /* DEFINED_TSO */
+#define SYS_VAR_ZC_NUM_BUFS           "XLIO_ZC_BUFS"
+#define SYS_VAR_ZC_CACHE_THRESHOLD    "XLIO_ZC_CACHE_THRESHOLD"
+#define SYS_VAR_TX_NUM_SEGS_TCP       "XLIO_TX_SEGS_TCP"
+#define SYS_VAR_TX_NUM_BUFS           "XLIO_TX_BUFS"
+#define SYS_VAR_TX_BUF_SIZE           "XLIO_TX_BUF_SIZE"
+#define SYS_VAR_ZC_TX_SIZE            "XLIO_ZC_TX_SIZE"
 #define SYS_VAR_TX_NUM_WRE            "XLIO_TX_WRE"
 #define SYS_VAR_TX_NUM_WRE_TO_SIGNAL  "XLIO_TX_WRE_BATCHING"
 #define SYS_VAR_TX_MAX_INLINE         "XLIO_TX_MAX_INLINE"
@@ -658,9 +652,7 @@ extern mce_sys_var &safe_mce_sys();
 
 #define SYS_VAR_IPOIB        "XLIO_IPOIB"
 #define SYS_VAR_SOCKETXTREME "XLIO_SOCKETXTREME"
-#ifdef DEFINED_TSO
-#define SYS_VAR_TSO "XLIO_TSO"
-#endif /* DEFINED_TSO */
+#define SYS_VAR_TSO          "XLIO_TSO"
 #ifdef DEFINED_UTLS
 #define SYS_VAR_UTLS_RX "XLIO_UTLS_RX"
 #define SYS_VAR_UTLS_TX "XLIO_UTLS_TX"
@@ -717,6 +709,9 @@ extern mce_sys_var &safe_mce_sys();
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TX_BUF_SIZE (0)
 #define MCE_DEFAULT_ZC_TX_SIZE  (32768)
+#else
+#define MCE_DEFAULT_TX_BUF_SIZE (0)
+#define MCE_DEFAULT_ZC_TX_SIZE  (0)
 #endif /* DEFINED_TSO */
 #define MCE_DEFAULT_TX_NUM_WRE            (2048)
 #define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL  (64)
@@ -728,11 +723,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_TX_BUFS_BATCH_UDP     (8)
 #define MCE_DEFAULT_TX_BUFS_BATCH_TCP     (16)
 #define MCE_DEFAULT_TX_SEGS_BATCH_TCP     (64)
-#ifdef DEFINED_TSO
 #define MCE_DEFAULT_TX_NUM_SGE (4)
-#else
-#define MCE_DEFAULT_TX_NUM_SGE (2)
-#endif
 
 #if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 #define MCE_DEFAULT_STRQ (option_strq::ON)
@@ -853,6 +844,8 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_SOCKETXTREME            (false)
 #ifdef DEFINED_TSO
 #define MCE_DEFAULT_TSO (true)
+#else
+#define MCE_DEFAULT_TSO (false)
 #endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
 #define MCE_DEFAULT_UTLS_RX (false)

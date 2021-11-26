@@ -98,13 +98,11 @@ public:
     }
     virtual uint32_t get_max_inline_data();
     ib_ctx_handler *get_ctx(ring_user_id_t id) { return m_xmit_rings[id]->get_ctx(0); }
-#ifdef DEFINED_TSO
     virtual uint32_t get_max_send_sge(void);
     virtual uint32_t get_max_payload_sz(void);
     virtual uint16_t get_max_header_sz(void);
     virtual uint32_t get_tx_lkey(ring_user_id_t id) { return m_xmit_rings[id]->get_tx_lkey(id); }
     virtual bool is_tso(void);
-#endif /* DEFINED_TSO */
     int socketxtreme_poll(struct xlio_socketxtreme_completion_t *vma_completions,
                           unsigned int ncompletions, int flags);
     virtual void slave_create(int if_index) = 0;
@@ -144,9 +142,7 @@ protected:
 
     std::vector<struct flow_sink_t> m_rx_flows;
     uint32_t m_max_inline_data;
-#ifdef DEFINED_TSO
     uint32_t m_max_send_sge;
-#endif /* DEFINED_TSO */
 
 private:
     void devide_buffers_helper(descq_t *rx_reuse, descq_t *buffer_per_ring);

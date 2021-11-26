@@ -150,9 +150,7 @@ ring_simple::ring_simple(int if_index, ring *parent, ring_type_t type)
     m_mtu = p_ndev->get_mtu();
 
     memset(&m_cq_moderation_info, 0, sizeof(m_cq_moderation_info));
-#ifdef DEFINED_TSO
     memset(&m_tso, 0, sizeof(m_tso));
-#endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
     memset(&m_tls, 0, sizeof(m_tls));
 #endif /* DEFINED_UTLS */
@@ -289,7 +287,6 @@ void ring_simple::create_resources()
 
     m_tx_num_wr_free = m_tx_num_wr;
 
-#ifdef DEFINED_TSO
     /* Detect TSO capabilities */
     memset(&m_tso, 0, sizeof(m_tso));
     if (safe_mce_sys().enable_tso && (1 == validate_tso(get_if_index()))) {
@@ -306,7 +303,6 @@ void ring_simple::create_resources()
     ring_logdbg("ring attributes: m_tso = %d", is_tso());
     ring_logdbg("ring attributes: m_tso:max_payload_sz = %d", get_max_payload_sz());
     ring_logdbg("ring attributes: m_tso:max_header_sz = %d", get_max_header_sz());
-#endif /* DEFINED_TSO */
 
     /* Detect LRO capabilities */
     memset(&m_lro, 0, sizeof(m_lro));
@@ -799,10 +795,6 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wq
     }
 
     auto_unlocker lock(m_lock_ring_tx);
-#ifdef DEFINED_TSO
-#else
-    p_send_wqe->sg_list[0].lkey = m_tx_lkey;
-#endif /* DEFINED_TSO */
     int ret = send_buffer(p_send_wqe, attr, 0);
     send_status_handler(ret, p_send_wqe);
 }
@@ -819,12 +811,6 @@ int ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe
 #endif
 
     auto_unlocker lock(m_lock_ring_tx);
-#ifdef DEFINED_TSO
-#else
-    p_send_wqe->sg_list[0].lkey = m_tx_lkey;
-    mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)(p_send_wqe->wr_id);
-    p_mem_buf_desc->lwip_pbuf.pbuf.ref++;
-#endif /* DEFINED_TSO */
     int ret = send_buffer(p_send_wqe, attr, tis);
     send_status_handler(ret, p_send_wqe);
     return ret;
@@ -1256,7 +1242,6 @@ uint32_t ring_simple::get_max_inline_data()
     return m_p_qp_mgr->get_max_inline_data();
 }
 
-#ifdef DEFINED_TSO
 uint32_t ring_simple::get_max_send_sge(void)
 {
     return m_p_qp_mgr->get_max_send_sge();
@@ -1276,4 +1261,3 @@ bool ring_simple::is_tso(void)
 {
     return (m_tso.max_payload_sz && m_tso.max_header_sz);
 }
-#endif /* DEFINED_TSO */

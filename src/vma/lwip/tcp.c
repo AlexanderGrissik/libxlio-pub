@@ -95,9 +95,7 @@ enum cc_algo_mod lwip_cc_algo_module = CC_MOD_LWIP;
 
 u16_t lwip_tcp_mss = CONST_TCP_MSS;
 u32_t lwip_tcp_snd_buf = 0;
-#ifdef DEFINED_TSO
 u32_t lwip_zc_tx_size = 0;
-#endif // DEFINED_TSO
 
 
 u8_t enable_push_flag = 1;

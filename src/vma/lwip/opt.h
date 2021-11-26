@@ -847,17 +847,6 @@
 #define LWIP_CHECKSUM_ON_COPY           0
 #endif
 
-/**
- * LWIP_TSO: Enable Large Segment Offload capability.
- */
-#ifndef LWIP_TSO
-#ifdef DEFINED_TSO
-#define LWIP_TSO                        1
-#else
-#define LWIP_TSO                        0
-#endif /* DEFINED_TSO */
-#endif
-
 /* Define platform endianness */
 #ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN

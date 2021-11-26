@@ -163,10 +163,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 			/* Set up a tcp_seg structure. */
 			in_data.inseg.next = NULL;
 			in_data.inseg.len = p->tot_len;
-#if LWIP_TSO
-#else
-			in_data.inseg.dataptr = p->payload;
-#endif /* LWIP_TSO */
 			in_data.inseg.p = p;
 			in_data.inseg.tcphdr = in_data.tcphdr;
 
@@ -802,11 +798,7 @@ tcp_oos_insert_segment(struct tcp_pcb *pcb, struct tcp_seg *cseg, struct tcp_seg
     if (next &&
         TCP_SEQ_GT(in_data->seqno + cseg->len, next->tcphdr->seqno)) {
       /* We need to trim the incoming segment. */
-#if LWIP_TSO
       cseg->len = (u32_t)(next->tcphdr->seqno - in_data->seqno);
-#else
-      cseg->len = (u16_t)(next->tcphdr->seqno - in_data->seqno);
-#endif /* LWIP_TSO */
       pbuf_realloc(cseg->p, cseg->len);
     }
   }
@@ -814,7 +806,6 @@ tcp_oos_insert_segment(struct tcp_pcb *pcb, struct tcp_seg *cseg, struct tcp_seg
 }
 #endif /* TCP_QUEUE_OOSEQ */
 
-#if LWIP_TSO
 /**
  * Called by tcp_output() to shrink TCP segment to lastackno.
  * This call should process retransmitted TSO segment.
@@ -991,7 +982,6 @@ tcp_shrink_zc_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
 
   return count;
 }
-#endif /* LWIP_TSO */
 
 /**
  * Called by tcp_process. Checks if the given segment is an ACK for outstanding
@@ -1175,7 +1165,6 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
 
       /* Remove segment from the unacknowledged list if the incoming
          ACK acknowlegdes them. */
-#if LWIP_TSO
       while (pcb->unacked != NULL) {
 
         /* The purpose of this processing is to avoid to send again
@@ -1194,10 +1183,6 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
         if (!(TCP_SEQ_LEQ(pcb->unacked->seqno + TCP_TCPLEN(pcb->unacked), in_data->ackno))) {
           break;
         }
-#else
-      while (pcb->unacked != NULL &&
-             TCP_SEQ_LEQ(pcb->unacked->seqno + TCP_TCPLEN(pcb->unacked), in_data->ackno)) {
-#endif /* LWIP_TSO */
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive: removing %"U32_F":%"U32_F" from pcb->unacked\n",
                                       ntohl(pcb->unacked->tcphdr->seqno),
                                       ntohl(pcb->unacked->tcphdr->seqno) +
@@ -1393,10 +1378,6 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
       }
       /* KJM following line changed to use p->payload rather than inseg->p->payload
          to fix bug #9076 */
-#if LWIP_TSO
-#else
-      in_data->inseg.dataptr = p->payload;
-#endif /* LWIP_TSO */
       in_data->inseg.len -= (u16_t)(pcb->rcv_nxt - in_data->seqno);
       in_data->inseg.tcphdr->seqno = in_data->seqno = pcb->rcv_nxt;
     }
@@ -1481,11 +1462,7 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
                 TCP_SEQ_GT(in_data->seqno + in_data->tcplen,
                            next->tcphdr->seqno)) {
               /* inseg cannot have FIN here (already processed above) */
-#if LWIP_TSO
               in_data->inseg.len = (u32_t)(next->tcphdr->seqno - in_data->seqno);
-#else
-              in_data->inseg.len = (u16_t)(next->tcphdr->seqno - in_data->seqno);
-#endif /* LWIP_TSO */
               if (TCPH_FLAGS(in_data->inseg.tcphdr) & TCP_SYN) {
                 in_data->inseg.len -= 1;
               }
@@ -1649,11 +1626,7 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
                   if (cseg != NULL) {
                     if (TCP_SEQ_GT(prev->tcphdr->seqno + prev->len, in_data->seqno)) {
                       /* We need to trim the prev segment. */
-#if LWIP_TSO
                       prev->len = (u32_t)(in_data->seqno - prev->tcphdr->seqno);
-#else
-                      prev->len = (u16_t)(in_data->seqno - prev->tcphdr->seqno);
-#endif /* LWIP_TSO */
                       pbuf_realloc(prev->p, prev->len);
                     }
                     prev->next = cseg;
@@ -1675,11 +1648,7 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
                 if (next->next != NULL) {
                   if (TCP_SEQ_GT(next->tcphdr->seqno + next->len, in_data->seqno)) {
                     /* We need to trim the last segment. */
-#if LWIP_TSO
                     next->len = (u32_t)(in_data->seqno - next->tcphdr->seqno);
-#else
-                    next->len = (u16_t)(in_data->seqno - next->tcphdr->seqno);
-#endif /* LWIP_TSO */
                     pbuf_realloc(next->p, next->len);
                   }
                   /* check if the remote side overruns our receive window */
