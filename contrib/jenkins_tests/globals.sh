@@ -25,12 +25,17 @@ vg_dir=${WORKSPACE}/${prefix}/vg
 style_dir=${WORKSPACE}/${prefix}/style
 tool_dir=${WORKSPACE}/${prefix}/tool
 commit_dir=${WORKSPACE}/${prefix}/commit
+tidy_dir=${WORKSPACE}/${prefix}/tidy
 
 prj_lib=libxlio.so
 prj_service=xliod
 
 nproc=$(grep processor /proc/cpuinfo|wc -l)
-make_opt="-j$(($nproc / 2 + 1))"
+if [ $ret -lt 64 ]; then
+    make_opt="-j$(($nproc / 2 + 1))"
+else
+    make_opt="-j32"
+fi
 if [ $(command -v timeout >/dev/null 2>&1 && echo $?) ]; then
     timeout_exe="timeout -s SIGKILL 20m"
 fi

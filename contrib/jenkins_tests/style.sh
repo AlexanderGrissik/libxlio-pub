@@ -24,9 +24,9 @@ rm -rf $style_tap
 ln -sf $WORKSPACE/contrib/jenkins_tests/style.conf $WORKSPACE/.clang-format
 
 
-check_files=$(find $WORKSPACE/src/ \( -path "*/lwip" \) ! -prune -o ! -name 'config_*' -a \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -name '*.cc' \))
-check_files+=$(find $WORKSPACE/tools/daemon/ \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -iname '*.cc' \))
-check_files+=$(find $WORKSPACE/tests/gtest/ \( -path "*/googletest" \) ! -prune -o ! -name 'tap.h' -a \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -iname '*.cc' \))
+check_files="$(find $WORKSPACE/src/ \( -path "*/lwip" \) ! -prune -o ! -name 'config_*' -a \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -name '*.cc' \))"
+check_files+=" $(find $WORKSPACE/tools/daemon/ \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -iname '*.cc' \))"
+check_files+=" $(find $WORKSPACE/tests/gtest/ \( -path "*/googletest" \) ! -prune -o ! \( -name 'tap.h' -o -name 'gtest.h' -o -name 'gtest-all.cc' \) -a \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.inl' -o -iname '*.cc' \))"
 
 i=0
 nerrors=0
@@ -53,7 +53,7 @@ for file in $check_files; do
 done
 if [ $nerrors -eq 0 ]; then
     echo "1..1" > $style_tap
-    echo "ok 1 all $i files" >> $style_tap
+    echo "ok 1 all $(echo "$check_files" | wc -l) files" >> $style_tap
 else
     mv $style_tap ${style_tap}.backup
     echo "1..$(cat ${style_tap}.backup | wc -l)" > $style_tap

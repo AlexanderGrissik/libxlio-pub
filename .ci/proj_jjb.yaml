@@ -79,6 +79,10 @@
             default: true
             description: "Use commit message check."
         - bool:
+            name: "do_tidy"
+            default: false
+            description: "Use clang-tidy  check."
+        - bool:
             name: "do_artifact"
             default: true
             description: "Collect artifacts."
