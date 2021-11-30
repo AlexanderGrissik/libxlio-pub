@@ -77,14 +77,18 @@ public:
 
     virtual bool operator<(flow_tuple const &other) const
     {
-        if (m_dst_port != other.m_dst_port)
+        if (m_dst_port != other.m_dst_port) {
             return m_dst_port < other.m_dst_port;
-        if (m_dst_ip != other.m_dst_ip)
+        }
+        if (m_dst_ip != other.m_dst_ip) {
             return m_dst_ip < other.m_dst_ip;
-        if (m_src_port != other.m_src_port)
+        }
+        if (m_src_port != other.m_src_port) {
             return m_src_port < other.m_src_port;
-        if (m_src_ip != other.m_src_ip)
+        }
+        if (m_src_ip != other.m_src_ip) {
             return m_src_ip < other.m_src_ip;
+        }
         return m_protocol < other.m_protocol;
     }
 
@@ -136,8 +140,9 @@ public:
 
     virtual bool operator<(flow_tuple_with_local_if const &other) const
     {
-        if (m_local_if != other.m_local_if)
+        if (m_local_if != other.m_local_if) {
             return m_local_if < other.m_local_if;
+        }
         return (*((flow_tuple *)this) < ((flow_tuple)other));
     }
 

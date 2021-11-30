@@ -93,8 +93,9 @@ uint64_t ring_allocation_logic::calc_res_key_by_logic()
     switch (m_res_key.get_ring_alloc_logic()) {
     case RING_LOGIC_PER_INTERFACE:
         res_key = 0;
-        if (safe_mce_sys().tcp_ctl_thread > CTL_THREAD_DISABLE)
+        if (safe_mce_sys().tcp_ctl_thread > CTL_THREAD_DISABLE) {
             res_key = 1;
+        }
         break;
     case RING_LOGIC_PER_IP:
         res_key = m_source.m_ip;
@@ -245,8 +246,9 @@ int cpu_manager::reserve_cpu_for_thread(pthread_t tid, int suggested_cpu /* = NO
     } else { // need to choose one cpu to attach to
         int min_cpu_count = -1;
         for (int i = 0, j = 0; i < MAX_CPU && j < avail_cpus; i++) {
-            if (!CPU_ISSET(i, &cpu_set))
+            if (!CPU_ISSET(i, &cpu_set)) {
                 continue;
+            }
             j++;
             if (min_cpu_count < 0 || m_cpu_thread_count[i] < min_cpu_count) {
                 min_cpu_count = m_cpu_thread_count[i];
@@ -270,8 +272,9 @@ int cpu_manager::reserve_cpu_for_thread(pthread_t tid, int suggested_cpu /* = NO
     }
 
     g_n_thread_cpu_core = cpu;
-    if (cpu > NO_CPU && cpu < MAX_CPU)
+    if (cpu > NO_CPU && cpu < MAX_CPU) {
         m_cpu_thread_count[cpu]++;
+    }
     unlock();
     return cpu;
 }

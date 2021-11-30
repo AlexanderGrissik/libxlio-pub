@@ -105,8 +105,9 @@ struct socket_option_t {
 
     ~socket_option_t()
     {
-        if (optval)
+        if (optval) {
             free(optval);
+        }
     }
 };
 
@@ -480,8 +481,9 @@ private:
 
     inline void return_reuse_buffers_postponed()
     {
-        if (!m_rx_reuse_buf_postponed)
+        if (!m_rx_reuse_buf_postponed) {
             return;
+        }
 
         // for the parallel reclaim mechanism from internal thread, used for "silent" sockets
         set_rx_reuse_pending(false);

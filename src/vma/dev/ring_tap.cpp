@@ -513,10 +513,11 @@ void ring_tap::mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_
     if (likely(p_mem_buf_desc)) {
         // potential race, ref is protected here by ring_tx lock, and in dst_entry_tcp &
         // sockinfo_tcp by tcp lock
-        if (likely(p_mem_buf_desc->lwip_pbuf.pbuf.ref))
+        if (likely(p_mem_buf_desc->lwip_pbuf.pbuf.ref)) {
             p_mem_buf_desc->lwip_pbuf.pbuf.ref--;
-        else
+        } else {
             ring_logerr("ref count of %p is already zero, double free??", p_mem_buf_desc);
+        }
 
         if (p_mem_buf_desc->lwip_pbuf.pbuf.ref == 0) {
             p_mem_buf_desc->p_next_desc = NULL;

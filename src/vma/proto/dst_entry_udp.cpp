@@ -94,8 +94,9 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
             } else {
                 dst_udp_logfunc(
                     "Packet dropped. NonBlocked call but not enough tx buffers. Returning OK");
-                if (!m_b_sysvar_tx_nonblocked_eagains)
+                if (!m_b_sysvar_tx_nonblocked_eagains) {
                     return sz_data_payload;
+                }
             }
             errno = EAGAIN;
             return -1;
@@ -217,8 +218,9 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
         } else {
             dst_udp_logfunc(
                 "Packet dropped. NonBlocked call but not enough tx buffers. Returning OK");
-            if (!m_b_sysvar_tx_nonblocked_eagains)
+            if (!m_b_sysvar_tx_nonblocked_eagains) {
                 return sz_data_payload;
+            }
         }
         errno = EAGAIN;
         return -1;
@@ -333,8 +335,9 @@ ssize_t dst_entry_udp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
      */
     attr.flags = (vma_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
 
-    for (ssize_t i = 0; i < sz_iov; i++)
+    for (ssize_t i = 0; i < sz_iov; i++) {
         sz_data_payload += p_iov[i].iov_len;
+    }
 
     if (unlikely(sz_data_payload > 65536)) {
         dst_udp_logfunc("sz_data_payload=%d, to_port=%d, local_port=%d, b_blocked=%s",

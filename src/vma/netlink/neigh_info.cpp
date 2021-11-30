@@ -52,8 +52,9 @@ netlink_neigh_info::netlink_neigh_info(struct rtnl_neigh *neigh)
 
 void netlink_neigh_info::fill(struct rtnl_neigh *neigh)
 {
-    if (!neigh)
+    if (!neigh) {
         return;
+    }
 
     nl_addr *addr;
     char addr_str[ADDR_MAX_STR_LEN + 1];

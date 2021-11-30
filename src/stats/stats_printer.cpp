@@ -81,14 +81,16 @@ const char *to_str_socket_type_netstat_like(int type)
 void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, FILE *filename)
 {
 
-    if (!filename)
+    if (!filename) {
         return;
+    }
 
     bool b_any_activiy = false;
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
     fprintf(filename, "======================================================\n");
     fprintf(filename, "\tFd=[%d]\n", p_si_stats->fd);
 
@@ -141,10 +143,12 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     // Ring Allocation Logic information
     //
     //
-    if (p_si_stats->ring_alloc_logic_rx == RING_LOGIC_PER_USER_ID)
+    if (p_si_stats->ring_alloc_logic_rx == RING_LOGIC_PER_USER_ID) {
         fprintf(filename, "- RX: Ring User ID = %lu\n", p_si_stats->ring_user_id_rx);
-    if (p_si_stats->ring_alloc_logic_tx == RING_LOGIC_PER_USER_ID)
+    }
+    if (p_si_stats->ring_alloc_logic_tx == RING_LOGIC_PER_USER_ID) {
         fprintf(filename, "- TX: Ring User ID = %lu\n", p_si_stats->ring_user_id_tx);
+    }
 
     //
     // Socket statistics
@@ -274,10 +278,11 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
 void print_netstat_like_headers(FILE *file)
 {
     static bool already_printed = false;
-    if (!already_printed)
+    if (!already_printed) {
         fprintf(file, "%-5s %-9s %-20s %-20s %-22s %-21s %-11s %-10s %s", "Proto", "Offloaded",
                 "Recv-Q", "Send-Q", "Local Address", "Foreign Address", "State", "Inode",
                 "PID/Program name\n");
+    }
     already_printed = true;
 }
 
@@ -288,8 +293,9 @@ void print_netstat_like(socket_stats_t *p_si_stats, mc_grp_info_t *, FILE *file,
         strlen("123.123.123.123:12345"); // for max len of ip address and port together
     char process[PATH_MAX + 1];
 
-    if (!p_si_stats->inode)
+    if (!p_si_stats->inode) {
         return; // shmem is not updated yet
+    }
 
     fprintf(file, "%-5s %-9s ", to_str_socket_type_netstat_like(p_si_stats->socket_type),
             p_si_stats->b_is_offloaded ? "Yes" : "No");
@@ -304,11 +310,13 @@ void print_netstat_like(socket_stats_t *p_si_stats, mc_grp_info_t *, FILE *file,
         /* cppcheck-suppress wrongPrintfScanfArgNum */
         len = fprintf(file, "%d.%d.%d.%d:%-5d", NIPQUAD(p_si_stats->bound_if),
                       ntohs(p_si_stats->bound_port));
-        if (len < 0)
+        if (len < 0) {
             len = 0; // error
+        }
     }
-    if (len < MAX_ADDR_LEN)
+    if (len < MAX_ADDR_LEN) {
         fprintf(file, "%*s ", MAX_ADDR_LEN - len, ""); // pad and delimiter
+    }
 
     fprintf(file, " ");
 
@@ -319,10 +327,12 @@ void print_netstat_like(socket_stats_t *p_si_stats, mc_grp_info_t *, FILE *file,
     } else {
         len = fprintf(file, "0.0.0.0:*");
     }
-    if (len < 0)
+    if (len < 0) {
         len = 0; // error
-    if (len < MAX_ADDR_LEN)
+    }
+    if (len < MAX_ADDR_LEN) {
         fprintf(file, "%*s ", MAX_ADDR_LEN - len, ""); // pad and delimiter
+    }
 
     const char *tcp_state = "";
     if (p_si_stats->socket_type == SOCK_STREAM) {

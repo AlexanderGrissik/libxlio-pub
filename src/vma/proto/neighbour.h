@@ -108,8 +108,9 @@ public:
 
     virtual void zero_all_members()
     {
-        if (m_l2_address)
+        if (m_l2_address) {
             delete m_l2_address;
+        }
         m_l2_address = NULL;
     };
     const L2_address *get_l2_address() const { return m_l2_address; };
@@ -159,10 +160,11 @@ public:
     uint32_t get_qkey() const { return m_qkey; };
     uint32_t get_qpn() const
     {
-        if (m_l2_address)
+        if (m_l2_address) {
             return (((IPoIB_addr *)m_l2_address)->get_qpn());
-        else
+        } else {
             return 0;
+        }
     }
 
     neigh_val &operator=(const neigh_val &val);

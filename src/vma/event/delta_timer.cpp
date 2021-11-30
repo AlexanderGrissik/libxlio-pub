@@ -117,8 +117,9 @@ void timer::remove_timer(timer_node_t *node, timer_handler *handler)
     if (!node) {
         node = m_list_head;
         while (node) {
-            if (node->handler == handler) // node found
+            if (node->handler == handler) { // node found
                 break;
+            }
             node = node->next;
         }
     }
@@ -191,8 +192,9 @@ int timer::update_timeout()
     delta_msec = ts_to_msec(&ts_delta);
 
     // Save 'now' as 'last'
-    if (delta_msec > 0)
+    if (delta_msec > 0) {
         m_ts_last = ts_now;
+    }
 
     // empty list -> unlimited timeout
     if (!m_list_head) {

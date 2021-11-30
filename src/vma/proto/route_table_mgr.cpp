@@ -138,8 +138,9 @@ void route_table_mgr::rt_mgr_update_source_ip()
     // for route entries which still have no src ip and no gw
     for (int i = 0; i < m_tab.entries_num; i++) {
         p_val = &m_tab.value[i];
-        if (p_val->get_src_addr() || p_val->get_gw_addr())
+        if (p_val->get_src_addr() || p_val->get_gw_addr()) {
             continue;
+        }
         if (g_p_net_device_table_mgr) { // try to get src ip from net_dev list of the interface
             in_addr_t longest_prefix = 0;
             in_addr_t correct_src = 0;
@@ -203,8 +204,9 @@ void route_table_mgr::rt_mgr_update_source_ip()
                                 break;
                             }
                         }
-                        if (!p_val->get_src_addr())
+                        if (!p_val->get_src_addr()) {
                             num_unresolved_src++;
+                        }
                     } else {
                         num_unresolved_src++;
                     }
@@ -222,8 +224,9 @@ void route_table_mgr::rt_mgr_update_source_ip()
     // for route entries which still have no src ip
     for (int i = 0; i < m_tab.entries_num; i++) {
         p_val = &m_tab.value[i];
-        if (p_val->get_src_addr())
+        if (p_val->get_src_addr()) {
             continue;
+        }
         if (p_val->get_gw_addr()) {
             rt_mgr_logdbg("could not figure out source ip for gw address. rtv = %s",
                           p_val->to_str());
@@ -250,8 +253,9 @@ bool route_table_mgr::parse_enrty(nlmsghdr *nl_header, route_val *p_val)
     rt_msg = (struct rtmsg *)NLMSG_DATA(nl_header);
 
     // we are not concerned about the local and default route table
-    if (rt_msg->rtm_family != AF_INET || rt_msg->rtm_table == RT_TABLE_LOCAL)
+    if (rt_msg->rtm_family != AF_INET || rt_msg->rtm_table == RT_TABLE_LOCAL) {
         return false;
+    }
 
     p_val->set_protocol(rt_msg->rtm_protocol);
     p_val->set_scope(rt_msg->rtm_scope);

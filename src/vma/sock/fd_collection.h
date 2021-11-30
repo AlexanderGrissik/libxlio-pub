@@ -237,15 +237,17 @@ private:
 
 inline bool fd_collection::is_valid_fd(int fd)
 {
-    if (fd < 0 || fd >= m_n_fd_map_size)
+    if (fd < 0 || fd >= m_n_fd_map_size) {
         return false;
+    }
     return true;
 }
 
 template <typename cls> inline cls *fd_collection::get(int fd, cls **map_type)
 {
-    if (!is_valid_fd(fd))
+    if (!is_valid_fd(fd)) {
         return NULL;
+    }
 
     cls *obj = map_type[fd];
     return obj;
@@ -320,15 +322,17 @@ extern int g_p_fd_collection_size_parent_process;
 
 inline socket_fd_api *fd_collection_get_sockfd(int fd)
 {
-    if (g_p_fd_collection)
+    if (g_p_fd_collection) {
         return g_p_fd_collection->get_sockfd(fd);
+    }
     return NULL;
 }
 
 inline epfd_info *fd_collection_get_epfd(int fd)
 {
-    if (g_p_fd_collection)
+    if (g_p_fd_collection) {
         return g_p_fd_collection->get_epfd(fd);
+    }
     return NULL;
 }
 

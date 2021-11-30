@@ -415,8 +415,9 @@ void qp_mgr_eth_mlx5::post_recv_buffer(mem_buf_desc_t *p_mem_buf_desc)
 void qp_mgr_eth_mlx5::post_recv_buffer_rq(mem_buf_desc_t *p_mem_buf_desc)
 {
     if (m_n_sysvar_rx_prefetch_bytes_before_poll) {
-        if (m_p_prev_rx_desc_pushed)
+        if (m_p_prev_rx_desc_pushed) {
             m_p_prev_rx_desc_pushed->p_prev_desc = p_mem_buf_desc;
+        }
         m_p_prev_rx_desc_pushed = p_mem_buf_desc;
     }
 

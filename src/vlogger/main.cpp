@@ -41,8 +41,9 @@
 int main(int argc, char **argv)
 {
     vlog_levels_t vlog_levels_init = VLOG_WARNING;
-    if (argc > 1)
+    if (argc > 1) {
         vlog_levels_init = (vlog_levels_t)atoi(argv[1]);
+    }
 
     printf(">> starting vlogger in level: %d\n", (int)vlog_levels_init);
     vlog_start("Voltaire Logger test module: ", vlog_levels_init);

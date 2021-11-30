@@ -89,8 +89,9 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 
     if (buff->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_STRIDE) {
         mem_buf_desc_t *rwqe = reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.pbuf.desc.mdesc);
-        if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) // Is last stride.
+        if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) { // Is last stride.
             g_buffer_pool_rx_rwqe->put_buffers_thread_safe(rwqe);
+        }
     }
 
     buff->p_next_desc = m_p_head;
@@ -179,8 +180,9 @@ buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size,
     data_block = m_size ? m_allocator.alloc_and_reg_mr(m_size, NULL) : NULL;
     assert(m_size == 0 || data_block != NULL);
 
-    if (!buffer_count)
+    if (!buffer_count) {
         return;
+    }
 
     if (m_size) {
         // Align pointers
@@ -296,8 +298,9 @@ uint32_t buffer_pool::find_lkey_by_ib_ctx_thread_safe(ib_ctx_handler *p_ib_ctx_h
  */
 bool isCircle(mem_buf_desc_t *pNode)
 {
-    if (!pNode)
+    if (!pNode) {
         return false;
+    }
 
     mem_buf_desc_t *p1 = pNode;
     mem_buf_desc_t *p2 = pNode;
@@ -305,8 +308,9 @@ bool isCircle(mem_buf_desc_t *pNode)
     while (p2->p_next_desc && p2->p_next_desc->p_next_desc) {
         p1 = p1->p_next_desc;
         p2 = p2->p_next_desc->p_next_desc;
-        if (p1 == p2)
+        if (p1 == p2) {
             return true;
+        }
     }
     return false;
 }
@@ -352,8 +356,9 @@ void Floyd_LogCircleInfo(Node x0)
         tortoise = f(tortoise);
         hare = f(hare);
         mu++;
-        if (mu > MAX_STEPS)
+        if (mu > MAX_STEPS) {
             break; // extra safety; not really needed
+        }
     }
 
     // Find the length of the shortest cycle starting from x_mu
@@ -363,8 +368,9 @@ void Floyd_LogCircleInfo(Node x0)
     while (tortoise != hare) {
         hare = f(hare);
         lambda++;
-        if (lambda > MAX_STEPS)
+        if (lambda > MAX_STEPS) {
             break; // extra safety; not really needed
+        }
     }
     vlog_printf(VLOG_ERROR, "circle first index (mu) = %d, circle length (lambda) = %d", mu,
                 lambda);
@@ -419,11 +425,13 @@ inline void buffer_pool::put_buffers(mem_buf_desc_t **buff_vec, size_t count)
 {
     __log_info_funcall("returning vector, present %zu, created %zu, returned %zu", m_n_buffers,
                        m_n_buffers_created, count);
-    while (count-- > 0U)
+    while (count-- > 0U) {
         put_buffer_helper(buff_vec[count]);
+    }
 
-    if (unlikely(m_n_buffers > m_n_buffers_created))
+    if (unlikely(m_n_buffers > m_n_buffers_created)) {
         buffersPanic();
+    }
 }
 
 void buffer_pool::put_buffers_thread_safe(mem_buf_desc_t *buff_list)
@@ -482,8 +490,9 @@ size_t buffer_pool::get_free_count()
 
 void buffer_pool::set_RX_TX_for_stats(bool rx)
 {
-    if (rx)
+    if (rx) {
         m_p_bpool_stat->is_rx = true;
-    else
+    } else {
         m_p_bpool_stat->is_tx = true;
+    }
 }

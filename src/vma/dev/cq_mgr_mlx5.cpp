@@ -74,8 +74,9 @@ uint32_t cq_mgr_mlx5::clean_cq()
          * rx - is done in qp_mgr::up()
          * as a result rx cq can be created but not initialized
          */
-        if (NULL == m_qp)
+        if (NULL == m_qp) {
             return 0;
+        }
 
         buff_status_e status = BS_OK;
         while ((buff = poll(status))) {
@@ -92,8 +93,9 @@ uint32_t cq_mgr_mlx5::clean_cq()
         while ((ret = cq_mgr::poll(wce, MCE_MAX_CQ_POLL_BATCH, &cq_poll_sn)) > 0) {
             for (int i = 0; i < ret; i++) {
                 buff = process_cq_element_tx(&wce[i]);
-                if (buff)
+                if (buff) {
                     m_rx_queue.push_back(buff);
+                }
             }
             ret_total += ret;
         }
@@ -295,8 +297,9 @@ int cq_mgr_mlx5::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=N
             }
 
             m_n_wce_counter += ret;
-            if (ret < MCE_MAX_CQ_POLL_BATCH)
+            if (ret < MCE_MAX_CQ_POLL_BATCH) {
                 m_b_was_drained = true;
+            }
 
             for (int i = 0; i < ret; i++) {
                 uint32_t wqe_sz = 0;

@@ -61,8 +61,9 @@ socket_fd_api::socket_fd_api(int fd)
 
 socket_fd_api::~socket_fd_api()
 {
-    if (m_is_closable)
+    if (m_is_closable) {
         orig_os_api.close(m_fd);
+    }
 }
 
 void socket_fd_api::destructor_helper()
@@ -329,8 +330,9 @@ int socket_fd_api::add_epoll_context(epfd_info *epfd)
 
 void socket_fd_api::remove_epoll_context(epfd_info *epfd)
 {
-    if (m_econtext == epfd)
+    if (m_econtext == epfd) {
         m_econtext = NULL;
+    }
 }
 
 void socket_fd_api::notify_epoll_context(uint32_t events)

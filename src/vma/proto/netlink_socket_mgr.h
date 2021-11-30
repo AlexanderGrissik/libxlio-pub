@@ -179,8 +179,9 @@ template <typename Type> void netlink_socket_mgr<Type>::build_request(struct nlm
 //		len		: length of received data.
 template <typename Type> bool netlink_socket_mgr<Type>::query(struct nlmsghdr *&nl_msg, int &len)
 {
-    if (m_fd < 0)
+    if (m_fd < 0) {
         return false;
+    }
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (orig_os_api.send(m_fd, nl_msg, nl_msg->nlmsg_len, 0) < 0) {
@@ -251,8 +252,9 @@ template <typename Type> void netlink_socket_mgr<Type>::update_tbl()
     build_request(&nl_msg);
 
     // Query built request and receive requested data
-    if (!query(nl_msg, len))
+    if (!query(nl_msg, len)) {
         return;
+    }
 
     // Parse received data in custom object (route_val)
     parse_tbl(len, &counter);
@@ -280,8 +282,9 @@ template <typename Type> void netlink_socket_mgr<Type>::parse_tbl(int len, int *
             entry_cnt++;
         }
     }
-    if (p_ent_num)
+    if (p_ent_num) {
         *p_ent_num = entry_cnt;
+    }
 }
 
 // print the table

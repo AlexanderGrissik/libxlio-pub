@@ -299,8 +299,9 @@ cache_entry_subject<Key, Val> *cache_table_mgr<Key, Val>::get_entry(Key key)
 {
     cache_entry_subject<Key, Val> *ret_entry = NULL;
 
-    if (m_cache_tbl.count(key))
+    if (m_cache_tbl.count(key)) {
         ret_entry = m_cache_tbl.find(key)->second;
+    }
     return ret_entry;
 }
 
@@ -311,8 +312,9 @@ template <typename Key, typename Val> void cache_table_mgr<Key, Val>::print_tbl(
         m_cache_tbl.begin();
     if (cache_itr != m_cache_tbl.end()) {
         __log_dbg("%s contains:", to_str().c_str());
-        for (; cache_itr != m_cache_tbl.end(); cache_itr++)
+        for (; cache_itr != m_cache_tbl.end(); cache_itr++) {
             __log_dbg(" %s", cache_itr->second->to_str().c_str());
+        }
     } else {
         __log_dbg("%s empty", to_str().c_str());
     }

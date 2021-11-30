@@ -261,8 +261,9 @@ public:
         : qp_mgr(desc, tx_num_wr)
         , m_vlan(vlan)
     {
-        if (call_configure && configure(desc))
+        if (call_configure && configure(desc)) {
             throw_vma_exception("failed creating qp");
+        }
     };
 
     virtual ~qp_mgr_eth() {}
@@ -285,8 +286,9 @@ public:
         , m_underly_qpn(0)
     {
         update_pkey_index();
-        if (configure(desc))
+        if (configure(desc)) {
             throw_vma_exception("failed creating qp");
+        }
     };
 
     virtual void modify_qp_to_ready_state();

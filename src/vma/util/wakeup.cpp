@@ -60,9 +60,9 @@ wakeup::wakeup()
 void wakeup::going_to_sleep()
 {
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (likely(m_epfd))
+    if (likely(m_epfd)) {
         m_is_sleeping++;
-    else {
+    } else {
         wkup_logerr(" m_epfd is not initialized - cannot use wakeup mechanism\n");
         m_is_sleeping = 0;
     }

@@ -309,15 +309,17 @@ public:
     vma_exception_handling(mode _mode = MODE_DEFAULT)
         : m_mode(_mode)
     {
-        if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST)
+        if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST) {
             m_mode = MODE_DEFAULT;
+        }
     }
 
     explicit vma_exception_handling(int _mode)
         : m_mode((mode)_mode)
     {
-        if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST)
+        if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST) {
             m_mode = MODE_DEFAULT;
+        }
     }
 
     operator mode() const { return m_mode; }

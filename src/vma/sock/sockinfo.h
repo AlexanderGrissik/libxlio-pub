@@ -482,14 +482,16 @@ protected:
         size_t bytes_left = pdesc->rx.frag.iov_len - m_rx_pkt_ready_offset;
         size_t payload_size = pdesc->rx.sz_payload;
 
-        if (__from && __fromlen)
+        if (__from && __fromlen) {
             fetch_peer_info(&pdesc->rx.src, __from, __fromlen);
+        }
 
         if (in_flags & MSG_XLIO_ZCOPY) {
             relase_buff = false;
             total_rx = zero_copy_rx(p_iov, pdesc, p_out_flags);
-            if (unlikely(total_rx < 0))
+            if (unlikely(total_rx < 0)) {
                 return -1;
+            }
             m_rx_pkt_ready_offset = 0;
         } else {
 #ifdef DEFINED_UTLS
@@ -504,16 +506,18 @@ protected:
                     }
 #endif /* DEFINED_UTLS */
                     nbytes = p_iov[i].iov_len - pos;
-                    if (nbytes > bytes_left)
+                    if (nbytes > bytes_left) {
                         nbytes = bytes_left;
+                    }
                     memcpy((char *)(p_iov[i].iov_base) + pos, iov_base, nbytes);
                     pos += nbytes;
                     total_rx += nbytes;
                     m_rx_pkt_ready_offset += nbytes;
                     bytes_left -= nbytes;
                     iov_base = (uint8_t *)iov_base + nbytes;
-                    if (m_b_rcvtstamp || m_n_tsing_flags)
+                    if (m_b_rcvtstamp || m_n_tsing_flags) {
                         update_socket_timestamps(&pdesc->rx.timestamps);
+                    }
                     if (bytes_left <= 0) {
                         if (unlikely(is_peek)) {
                             pdesc = get_next_desc_peek(pdesc, rx_pkt_ready_list_idx);
@@ -575,8 +579,9 @@ protected:
             // In case ring was deleted while buffers where still queued
             vlog_printf(VLOG_DEBUG, "Buffer owner not found\n");
             // Awareness: these are best efforts: decRef without lock in case no CQ
-            if (buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1))
+            if (buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1)) {
                 g_buffer_pool_rx_ptr->put_buffers_thread_safe(buff);
+            }
         }
     }
 

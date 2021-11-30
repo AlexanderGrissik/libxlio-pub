@@ -62,9 +62,10 @@ state_machine::state_machine(void *app_hndl, int start_state, int max_states, in
     , m_b_is_in_process(false)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (start_state < 0 || start_state >= m_max_states)
+    if (start_state < 0 || start_state >= m_max_states) {
         sm_logpanic("SM start state out of range for app_hndl %p (min=%d, max=%d, start=%d)",
                     app_hndl, 0, m_max_states, start_state);
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     m_info.old_state = start_state;
@@ -136,8 +137,9 @@ int state_machine::process_sparse_table(sm_short_table_line_t *short_table,
     line = 0;
     while (1) {
         st = short_table[line].state;
-        if (st == SM_NO_ST) // End of table
+        if (st == SM_NO_ST) { // End of table
             break;
+        }
 
         ev = short_table[line].event;
         next_state = short_table[line].next_state;

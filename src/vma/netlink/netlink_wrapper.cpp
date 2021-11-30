@@ -84,8 +84,9 @@ void netlink_wrapper::notify_observers(netlink_event *p_new_event, e_netlink_eve
     g_nl_rcv_arg.netlink->m_subj_map_lock.lock();
 
     subject_map_iter iter = g_nl_rcv_arg.subjects_map->find(type);
-    if (iter != g_nl_rcv_arg.subjects_map->end())
+    if (iter != g_nl_rcv_arg.subjects_map->end()) {
         iter->second->notify_observers(p_new_event);
+    }
 
     g_nl_rcv_arg.netlink->m_subj_map_lock.unlock();
     /* coverity[missing_unlock] */
@@ -264,12 +265,15 @@ int netlink_wrapper::open_channel()
 
     nl_logdbg("netlink socket is open");
 
-    if (nl_cache_mngr_compatible_add(m_mngr, "route/link", link_callback, NULL, &m_cache_link))
+    if (nl_cache_mngr_compatible_add(m_mngr, "route/link", link_callback, NULL, &m_cache_link)) {
         return -1;
-    if (nl_cache_mngr_compatible_add(m_mngr, "route/route", route_callback, NULL, &m_cache_route))
+    }
+    if (nl_cache_mngr_compatible_add(m_mngr, "route/route", route_callback, NULL, &m_cache_route)) {
         return -1;
-    if (nl_cache_mngr_compatible_add(m_mngr, "route/neigh", neigh_callback, NULL, &m_cache_neigh))
+    }
+    if (nl_cache_mngr_compatible_add(m_mngr, "route/neigh", neigh_callback, NULL, &m_cache_neigh)) {
         return -1;
+    }
 
     // set custom callback for every message to update message
     nl_socket_modify_cb(m_socket_handle, NL_CB_MSG_IN, NL_CB_CUSTOM, nl_msg_rcv_cb, NULL);
@@ -288,10 +292,11 @@ int netlink_wrapper::open_channel()
 int netlink_wrapper::get_channel()
 {
     auto_unlocker lock(m_cache_lock);
-    if (m_socket_handle)
+    if (m_socket_handle) {
         return nl_socket_get_fd(m_socket_handle);
-    else
+    } else {
         return -1;
+    }
 }
 
 int netlink_wrapper::handle_events()
@@ -313,8 +318,9 @@ int netlink_wrapper::handle_events()
 
     // int n = nl_recvmsgs_default(m_handle);
     nl_logfine("nl_recvmsgs=%d", n);
-    if (n < 0)
+    if (n < 0) {
         nl_logdbg("recvmsgs returned with error = %d", n);
+    }
 
     nl_logfine("<---handle_events");
 
@@ -341,8 +347,9 @@ bool netlink_wrapper::register_event(e_netlink_event_type type, const observer *
 bool netlink_wrapper::unregister(e_netlink_event_type type, const observer *obs)
 {
     auto_unlocker lock(m_subj_map_lock);
-    if (obs == NULL)
+    if (obs == NULL) {
         return false;
+    }
 
     subject_map_iter iter = m_subjects_map.find(type);
     if (iter != m_subjects_map.end()) {

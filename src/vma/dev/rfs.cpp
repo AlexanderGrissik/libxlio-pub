@@ -47,8 +47,9 @@ inline void rfs::prepare_filter_attach(int &filter_counter,
 {
     // If filter flow, need to attach flow only if this is the first request for this specific group
     // (i.e. counter == 1)
-    if (!m_p_rule_filter)
+    if (!m_p_rule_filter) {
         return;
+    }
 
     filter_iter = m_p_rule_filter->m_map.find(m_p_rule_filter->m_key);
     if (filter_iter == m_p_rule_filter->m_map.end()) {
@@ -62,8 +63,9 @@ inline void rfs::prepare_filter_attach(int &filter_counter,
 
 inline void rfs::filter_keep_attached(rule_filter_map_t::iterator &filter_iter)
 {
-    if (!m_p_rule_filter || filter_iter == m_p_rule_filter->m_map.end())
+    if (!m_p_rule_filter || filter_iter == m_p_rule_filter->m_map.end()) {
         return;
+    }
 
     // save all ibv_flow rules only for filter
     for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
@@ -79,8 +81,9 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
 {
     // If filter, need to detach flow only if this is the last attached rule for this specific group
     // (i.e. counter == 0)
-    if (!m_p_rule_filter)
+    if (!m_p_rule_filter) {
         return;
+    }
 
     rule_filter_map_t::iterator filter_iter = m_p_rule_filter->m_map.find(m_p_rule_filter->m_key);
     if (filter_iter == m_p_rule_filter->m_map.end()) {
@@ -99,8 +102,9 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
     filter_counter = filter_iter->second.counter;
     // if we do not need to destroy rfs_rule, still mark this rfs as detached
     m_b_tmp_is_attached = (filter_counter == 0) && m_b_tmp_is_attached;
-    if (filter_counter != 0 || filter_iter->second.rfs_rule_vec.empty())
+    if (filter_counter != 0 || filter_iter->second.rfs_rule_vec.empty()) {
         return;
+    }
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_attach_flow_data_vector.size() != filter_iter->second.rfs_rule_vec.size()) {

@@ -52,11 +52,13 @@ L2_address::L2_address(address_t const address, addrlen_t const len)
 void L2_address::set(address_t const address, addrlen_t const len)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (len <= 0 || len > L2_ADDR_MAX)
+    if (len <= 0 || len > L2_ADDR_MAX) {
         L2_panic("len = %lu", len);
+    }
 
-    if (address == NULL)
+    if (address == NULL) {
         L2_panic("address == NULL");
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // Copy the new address
@@ -66,24 +68,27 @@ void L2_address::set(address_t const address, addrlen_t const len)
 
 bool L2_address::compare(L2_address const &other) const
 {
-    if (other.m_len != m_len)
+    if (other.m_len != m_len) {
         return false;
+    }
     return (!memcmp((void *)other.m_p_raw_address, (void *)m_p_raw_address, m_len));
 }
 
 const std::string ETH_addr::to_str() const
 {
     char s[100];
-    if (m_len > 0)
+    if (m_len > 0) {
         sprintf(s, ETH_HW_ADDR_PRINT_FMT, ETH_HW_ADDR_PRINT_ADDR(m_p_raw_address));
+    }
     return (std::string(s));
 }
 
 const std::string IPoIB_addr::to_str() const
 {
     char s[100];
-    if (m_len > 0)
+    if (m_len > 0) {
         sprintf(s, IPOIB_HW_ADDR_PRINT_FMT, IPOIB_HW_ADDR_PRINT_ADDR(m_p_raw_address));
+    }
     return (std::string(s));
 }
 

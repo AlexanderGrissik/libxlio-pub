@@ -661,11 +661,13 @@ static inline void ibv_flow_spec_ipv4_set(vma_ibv_flow_spec_ipv4 *ipv4, uint32_t
     ipv4->type = VMA_IBV_FLOW_SPEC_IPV4;
     ipv4->size = sizeof(vma_ibv_flow_spec_ipv4);
     ipv4->val.src_ip = src_ip;
-    if (ipv4->val.src_ip)
+    if (ipv4->val.src_ip) {
         ipv4->mask.src_ip = FS_MASK_ON_32;
+    }
     ipv4->val.dst_ip = dst_ip;
-    if (ipv4->val.dst_ip)
+    if (ipv4->val.dst_ip) {
         ipv4->mask.dst_ip = FS_MASK_ON_32;
+    }
 }
 
 static inline void ibv_flow_spec_tcp_udp_set(vma_ibv_flow_spec_tcp_udp *tcp_udp, bool is_tcp,
@@ -674,19 +676,22 @@ static inline void ibv_flow_spec_tcp_udp_set(vma_ibv_flow_spec_tcp_udp *tcp_udp,
     tcp_udp->type = is_tcp ? VMA_IBV_FLOW_SPEC_TCP : VMA_IBV_FLOW_SPEC_UDP;
     tcp_udp->size = sizeof(vma_ibv_flow_spec_tcp_udp);
     tcp_udp->val.src_port = src_port;
-    if (tcp_udp->val.src_port)
+    if (tcp_udp->val.src_port) {
         tcp_udp->mask.src_port = FS_MASK_ON_16;
+    }
     tcp_udp->val.dst_port = dst_port;
-    if (tcp_udp->val.dst_port)
+    if (tcp_udp->val.dst_port) {
         tcp_udp->mask.dst_port = FS_MASK_ON_16;
+    }
 }
 
 static inline void ibv_flow_spec_flow_tag_set(vma_ibv_flow_spec_action_tag *flow_tag,
                                               uint32_t tag_id)
 {
     NOT_IN_USE(tag_id);
-    if (flow_tag == NULL)
+    if (flow_tag == NULL) {
         return;
+    }
 #ifdef DEFINED_IBV_FLOW_TAG
     flow_tag->type = VMA_IBV_FLOW_SPEC_ACTION_TAG;
     flow_tag->size = sizeof(vma_ibv_flow_spec_action_tag);

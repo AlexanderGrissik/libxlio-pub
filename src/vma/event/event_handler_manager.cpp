@@ -324,11 +324,13 @@ int event_handler_manager::start_thread()
     cpu_set_t cpu_set;
     pthread_attr_t tattr;
 
-    if (!m_b_continue_running)
+    if (!m_b_continue_running) {
         return -1;
+    }
 
-    if (m_event_handler_tid != 0)
+    if (m_event_handler_tid != 0) {
         return 0;
+    }
 
     // m_reg_action_q.reserve(); //todo change to vector and reserve
 
@@ -375,8 +377,9 @@ int event_handler_manager::start_thread()
 
 void event_handler_manager::stop_thread()
 {
-    if (!m_b_continue_running)
+    if (!m_b_continue_running) {
         return;
+    }
     m_b_continue_running = false;
 
     if (!g_is_forked_child) {
@@ -449,8 +452,9 @@ const char *event_handler_manager::reg_action_str(event_action_type_e reg_action
 // get new action of event (register / unregister), and post to the thread's pipe
 void event_handler_manager::post_new_reg_action(reg_action_t &reg_action)
 {
-    if (!m_b_continue_running)
+    if (!m_b_continue_running) {
         return;
+    }
 
     start_thread();
 
@@ -720,8 +724,9 @@ void event_handler_manager::priv_unregister_command_events(command_reg_info_t &i
 
 void event_handler_manager::handle_registration_action(reg_action_t &reg_action)
 {
-    if (!m_b_continue_running)
+    if (!m_b_continue_running) {
         return;
+    }
 
     evh_logfunc("event action %d", reg_action.type);
     switch (reg_action.type) {
@@ -874,8 +879,9 @@ void event_handler_manager::process_rdma_cm_event(event_handler_map_t::iterator 
                priv_rdma_cm_event_type_str(cma_event.event), cma_event.event);
 
     void *cma_id = (void *)cma_event.id;
-    if (cma_event.listen_id) // we assume that cma_listen_id != NULL in case of connect request
+    if (cma_event.listen_id) { // we assume that cma_listen_id != NULL in case of connect request
         cma_id = (void *)cma_event.listen_id;
+    }
 
     // Find registered event handler
     if (cma_id != NULL) {
@@ -885,8 +891,9 @@ void event_handler_manager::process_rdma_cm_event(event_handler_map_t::iterator 
             event_handler_rdma_cm *handler = iter_id->second;
 
             // Call the registered event handler with event to be handled
-            if (handler)
+            if (handler) {
                 handler->handle_event_rdma_cm_cb(&cma_event);
+            }
         } else {
             evh_logdbg("Can't find event_handler for ready event_handler_id %p (fd=%d)", cma_id,
                        iter_fd->first);
@@ -1011,13 +1018,15 @@ void *event_handler_manager::thread_loop()
 
             int fd = p_events[idx].data.fd;
 
-            if (m_b_sysvar_internal_thread_arm_cq_enabled && fd == m_cq_epfd)
+            if (m_b_sysvar_internal_thread_arm_cq_enabled && fd == m_cq_epfd) {
                 continue;
+            }
 
             evh_logfunc("Processing fd %d", fd);
 
-            if (is_wakeup_fd(fd)) // the pipe was already handled
+            if (is_wakeup_fd(fd)) { // the pipe was already handled
                 continue;
+            }
 
             event_handler_map_t::iterator i = m_event_handler_map.find(fd);
             if (i == m_event_handler_map.end()) {

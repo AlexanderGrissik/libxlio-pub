@@ -228,8 +228,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
                     mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mdesc;
                     m_sge[i].lkey = mdesc->get_lkey(p_tcp_iov[i].p_desc, ib_ctx,
                                                     (void *)m_sge[i].addr, m_sge[i].length);
-                    if (m_sge[i].lkey == LKEY_USE_DEFAULT)
+                    if (m_sge[i].lkey == LKEY_USE_DEFAULT) {
                         m_sge[i].lkey = m_p_ring->get_tx_lkey(m_id);
+                    }
                 } else {
                     /* Do not check desc.attr for specific type because
                      * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
@@ -578,18 +579,20 @@ void dst_entry_tcp::put_buffer(mem_buf_desc_t *p_desc)
 {
     // todo accumulate buffers?
 
-    if (unlikely(p_desc == NULL))
+    if (unlikely(p_desc == NULL)) {
         return;
+    }
 
     if (likely(m_p_ring->is_member(p_desc->p_desc_owner))) {
         m_p_ring->mem_buf_desc_return_single_to_owner_tx(p_desc);
     } else {
 
         // potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
-        if (likely(p_desc->lwip_pbuf.pbuf.ref))
+        if (likely(p_desc->lwip_pbuf.pbuf.ref)) {
             p_desc->lwip_pbuf.pbuf.ref--;
-        else
+        } else {
             dst_tcp_logerr("ref count of %p is already zero, double free??", p_desc);
+        }
 
         if (p_desc->lwip_pbuf.pbuf.ref == 0) {
             p_desc->p_next_desc = NULL;

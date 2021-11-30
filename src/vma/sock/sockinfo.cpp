@@ -183,10 +183,11 @@ int sockinfo::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
     switch (__cmd) {
     case F_SETFL: {
         si_logdbg("cmd=F_SETFL, arg=%#lx", __arg);
-        if (__arg & O_NONBLOCK)
+        if (__arg & O_NONBLOCK) {
             set_blocking(false);
-        else
+        } else {
             set_blocking(true);
+        }
     } break;
     case F_GETFL: /* Get file status flags.   */
         si_logfunc("cmd=F_GETFL, arg=%#x", __arg);
@@ -227,8 +228,9 @@ int sockinfo::fcntl(int __cmd, unsigned long int __arg)
 {
     bool bexit = false;
     int ret_val = fcntl_helper(__cmd, __arg, bexit);
-    if (bexit)
+    if (bexit) {
         return ret_val;
+    }
 
     si_logdbg("going to OS for fcntl cmd=%d, arg=%#lx", __cmd, __arg);
     return orig_os_api.fcntl(m_fd, __cmd, __arg);
@@ -238,8 +240,9 @@ int sockinfo::fcntl64(int __cmd, unsigned long int __arg)
 {
     bool bexit = false;
     int ret_val = fcntl_helper(__cmd, __arg, bexit);
-    if (bexit)
+    if (bexit) {
         return ret_val;
+    }
 
     si_logdbg("going to OS for fcntl64 cmd=%d, arg=%#lx", __cmd, __arg);
     return orig_os_api.fcntl64(m_fd, __cmd, __arg);
@@ -291,8 +294,9 @@ int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
 
     sock_attr->set_ring_alloc_logic(user_attr->ring_alloc_logic);
 
-    if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_USER_ID)
+    if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_USER_ID) {
         sock_attr->set_user_id_key(user_attr->user_id);
+    }
 
     return 0;
 }
@@ -305,10 +309,11 @@ int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
     switch (__request) {
     case FIONBIO: {
         si_logdbg("request=FIONBIO, arg=%d", *p_arg);
-        if (*p_arg)
+        if (*p_arg) {
             set_blocking(false);
-        else
+        } else {
             set_blocking(true);
+        }
     } break;
 
     case FIONREAD: {
@@ -415,8 +420,9 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
         case SO_TIMESTAMPNS:
             if (__optval) {
                 m_b_rcvtstamp = *(bool *)__optval;
-                if (__optname == SO_TIMESTAMPNS)
+                if (__optname == SO_TIMESTAMPNS) {
                     m_b_rcvtstampns = m_b_rcvtstamp;
+                }
                 si_logdbg("SOL_SOCKET, %s=%s", setsockopt_so_opt_to_str(__optname),
                           (m_b_rcvtstamp ? "true" : "false"));
             } else {
@@ -596,12 +602,14 @@ int sockinfo::get_sock_by_L3_L4(in_protocol_t protocol, in_addr_t ip, in_port_t 
     int map_size = g_p_fd_collection->get_fd_map_size();
     for (int i = 0; i < map_size; i++) {
         socket_fd_api *p_sock_i = g_p_fd_collection->get_sockfd(i);
-        if (!p_sock_i || p_sock_i->get_type() != FD_TYPE_SOCKET)
+        if (!p_sock_i || p_sock_i->get_type() != FD_TYPE_SOCKET) {
             continue;
+        }
         sockinfo *s = (sockinfo *)p_sock_i;
         if (protocol == s->m_protocol && ip == s->m_bound.get_in_addr() &&
-            port == s->m_bound.get_in_port())
+            port == s->m_bound.get_in_port()) {
             return i;
+        }
     }
     return -1;
 }
@@ -1156,10 +1164,12 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
                     m_p_connected_dst_entry->is_offloaded() ? "true" : "false");
     }
 
-    if (m_p_socket_stats->ring_alloc_logic_rx == RING_LOGIC_PER_USER_ID)
+    if (m_p_socket_stats->ring_alloc_logic_rx == RING_LOGIC_PER_USER_ID) {
         vlog_printf(log_level, "RX Ring User ID : %lu\n", m_p_socket_stats->ring_user_id_rx);
-    if (m_p_socket_stats->ring_alloc_logic_tx == RING_LOGIC_PER_USER_ID)
+    }
+    if (m_p_socket_stats->ring_alloc_logic_tx == RING_LOGIC_PER_USER_ID) {
         vlog_printf(log_level, "TX Ring User ID : %lu\n", m_p_socket_stats->ring_user_id_tx);
+    }
 
     if (m_p_socket_stats->counters.n_tx_sent_byte_count ||
         m_p_socket_stats->counters.n_tx_sent_pkt_count || m_p_socket_stats->counters.n_tx_errors ||
@@ -1192,18 +1202,20 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
         if (m_p_socket_stats->counters.n_rx_packets) {
             float rx_drop_percentage = 0;
-            if (m_p_socket_stats->n_rx_ready_pkt_count)
+            if (m_p_socket_stats->n_rx_ready_pkt_count) {
                 rx_drop_percentage =
                     (float)(m_p_socket_stats->counters.n_rx_ready_byte_drop * 100) /
                     (float)m_p_socket_stats->counters.n_rx_packets;
+            }
             vlog_printf(log_level, "Rx byte : max %d / dropped %d (%2.2f%%) / limit %d\n",
                         m_p_socket_stats->counters.n_rx_ready_byte_max,
                         m_p_socket_stats->counters.n_rx_ready_byte_drop, rx_drop_percentage,
                         m_p_socket_stats->n_rx_ready_byte_limit);
 
-            if (m_p_socket_stats->n_rx_ready_pkt_count)
+            if (m_p_socket_stats->n_rx_ready_pkt_count) {
                 rx_drop_percentage = (float)(m_p_socket_stats->counters.n_rx_ready_pkt_drop * 100) /
                     (float)m_p_socket_stats->counters.n_rx_packets;
+            }
             vlog_printf(log_level, "Rx pkt : max %d / dropped %d (%2.2f%%)\n",
                         m_p_socket_stats->counters.n_rx_ready_pkt_max,
                         m_p_socket_stats->counters.n_rx_ready_pkt_drop, rx_drop_percentage);
@@ -1455,10 +1467,11 @@ void sockinfo::move_descs(ring *p_ring, descq_t *toq, descq_t *fromq, bool own)
     for (size_t i = 0; i < size; i++) {
         temp = fromq->front();
         fromq->pop_front();
-        if (!__xor(own, p_ring->is_member(temp->p_desc_owner)))
+        if (!__xor(own, p_ring->is_member(temp->p_desc_owner))) {
             toq->push_back(temp);
-        else
+        } else {
             fromq->push_back(temp);
+        }
     }
 }
 
@@ -1540,8 +1553,9 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
                   addr.to_str());
 
         transport_t target_family = TRANS_VMA;
-        if (!skip_rules)
+        if (!skip_rules) {
             target_family = find_target_family(role, addr.get_p_sa());
+        }
         if (target_family == TRANS_VMA) {
             flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, local_if);
             ret = ret && attach_receiver(flow_key);
@@ -1557,8 +1571,9 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
             local_if = ip.local_addr;
             addr.set_in_addr(local_if);
             transport_t target_family = TRANS_VMA;
-            if (!skip_rules)
+            if (!skip_rules) {
                 target_family = find_target_family(role, addr.get_p_sa());
+            }
             if (target_family == TRANS_VMA) {
                 flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, local_if);
                 ret = ret && attach_receiver(flow_key);
@@ -1646,8 +1661,9 @@ int sockinfo::modify_ratelimit(dst_entry *p_dst_entry, struct xlio_rate_limit_t 
         if (p_dst_entry) {
             int ret = p_dst_entry->modify_ratelimit(rate_limit);
 
-            if (!ret)
+            if (!ret) {
                 m_so_ratelimit = rate_limit;
+            }
             // value is in bytes (per second). we need to convert it to kilo-bits (per second)
             return ret;
         } else {
@@ -1856,8 +1872,9 @@ void sockinfo::handle_recv_errqueue(struct cmsg_state *cm_state)
 
 void sockinfo::insert_cmsg(struct cmsg_state *cm_state, int level, int type, void *data, int len)
 {
-    if (!cm_state->cmhdr || cm_state->mhdr->msg_flags & MSG_CTRUNC)
+    if (!cm_state->cmhdr || cm_state->mhdr->msg_flags & MSG_CTRUNC) {
         return;
+    }
 
     // Ensure there is enough space for the data payload
     const unsigned int cmsg_len = CMSG_LEN(len);
@@ -1879,10 +1896,12 @@ void sockinfo::insert_cmsg(struct cmsg_state *cm_state, int level, int type, voi
     // can't simply use CMSG_NXTHDR() due to glibc bug 13500
     struct cmsghdr *next =
         (struct cmsghdr *)((char *)cm_state->cmhdr + CMSG_ALIGN(cm_state->cmhdr->cmsg_len));
-    if ((char *)(next + 1) > ((char *)cm_state->mhdr->msg_control + cm_state->mhdr->msg_controllen))
+    if ((char *)(next + 1) >
+        ((char *)cm_state->mhdr->msg_control + cm_state->mhdr->msg_controllen)) {
         cm_state->cmhdr = NULL;
-    else
+    } else {
         cm_state->cmhdr = next;
+    }
 }
 
 void sockinfo::handle_cmsg(struct msghdr *msg, int flags)
@@ -1893,12 +1912,15 @@ void sockinfo::handle_cmsg(struct msghdr *msg, int flags)
     cm_state.cmhdr = CMSG_FIRSTHDR(msg);
     cm_state.cmsg_bytes_consumed = 0;
 
-    if (m_b_pktinfo)
+    if (m_b_pktinfo) {
         handle_ip_pktinfo(&cm_state);
-    if (m_b_rcvtstamp || m_n_tsing_flags)
+    }
+    if (m_b_rcvtstamp || m_n_tsing_flags) {
         handle_recv_timestamping(&cm_state);
-    if (flags & MSG_ERRQUEUE)
+    }
+    if (flags & MSG_ERRQUEUE) {
         handle_recv_errqueue(&cm_state);
+    }
 
     cm_state.mhdr->msg_controllen = cm_state.cmsg_bytes_consumed;
 }

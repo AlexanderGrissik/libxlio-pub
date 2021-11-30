@@ -143,8 +143,9 @@ vma_spec_t from_str(const char *str, vma_spec_t def_value)
     for (size_t i = 0; i < num_levels; ++i) {
         const char **input_name = specs[i].input_names;
         while (*input_name) {
-            if (strcasecmp(str, *input_name) == 0)
+            if (strcasecmp(str, *input_name) == 0) {
                 return specs[i].level;
+            }
             input_name++;
         }
     }
@@ -197,9 +198,11 @@ MODE from_str(const char *str, MODE def_value, const OPT (&options)[N])
 template <typename MODE, typename OPT, size_t N>
 MODE from_int(const int option, MODE def_value, const OPT (&options)[N])
 {
-    for (size_t i = 0; i < N; ++i)
-        if ((int)options[i].option == option)
+    for (size_t i = 0; i < N; ++i) {
+        if ((int)options[i].option == option) {
             return options[i].option;
+        }
+    }
 
     return def_value;
 }
@@ -207,9 +210,11 @@ MODE from_int(const int option, MODE def_value, const OPT (&options)[N])
 template <typename MODE, typename OPT, size_t N>
 const char *to_str(MODE option, const OPT (&options)[N])
 {
-    for (size_t i = 0; i < N; ++i)
-        if (options[i].option == option)
+    for (size_t i = 0; i < N; ++i) {
+        if (options[i].option == option) {
             return options[i].output_name;
+        }
+    }
 
     return NULL;
 }
@@ -541,8 +546,9 @@ void mce_sys_var::read_hv()
 void mce_sys_var::read_strq_strides_num()
 {
     char *env_ptr = nullptr;
-    if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_NUM_STRIDES))))
+    if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_NUM_STRIDES)))) {
         return;
+    }
 
     int stirdes_num = atoi(env_ptr);
     bool isOK = true;
@@ -570,8 +576,9 @@ void mce_sys_var::read_strq_strides_num()
 void mce_sys_var::read_strq_stride_size_bytes()
 {
     char *env_ptr = nullptr;
-    if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_STRIDE_SIZE_BYTES))))
+    if (!enable_striding_rq || !((env_ptr = getenv(SYS_VAR_STRQ_STRIDE_SIZE_BYTES)))) {
         return;
+    }
 
     int stirde_size_bytes = atoi(env_ptr);
     bool isOK = true;
@@ -981,9 +988,10 @@ void mce_sys_var::get_env_params()
         tcp_ctl_thread = CTL_THREAD_NO_WAKEUP; // MCE_DEFAULT_TCP_CTL_THREAD (CTL_THREAD_DISABLE),
                                                // wait for thread timer to expire
 
-        if (!enable_striding_rq)
+        if (!enable_striding_rq) {
             rx_num_bufs = 204800; // MCE_DEFAULT_RX_NUM_BUFS (200000), RX data buffers used on all
                                   // QPs on all HCAs
+        }
 
         break;
 
@@ -1124,11 +1132,13 @@ void mce_sys_var::get_env_params()
         break;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_SPEC_PARAM1)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SPEC_PARAM1)) != NULL) {
         mce_spec_param1 = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_SPEC_PARAM2)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SPEC_PARAM2)) != NULL) {
         mce_spec_param2 = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_LOG_FILENAME)) != NULL) {
         read_env_variable_with_pid(log_filename, sizeof(log_filename), env_ptr);
@@ -1150,27 +1160,33 @@ void mce_sys_var::get_env_params()
         read_env_variable_with_pid(service_notify_dir, sizeof(service_notify_dir), env_ptr);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_LOG_LEVEL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_LOG_LEVEL)) != NULL) {
         log_level = log_level::from_str(env_ptr, VLOG_DEFAULT);
+    }
 
-    if (log_level >= VLOG_DEBUG)
+    if (log_level >= VLOG_DEBUG) {
         log_details = 2;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_LOG_DETAILS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_LOG_DETAILS)) != NULL) {
         log_details = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_LOG_COLORS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_LOG_COLORS)) != NULL) {
         log_colors = atoi(env_ptr) ? true : false;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_APPLICATION_ID)) != NULL) {
         read_env_variable_with_pid(app_id, sizeof(app_id), env_ptr);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_HANDLE_SIGINTR)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_HANDLE_SIGINTR)) != NULL) {
         handle_sigintr = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_HANDLE_SIGSEGV)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_HANDLE_SIGSEGV)) != NULL) {
         handle_segfault = atoi(env_ptr) ? true : false;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_STATS_FD_NUM)) != NULL) {
         stats_fd_num_max = (uint32_t)atoi(env_ptr);
@@ -1184,27 +1200,34 @@ void mce_sys_var::get_env_params()
     read_strq_strides_num();
     read_strq_stride_size_bytes();
 
-    if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_NUM_BUFS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_NUM_BUFS)) != NULL) {
         strq_strides_num_bufs = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_COMPENSATION_LEVEL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_STRQ_STRIDES_COMPENSATION_LEVEL)) != NULL) {
         strq_strides_compensation_level = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_ZC_NUM_BUFS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_ZC_NUM_BUFS)) != NULL) {
         zc_num_bufs = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_ZC_CACHE_THRESHOLD)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_ZC_CACHE_THRESHOLD)) != NULL) {
         zc_cache_threshold = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_NUM_SEGS_TCP)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_NUM_SEGS_TCP)) != NULL) {
         tx_num_segs_tcp = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_NUM_BUFS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_NUM_BUFS)) != NULL) {
         tx_num_bufs = (uint32_t)atoi(env_ptr);
+    }
 
 #ifdef DEFINED_TSO
-    if ((env_ptr = getenv(SYS_VAR_TX_BUF_SIZE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_BUF_SIZE)) != NULL) {
         tx_buf_size = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_ZC_TX_SIZE)) != NULL) {
         zc_tx_size = (uint32_t)atoi(env_ptr);
@@ -1217,16 +1240,20 @@ void mce_sys_var::get_env_params()
     }
 #endif /* DEFINED_TSO */
 
-    if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE)) != NULL) {
         tx_num_wr = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE_TO_SIGNAL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE_TO_SIGNAL)) != NULL) {
         tx_num_wr_to_signal = MIN(NUM_TX_WRE_TO_SIGNAL_MAX, MAX(1, (uint32_t)atoi(env_ptr)));
-    if (tx_num_wr <= (tx_num_wr_to_signal * 2))
+    }
+    if (tx_num_wr <= (tx_num_wr_to_signal * 2)) {
         tx_num_wr = tx_num_wr_to_signal * 2;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_MAX_INLINE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_MAX_INLINE)) != NULL) {
         tx_max_inline = (uint32_t)atoi(env_ptr);
+    }
     if (tx_max_inline > MAX_SUPPORTED_IB_INLINE_SIZE) {
         vlog_printf(VLOG_WARNING, "%s  must be smaller or equal to %d [%d]\n",
                     SYS_VAR_TX_MAX_INLINE, MAX_SUPPORTED_IB_INLINE_SIZE, tx_max_inline);
@@ -1241,14 +1268,17 @@ void mce_sys_var::get_env_params()
         tx_num_wr = cx4_max_tx_wre_for_inl;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_MC_LOOPBACK)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_MC_LOOPBACK)) != NULL) {
         tx_mc_loopback_default = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_NONBLOCKED_EAGAINS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_NONBLOCKED_EAGAINS)) != NULL) {
         tx_nonblocked_eagains = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TX_PREFETCH_BYTES)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TX_PREFETCH_BYTES)) != NULL) {
         tx_prefetch_bytes = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_RING_ALLOCATION_LOGIC_TX)) != NULL) {
         ring_allocation_logic_tx = (ring_logic_t)atoi(env_ptr);
@@ -1270,32 +1300,41 @@ void mce_sys_var::get_env_params()
         }
     }
 
-    if ((env_ptr = getenv(SYS_VAR_RING_MIGRATION_RATIO_TX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RING_MIGRATION_RATIO_TX)) != NULL) {
         ring_migration_ratio_tx = (int32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RING_MIGRATION_RATIO_RX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RING_MIGRATION_RATIO_RX)) != NULL) {
         ring_migration_ratio_rx = (int32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RING_LIMIT_PER_INTERFACE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RING_LIMIT_PER_INTERFACE)) != NULL) {
         ring_limit_per_interface = MAX(0, (int32_t)atoi(env_ptr));
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RING_DEV_MEM_TX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RING_DEV_MEM_TX)) != NULL) {
         ring_dev_mem_tx = MAX(0, (int32_t)atoi(env_ptr));
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TCP_MAX_SYN_RATE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TCP_MAX_SYN_RATE)) != NULL) {
         tcp_max_syn_rate = MIN(TCP_MAX_SYN_RATE_TOP_LIMIT, MAX(0, (int32_t)atoi(env_ptr)));
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_NUM_BUFS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_NUM_BUFS)) != NULL) {
         rx_num_bufs = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_BUF_SIZE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_BUF_SIZE)) != NULL) {
         rx_buf_size = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE_TO_POST_RECV)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE_TO_POST_RECV)) != NULL) {
         rx_num_wr_to_post_recv = MIN(NUM_RX_WRE_TO_POST_RECV_MAX, MAX(1, (uint32_t)atoi(env_ptr)));
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_NUM_WRE)) != NULL) {
         rx_num_wr = (uint32_t)atoi(env_ptr);
+    }
 
     if (enable_striding_rq && (strq_stride_num_per_rwqe * rx_num_wr > MAX_MLX5_CQ_SIZE_ITEMS)) {
         rx_num_wr = MAX_MLX5_CQ_SIZE_ITEMS / strq_stride_num_per_rwqe;
@@ -1307,8 +1346,9 @@ void mce_sys_var::get_env_params()
                     MAX_MLX5_CQ_SIZE_ITEMS, rx_num_wr);
     }
 
-    if (rx_num_wr <= (rx_num_wr_to_post_recv * 2))
+    if (rx_num_wr <= (rx_num_wr_to_post_recv * 2)) {
         rx_num_wr = rx_num_wr_to_post_recv * 2;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_RX_NUM_POLLS)) != NULL) {
         rx_poll_num = atoi(env_ptr);
@@ -1318,18 +1358,21 @@ void mce_sys_var::get_env_params()
                     MCE_MIN_RX_NUM_POLLS, MCE_MAX_RX_NUM_POLLS, rx_poll_num);
         rx_poll_num = MCE_DEFAULT_RX_NUM_POLLS;
     }
-    if ((env_ptr = getenv(SYS_VAR_RX_NUM_POLLS_INIT)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_NUM_POLLS_INIT)) != NULL) {
         rx_poll_num_init = atoi(env_ptr);
+    }
     if (rx_poll_num_init < MCE_MIN_RX_NUM_POLLS || rx_poll_num_init > MCE_MAX_RX_NUM_POLLS) {
         vlog_printf(VLOG_WARNING, " Rx Poll loops should be between %d and %d [%d]\n",
                     MCE_MIN_RX_NUM_POLLS, MCE_MAX_RX_NUM_POLLS, rx_poll_num_init);
         rx_poll_num_init = MCE_DEFAULT_RX_NUM_POLLS_INIT;
     }
-    if (rx_poll_num == 0)
+    if (rx_poll_num == 0) {
         rx_poll_num = 1; // Force at least one good polling loop
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_UDP_POLL_OS_RATIO)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_UDP_POLL_OS_RATIO)) != NULL) {
         rx_udp_poll_os_ratio = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_HW_TS_CONVERSION_MODE)) != NULL) {
         hw_ts_conversion_mode = (ts_conversion_mode_t)atoi(env_ptr);
@@ -1357,17 +1400,21 @@ void mce_sys_var::get_env_params()
                     SYS_VAR_RX_SKIP_OS, SYS_VAR_RX_UDP_POLL_OS_RATIO, rx_udp_poll_os_ratio);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_POLL_YIELD)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_POLL_YIELD)) != NULL) {
         rx_poll_yield_loops = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_SELECT_CPU_USAGE_STATS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SELECT_CPU_USAGE_STATS)) != NULL) {
         select_handle_cpu_usage_stats = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_BYTE_MIN_LIMIT)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_BYTE_MIN_LIMIT)) != NULL) {
         rx_ready_byte_min_limit = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_PREFETCH_BYTES)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_PREFETCH_BYTES)) != NULL) {
         rx_prefetch_bytes = (uint32_t)atoi(env_ptr);
+    }
     if (rx_prefetch_bytes < MCE_MIN_RX_PREFETCH_BYTES ||
         rx_prefetch_bytes > MCE_MAX_RX_PREFETCH_BYTES) {
         vlog_printf(VLOG_WARNING, " Rx prefetch bytes size out of range [%d] (min=%d, max=%d)\n",
@@ -1375,8 +1422,9 @@ void mce_sys_var::get_env_params()
         rx_prefetch_bytes = MCE_DEFAULT_RX_PREFETCH_BYTES;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_PREFETCH_BYTES_BEFORE_POLL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_PREFETCH_BYTES_BEFORE_POLL)) != NULL) {
         rx_prefetch_bytes_before_poll = (uint32_t)atoi(env_ptr);
+    }
     if (rx_prefetch_bytes_before_poll != 0 &&
         (rx_prefetch_bytes_before_poll < MCE_MIN_RX_PREFETCH_BYTES ||
          rx_prefetch_bytes_before_poll > MCE_MAX_RX_PREFETCH_BYTES)) {
@@ -1387,29 +1435,36 @@ void mce_sys_var::get_env_params()
         rx_prefetch_bytes_before_poll = MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_CQ_DRAIN_RATE_NSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_CQ_DRAIN_RATE_NSEC)) != NULL) {
         rx_cq_drain_rate_nsec = atoi(env_ptr);
+    }
     // Update the rx cq polling rate for draining logic
     tscval_t tsc_per_second = get_tsc_rate_per_second();
     rx_delta_tsc_between_cq_polls = tsc_per_second * rx_cq_drain_rate_nsec / NSEC_PER_SEC;
 
-    if ((env_ptr = getenv(SYS_VAR_GRO_STREAMS_MAX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_GRO_STREAMS_MAX)) != NULL) {
         gro_streams_max = MAX(atoi(env_ptr), 0);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TCP_3T_RULES)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TCP_3T_RULES)) != NULL) {
         tcp_3t_rules = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_UDP_3T_RULES)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_UDP_3T_RULES)) != NULL) {
         udp_3t_rules = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_ETH_MC_L2_ONLY_RULES)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_ETH_MC_L2_ONLY_RULES)) != NULL) {
         eth_mc_l2_only_rules = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_MC_FORCE_FLOWTAG)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_MC_FORCE_FLOWTAG)) != NULL) {
         mc_force_flowtag = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_SELECT_NUM_POLLS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SELECT_NUM_POLLS)) != NULL) {
         select_poll_num = atoi(env_ptr);
+    }
 
     if (select_poll_num < MCE_MIN_RX_NUM_POLLS || select_poll_num > MCE_MAX_RX_NUM_POLLS) {
         vlog_printf(VLOG_WARNING, " Select Poll loops can not be below zero [%d]\n",
@@ -1417,57 +1472,69 @@ void mce_sys_var::get_env_params()
         select_poll_num = MCE_DEFAULT_SELECT_NUM_POLLS;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_SELECT_POLL_OS_FORCE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SELECT_POLL_OS_FORCE)) != NULL) {
         select_poll_os_force = (uint32_t)atoi(env_ptr);
+    }
 
     if (select_poll_os_force) {
         select_poll_os_ratio = 1;
         select_skip_os_fd_check = 1;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_SELECT_POLL_OS_RATIO)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SELECT_POLL_OS_RATIO)) != NULL) {
         select_poll_os_ratio = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_SELECT_SKIP_OS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SELECT_SKIP_OS)) != NULL) {
         select_skip_os_fd_check = (uint32_t)atoi(env_ptr);
+    }
 
 #ifdef DEFINED_IBV_CQ_ATTR_MODERATE
     if (rx_poll_num < 0 || select_poll_num < 0) {
         cq_moderation_enable = false;
     }
-    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_ENABLE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_ENABLE)) != NULL) {
         cq_moderation_enable = atoi(env_ptr) ? true : false;
-    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_COUNT)) != NULL)
+    }
+    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_COUNT)) != NULL) {
         cq_moderation_count = (uint32_t)atoi(env_ptr);
+    }
 
     uint32_t max_cq_moderation_count =
         (!enable_striding_rq ? rx_num_wr : (strq_stride_num_per_rwqe * rx_num_wr)) / 2U;
-    if (cq_moderation_count > max_cq_moderation_count)
+    if (cq_moderation_count > max_cq_moderation_count) {
         cq_moderation_count = max_cq_moderation_count;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_PERIOD_USEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_PERIOD_USEC)) != NULL) {
         cq_moderation_period_usec = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_COUNT)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_COUNT)) != NULL) {
         cq_aim_max_count = (uint32_t)atoi(env_ptr);
+    }
 
     uint32_t max_cq_aim_max_count =
         (!enable_striding_rq ? rx_num_wr : (strq_stride_num_per_rwqe * rx_num_wr)) / 2U;
-    if (cq_aim_max_count > max_cq_aim_max_count)
+    if (cq_aim_max_count > max_cq_aim_max_count) {
         cq_aim_max_count = max_cq_aim_max_count;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_PERIOD_USEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_MAX_PERIOD_USEC)) != NULL) {
         cq_aim_max_period_usec = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_INTERVAL_MSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_INTERVAL_MSEC)) != NULL) {
         cq_aim_interval_msec = (uint32_t)atoi(env_ptr);
+    }
 
     if (!cq_moderation_enable) {
         cq_aim_interval_msec = MCE_CQ_ADAPTIVE_MODERATION_DISABLED;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_INTERRUPTS_RATE_PER_SEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_AIM_INTERRUPTS_RATE_PER_SEC)) != NULL) {
         cq_aim_interrupts_rate_per_sec = (uint32_t)atoi(env_ptr);
+    }
 #else
     if ((env_ptr = getenv(SYS_VAR_CQ_MODERATION_ENABLE)) != NULL) {
         vlog_printf(VLOG_WARNING, "'%s' is not supported on this environment\n",
@@ -1499,16 +1566,18 @@ void mce_sys_var::get_env_params()
     }
 #endif /* DEFINED_IBV_CQ_ATTR_MODERATE */
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_POLL_BATCH_MAX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_POLL_BATCH_MAX)) != NULL) {
         cq_poll_batch_max = (uint32_t)atoi(env_ptr);
+    }
     if (cq_poll_batch_max < MCE_MIN_CQ_POLL_BATCH || cq_poll_batch_max > MCE_MAX_CQ_POLL_BATCH) {
         vlog_printf(VLOG_WARNING, " Rx number of cq poll batchs should be between %d and %d [%d]\n",
                     MCE_MIN_CQ_POLL_BATCH, MCE_MAX_CQ_POLL_BATCH, cq_poll_batch_max);
         cq_poll_batch_max = MCE_DEFAULT_CQ_POLL_BATCH;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_PROGRESS_ENGINE_INTERVAL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_PROGRESS_ENGINE_INTERVAL)) != NULL) {
         progress_engine_interval_msec = (uint32_t)atoi(env_ptr);
+    }
     if (enable_socketxtreme && (progress_engine_interval_msec != MCE_CQ_DRAIN_INTERVAL_DISABLED)) {
         progress_engine_interval_msec = MCE_CQ_DRAIN_INTERVAL_DISABLED;
         vlog_printf(VLOG_DEBUG, "%s parameter is forced to %d in case %s is enabled\n",
@@ -1516,31 +1585,39 @@ void mce_sys_var::get_env_params()
                     SYS_VAR_SOCKETXTREME);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_PROGRESS_ENGINE_WCE_MAX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_PROGRESS_ENGINE_WCE_MAX)) != NULL) {
         progress_engine_wce_max = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_CQ_KEEP_QP_FULL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CQ_KEEP_QP_FULL)) != NULL) {
         cq_keep_qp_full = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_QP_COMPENSATION_LEVEL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_QP_COMPENSATION_LEVEL)) != NULL) {
         qp_compensation_level = (uint32_t)atoi(env_ptr);
-    if (qp_compensation_level < rx_num_wr_to_post_recv)
+    }
+    if (qp_compensation_level < rx_num_wr_to_post_recv) {
         qp_compensation_level = rx_num_wr_to_post_recv;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_USER_HUGE_PAGE_SIZE)) != NULL) {
         user_huge_page_size = (size_t)atoi(env_ptr);
-        if (!user_huge_page_size)
+        if (!user_huge_page_size) {
             user_huge_page_size = (size_t)strtoul(env_ptr, NULL, 16);
+        }
     }
 
-    if ((env_ptr = getenv(SYS_VAR_OFFLOADED_SOCKETS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_OFFLOADED_SOCKETS)) != NULL) {
         offloaded_sockets = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TIMER_RESOLUTION_MSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TIMER_RESOLUTION_MSEC)) != NULL) {
         timer_resolution_msec = atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TCP_TIMER_RESOLUTION_MSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TCP_TIMER_RESOLUTION_MSEC)) != NULL) {
         tcp_timer_resolution_msec = atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_INTERNAL_THREAD_TCP_TIMER_HANDLING)) != NULL) {
         internal_thread_tcp_timer_handling = atoi(env_ptr) == 1
@@ -1550,8 +1627,9 @@ void mce_sys_var::get_env_params()
 
     if ((env_ptr = getenv(SYS_VAR_TCP_CTL_THREAD)) != NULL) {
         tcp_ctl_thread = (tcp_ctl_thread_t)atoi(env_ptr);
-        if (tcp_ctl_thread >= CTL_THREAD_LAST || tcp_ctl_thread < 0)
+        if (tcp_ctl_thread >= CTL_THREAD_LAST || tcp_ctl_thread < 0) {
             tcp_ctl_thread = MCE_DEFAULT_TCP_CTL_THREAD;
+        }
     }
 
     if ((env_ptr = getenv(SYS_VAR_TCP_TIMESTAMP_OPTION)) != NULL) {
@@ -1602,8 +1680,9 @@ void mce_sys_var::get_env_params()
         tcp_timer_resolution_msec = timer_resolution_msec;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_INTERNAL_THREAD_ARM_CQ)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_INTERNAL_THREAD_ARM_CQ)) != NULL) {
         internal_thread_arm_cq_enabled = atoi(env_ptr) ? true : false;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_INTERNAL_THREAD_CPUSET)) != NULL) {
         snprintf(internal_thread_cpuset, FILENAME_MAX, "%s", env_ptr);
@@ -1623,19 +1702,22 @@ void mce_sys_var::get_env_params()
                     internal_thread_affinity_str);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_WAIT_AFTER_JOIN_MSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_WAIT_AFTER_JOIN_MSEC)) != NULL) {
         wait_after_join_msec = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_THREAD_MODE)) != NULL) {
         thread_mode = (thread_mode_t)atoi(env_ptr);
-        if (thread_mode < 0 || thread_mode >= THREAD_MODE_LAST)
+        if (thread_mode < 0 || thread_mode >= THREAD_MODE_LAST) {
             thread_mode = MCE_DEFAULT_THREAD_MODE;
+        }
     }
 
     if ((env_ptr = getenv(SYS_VAR_BUFFER_BATCHING_MODE)) != NULL) {
         buffer_batching_mode = (buffer_batching_mode_t)atoi(env_ptr);
-        if (buffer_batching_mode < 0 || buffer_batching_mode >= BUFFER_BATCHING_LAST)
+        if (buffer_batching_mode < 0 || buffer_batching_mode >= BUFFER_BATCHING_LAST) {
             buffer_batching_mode = MCE_DEFAULT_BUFFER_BATCHING_MODE;
+        }
     }
 
     if (buffer_batching_mode == BUFFER_BATCHING_NONE) {
@@ -1644,8 +1726,9 @@ void mce_sys_var::get_env_params()
         rx_bufs_batch = 1;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_NETLINK_TIMER_MSEC)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_NETLINK_TIMER_MSEC)) != NULL) {
         timer_netlink_update_msec = (uint32_t)atoi(env_ptr);
+    }
 
     if ((env_ptr = getenv(SYS_VAR_NEIGH_NUM_ERR_RETRIES)) != NULL) {
         neigh_num_err_retries = (uint32_t)atoi(env_ptr);
@@ -1670,10 +1753,12 @@ void mce_sys_var::get_env_params()
                     "****************************************\n");
     }
 
-    if ((env_ptr = getenv(SYS_VAR_MEM_ALLOC_TYPE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_MEM_ALLOC_TYPE)) != NULL) {
         mem_alloc_type = (alloc_mode_t)atoi(env_ptr);
-    if (mem_alloc_type < 0 || mem_alloc_type >= ALLOC_TYPE_LAST_ALLOWED_TO_USE)
+    }
+    if (mem_alloc_type < 0 || mem_alloc_type >= ALLOC_TYPE_LAST_ALLOWED_TO_USE) {
         mem_alloc_type = MCE_DEFAULT_MEM_ALLOC_TYPE;
+    }
     if (mce_sys_var::HYPER_MSHV == hypervisor && mem_alloc_type == ALLOC_TYPE_CONTIG) {
         char mem_str[sizeof(int) + 1] = {0};
         len = snprintf(mem_str, sizeof(mem_str), "%d", ALLOC_TYPE_HUGEPAGES);
@@ -1686,18 +1771,22 @@ void mce_sys_var::get_env_params()
         mem_alloc_type = ALLOC_TYPE_HUGEPAGES;
     }
 
-    if ((env_ptr = getenv(SYS_VAR_BF)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_BF)) != NULL) {
         handle_bf = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_FORK)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_FORK)) != NULL) {
         handle_fork = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_IPOIB)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_IPOIB)) != NULL) {
         enable_ipoib = atoi(env_ptr) ? true : false;
+    }
 
 #ifdef DEFINED_TSO
-    if ((env_ptr = getenv(SYS_VAR_TSO)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TSO)) != NULL) {
         enable_tso = atoi(env_ptr) ? true : false;
+    }
 
     if (enable_tso && (ring_migration_ratio_tx != -1)) {
         ring_migration_ratio_tx = -1;
@@ -1718,11 +1807,13 @@ void mce_sys_var::get_env_params()
         enable_lro = option_3::from_str(env_ptr, MCE_DEFAULT_LRO);
     }
 
-    if ((env_ptr = getenv(SYS_VAR_CLOSE_ON_DUP2)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_CLOSE_ON_DUP2)) != NULL) {
         close_on_dup2 = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_MTU)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_MTU)) != NULL) {
         mtu = (uint32_t)atoi(env_ptr);
+    }
 
 #if defined(DEFINED_NGINX)
     if ((env_ptr = getenv(SYS_VAR_NGINX_DISTRIBUTE_CQ)) != NULL) {
@@ -1739,23 +1830,29 @@ void mce_sys_var::get_env_params()
     if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_SIZE)) != NULL)
         nginx_udp_socket_pool_size = (uint32_t)atoi(env_ptr);
 #endif // DEFINED_NGINX
-    if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL) {
         lwip_mss = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TCP_CC_ALGO)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TCP_CC_ALGO)) != NULL) {
         lwip_cc_algo_mod = (uint32_t)atoi(env_ptr);
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TCP_ABORT_ON_CLOSE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TCP_ABORT_ON_CLOSE)) != NULL) {
         tcp_abort_on_close = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_POLL_ON_TX_TCP)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_POLL_ON_TX_TCP)) != NULL) {
         rx_poll_on_tx_tcp = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_RX_CQ_WAIT_CTRL)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_RX_CQ_WAIT_CTRL)) != NULL) {
         rx_cq_wait_ctrl = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME)) != NULL) {
         trigger_dummy_send_getsockname = atoi(env_ptr) ? true : false;
+    }
 
     if ((env_ptr = getenv(SYS_VAR_TCP_SEND_BUFFER_SIZE)) != NULL) {
         tcp_send_buffer_size = (uint32_t)atoi(env_ptr);

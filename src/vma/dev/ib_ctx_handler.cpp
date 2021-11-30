@@ -477,10 +477,11 @@ uint32_t ib_ctx_handler::user_mem_reg(void *addr, size_t length, uint64_t access
     lkey = m_user_mem_lkey_map.get(addr, 0);
     if (!lkey) {
         lkey = mem_reg(addr, length, access);
-        if (lkey == (uint32_t)(-1))
+        if (lkey == (uint32_t)(-1)) {
             ibch_logerr("Can't register user memory addr %p len %lx", addr, length);
-        else
+        } else {
             m_user_mem_lkey_map.set(addr, lkey);
+        }
     }
 
     return lkey;

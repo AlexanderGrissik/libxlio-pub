@@ -144,8 +144,9 @@ inline int gettimefromtsc(struct timespec *ts)
 
 #ifndef VMA_TIME_MEASURE
     // Once a second re-sync our start time with real time-of-day
-    if (tsc_delta > get_tsc_rate_per_second())
+    if (tsc_delta > get_tsc_rate_per_second()) {
         ts_clear(&ts_start);
+    }
 #endif
 
     return 0;

@@ -191,8 +191,9 @@ int priv_ibv_modify_qp_from_err_to_init_raw(struct ibv_qp *qp, uint8_t port_num)
 {
     vma_ibv_qp_attr qp_attr;
 
-    if (qp->qp_type != IBV_QPT_RAW_PACKET)
+    if (qp->qp_type != IBV_QPT_RAW_PACKET) {
         return -1;
+    }
 
     if (priv_ibv_query_qp_state(qp) != IBV_QPS_RESET) {
         if (priv_ibv_modify_qp_to_reset(qp)) {
@@ -221,8 +222,9 @@ int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, 
     vma_ibv_qp_attr qp_attr;
     ibv_qp_attr_mask qp_attr_mask = (ibv_qp_attr_mask)IBV_QP_STATE;
 
-    if (qp->qp_type != IBV_QPT_UD)
+    if (qp->qp_type != IBV_QPT_UD) {
         return -1;
+    }
 
     if (priv_ibv_query_qp_state(qp) != IBV_QPS_RESET) {
         if (priv_ibv_modify_qp_to_reset(qp)) {

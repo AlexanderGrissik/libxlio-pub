@@ -353,8 +353,9 @@ void ring_bond::adapt_cq_moderation()
     }
 
     for (uint32_t i = 0; i < m_bond_rings.size(); i++) {
-        if (m_bond_rings[i]->is_up())
+        if (m_bond_rings[i]->is_up()) {
             m_bond_rings[i]->adapt_cq_moderation();
+        }
     }
 
     m_lock_ring_rx.unlock();
@@ -609,10 +610,11 @@ int ring_bond::request_notification(cq_type_t cq_type, uint64_t poll_sn)
             }
         }
     }
-    if (likely(CQT_RX == cq_type))
+    if (likely(CQT_RX == cq_type)) {
         m_lock_ring_rx.unlock();
-    else
+    } else {
         m_lock_ring_tx.unlock();
+    }
     return ret;
 }
 
@@ -857,8 +859,9 @@ ring_user_id_t ring_bond::generate_id(const address_t src_mac, const address_t d
                                       uint32_t dst_ip, uint16_t src_port, uint16_t dst_port)
 {
 
-    if (m_type != net_device_val::LAG_8023ad)
+    if (m_type != net_device_val::LAG_8023ad) {
         return 0;
+    }
 
     ring_logdbg("generate_id for policy %d from src_mac=" ETH_HW_ADDR_PRINT_FMT
                 ", dst_mac=" ETH_HW_ADDR_PRINT_FMT

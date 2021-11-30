@@ -134,95 +134,117 @@ static int free_libvma_resources()
         g_p_event_handler_manager->stop_thread();
     }
 
-    if (g_tcp_timers_collection)
+    if (g_tcp_timers_collection) {
         g_tcp_timers_collection->clean_obj();
+    }
     g_tcp_timers_collection = NULL;
 
     // Block all sock-redicrt API calls into our offloading core
     fd_collection *g_p_fd_collection_temp = g_p_fd_collection;
     g_p_fd_collection = NULL;
-    if (g_p_fd_collection_temp)
+    if (g_p_fd_collection_temp) {
         delete g_p_fd_collection_temp;
+    }
 
-    if (g_p_lwip)
+    if (g_p_lwip) {
         delete g_p_lwip;
+    }
     g_p_lwip = NULL;
 
-    if (g_p_route_table_mgr)
+    if (g_p_route_table_mgr) {
         delete g_p_route_table_mgr;
+    }
     g_p_route_table_mgr = NULL;
 
-    if (g_p_rule_table_mgr)
+    if (g_p_rule_table_mgr) {
         delete g_p_rule_table_mgr;
+    }
     g_p_rule_table_mgr = NULL;
 
-    if (g_p_net_device_table_mgr)
+    if (g_p_net_device_table_mgr) {
         delete g_p_net_device_table_mgr;
+    }
     g_p_net_device_table_mgr = NULL;
 
     ip_frag_manager *g_p_ip_frag_manager_temp = g_p_ip_frag_manager;
     g_p_ip_frag_manager = NULL;
-    if (g_p_ip_frag_manager_temp)
+    if (g_p_ip_frag_manager_temp) {
         delete g_p_ip_frag_manager_temp;
+    }
 
-    if (g_p_neigh_table_mgr)
+    if (g_p_neigh_table_mgr) {
         delete g_p_neigh_table_mgr;
+    }
     g_p_neigh_table_mgr = NULL;
 
-    if (g_tcp_seg_pool)
+    if (g_tcp_seg_pool) {
         delete g_tcp_seg_pool;
+    }
     g_tcp_seg_pool = NULL;
 
-    if (g_buffer_pool_zc)
+    if (g_buffer_pool_zc) {
         delete g_buffer_pool_zc;
+    }
     g_buffer_pool_zc = NULL;
 
-    if (g_buffer_pool_tx)
+    if (g_buffer_pool_tx) {
         delete g_buffer_pool_tx;
+    }
     g_buffer_pool_tx = NULL;
 
-    if (g_buffer_pool_rx_stride)
+    if (g_buffer_pool_rx_stride) {
         delete g_buffer_pool_rx_stride;
+    }
     g_buffer_pool_rx_stride = NULL;
 
-    if (g_buffer_pool_rx_rwqe)
+    if (g_buffer_pool_rx_rwqe) {
         delete g_buffer_pool_rx_rwqe;
+    }
     g_buffer_pool_rx_rwqe = NULL;
 
-    if (g_zc_cache)
+    if (g_zc_cache) {
         delete g_zc_cache;
+    }
     g_zc_cache = NULL;
 
-    if (s_cmd_nl)
+    if (s_cmd_nl) {
         delete s_cmd_nl;
+    }
     s_cmd_nl = NULL;
 
-    if (g_p_netlink_handler)
+    if (g_p_netlink_handler) {
         delete g_p_netlink_handler;
+    }
     g_p_netlink_handler = NULL;
 
-    if (g_p_ib_ctx_handler_collection)
+    if (g_p_ib_ctx_handler_collection) {
         delete g_p_ib_ctx_handler_collection;
+    }
     g_p_ib_ctx_handler_collection = NULL;
 
-    if (g_p_vlogger_timer_handler)
+    if (g_p_vlogger_timer_handler) {
         delete g_p_vlogger_timer_handler;
+    }
     g_p_vlogger_timer_handler = NULL;
 
-    if (g_p_event_handler_manager)
+    if (g_p_event_handler_manager) {
         delete g_p_event_handler_manager;
+    }
     g_p_event_handler_manager = NULL;
 
-    if (g_p_agent)
+    if (g_p_agent) {
         delete g_p_agent;
+    }
     g_p_agent = NULL;
 
-    if (g_p_ring_profile)
+    if (g_p_ring_profile) {
         delete g_p_ring_profile;
+    }
     g_p_ring_profile = NULL;
 
-    if (safe_mce_sys().app_name)
+    if (safe_mce_sys().app_name) {
         free(safe_mce_sys().app_name);
+    }
     safe_mce_sys().app_name = NULL;
 
     vlog_printf(VLOG_DEBUG, "Stopping logger module\n");
@@ -961,8 +983,9 @@ static void do_global_ctors_helper()
     set_env_params();
     prepare_fork();
 
-    if (g_is_forked_child == true)
+    if (g_is_forked_child == true) {
         g_is_forked_child = false;
+    }
 
     /* Open communication with daemon */
     NEW_CTOR(g_p_agent, agent());
@@ -1088,12 +1111,14 @@ static void do_global_ctors_helper()
         vlog_printf(VLOG_WARNING,
                     "FAILED to read library configuration file. %s is not a regular file.\n",
                     safe_mce_sys().conf_filename);
-        if (strcmp(MCE_DEFAULT_CONF_FILE, safe_mce_sys().conf_filename))
+        if (strcmp(MCE_DEFAULT_CONF_FILE, safe_mce_sys().conf_filename)) {
             vlog_printf(VLOG_INFO, "Please see README section regarding %s\n",
                         SYS_VAR_CONF_FILENAME);
-    } else if (__vma_parse_config_file(safe_mce_sys().conf_filename))
+        }
+    } else if (__vma_parse_config_file(safe_mce_sys().conf_filename)) {
         vlog_printf(VLOG_DEBUG, "FAILED to read library configuration file: %s\n",
                     safe_mce_sys().conf_filename);
+    }
 
     // initialize LWIP tcp/ip stack
     NEW_CTOR(g_p_lwip, vma_lwip());
@@ -1198,22 +1223,27 @@ void check_netperf_flags()
 
     while (pch != NULL) {
         if (*pch == '-') {
-            if (strchr(pch, 'D'))
+            if (strchr(pch, 'D')) {
                 b_D_flag = true;
-            if (strchr(pch, 'f'))
+            }
+            if (strchr(pch, 'f')) {
                 b_f_flag = true;
+            }
         }
-        if (b_f_flag && b_D_flag)
+        if (b_f_flag && b_D_flag) {
             break;
+        }
         pch = strtok(NULL, " ");
     }
     if (!b_D_flag || !b_f_flag) {
         vlog_printf(VLOG_WARNING, "Running netserver without flags: -D, -f can cause failure\n");
         add_flags[0] = '-'; // check which flags need to be added to the command
-        if (!b_D_flag)
+        if (!b_D_flag) {
             add_flags[1] = 'D';
-        if (!b_f_flag)
+        }
+        if (!b_f_flag) {
             add_flags[1] == 0 ? add_flags[1] = 'f' : add_flags[2] = 'f';
+        }
         vlog_printf(VLOG_WARNING, "Recommended command line: %s %s\n", safe_mce_sys().app_name,
                     add_flags);
     }
@@ -1244,14 +1274,15 @@ extern "C" int main_init(void)
     check_netperf_flags();
 
     if (*safe_mce_sys().stats_filename) {
-        if (check_if_regular_file(safe_mce_sys().stats_filename))
+        if (check_if_regular_file(safe_mce_sys().stats_filename)) {
             vlog_printf(VLOG_WARNING,
                         "FAILED to create " PRODUCT_NAME
                         " statistics file. %s is not a regular file.\n",
                         safe_mce_sys().stats_filename);
-        else if (!(g_stats_file = fopen(safe_mce_sys().stats_filename, "w")))
+        } else if (!(g_stats_file = fopen(safe_mce_sys().stats_filename, "w"))) {
             vlog_printf(VLOG_WARNING, " Couldn't open statistics file: %s\n",
                         safe_mce_sys().stats_filename);
+        }
     }
     safe_mce_sys().stats_file = g_stats_file;
 

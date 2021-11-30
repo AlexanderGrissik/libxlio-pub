@@ -110,8 +110,9 @@ cq_mgr::cq_mgr(ring_simple *p_ring, ib_ctx_handler *p_ib_ctx_handler, int cq_siz
     m_rx_queue.set_id("cq_mgr (%p) : m_rx_queue", this);
     m_rx_pool.set_id("cq_mgr (%p) : m_rx_pool", this);
     m_cq_id = atomic_fetch_and_inc(&m_n_cq_id_counter); // cq id is nonzero
-    if (config)
+    if (config) {
         configure(cq_size);
+    }
 }
 
 void cq_mgr::configure(int cq_size)
@@ -190,8 +191,9 @@ uint32_t cq_mgr::clean_cq()
             } else {
                 buff = process_cq_element_tx(&wce[i]);
             }
-            if (buff)
+            if (buff) {
                 m_rx_queue.push_back(buff);
+            }
         }
         ret_total += ret;
     }
@@ -229,8 +231,9 @@ cq_mgr::~cq_mgr()
     VALGRIND_MAKE_MEM_UNDEFINED(m_p_ibv_cq, sizeof(ibv_cq));
 
     statistics_print();
-    if (m_b_is_rx)
+    if (m_b_is_rx) {
         vma_stats_instance_remove_cq_block(m_p_cq_stat);
+    }
 
     cq_logdbg("done");
 }
@@ -270,8 +273,9 @@ void cq_mgr::add_qp_rx(qp_mgr *qp)
     cq_logdbg("Trying to push %d WRE to allocated qp (%p)", qp_rx_wr_num, qp);
     while (qp_rx_wr_num) {
         uint32_t n_num_mem_bufs = m_n_sysvar_rx_num_wr_to_post_recv;
-        if (n_num_mem_bufs > qp_rx_wr_num)
+        if (n_num_mem_bufs > qp_rx_wr_num) {
             n_num_mem_bufs = qp_rx_wr_num;
+        }
         bool res = g_buffer_pool_rx_rwqe->get_buffers_thread_safe(temp_desc_list, m_p_ring,
                                                                   n_num_mem_bufs, m_rx_lkey);
         if (!res) {
@@ -358,8 +362,9 @@ bool cq_mgr::request_more_buffers()
 
 void cq_mgr::return_extra_buffers()
 {
-    if (m_rx_pool.size() < m_n_sysvar_qp_compensation_level * 2)
+    if (m_rx_pool.size() < m_n_sysvar_qp_compensation_level * 2) {
         return;
+    }
     int buff_to_rel = m_rx_pool.size() - m_n_sysvar_qp_compensation_level;
 
     cq_logfunc("releasing %d buffers to global rx pool", buff_to_rel);
@@ -452,8 +457,9 @@ void cq_mgr::process_cq_element_log_helper(mem_buf_desc_t *p_mem_buf_desc, vma_i
     if (p_wce->status == IBV_WC_SUCCESS) {
         cq_logdbg("wce: wr_id=%#lx, status=%#x, vendor_err=%#x, qp_num=%#x", p_wce->wr_id,
                   p_wce->status, p_wce->vendor_err, p_wce->qp_num);
-        if (m_b_is_rx_hw_csum_on && !vma_wc_rx_hw_csum_ok(*p_wce))
+        if (m_b_is_rx_hw_csum_on && !vma_wc_rx_hw_csum_ok(*p_wce)) {
             cq_logdbg("wce: bad rx_csum");
+        }
         cq_logdbg("wce: opcode=%#x, byte_len=%u, src_qp=%#x, wc_flags=%#lx", vma_wc_opcode(*p_wce),
                   p_wce->byte_len, p_wce->src_qp, (unsigned long)vma_wc_flags(*p_wce));
         cq_logdbg("wce: pkey_index=%#x, slid=%#x, sl=%#x, dlid_path_bits=%#x, imm_data=%#x",
@@ -701,8 +707,9 @@ int cq_mgr::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *pv_fd_read
     ret = poll(wce, m_n_sysvar_cq_poll_batch_max, p_cq_poll_sn);
     if (ret > 0) {
         m_n_wce_counter += ret;
-        if (ret < (int)m_n_sysvar_cq_poll_batch_max)
+        if (ret < (int)m_n_sysvar_cq_poll_batch_max) {
             m_b_was_drained = true;
+        }
 
         for (int i = 0; i < ret; i++) {
             mem_buf_desc_t *buff = process_cq_element_rx((&wce[i]));
@@ -734,8 +741,9 @@ int cq_mgr::poll_and_process_element_tx(uint64_t *p_cq_poll_sn)
     int ret = poll(wce, m_n_sysvar_cq_poll_batch_max, p_cq_poll_sn);
     if (ret > 0) {
         m_n_wce_counter += ret;
-        if (ret < (int)m_n_sysvar_cq_poll_batch_max)
+        if (ret < (int)m_n_sysvar_cq_poll_batch_max) {
             m_b_was_drained = true;
+        }
 
         for (int i = 0; i < ret; i++) {
             mem_buf_desc_t *buff = process_cq_element_tx((&wce[i]));
@@ -850,8 +858,9 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
         }
 
         m_n_wce_counter += ret;
-        if (ret < MCE_MAX_CQ_POLL_BATCH)
+        if (ret < MCE_MAX_CQ_POLL_BATCH) {
             m_b_was_drained = true;
+        }
 
         for (int i = 0; i < ret; i++) {
             mem_buf_desc_t *buff = process_cq_element_rx(&wce[i]);

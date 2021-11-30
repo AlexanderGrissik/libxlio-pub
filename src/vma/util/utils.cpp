@@ -76,8 +76,9 @@ int check_if_regular_file(char *path)
 
     if (stat(path, &__sys_st) == 0) {
         BULLSEYE_EXCLUDE_BLOCK_START
-        if (!S_ISREG(__sys_st.st_mode))
+        if (!S_ISREG(__sys_st.st_mode)) {
             return -1;
+        }
         BULLSEYE_EXCLUDE_BLOCK_END
     }
 
@@ -88,8 +89,9 @@ int get_sys_max_fd_num(int def_max_fd /*=1024*/)
 {
     struct rlimit rlim;
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
+    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
         return rlim.rlim_cur;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     return def_max_fd;
 }
@@ -146,10 +148,11 @@ int get_base_interface_name(const char *if_name, char *base_ifname, size_t sz_ba
             unsigned char tmp_mac[ADDR_LEN];
             if (ADDR_LEN == get_local_ll_addr(ifa->ifa_name, tmp_mac, ADDR_LEN, false)) {
                 int size_to_compare;
-                if (ADDR_LEN == ETH_ALEN)
+                if (ADDR_LEN == ETH_ALEN) {
                     size_to_compare = ETH_ALEN;
-                else
+                } else {
                     size_to_compare = IPOIB_HW_ADDR_GID_LEN;
+                }
                 int offset = ADDR_LEN - size_to_compare;
                 if (0 == memcmp(vlan_if_address + offset, tmp_mac + offset, size_to_compare) &&
                     0 == (ifa->ifa_flags & IFF_MASTER)) {
@@ -399,10 +402,11 @@ void set_fd_block_mode(int fd, bool b_block)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    if (b_block)
+    if (b_block) {
         flags &= ~O_NONBLOCK;
-    else
+    } else {
         flags |= O_NONBLOCK;
+    }
 
     int ret = orig_os_api.fcntl(fd, F_SETFL, flags);
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -479,8 +483,9 @@ int get_ifinfo_from_ip(const struct sockaddr &addr, char *ifname, uint32_t &iffl
 
         // Find our interface
         for (ifap = ifaphead; ifap; ifap = ifap->ifa_next) {
-            if (ifap->ifa_netmask == NULL)
+            if (ifap->ifa_netmask == NULL) {
                 continue;
+            }
             __log_func("interface '%s': %d.%d.%d.%d/%d%s%s%s%s%s%s%s%s%s%s", ifap->ifa_name,
                        NIPQUAD(get_sa_ipv4_addr(ifap->ifa_addr)),
                        netmask_bitcount(get_sa_ipv4_addr(ifap->ifa_netmask)),
@@ -528,8 +533,9 @@ int get_ifinfo_from_ip(const struct sockaddr &addr, char *ifname, uint32_t &iffl
     __log_dbg("can't find local if address %d.%d.%d.%d in ifaddr list",
               NIPQUAD(get_sa_ipv4_addr(addr)));
 
-    if (ifaphead)
+    if (ifaphead) {
         freeifaddrs(ifaphead);
+    }
 
     return -1;
 }
@@ -743,10 +749,12 @@ int run_and_retreive_system_command(const char *cmd_line, char *return_str, int 
     // TODO: NOTICE the current code will change the environment for all threads of our process
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (!cmd_line)
+    if (!cmd_line) {
         return -1;
-    if (return_str_len <= 0)
+    }
+    if (return_str_len <= 0) {
         return -1;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // 29West may load vma dynamically (like sockperf with --load-vma)
@@ -807,10 +815,12 @@ size_t get_local_ll_addr(IN const char *ifname, OUT unsigned char *addr, IN int 
               ifname, ifname_len, ifname, l2_addr_path, bytes_len);
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (len < 0)
+    if (len < 0) {
         return 0; // failure in priv_read_file
-    if (addr_len < bytes_len)
+    }
+    if (addr_len < bytes_len) {
         return 0; // error not enough room was provided by caller
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     if (bytes_len == IPOIB_HW_ADDR_LEN &&
@@ -913,14 +923,17 @@ bool get_bond_active_slave_name(IN const char *bond_name, OUT char *active_slave
     char active_slave_path[256] = {0};
     sprintf(active_slave_path, BONDING_ACTIVE_SLAVE_PARAM_FILE, bond_name);
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (priv_safe_read_file(active_slave_path, active_slave_name, sz) < 0)
+    if (priv_safe_read_file(active_slave_path, active_slave_name, sz) < 0) {
         return false;
-    if (strlen(active_slave_name) == 0)
+    }
+    if (strlen(active_slave_name) == 0) {
         return false;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     char *p = strchr(active_slave_name, '\n');
-    if (p)
+    if (p) {
         *p = '\0'; // Remove the tailing 'new line" char
+    }
     return true;
 }
 
@@ -1002,12 +1015,14 @@ bool get_bond_slave_state(IN const char *slave_name, OUT char *curr_state, IN in
     char bond_slave_state_path[256] = {0};
     sprintf(bond_slave_state_path, BONDING_SLAVE_STATE_PARAM_FILE, slave_name);
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (priv_safe_try_read_file(bond_slave_state_path, curr_state, sz) < 0)
+    if (priv_safe_try_read_file(bond_slave_state_path, curr_state, sz) < 0) {
         return false;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     char *p = strchr(curr_state, '\n');
-    if (p)
+    if (p) {
         *p = '\0'; // Remove the tailing 'new line" char
+    }
     return true;
 }
 
@@ -1016,12 +1031,14 @@ bool get_bond_slaves_name_list(IN const char *bond_name, OUT char *slaves_list, 
     char slaves_list_path[256] = {0};
     sprintf(slaves_list_path, BONDING_SLAVES_PARAM_FILE, bond_name);
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (priv_safe_read_file(slaves_list_path, slaves_list, sz) < 0)
+    if (priv_safe_read_file(slaves_list_path, slaves_list, sz) < 0) {
         return false;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     char *p = strchr(slaves_list, '\n');
-    if (p)
+    if (p) {
         *p = '\0'; // Remove the tailing 'new line" char
+    }
     return true;
 }
 
@@ -1089,8 +1106,9 @@ bool check_device_name_ib_name(const char *ifname, const char *ibname)
             if ((ret = priv_read_file(ib_path, sys_res, sizeof(sys_res) - 1, VLOG_FUNC)) > 0) {
                 sys_res[ret] = '\0';
                 char *p = strchr(sys_res, '\n');
-                if (p)
+                if (p) {
                     *p = '\0'; // Remove the tailing 'new line" char
+                }
                 if (strcmp(sys_res, str_ifname) == 0) {
                     return true;
                 }
@@ -1107,12 +1125,14 @@ bool get_interface_oper_state(IN const char *interface_name, OUT char *curr_stat
     char interface_state_path[256] = {0};
     sprintf(interface_state_path, OPER_STATE_PARAM_FILE, interface_name);
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (priv_safe_read_file(interface_state_path, curr_state, sz) < 0)
+    if (priv_safe_read_file(interface_state_path, curr_state, sz) < 0) {
         return false;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     char *p = strchr(curr_state, '\n');
-    if (p)
+    if (p) {
         *p = '\0'; // Remove the tailing 'new line" char
+    }
     return true;
 }
 
@@ -1304,8 +1324,9 @@ void loops_timer::start()
 
 int loops_timer::time_left_msec()
 {
-    if (m_timeout_msec == -1)
+    if (m_timeout_msec == -1) {
         return -1;
+    }
 
     if (!ts_isset(&m_start)) {
         gettime(&m_start);

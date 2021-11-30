@@ -424,8 +424,9 @@ void print_ring_stats(ring_instance_block_t *p_ring_inst_arr)
     ring_stats_t *p_ring_stats = NULL;
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
 
     for (int i = 0; i < NUM_OF_SUPPORTED_RINGS; i++) {
         if (p_ring_inst_arr[i].b_enabled) {
@@ -507,8 +508,9 @@ void print_cq_stats(cq_instance_block_t *p_cq_inst_arr)
     cq_stats_t *p_cq_stats = NULL;
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
 
     for (int i = 0; i < NUM_OF_SUPPORTED_CQS; i++) {
         if (p_cq_inst_arr[i].b_enabled) {
@@ -548,23 +550,26 @@ void print_bpool_stats(bpool_instance_block_t *p_bpool_inst_arr)
     bpool_stats_t *p_bpool_stats = NULL;
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
 
     for (int i = 0; i < NUM_OF_SUPPORTED_BPOOLS; i++) {
         if (p_bpool_inst_arr && p_bpool_inst_arr[i].b_enabled) {
             p_bpool_stats = &p_bpool_inst_arr[i].bpool_stats;
             printf("======================================================\n");
-            if (p_bpool_stats->is_rx)
+            if (p_bpool_stats->is_rx) {
                 printf("\tBUFFER_POOL(RX)=[%u]\n", i);
-            else if (p_bpool_stats->is_tx)
+            } else if (p_bpool_stats->is_tx) {
                 printf("\tBUFFER_POOL(TX)=[%u]\n", i);
-            else
+            } else {
                 printf("\tBUFFER_POOL=[%u]\n", i);
+            }
             printf(FORMAT_STATS_32bit, "Size:", p_bpool_stats->n_buffer_pool_size);
             printf(FORMAT_STATS_32bit, "No buffers error:", p_bpool_stats->n_buffer_pool_no_bufs);
-            if (p_bpool_stats->n_buffer_pool_expands)
+            if (p_bpool_stats->n_buffer_pool_expands) {
                 printf(FORMAT_STATS_32bit, "Expands:", p_bpool_stats->n_buffer_pool_expands);
+            }
         }
     }
     printf("======================================================\n");
@@ -804,8 +809,9 @@ void print_full_iomux_stats(const char *func_name, iomux_func_stats_t *p_iomux_s
 {
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
 
     if (p_iomux_stats &&
         (p_iomux_stats->n_iomux_os_rx_ready || p_iomux_stats->n_iomux_rx_ready ||
@@ -815,11 +821,13 @@ void print_full_iomux_stats(const char *func_name, iomux_func_stats_t *p_iomux_s
         printf("======================================================\n");
         printf("\t%s\n", func_name);
         printf("Polling CPU%s:%d%%\n", post_fix, p_iomux_stats->n_iomux_polling_time);
-        if (p_iomux_stats->threadid_last != 0)
+        if (p_iomux_stats->threadid_last != 0) {
             printf("- Thread Id: %5u\n", p_iomux_stats->threadid_last);
-        if (p_iomux_stats->n_iomux_os_rx_ready || p_iomux_stats->n_iomux_rx_ready)
+        }
+        if (p_iomux_stats->n_iomux_os_rx_ready || p_iomux_stats->n_iomux_rx_ready) {
             printf("Rx fds ready: %u / %u [os/offload]%s\n", p_iomux_stats->n_iomux_os_rx_ready,
                    p_iomux_stats->n_iomux_rx_ready, post_fix);
+        }
         if (p_iomux_stats->n_iomux_poll_miss + p_iomux_stats->n_iomux_poll_hit) {
             double iomux_poll_hit = (double)p_iomux_stats->n_iomux_poll_hit;
             double iomux_poll_hit_percentage =
@@ -828,10 +836,12 @@ void print_full_iomux_stats(const char *func_name, iomux_func_stats_t *p_iomux_s
             printf("Polls [miss/hit]%s: %u / %u (%2.2f%%)\n", post_fix,
                    p_iomux_stats->n_iomux_poll_miss, p_iomux_stats->n_iomux_poll_hit,
                    iomux_poll_hit_percentage);
-            if (p_iomux_stats->n_iomux_timeouts)
+            if (p_iomux_stats->n_iomux_timeouts) {
                 printf("Timeouts%s: %u\n", post_fix, p_iomux_stats->n_iomux_timeouts);
-            if (p_iomux_stats->n_iomux_errors)
+            }
+            if (p_iomux_stats->n_iomux_errors) {
                 printf("Errors%s: %u\n", post_fix, p_iomux_stats->n_iomux_errors);
+            }
             printf("======================================================\n");
         }
     }
@@ -843,8 +853,9 @@ void print_basic_iomux_stats(const char *func_name, iomux_func_stats_t *p_iomux_
     double rx_poll_hit_percentage = 0;
     char post_fix[3] = "";
 
-    if (user_params.print_details_mode == e_deltas)
+    if (user_params.print_details_mode == e_deltas) {
         strcpy(post_fix, "/s");
+    }
 
     if (p_iomux_stats->n_iomux_poll_hit) {
         double iomux_poll_hit = (double)p_iomux_stats->n_iomux_poll_hit;
@@ -1086,8 +1097,9 @@ void show_mc_group_stats(mc_grp_info_t *p_mc_grp_info, socket_instance_block_t *
             }
         }
     }
-    if (array_size > 0)
+    if (array_size > 0) {
         print_mc_group_fds(mc_group_fds, array_size);
+    }
     printf(CYCLES_SEPARATOR);
 
     delete[] mc_group_fds;
@@ -1113,8 +1125,9 @@ void print_version(int pid)
         log_msg("Build Date: %s", __DATE__ " " __TIME__);
     } else {
         printf(MODULE_NAME ": stats for ");
-        if (print_app_name(pid) < 0)
+        if (print_app_name(pid) < 0) {
             printf("proccess ");
+        }
         printf("with pid: %d\n", pid);
     }
 }
@@ -1129,8 +1142,9 @@ int check_vma_ver_compatability(version_info_t *p_stat_ver_info)
 
 void cleanup(sh_mem_info *p_sh_mem_info)
 {
-    if (p_sh_mem_info == NULL)
+    if (p_sh_mem_info == NULL) {
         return;
+    }
     if (p_sh_mem_info->p_sh_stats != MAP_FAILED) {
         if (munmap(p_sh_mem_info->p_sh_stats, p_sh_mem_info->shmem_size) != 0) {
             log_system_err(
@@ -1167,11 +1181,13 @@ void set_signal_action()
 void alloc_fd_mask()
 {
     struct rlimit rlim;
-    if ((getrlimit(RLIMIT_NOFILE, &rlim) == 0) && ((uint32_t)rlim.rlim_max > g_fd_map_size))
+    if ((getrlimit(RLIMIT_NOFILE, &rlim) == 0) && ((uint32_t)rlim.rlim_max > g_fd_map_size)) {
         g_fd_map_size = rlim.rlim_max;
+    }
     g_fd_mask = (uint8_t *)malloc(g_fd_map_size * sizeof(uint8_t));
-    if (!g_fd_mask)
+    if (!g_fd_mask) {
         log_err("Failed to malloc g_fd_mask var\n");
+    }
 }
 
 void inc_read_counter(sh_mem_t *p_sh_mem)
@@ -1196,8 +1212,9 @@ void set_defaults()
     user_params.vma_stats_path = MCE_DEFAULT_STATS_SHMEM_DIR;
 
     alloc_fd_mask();
-    if (g_fd_mask)
+    if (g_fd_mask) {
         memset((void *)g_fd_mask, 1, sizeof(uint8_t) * g_fd_map_size);
+    }
 }
 
 bool check_if_process_running(char *pid_str)
@@ -1245,12 +1262,13 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
     iomux_stats_t curr_iomux_blocks;
 
     if (user_params.fd_dump != STATS_FD_STATISTICS_DISABLED) {
-        if (user_params.fd_dump)
+        if (user_params.fd_dump) {
             log_msg("Dumping Fd %d to " PRODUCT_NAME " using log level = %s...",
                     user_params.fd_dump, log_level::to_str(user_params.fd_dump_log_level));
-        else
+        } else {
             log_msg("Dumping all Fd's to " PRODUCT_NAME " using log level = %s...",
                     log_level::to_str(user_params.fd_dump_log_level));
+        }
         return;
     }
 
@@ -1362,8 +1380,9 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
         default:
             break;
         }
-        if (user_params.view_mode == e_netstat_like)
+        if (user_params.view_mode == e_netstat_like) {
             break;
+        }
         if (num_act_inst) {
             printf(CYCLES_SEPARATOR);
             printed_line_num++;
@@ -1382,8 +1401,9 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
         }
         proc_running = check_if_process_running(pid);
     }
-    if (!proc_running)
+    if (!proc_running) {
         log_msg("Proccess %d ended - exiting", pid);
+    }
 
 out:
     free(prev_instance_blocks);
@@ -1464,8 +1484,9 @@ char *look_for_vma_stat_active_sh_obj(char *app_name)
     while (dirent != NULL && !found) {
         if (!strncmp("xliostat.", dirent->d_name, module_name_size)) {
             found = check_if_process_running(dirent->d_name + pid_offset);
-            if (app_name && found)
+            if (app_name && found) {
                 found = check_if_app_match(app_name, dirent->d_name + pid_offset);
+            }
             if (found) {
                 sh_file_name = (char *)calloc(FILE_NAME_MAX_SIZE, sizeof(char));
                 if (!sh_file_name) {
@@ -1508,8 +1529,9 @@ int update_range_of_fds(char *left_str, char *right_str)
         swap(right, left);
     }
 
-    for (int i = left; i <= right; i++)
+    for (int i = left; i <= right; i++) {
         g_fd_mask[i] = 1;
+    }
 
     return 0;
 }
@@ -1546,8 +1568,9 @@ int update_fds_mask(char *fds_list)
     char *curr_fds_range = NULL;
     curr_fds_range = strtok(fds_list, delims);
     while (curr_fds_range != NULL) {
-        if (analize_fds_range(curr_fds_range))
+        if (analize_fds_range(curr_fds_range)) {
             return 1;
+        }
         curr_fds_range = strtok(NULL, delims);
     }
     return 0;
@@ -1563,8 +1586,9 @@ void zero_iomux_stats(iomux_stats_t *p_iomux_stats)
     memset(&p_iomux_stats->select, 0, sizeof(iomux_func_stats_t));
     memset(&p_iomux_stats->poll, 0, sizeof(iomux_func_stats_t));
     for (int i = 0; i < NUM_OF_SUPPORTED_EPFDS; i++) {
-        if (p_iomux_stats->epoll[i].enabled)
+        if (p_iomux_stats->epoll[i].enabled) {
             memset((&p_iomux_stats->epoll[i].stats), 0, sizeof(iomux_func_stats_t));
+        }
     }
 
     // memset(p_iomux_stats, 0, sizeof(*p_iomux_stats));
@@ -1645,8 +1669,9 @@ int get_pid(char *proc_desc, char *argv0)
             pid = -1;
         }
     } else {
-        if (user_params.proc_ident_mode == e_by_app_name)
+        if (user_params.proc_ident_mode == e_by_app_name) {
             app_name = proc_desc;
+        }
 
         char *pid_str = look_for_vma_stat_active_sh_obj(app_name);
         if (pid_str) {
@@ -1692,8 +1717,9 @@ int main(int argc, char **argv)
     char proc_desc[MAX_BUFF_SIZE] = {0};
 
     set_defaults();
-    if (!g_fd_mask)
+    if (!g_fd_mask) {
         return 1;
+    }
 
     while (1) {
         int c = 0;
@@ -1716,8 +1742,10 @@ int main(int argc, char **argv)
                                                {"help", 0, NULL, 'h'},
                                                {0, 0, 0, 0}};
 
-        if ((c = getopt_long(argc, argv, "i:c:v:d:p:k:s:Vzl:S:D:n:fFh?", long_options, NULL)) == -1)
+        if ((c = getopt_long(argc, argv, "i:c:v:d:p:k:s:Vzl:S:D:n:fFh?", long_options, NULL)) ==
+            -1) {
             break;
+        }
 
         switch (c) {
         case 'i': {
@@ -1864,8 +1892,9 @@ int main(int argc, char **argv)
         get_all_processes_pids(pids);
     } else {
         int pid = get_pid(proc_desc, argv[0]);
-        if (pid != -1)
+        if (pid != -1) {
             pids.push_back(pid);
+        }
     }
 
     if (pids.size() == 0) {
@@ -1879,8 +1908,9 @@ int main(int argc, char **argv)
         }
     }
 
-    if (user_params.view_mode == e_netstat_like)
+    if (user_params.view_mode == e_netstat_like) {
         user_params.cycles = 1; // print once and exit
+    }
 
     int ret = print_processes_stats(pids);
 
@@ -1897,11 +1927,12 @@ int init_print_process_stats(sh_mem_info_t &sh_mem_info)
     sprintf(sh_mem_info.filename_sh_stats, "%s/xliostat.%d", user_params.vma_stats_path.c_str(),
             pid);
 
-    if (user_params.write_auth) // S_IRUSR | S_IWUSR | S_IRGRP
+    if (user_params.write_auth) { // S_IRUSR | S_IWUSR | S_IRGRP
         sh_mem_info.fd_sh_stats =
             open(sh_mem_info.filename_sh_stats, O_RDWR, __S_IREAD | __S_IWRITE | S_IROTH);
-    else
+    } else {
         sh_mem_info.fd_sh_stats = open(sh_mem_info.filename_sh_stats, O_RDONLY);
+    }
 
     if (sh_mem_info.fd_sh_stats < 0) {
         log_err(PRODUCT_NAME " statistics data for process id %d not found\n", pid);
@@ -1950,12 +1981,13 @@ int init_print_process_stats(sh_mem_info_t &sh_mem_info)
             "file='%s' sh_mem_info.fd_sh_stats=%d; error while munmap shared memory at [%p]\n",
             sh_mem_info.filename_sh_stats, sh_mem_info.fd_sh_stats, sh_mem_info.p_sh_stats);
     }
-    if (user_params.write_auth)
+    if (user_params.write_auth) {
         sh_mem_info.p_sh_stats = mmap(0, sh_mem_info.shmem_size, PROT_WRITE | PROT_READ, MAP_SHARED,
                                       sh_mem_info.fd_sh_stats, 0);
-    else
+    } else {
         sh_mem_info.p_sh_stats =
             mmap(0, sh_mem_info.shmem_size, PROT_READ, MAP_SHARED, sh_mem_info.fd_sh_stats, 0);
+    }
 
     if (sh_mem_info.p_sh_stats == MAP_FAILED) {
         log_system_err("MAP_FAILED - %s\n", strerror(errno));
@@ -1963,16 +1995,21 @@ int init_print_process_stats(sh_mem_info_t &sh_mem_info)
         return 1;
     }
     MAP_SH_MEM(sh_mem, sh_mem_info.p_sh_stats);
-    if (user_params.view_mode != e_netstat_like)
+    if (user_params.view_mode != e_netstat_like) {
         print_version(pid);
-    if (user_params.zero_counters == true)
+    }
+    if (user_params.zero_counters == true) {
         zero_counters(sh_mem);
-    if (user_params.vma_log_level != VLOG_INIT)
+    }
+    if (user_params.vma_log_level != VLOG_INIT) {
         set_vma_log_level(sh_mem);
-    if (user_params.vma_details_level != INIT_VMA_LOG_DETAILS)
+    }
+    if (user_params.vma_details_level != INIT_VMA_LOG_DETAILS) {
         set_vma_log_details_level(sh_mem);
-    if (user_params.fd_dump != STATS_FD_STATISTICS_DISABLED)
+    }
+    if (user_params.fd_dump != STATS_FD_STATISTICS_DISABLED) {
         set_dumping_data(sh_mem);
+    }
 
     // here we indicate VMA to write to shmem
     inc_read_counter(sh_mem);
@@ -2030,8 +2067,9 @@ int print_processes_stats(const std::vector<int> &pids)
     // 1. N * prepare shmem and indicate VMA to update shmem
     for (int i = 0; i < SIZE; ++i) {
         sh_mem_info[num_instances].pid = pids[i];
-        if (0 == init_print_process_stats(sh_mem_info[num_instances]))
+        if (0 == init_print_process_stats(sh_mem_info[num_instances])) {
             ++num_instances;
+        }
     }
 
     // 2. one sleep to rule them all
@@ -2040,8 +2078,9 @@ int print_processes_stats(const std::vector<int> &pids)
                   // that we asked for statistics, otherwise, the first read will be zero
 
     // 3. N * read from shmem, write to user, and shmem cleanup
-    for (int i = 0; i < num_instances; ++i)
+    for (int i = 0; i < num_instances; ++i) {
         complete_print_process_stats(sh_mem_info[i]);
+    }
 
     return 0;
 }

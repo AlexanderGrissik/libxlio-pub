@@ -80,10 +80,11 @@ void time_converter_ptp::handle_timer_expired(void *user_data)
 
     int ret = 0;
     ret = vma_ibv_query_clock_info(m_p_ibv_context, &m_clock_values[1 - m_clock_values_id]);
-    if (ret)
+    if (ret) {
         ibchtc_logerr(
             "vma_ibv_query_clock_info failure for clock_info, (ibv context %p) (return value=%d)",
             m_p_ibv_context, ret);
+    }
 
     m_clock_values_id = 1 - m_clock_values_id;
 }

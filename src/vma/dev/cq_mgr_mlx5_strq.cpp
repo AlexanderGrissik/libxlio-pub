@@ -73,9 +73,10 @@ cq_strides_cache::cq_strides_cache(ring_slave *owner_ring)
 
 cq_strides_cache::~cq_strides_cache()
 {
-    while (_block_vec_used-- > 1U)
+    while (_block_vec_used-- > 1U) {
         g_buffer_pool_rx_stride->put_buffers_thread_safe(_block_vec[_block_vec_used].data(),
                                                          _block_vec[_block_vec_used].size());
+    }
 
     g_buffer_pool_rx_stride->put_buffers_thread_safe(_retrieve_ptr,
                                                      _retrieve_ptr_end - _retrieve_ptr + 1U);
@@ -118,19 +119,22 @@ void cq_strides_cache::get_from_global_pool()
 {
     descq_t deque;
     if (!g_buffer_pool_rx_stride->get_buffers_thread_safe(deque, _owner_ring, _compensation_level,
-                                                          0U))
+                                                          0U)) {
         // This pool should be an infinite pool
         __log_info_panic("Unable to retrieve strides from global pool, Free: %zu, Requested: %zu",
                          g_buffer_pool_rx_stride->get_free_count(), _compensation_level);
+    }
 
-    if (unlikely(deque.size() > _retrieve_vec.size() || deque.size() <= 0U))
+    if (unlikely(deque.size() > _retrieve_vec.size() || deque.size() <= 0U)) {
         // If we get here it's a bug in get_buffers_thread_safe()
         _retrieve_vec.resize(std::max(deque.size(), static_cast<size_t>(CQ_CACHE_MIN_STRIDES)));
+    }
 
     assign_retrieve_vec_ptrs();
 
-    while (!deque.empty())
+    while (!deque.empty()) {
         *_retrieve_ptr++ = deque.get_and_pop_front();
+    }
 
     _retrieve_ptr = _retrieve_vec.data();
 }
@@ -176,14 +180,16 @@ cq_mgr_mlx5_strq::~cq_mgr_mlx5_strq()
     if (m_rx_queue.size()) {
         cq_logdbg("Clearing %zu stride objects)", m_rx_queue.size());
 
-        while (!m_rx_queue.empty())
+        while (!m_rx_queue.empty()) {
             reclaim_recv_buffer_helper(m_rx_queue.get_and_pop_front());
+        }
 
         m_p_cq_stat->n_rx_sw_queue_len = m_rx_queue.size();
     }
 
-    if (_hot_buffer_stride)
+    if (_hot_buffer_stride) {
         _stride_cache.return_stride(_hot_buffer_stride);
+    }
 }
 
 uint32_t cq_mgr_mlx5_strq::clean_cq()
@@ -196,14 +202,16 @@ uint32_t cq_mgr_mlx5_strq::clean_cq()
      * rx - is done in qp_mgr::up()
      * as a result rx cq can be created but not initialized
      */
-    if (NULL == m_qp)
+    if (NULL == m_qp) {
         return 0;
+    }
 
     mem_buf_desc_t *stride_buf = nullptr;
     buff_status_e status = BS_OK;
     while ((buff = poll(status, stride_buf)) || stride_buf) {
-        if (stride_buf && process_cq_element_rx(stride_buf, status))
+        if (stride_buf && process_cq_element_rx(stride_buf, status)) {
             m_rx_queue.push_back(stride_buf);
+        }
 
         ++ret_total;
         stride_buf = nullptr;
@@ -277,8 +285,9 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
             ++m_qp->m_mlx5_qp.rq.tail;
             buff = m_rx_hot_buffer;
             m_rx_hot_buffer = NULL;
-            if (likely(status == BS_OK))
+            if (likely(status == BS_OK)) {
                 ++m_p_cq_stat->n_rx_consumed_rwqe_count;
+            }
         }
 
         if (likely(!is_filler)) {
@@ -381,8 +390,9 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
         _hot_buffer_stride->p_buffer = nullptr;
         _hot_buffer_stride->sz_buffer = 0U;
 
-        if (_hot_buffer_stride->strides_num == 0U)
+        if (_hot_buffer_stride->strides_num == 0U) {
             _hot_buffer_stride->strides_num = _strides_num;
+        }
 
         if (MLX5_CQE_SYNDROME_WR_FLUSH_ERR == ecqe->syndrome) {
             status = BS_IBV_WC_WR_FLUSH_ERR;
@@ -435,8 +445,9 @@ inline int cq_mgr_mlx5_strq::drain_and_proccess_helper(mem_buf_desc_t *buff,
 {
     int ret_total = 0;
     if (buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv) &&
-        !p_recycle_buffers_last_wr_id)
+        !p_recycle_buffers_last_wr_id) {
         compensate_qp_poll_failed(); // Reuse this method as success.
+    }
 
     // Handle a stride. It can be that we have got a Filler CQE, in this case buff is null.
     if (buff) {
@@ -461,8 +472,9 @@ inline int cq_mgr_mlx5_strq::drain_and_proccess_helper(mem_buf_desc_t *buff,
         }
     }
 
-    if (p_recycle_buffers_last_wr_id && buff_wqe)
+    if (p_recycle_buffers_last_wr_id && buff_wqe) {
         *p_recycle_buffers_last_wr_id = (uintptr_t)buff_wqe;
+    }
 
     return ret_total;
 }
@@ -575,8 +587,9 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx_sockextreme(void *pv_fd_ready_
     mem_buf_desc_t *buff = nullptr;
     mem_buf_desc_t *buff_wqe = poll(status, buff);
 
-    if ((buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) || !buff)
+    if ((buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) || !buff) {
         compensate_qp_poll_failed(); // Reuse this method as success.
+    }
 
     if (buff) {
         ++m_n_wce_counter;
@@ -600,9 +613,10 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *
         return ret_rx_processed;
     }
 
-    if (m_n_sysvar_rx_prefetch_bytes_before_poll && m_rx_hot_buffer)
+    if (m_n_sysvar_rx_prefetch_bytes_before_poll && m_rx_hot_buffer) {
         prefetch_range((uint8_t *)m_rx_hot_buffer->p_buffer + _current_wqe_consumed_bytes,
                        m_n_sysvar_rx_prefetch_bytes_before_poll);
+    }
 
     if (m_b_sysvar_enable_socketxtreme) {
         ret_rx_processed += poll_and_process_element_rx_sockextreme(pv_fd_ready_array);
@@ -613,8 +627,9 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *
             mem_buf_desc_t *buff = nullptr;
             mem_buf_desc_t *buff_wqe = poll(status, buff);
 
-            if (buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv))
+            if (buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) {
                 compensate_qp_poll_failed(); // Reuse this method as success.
+            }
 
             if (buff) {
                 ++ret;
@@ -684,8 +699,10 @@ void cq_mgr_mlx5_strq::reclaim_recv_buffer_helper(mem_buf_desc_t *buff)
 
                 mem_buf_desc_t *rwqe =
                     reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.pbuf.desc.mdesc);
-                if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) // Is last stride.
+                if (buff->strides_num ==
+                    rwqe->add_ref_count(-buff->strides_num)) { // Is last stride.
                     cq_mgr::reclaim_recv_buffer_helper(rwqe);
+                }
 
                 VLIST_DEBUG_CQ_MGR_PRINT_ERROR_IS_MEMBER;
                 temp = buff;
@@ -714,8 +731,9 @@ int cq_mgr_mlx5_strq::poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst)
     mem_buf_desc_t *buff = nullptr;
     mem_buf_desc_t *buff_wqe = poll(status, buff);
 
-    if ((buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) || !buff)
+    if ((buff_wqe && (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) || !buff) {
         compensate_qp_poll_failed(); // Reuse this method as success.
+    }
 
     if (buff) {
         if (process_cq_element_rx(buff, status)) {

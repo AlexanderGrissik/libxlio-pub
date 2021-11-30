@@ -86,9 +86,10 @@ inline int neigh_eth::build_mc_neigh_val()
 
     m_state = false;
 
-    if (m_val == NULL)
+    if (m_val == NULL) {
         // This is the first time we are trying to allocate new val or it failed last time
         m_val = new neigh_eth_val;
+    }
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_val == NULL) {
@@ -127,8 +128,9 @@ inline int neigh_eth::build_uc_neigh_val()
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_val == NULL)
+    if (m_val == NULL) {
         return -1;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     unsigned char tmp[ETH_ALEN];
@@ -304,8 +306,9 @@ int neigh_entry::send(neigh_send_info &s_info)
 
     m_unsent_queue.push_back(ns_data);
     int ret = ns_data->m_iov.iov_len;
-    if (m_state)
+    if (m_state) {
         empty_unsent_queue();
+    }
     // coverity[leaked_storage]
     return ret;
 }
@@ -655,8 +658,9 @@ bool neigh_entry::get_peer_info(neigh_val *p_val)
 
     /* If state is NOT_ACTIVE need to kick start state machine,
      otherwise it means that it was already started*/
-    if ((state_t)m_state_machine->get_curr_state() == ST_NOT_ACTIVE)
+    if ((state_t)m_state_machine->get_curr_state() == ST_NOT_ACTIVE) {
         priv_kick_start_sm();
+    }
 
     if (m_state) {
         neigh_logdbg("There is a valid val");
@@ -1319,8 +1323,9 @@ neigh_eth::neigh_eth(neigh_key key)
     );
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_state_machine == NULL)
+    if (m_state_machine == NULL) {
         neigh_logpanic("Failed allocating state_machine");
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     priv_kick_start_sm();
@@ -1334,8 +1339,9 @@ neigh_eth::~neigh_eth()
 
 bool neigh_eth::is_deletable()
 {
-    if (m_type == MC)
+    if (m_type == MC) {
         return true;
+    }
     return (neigh_entry::is_deletable());
 }
 
@@ -1348,9 +1354,9 @@ bool neigh_eth::get_peer_info(neigh_val *p_val)
             *p_val = *m_val;
             return true;
         } else {
-            if (build_mc_neigh_val())
+            if (build_mc_neigh_val()) {
                 return false;
-            else {
+            } else {
                 *p_val = *m_val;
                 return true;
             }
@@ -1367,9 +1373,10 @@ bool neigh_eth::register_observer(const observer *const new_observer)
     if (m_type == MC) {
         if (subject::register_observer(new_observer)) {
             auto_unlocker lock(m_lock);
-            if (!m_state)
+            if (!m_state) {
                 // Try to build it again
                 build_mc_neigh_val();
+            }
             return true;
         }
         return false;
@@ -1438,8 +1445,9 @@ int neigh_eth::priv_enter_ready()
 
     // In case of ETH, we want to unregister from events and destroy rdma cm handle
     priv_destroy_cma_id();
-    if (!build_uc_neigh_val())
+    if (!build_uc_neigh_val()) {
         return (neigh_entry::priv_enter_ready());
+    }
 
     return -1;
 }
@@ -1548,8 +1556,9 @@ bool neigh_eth::prepare_to_send_packet(header *h)
 
 ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
 {
-    if (!h)
+    if (!h) {
         return m_p_ring->generate_id();
+    }
 
     ethhdr *actual_header = (ethhdr *)h->m_actual_hdr_addr;
     return m_p_ring->generate_id(actual_header->h_source, actual_header->h_dest,
@@ -1623,8 +1632,9 @@ neigh_ib::neigh_ib(neigh_key key, bool is_init_resources)
     );
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_state_machine == NULL)
+    if (m_state_machine == NULL) {
         neigh_logpanic("Failed allocating state_machine");
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     priv_kick_start_sm();
@@ -1826,8 +1836,9 @@ int neigh_ib::priv_enter_arp_resolved()
         return -1;
     }
 
-    if (find_pd())
+    if (find_pd()) {
         return -1;
+    }
 
     // Register Verbs event in case there was Fabric change
     if (m_cma_id->verbs) {
@@ -1835,11 +1846,12 @@ int neigh_ib::priv_enter_arp_resolved()
                                                           m_cma_id->verbs, 0);
     }
 
-    if (m_type == UC)
+    if (m_type == UC) {
         return (handle_enter_arp_resolved_uc());
-    else
+    } else {
         // MC
         return (handle_enter_arp_resolved_mc());
+    }
 }
 
 int neigh_ib::priv_enter_path_resolved(struct rdma_cm_event *event_data,
@@ -1847,20 +1859,23 @@ int neigh_ib::priv_enter_path_resolved(struct rdma_cm_event *event_data,
 {
     neigh_logfunc("");
 
-    if (m_val == NULL)
+    if (m_val == NULL) {
         // This is the first time we are trying to allocate new val or it failed last time
         m_val = new neigh_ib_val;
+    }
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_val == NULL)
+    if (m_val == NULL) {
         return -1;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    if (m_type == UC)
+    if (m_type == UC) {
         return (build_uc_neigh_val(event_data, wait_after_join_msec));
-    else
+    } else {
         // MC
         return (build_mc_neigh_val(event_data, wait_after_join_msec));
+    }
 }
 
 void neigh_ib::priv_enter_error()
@@ -1955,8 +1970,9 @@ int neigh_ib::build_mc_neigh_val(struct rdma_cm_event *event_data, uint32_t &wai
            sizeof(((neigh_ib_val *)m_val)->m_ah_attr));
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (create_ah())
+    if (create_ah()) {
         return -1;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     neigh_logdbg("IB multicast neigh params are : ah=%p, qkey=%#x, sl=%#x, rate=%#x, port_num = "
@@ -2017,8 +2033,9 @@ int neigh_ib::build_uc_neigh_val(struct rdma_cm_event *event_data, uint32_t &wai
     ((neigh_ib_val *)m_val)->m_ah_attr.port_num = m_cma_id->port_num;
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (create_ah())
+    if (create_ah()) {
         return -1;
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     neigh_logdbg("IB unicast neigh params  ah=%p, qkey=%#x, qpn=%#x, dlid=%#x",
@@ -2155,8 +2172,9 @@ void neigh_ib_broadcast::build_mc_neigh_val()
         return;
     }
 
-    if (create_ah())
+    if (create_ah()) {
         return;
+    }
 
     neigh_logdbg("IB broadcast neigh params are : ah=%p, qkey=%#x, sl=%#x, rate=%#x, port_num = "
                  "%#x,  qpn=%#x,  dlid=%#x dgid = " IPOIB_HW_ADDR_PRINT_FMT_16,

@@ -181,8 +181,9 @@ int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr,
                                             (ind << mlx5_qp->rq.wqe_shift));
 
         for (i = 0, j = 0; i < wr->num_sge; ++i) {
-            if (unlikely(!wr->sg_list[i].length))
+            if (unlikely(!wr->sg_list[i].length)) {
                 continue;
+            }
 
             scat[j].byte_count = htonl(wr->sg_list[i].length);
             scat[j].lkey = htonl(wr->sg_list[i].lkey);
@@ -221,8 +222,9 @@ out:
          */
         if (likely(!((mlx5_qp->qp->qp_type == IBV_QPT_RAW_PACKET ||
                       mlx5_qp->flags & VMA_IB_MLX5_QP_FLAGS_USE_UNDERLAY) &&
-                     mlx5_qp->qp->state < IBV_QPS_RTR)))
+                     mlx5_qp->qp->state < IBV_QPS_RTR))) {
             *mlx5_qp->rq.dbrec = htonl(mlx5_qp->rq.head & 0xffff);
+        }
     }
 
     return err;

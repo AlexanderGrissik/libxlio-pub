@@ -96,10 +96,12 @@ select_call::select_call(int *off_fds_buffer, offloaded_mode_t *off_modes_buffer
             if (psock && psock->get_type() == FD_TYPE_SOCKET) {
 
                 offloaded_mode_t off_mode = OFF_NONE;
-                if (check_read)
+                if (check_read) {
                     off_mode = (offloaded_mode_t)(off_mode | OFF_READ);
-                if (check_write)
+                }
+                if (check_write) {
                     off_mode = (offloaded_mode_t)(off_mode | OFF_WRITE);
+                }
 
                 if (off_mode) {
                     __log_func("---> fd=%d IS SET for read or write!", fd);
@@ -124,8 +126,9 @@ select_call::select_call(int *off_fds_buffer, offloaded_mode_t *off_modes_buffer
                         if (check_write) {
                             FD_SET(fd, &m_os_wfds);
                         }
-                    } else
+                    } else {
                         __log_func("fd=%d must be skipped from os r select()", fd);
+                    }
                 }
             } else {
                 if (check_read) {
@@ -198,12 +201,15 @@ bool select_call::wait_os(bool zero_timeout)
 
     // Restore original sets
     if (m_b_run_prepare_to_poll) {
-        if (m_readfds)
+        if (m_readfds) {
             FD_COPY(m_readfds, &m_os_rfds, m_nfds);
-        if (m_writefds)
+        }
+        if (m_writefds) {
             FD_COPY(m_writefds, &m_os_wfds, m_nfds);
-        if (m_exceptfds)
+        }
+        if (m_exceptfds) {
             FD_COPY(m_exceptfds, &m_orig_exceptfds, m_nfds);
+        }
     }
     __log_func("calling os select: %d", m_nfds);
     if (m_sigmask) {
@@ -241,17 +247,21 @@ bool select_call::wait(const timeval &elapsed)
 
     // Restore original sets
     if (m_b_run_prepare_to_poll) {
-        if (m_readfds)
+        if (m_readfds) {
             FD_COPY(m_readfds, &m_os_rfds, m_nfds);
-        if (m_writefds)
+        }
+        if (m_writefds) {
             FD_COPY(m_writefds, &m_os_wfds, m_nfds);
-        if (m_exceptfds)
+        }
+        if (m_exceptfds) {
             FD_COPY(m_exceptfds, &m_orig_exceptfds, m_nfds);
+        }
     }
 
     // Call OS select() on original sets + CQ epfd in read set
-    if (m_readfds)
+    if (m_readfds) {
         FD_SET(m_cqepfd, m_readfds);
+    }
     if (m_timeout) {
         timeout.tv_sec = timeout.tv_usec = 0;
         tv_sub(m_timeout, &elapsed, &timeout);

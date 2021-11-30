@@ -248,14 +248,17 @@ static inline void __list_cut_position(struct list_head *list, struct list_head 
 static inline void list_cut_position(struct list_head *list, struct list_head *head,
                                      struct list_head *entry)
 {
-    if (list_empty(head))
+    if (list_empty(head)) {
         return;
-    if (list_is_singular(head) && (head->next != entry && head != entry))
+    }
+    if (list_is_singular(head) && (head->next != entry && head != entry)) {
         return;
-    if (entry == head)
+    }
+    if (entry == head) {
         INIT_LIST_HEAD(list);
-    else
+    } else {
         __list_cut_position(list, head, entry);
+    }
 }
 
 static inline void __list_splice(const struct list_head *list, struct list_head *prev,
@@ -278,8 +281,9 @@ static inline void __list_splice(const struct list_head *list, struct list_head 
  */
 static inline void list_splice(const struct list_head *list, struct list_head *head)
 {
-    if (!list_empty(list))
+    if (!list_empty(list)) {
         __list_splice(list, head, head->next);
+    }
 }
 
 /**
@@ -289,8 +293,9 @@ static inline void list_splice(const struct list_head *list, struct list_head *h
  */
 static inline void list_splice_tail(struct list_head *list, struct list_head *head)
 {
-    if (!list_empty(list))
+    if (!list_empty(list)) {
         __list_splice(list, head->prev, head);
+    }
 }
 
 /**

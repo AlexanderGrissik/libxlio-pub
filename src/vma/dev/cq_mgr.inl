@@ -61,8 +61,9 @@ inline uint32_t cq_mgr::process_recv_queue(void *pv_fd_ready_array)
     while (!m_rx_queue.empty()) {
         mem_buf_desc_t *buff = m_rx_queue.get_and_pop_front();
         process_recv_buffer(buff, pv_fd_ready_array);
-        if (++processed >= m_n_sysvar_cq_poll_batch_max)
+        if (++processed >= m_n_sysvar_cq_poll_batch_max) {
             break;
+        }
     }
     m_p_cq_stat->n_rx_sw_queue_len = m_rx_queue.size();
     return processed;

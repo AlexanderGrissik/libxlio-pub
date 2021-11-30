@@ -100,8 +100,9 @@ neigh_nl_event::neigh_nl_event(struct nlmsghdr *hdr, struct rtnl_neigh *neigh, v
 
 neigh_nl_event::~neigh_nl_event()
 {
-    if (m_neigh_info)
+    if (m_neigh_info) {
         delete m_neigh_info;
+    }
 }
 
 route_nl_event::route_nl_event(struct nlmsghdr *hdr, struct rtnl_route *route, void *notifier)
@@ -113,8 +114,9 @@ route_nl_event::route_nl_event(struct nlmsghdr *hdr, struct rtnl_route *route, v
 
 route_nl_event::~route_nl_event()
 {
-    if (m_route_info)
+    if (m_route_info) {
         delete m_route_info;
+    }
 }
 link_nl_event::link_nl_event(struct nlmsghdr *hdr, struct rtnl_link *rt_link, void *notifier)
     : netlink_event(hdr, notifier)
@@ -124,8 +126,9 @@ link_nl_event::link_nl_event(struct nlmsghdr *hdr, struct rtnl_link *rt_link, vo
 
 link_nl_event::~link_nl_event()
 {
-    if (m_link_info)
+    if (m_link_info) {
         delete m_link_info;
+    }
 }
 
 const std::string link_nl_event::to_str() const

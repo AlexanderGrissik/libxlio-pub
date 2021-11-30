@@ -176,8 +176,9 @@ void rfs_uc_tcp_gro::flush_gro_desc(void *pv_fd_ready_array)
         rfs_logpanic("Incompatible ring type");
     }
 
-    if (!m_b_active)
+    if (!m_b_active) {
         return;
+    }
 
     if (m_gro_desc.buf_count > 1) {
         m_gro_desc.p_ip_h->tot_len = htons(m_gro_desc.ip_tot_len);

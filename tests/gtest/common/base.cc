@@ -173,8 +173,9 @@ void test_base::barrier_fork(int pid)
         prctl(PR_SET_PDEATHSIG, SIGTERM);
         do {
             ret = read(m_efd, &m_efd_signal, sizeof(m_efd_signal));
-            if (ret == -1 && errno == EINTR)
+            if (ret == -1 && errno == EINTR) {
                 continue;
+            }
         } while (0 == m_efd_signal);
         m_efd_signal = 0;
         ret = write(m_efd, &m_efd_signal, sizeof(m_efd_signal));

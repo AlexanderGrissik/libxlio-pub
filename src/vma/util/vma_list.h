@@ -206,17 +206,19 @@ public:
 
     vma_list_t<T, offset>(const vma_list_t<T, offset> &other)
     {
-        if (!other.empty())
+        if (!other.empty()) {
             vlist_logwarn("Copy constructor is not supported for non-empty list! other.size=%zu",
                           other.m_size);
+        }
         init_list();
     }
 
     vma_list_t<T, offset> &operator=(const vma_list_t<T, offset> &other)
     {
-        if (!empty() || !other.empty())
+        if (!empty() || !other.empty()) {
             vlist_logwarn("Operator= is not supported for non-empty list! size=%zu, other.size=%zu",
                           m_size, other.m_size);
+        }
         if (this != &other) {
             init_list();
         }
@@ -231,15 +233,17 @@ public:
 
     inline T *front() const
     {
-        if (unlikely(empty()))
+        if (unlikely(empty())) {
             return NULL;
+        }
         return ((list_node<T, offset> *)m_list.head.next)->obj_ptr;
     }
 
     inline T *back() const
     {
-        if (unlikely(empty()))
+        if (unlikely(empty())) {
             return NULL;
+        }
 /* clang analyzer reports:
  * Use of memory after it is freed
  * This issue comes from ~chunk_list_t()

@@ -175,8 +175,9 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
     rfs *p_tmp_rfs = NULL;
     sockinfo *si = static_cast<sockinfo *>(sink);
 
-    if (si == NULL)
+    if (si == NULL) {
         return false;
+    }
 
     uint32_t flow_tag_id = si->get_flow_tag_val(); // spec will not be attached to rule
     if (!m_flow_tag_enabled) {
@@ -836,12 +837,15 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         // Add ip fragment packet to out fragment manager
         mem_buf_desc_t *new_buf = NULL;
         int ret = -1;
-        if (g_p_ip_frag_manager)
+        if (g_p_ip_frag_manager) {
             ret = g_p_ip_frag_manager->add_frag(p_ip_h, p_rx_wc_buf_desc, &new_buf);
-        if (ret < 0) // Finished with error
+        }
+        if (ret < 0) { // Finished with error
             return false;
-        if (!new_buf) // This is fragment
+        }
+        if (!new_buf) { // This is fragment
             return true;
+        }
 
         // Re-calc all ip related values for new ip packet of head fragmentation list
         p_rx_wc_buf_desc = new_buf;

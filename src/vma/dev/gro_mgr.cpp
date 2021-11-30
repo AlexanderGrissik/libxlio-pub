@@ -55,8 +55,9 @@ gro_mgr::~gro_mgr()
 
 bool gro_mgr::reserve_stream(rfs_uc_tcp_gro *rfs_uc_tcp_gro)
 {
-    if (is_stream_max())
+    if (is_stream_max()) {
         return false;
+    }
 
     m_p_rfs_arr[m_n_flow_count] = rfs_uc_tcp_gro;
     m_n_flow_count++;

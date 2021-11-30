@@ -147,8 +147,9 @@ inline int priv_safe_read_file(const char *path, char *buf, size_t size,
     int ret = -1;
     if (size > 0) {
         ret = priv_read_file(path, buf, size - 1, log_level);
-        if (0 <= ret)
+        if (0 <= ret) {
             buf[ret] = '\0';
+        }
     }
     return ret;
 }
@@ -162,8 +163,9 @@ inline int priv_safe_try_read_file(const char *path, char *buf, size_t size)
     int ret = -1;
     if (size > 0) {
         ret = priv_read_file(path, buf, size - 1, VLOG_DEBUG);
-        if (0 <= ret)
+        if (0 <= ret) {
             buf[ret] = '\0';
+        }
     }
     return ret;
 }
@@ -351,8 +353,9 @@ static inline in_addr_t prefix_to_netmask(int prefix_length)
 // inline void create_multicast_mac_from_ip(uint8_t (& mc_mac) [6], in_addr_t ip)
 inline void create_multicast_mac_from_ip(unsigned char *mc_mac, in_addr_t ip)
 {
-    if (mc_mac == NULL)
+    if (mc_mac == NULL) {
         return;
+    }
 
     mc_mac[0] = 0x01;
     mc_mac[1] = 0x00;
@@ -422,8 +425,9 @@ public:
     int get_timeout_msec() { return m_timeout_msec; }
     inline bool is_timeout()
     {
-        if (m_timeout_msec == -1)
+        if (m_timeout_msec == -1) {
             return false;
+        }
 
         if (m_timer_countdown > 0) {
             m_timer_countdown--;
@@ -442,8 +446,9 @@ public:
                     ts_to_sec(&m_elapsed), ts_to_usec(&m_elapsed));
 
         // test for timeout
-        if (m_timeout_msec <= ts_to_msec(&m_elapsed))
+        if (m_timeout_msec <= ts_to_msec(&m_elapsed)) {
             return true;
+        }
 
         return false;
     }
@@ -544,12 +549,14 @@ static inline uint32_t align32pow2(uint32_t x)
 
 static inline int ilog_2(uint32_t n)
 {
-    if (n == 0)
+    if (n == 0) {
         return 0;
+    }
 
     uint32_t t = 0;
-    while ((1 << t) < (int)n)
+    while ((1 << t) < (int)n) {
         ++t;
+    }
 
     return (int)t;
 }

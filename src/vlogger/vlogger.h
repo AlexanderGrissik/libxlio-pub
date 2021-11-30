@@ -380,8 +380,9 @@ void vlog_output(vlog_levels_t log_level, const char *fmt, ...);
 static inline void vlog_print_buffer(vlog_levels_t log_level, const char *msg_header,
                                      const char *msg_tail, const char *buf_user, int buf_len)
 {
-    if (g_vlogger_level < log_level)
+    if (g_vlogger_level < log_level) {
         return;
+    }
 
     int len = 0;
     char buf[VLOGGER_STR_SIZE];
@@ -400,17 +401,20 @@ static inline void vlog_print_buffer(vlog_levels_t log_level, const char *msg_he
     }
     buf[len + 1] = '\0';
 
-    if (msg_header)
+    if (msg_header) {
         len += snprintf(buf + len, VLOGGER_STR_SIZE - len - 1, "%s", msg_header);
+    }
 
     for (int c = 0; c < buf_len && len < (VLOGGER_STR_SIZE - 1 - 6); c++) {
         len += sprintf(buf + len, "%2.2X ", (unsigned char)buf_user[c]);
-        if ((c % 8) == 7)
+        if ((c % 8) == 7) {
             len += sprintf(buf + len, " ");
+        }
     }
 
-    if (msg_tail)
+    if (msg_tail) {
         len += snprintf(buf + len, VLOGGER_STR_SIZE - len - 1, "%s", msg_tail);
+    }
 
     buf[len + 1] = '\0';
 

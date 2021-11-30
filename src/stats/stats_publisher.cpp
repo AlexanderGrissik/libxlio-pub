@@ -92,8 +92,9 @@ bool should_write()
         return true;
     }
 
-    if (timers_counter > TIMERS_IN_STATS_PUBLISH_DURATION)
+    if (timers_counter > TIMERS_IN_STATS_PUBLISH_DURATION) {
         return false; // don't write until we'll see explicit request
+    }
 
     ++timers_counter;
 
@@ -178,14 +179,16 @@ void vma_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_l
 
     shmem_size = SHMEM_STATS_SIZE(safe_mce_sys().stats_fd_num_max);
     buf = malloc(shmem_size);
-    if (buf == NULL)
+    if (buf == NULL) {
         goto shmem_error;
+    }
     memset(buf, 0, shmem_size);
 
     p_shmem = buf;
 
-    if (strlen(safe_mce_sys().stats_shmem_dirname) <= 0)
+    if (strlen(safe_mce_sys().stats_shmem_dirname) <= 0) {
         goto no_shmem;
+    }
 
     g_sh_mem_info.filename_sh_stats[0] = '\0';
     g_sh_mem_info.p_sh_stats = MAP_FAILED;
@@ -307,11 +310,13 @@ void vma_shmem_stats_close()
 
         g_sh_mem_info.p_sh_stats = MAP_FAILED;
 
-        if (g_sh_mem_info.fd_sh_stats)
+        if (g_sh_mem_info.fd_sh_stats) {
             close(g_sh_mem_info.fd_sh_stats);
+        }
 
-        if (!g_is_forked_child)
+        if (!g_is_forked_child) {
             unlink(g_sh_mem_info.filename_sh_stats);
+        }
     } else if (g_sh_mem_info.p_sh_stats != MAP_FAILED) {
         free(g_sh_mem);
     }
@@ -407,16 +412,17 @@ void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
     g_lock_mc_info.lock();
     for (int grp_idx = 0; grp_idx < g_sh_mem->mc_info.max_grp_num && index_to_insert == -1;
          grp_idx++) {
-        if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num == 0 && empty_entry == -1)
+        if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num == 0 && empty_entry == -1) {
             empty_entry = grp_idx;
-        else if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num &&
-                 g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp == mc_grp)
+        } else if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num &&
+                   g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp == mc_grp) {
             index_to_insert = grp_idx;
+        }
     }
 
-    if (index_to_insert == -1 && empty_entry != -1)
+    if (index_to_insert == -1 && empty_entry != -1) {
         index_to_insert = empty_entry;
-    else if (index_to_insert == -1 && g_sh_mem->mc_info.max_grp_num < MC_TABLE_SIZE) {
+    } else if (index_to_insert == -1 && g_sh_mem->mc_info.max_grp_num < MC_TABLE_SIZE) {
         index_to_insert = g_sh_mem->mc_info.max_grp_num;
         g_sh_mem->mc_info.mc_grp_tbl[index_to_insert].mc_grp = mc_grp;
         g_sh_mem->mc_info.max_grp_num++;
@@ -427,8 +433,9 @@ void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
         p_socket_stats->mc_grp_map.set((size_t)index_to_insert, 1);
     }
     g_lock_mc_info.unlock();
-    if (index_to_insert == -1)
-        vlog_printf(VLOG_INFO, "VMA Statistics can monitor up to %d mc groups\n", MC_TABLE_SIZE);
+    if (index_to_insert == -1) {
+        vlog_printf(VLOG_INFO, "Statistics can monitor up to %d mc groups\n", MC_TABLE_SIZE);
+    }
 }
 
 void vma_stats_mc_group_remove(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
@@ -439,8 +446,9 @@ void vma_stats_mc_group_remove(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
             g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp == mc_grp) {
             p_socket_stats->mc_grp_map.set((size_t)grp_idx, 0);
             g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num--;
-            if (!g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num)
+            if (!g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num) {
                 g_sh_mem->mc_info.max_grp_num--;
+            }
         }
     }
     g_lock_mc_info.unlock();

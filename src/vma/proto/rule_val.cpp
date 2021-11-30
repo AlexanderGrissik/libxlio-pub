@@ -82,25 +82,29 @@ void rule_val::set_str()
     strcat(m_str, str_x);
 
     str_x[0] = '\0';
-    if (m_tos != 0)
+    if (m_tos != 0) {
         sprintf(str_x, " tos :%-11u", m_tos);
+    }
     strcat(m_str, str_x);
 
     str_x[0] = '\0';
-    if (strcmp(m_iif_name, "") != 0)
+    if (strcmp(m_iif_name, "") != 0) {
         sprintf(str_x, " iif :%-11s", m_iif_name);
+    }
     strcat(m_str, str_x);
 
     str_x[0] = '\0';
-    if (strcmp(m_oif_name, "") != 0)
+    if (strcmp(m_oif_name, "") != 0) {
         sprintf(str_x, " oif :%-11s", m_oif_name);
+    }
     strcat(m_str, str_x);
 
     str_x[0] = '\0';
-    if (m_table_id != RT_TABLE_MAIN)
+    if (m_table_id != RT_TABLE_MAIN) {
         sprintf(str_x, " lookup table :%-10u", m_table_id);
-    else
+    } else {
         sprintf(str_x, " lookup table :%-10s", "main");
+    }
     strcat(m_str, str_x);
 }
 

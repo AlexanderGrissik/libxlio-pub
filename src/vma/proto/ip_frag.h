@@ -72,29 +72,37 @@ struct ip_frag_key_t {
 
 inline bool operator<(ip_frag_key_t const &a, ip_frag_key_t const &b)
 {
-    if (a.ip_id < b.ip_id)
+    if (a.ip_id < b.ip_id) {
         return true;
+    }
 
-    if (a.ip_id > b.ip_id)
+    if (a.ip_id > b.ip_id) {
         return false;
+    }
 
-    if (a.src_ip < b.src_ip)
+    if (a.src_ip < b.src_ip) {
         return true;
+    }
 
-    if (a.src_ip > b.src_ip)
+    if (a.src_ip > b.src_ip) {
         return false;
+    }
 
-    if (a.dst_ip < b.dst_ip)
+    if (a.dst_ip < b.dst_ip) {
         return true;
+    }
 
-    if (a.dst_ip > b.dst_ip)
+    if (a.dst_ip > b.dst_ip) {
         return false;
+    }
 
-    if (a.ipproto < b.ipproto)
+    if (a.ipproto < b.ipproto) {
         return true;
+    }
 
-    if (a.ipproto > b.ipproto)
+    if (a.ipproto > b.ipproto) {
         return false;
+    }
 
     return false;
 }

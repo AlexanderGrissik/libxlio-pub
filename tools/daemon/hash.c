@@ -214,8 +214,9 @@ static struct hash_element *hash_find(hash_t ht, hash_key_t key, int flag)
     int idx = 0;
     hash_key_t expect_key;
 
-    if (ht->last && ht->last->key == key)
+    if (ht->last && ht->last->key == key) {
         return ht->last;
+    }
 
     expect_key = (flag ? HASH_KEY_INVALID : key);
 

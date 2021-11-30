@@ -576,8 +576,9 @@ void net_device_val::set_slave_array()
             char *slave = strtok(slaves_list, " ");
             while (slave) {
                 char *p = strchr(slave, '\n');
-                if (p)
+                if (p) {
                     *p = '\0'; // Remove the tailing 'new line" char
+                }
 
                 slave_data_t *s = new slave_data_t(if_nametoindex(slave));
                 m_slaves.push_back(s);
@@ -841,8 +842,9 @@ bool net_device_val::get_up_and_active_slaves(bool *up_and_active_slaves, size_t
         active_slaves[i] = true;
         // get slave state
         if (get_bond_slave_state(if_name, slave_state, sizeof(slave_state))) {
-            if (!strstr(slave_state, "active"))
+            if (!strstr(slave_state, "active")) {
                 active_slaves[i] = false;
+            }
         }
 
         if (active_slaves[i] && up_slaves[i]) {
@@ -1080,8 +1082,9 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
 {
     // if allocation logic is usr idx feature disabled
     if (!safe_mce_sys().ring_limit_per_interface ||
-        key->get_ring_alloc_logic() == RING_LOGIC_PER_USER_ID)
+        key->get_ring_alloc_logic() == RING_LOGIC_PER_USER_ID) {
         return key;
+    }
 
     if (m_h_ring_key_redirection_map.find(key) != m_h_ring_key_redirection_map.end()) {
         m_h_ring_key_redirection_map[key].second++;
@@ -1120,8 +1123,9 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
 
 resource_allocation_key *net_device_val::get_ring_key_redirection(resource_allocation_key *key)
 {
-    if (!safe_mce_sys().ring_limit_per_interface)
+    if (!safe_mce_sys().ring_limit_per_interface) {
         return key;
+    }
 
     if (m_h_ring_key_redirection_map.find(key) == m_h_ring_key_redirection_map.end()) {
         nd_logdbg("key = %s is not found in the redirection map", key->to_str());
@@ -1223,10 +1227,12 @@ int net_device_val::ring_drain_and_proccess()
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
         int ret = THE_RING->drain_and_proccess();
-        if (ret < 0)
+        if (ret < 0) {
             return ret;
-        if (ret > 0)
+        }
+        if (ret > 0) {
             nd_logfunc("cq[%p] Returned with: %d", THE_RING, ret);
+        }
         ret_total += ret;
     }
     return ret_total;
@@ -1254,8 +1260,9 @@ void net_device_val::register_to_ibverbs_events(event_handler_ibverbs *handler)
                 break;
             }
         }
-        if (found)
+        if (found) {
             continue;
+        }
         nd_logfunc("registering slave to ibverbs events slave=%p", m_slaves[i]);
         g_p_event_handler_manager->register_ibverbs_event(
             m_slaves[i]->p_ib_ctx->get_ibv_context()->async_fd, handler,
@@ -1274,8 +1281,9 @@ void net_device_val::unregister_to_ibverbs_events(event_handler_ibverbs *handler
                 break;
             }
         }
-        if (found)
+        if (found) {
             continue;
+        }
         nd_logfunc("unregistering slave to ibverbs events slave=%p", m_slaves[i]);
         g_p_event_handler_manager->unregister_ibverbs_event(
             m_slaves[i]->p_ib_ctx->get_ibv_context()->async_fd, handler);
@@ -1574,8 +1582,9 @@ bool net_device_val::verify_bond_ipoib_or_eth_qp_creation()
     slave_name = strtok_r(slaves, " ", &save_ptr);
     while (slave_name != NULL) {
         char *p = strchr(slave_name, '\n');
-        if (p)
+        if (p) {
             *p = '\0'; // Remove the tailing 'new line" char
+        }
         if (!verify_ipoib_or_eth_qp_creation(slave_name)) {
             // check all slaves but print only once for bond
             bond_ok = false;

@@ -66,17 +66,20 @@ poll_call::poll_call(int *off_rfds_buffer, offloaded_mode_t *off_modes_buffer, i
         m_orig_fds[i].revents = 0;
 
         // We need to initialize m_fds[i].revents in case we already copied it from m_orig_fds
-        if (m_fds)
+        if (m_fds) {
             m_fds[i].revents = 0;
+        }
 
         fd = m_orig_fds[i].fd;
         socket_fd_api *temp_sock_fd_api = fd_collection_get_sockfd(fd);
         if (temp_sock_fd_api && (temp_sock_fd_api->get_type() == FD_TYPE_SOCKET)) {
             offloaded_mode_t off_mode = OFF_NONE;
-            if (m_orig_fds[i].events & (POLLIN | POLLERR | POLLHUP))
+            if (m_orig_fds[i].events & (POLLIN | POLLERR | POLLHUP)) {
                 off_mode = (offloaded_mode_t)(off_mode | OFF_READ);
-            if (m_orig_fds[i].events & POLLOUT)
+            }
+            if (m_orig_fds[i].events & POLLOUT) {
                 off_mode = (offloaded_mode_t)(off_mode | OFF_WRITE);
+            }
 
             if (off_mode) {
                 __log_func("---> fd=%d IS SET for read or write!", fd);
@@ -113,8 +116,9 @@ poll_call::poll_call(int *off_rfds_buffer, offloaded_mode_t *off_modes_buffer, i
     }
 
     // TODO: No need to have two arrays m_fds and m_orig_fds in case there is no offloaded sockets
-    if (!m_num_all_offloaded_fds)
+    if (!m_num_all_offloaded_fds) {
         m_fds = m_orig_fds;
+    }
     __log_func("num all offloaded_fds=%d", m_num_all_offloaded_fds);
 }
 
@@ -183,8 +187,9 @@ bool poll_call::wait(const timeval &elapsed)
     if (m_n_all_ready_fds > 0 && m_fds[m_nfds].revents) {
         // CQ was returned - remove it from the count
         --m_n_all_ready_fds;
-        if (m_n_all_ready_fds > 0)
+        if (m_n_all_ready_fds > 0) {
             copy_to_orig_fds();
+        }
         return true;
     }
 
@@ -206,8 +211,9 @@ void poll_call::set_offloaded_rfd_ready(int fd_index)
     if (m_p_offloaded_modes[fd_index] & OFF_READ) {
 
         int evt_index = m_lookup_buffer[fd_index];
-        if (!m_orig_fds[evt_index].revents)
+        if (!m_orig_fds[evt_index].revents) {
             ++m_n_all_ready_fds;
+        }
         if ((m_orig_fds[evt_index].events & POLLIN) && !(m_orig_fds[evt_index].revents & POLLIN)) {
             m_orig_fds[evt_index].revents |= POLLIN;
             ++m_n_ready_rfds;
@@ -219,8 +225,9 @@ void poll_call::set_offloaded_wfd_ready(int fd_index)
 {
     if (m_p_offloaded_modes[fd_index] & OFF_WRITE) {
         int evt_index = m_lookup_buffer[fd_index];
-        if (!m_orig_fds[evt_index].revents)
+        if (!m_orig_fds[evt_index].revents) {
             ++m_n_all_ready_fds;
+        }
         if ((m_orig_fds[evt_index].events & POLLOUT) &&
             !(m_orig_fds[evt_index].revents & POLLOUT) &&
             !(m_orig_fds[evt_index].revents & POLLHUP)) {
@@ -235,8 +242,9 @@ void poll_call::set_offloaded_efd_ready(int fd_index, int errors)
 {
     if (m_p_offloaded_modes[fd_index] & OFF_RDWR) {
         int evt_index = m_lookup_buffer[fd_index];
-        if (!m_orig_fds[evt_index].revents)
+        if (!m_orig_fds[evt_index].revents) {
             ++m_n_all_ready_fds;
+        }
         bool got_errors = false;
         if ((errors & POLLHUP) && !(m_orig_fds[evt_index].revents & POLLHUP)) {
             m_orig_fds[evt_index].revents |= POLLHUP;
@@ -294,15 +302,17 @@ void poll_call::set_efd_ready(int fd, int errors)
 void poll_call::copy_to_orig_fds()
 {
     // No need to copy anything in case there are no offloaded sockets.
-    if (!m_num_all_offloaded_fds)
+    if (!m_num_all_offloaded_fds) {
         return;
+    }
     int ready_fds = m_n_all_ready_fds;
     for (nfds_t i = 0; i < m_nfds; i++) {
         if (m_fds[i].revents) {
             m_orig_fds[i].revents = m_fds[i].revents;
             ready_fds--;
-            if (!ready_fds)
+            if (!ready_fds) {
                 return;
+            }
         }
     }
 }

@@ -191,8 +191,9 @@ void ip_frag_manager::free_frag(mem_buf_desc_t *frag)
 
     // There are cases that we might not have a frag list at all to release
     // This is instead of checking the pointer before all calls to free_frag()
-    if (!frag)
+    if (!frag) {
         return;
+    }
 
     // Change packet size - it will force packet to be discarded
     frag->sz_data = IP_FRAG_FREED;
@@ -213,8 +214,9 @@ ip_frag_hole_desc *ip_frag_manager::alloc_hole_desc()
 {
     struct ip_frag_hole_desc *ret;
     ret = hole_free_list_head;
-    if (!ret)
+    if (!ret) {
         return NULL;
+    }
 
     // unlink from hole's free list
     hole_free_list_head = ret->next;
@@ -239,8 +241,9 @@ ip_frag_desc_t *ip_frag_manager::alloc_frag_desc()
 {
     ip_frag_desc_t *ret;
     ret = desc_free_list_head;
-    if (!ret)
+    if (!ret) {
         return NULL;
+    }
 
     // unlink from hole's free list
     desc_free_list_head = ret->next;
@@ -407,10 +410,11 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
     frag_dbg("> found hole: %d-%d", phole->first, phole->last);
 
     // step 4 - remove hole from list
-    if (phole_prev)
+    if (phole_prev) {
         phole_prev->next = phole->next;
-    else
+    } else {
         desc->hole_list = phole->next;
+    }
 
     // step 5
     if (frag_first > phole->first) {
@@ -428,10 +432,11 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
         new_hole->data_last = frag;
 
         new_hole->next = phole->next;
-        if (phole_prev)
+        if (phole_prev) {
             phole_prev->next = new_hole;
-        else
+        } else {
             desc->hole_list = new_hole;
+        }
 
         phole_prev = new_hole;
     }
@@ -453,25 +458,28 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
         new_hole->data_last = phole->data_last;
 
         new_hole->next = phole->next;
-        if (phole_prev)
+        if (phole_prev) {
             phole_prev->next = new_hole;
-        else
+        } else {
             desc->hole_list = new_hole;
+        }
     }
 
     // link frag
-    if (phole->data_first)
+    if (phole->data_first) {
         phole->data_first->p_next_desc = frag;
-    else
+    } else {
         desc->frag_list = frag;
+    }
     frag->p_next_desc = phole->data_last;
 
     free_hole_desc(phole);
 
     if (!desc->hole_list) {
         // step 8 - datagram assembly completed
-        if (i == m_frags.end())
+        if (i == m_frags.end()) {
             i = m_frags.find(key);
+        }
         if (i == m_frags.end()) {
             MEMBUF_DEBUG_REF_DEC(frag);
             frag_panic("frag desc lost from map???");
@@ -502,8 +510,9 @@ void ip_frag_manager::return_buffers_to_owners(const owner_desc_map_t &buff_map)
     owner_desc_map_t::const_iterator iter;
 
     for (iter = buff_map.begin(); iter != buff_map.end(); ++iter) {
-        if (g_buffer_pool_rx_ptr)
+        if (g_buffer_pool_rx_ptr) {
             g_buffer_pool_rx_ptr->put_buffers_thread_safe(iter->second);
+        }
     }
 }
 

@@ -294,8 +294,9 @@ bool dst_entry::resolve_neigh()
     if (m_p_neigh_entry ||
         g_p_neigh_table_mgr->register_observer(neigh_key(dst_addr, m_p_net_dev_val), this,
                                                &p_ces)) {
-        if (m_p_neigh_entry == NULL)
+        if (m_p_neigh_entry == NULL) {
             m_p_neigh_entry = dynamic_cast<neigh_entry *>(p_ces);
+        }
         if (m_p_neigh_entry) {
             if (m_p_neigh_entry->get_peer_info(m_p_neigh_val)) {
                 dst_logdbg("neigh is valid");
@@ -494,8 +495,9 @@ bool dst_entry::conf_hdrs_and_snd_wqe()
 // Implementation of pure virtual function of neigh_observer
 transport_type_t dst_entry::get_obs_transport_type() const
 {
-    if (m_p_net_dev_val)
+    if (m_p_net_dev_val) {
         return (m_p_net_dev_val->get_transport_type());
+    }
     return VMA_TRANSPORT_UNKNOWN;
 }
 

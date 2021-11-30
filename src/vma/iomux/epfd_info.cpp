@@ -183,8 +183,9 @@ void epfd_info::get_offloaded_fds_arr_and_size(int **p_p_num_offloaded_fds,
 
 bool epfd_info::is_cq_fd(uint64_t data)
 {
-    if ((data >> 32) != CQ_FD_MARK)
+    if ((data >> 32) != CQ_FD_MARK) {
         return false;
+    }
 
     lock();
     // todo consider making m_ready_cq_fd_q a set instead of queue
@@ -301,8 +302,9 @@ int epfd_info::add_fd(int fd, epoll_event *event)
             events |= EPOLLOUT;
         }
         if ((event->events & EPOLLERR) && temp_sock_fd_api->is_errorable(&errors)) {
-            if (errors & POLLERR)
+            if (errors & POLLERR) {
                 events |= EPOLLERR;
+            }
         }
         if (events != 0) {
             insert_epoll_event(temp_sock_fd_api, events);
@@ -653,8 +655,9 @@ int epfd_info::ring_poll_and_process_element(uint64_t *p_poll_sn,
 
     m_ring_map_lock.unlock();
 
-    if (m_sysvar_thread_mode == THREAD_MODE_PLENTY && ret_total == 0 && errno == EAGAIN)
+    if (m_sysvar_thread_mode == THREAD_MODE_PLENTY && ret_total == 0 && errno == EAGAIN) {
         sched_yield();
+    }
 
     if (ret_total) {
         __log_func("ret_total=%d", ret_total);
@@ -768,8 +771,9 @@ int epfd_info::ring_wait_for_notification_and_process_element(uint64_t *p_poll_s
 
 void epfd_info::clean_obj()
 {
-    if (g_p_fd_collection)
+    if (g_p_fd_collection) {
         g_p_fd_collection->remove_epfd_from_list(this);
+    }
     cleanable_obj::clean_obj();
 }
 
@@ -818,12 +822,14 @@ void epfd_info::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
         vlog_printf(log_level, "Polling CPU : %d%%\n", temp_iomux_stats.n_iomux_polling_time);
 
-        if (temp_iomux_stats.threadid_last != 0)
+        if (temp_iomux_stats.threadid_last != 0) {
             vlog_printf(log_level, "Thread Id : %5u\n", temp_iomux_stats.threadid_last);
+        }
 
-        if (temp_iomux_stats.n_iomux_os_rx_ready || temp_iomux_stats.n_iomux_rx_ready)
+        if (temp_iomux_stats.n_iomux_os_rx_ready || temp_iomux_stats.n_iomux_rx_ready) {
             vlog_printf(log_level, "Rx fds ready : %u / %u [os/offload]\n",
                         temp_iomux_stats.n_iomux_os_rx_ready, temp_iomux_stats.n_iomux_rx_ready);
+        }
 
         if (temp_iomux_stats.n_iomux_poll_miss + temp_iomux_stats.n_iomux_poll_hit) {
             double iomux_poll_hit = (double)temp_iomux_stats.n_iomux_poll_hit;
@@ -834,11 +840,13 @@ void epfd_info::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
                         temp_iomux_stats.n_iomux_poll_miss, temp_iomux_stats.n_iomux_poll_hit,
                         iomux_poll_hit_percentage);
 
-            if (temp_iomux_stats.n_iomux_timeouts)
+            if (temp_iomux_stats.n_iomux_timeouts) {
                 vlog_printf(log_level, "Timeouts : %u\n", temp_iomux_stats.n_iomux_timeouts);
+            }
 
-            if (temp_iomux_stats.n_iomux_errors)
+            if (temp_iomux_stats.n_iomux_errors) {
                 vlog_printf(log_level, "Errors : %u\n", temp_iomux_stats.n_iomux_errors);
+            }
         }
     }
 }

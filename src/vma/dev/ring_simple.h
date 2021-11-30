@@ -329,8 +329,9 @@ private:
     };
     void delete_l2_address()
     {
-        if (m_p_l2_addr)
+        if (m_p_l2_addr) {
             delete m_p_l2_addr;
+        }
         m_p_l2_addr = NULL;
     };
 

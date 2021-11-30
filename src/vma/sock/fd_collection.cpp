@@ -74,8 +74,9 @@ fd_collection::fd_collection()
 
     m_n_fd_map_size = 1024;
     struct rlimit rlim;
-    if ((getrlimit(RLIMIT_NOFILE, &rlim) == 0) && ((int)rlim.rlim_max > m_n_fd_map_size))
+    if ((getrlimit(RLIMIT_NOFILE, &rlim) == 0) && ((int)rlim.rlim_max > m_n_fd_map_size)) {
         m_n_fd_map_size = rlim.rlim_max;
+    }
     fdcoll_logdbg("using open files max limit of %d file descriptors", m_n_fd_map_size);
 
     m_p_sockfd_map = new socket_fd_api *[m_n_fd_map_size];
@@ -139,8 +140,9 @@ void fd_collection::clear()
 
     fdcoll_logfunc("");
 
-    if (!m_p_sockfd_map)
+    if (!m_p_sockfd_map) {
         return;
+    }
 
     lock();
 
@@ -211,13 +213,15 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     }
 
     // IPV4 domain only (at least today)
-    if (domain != AF_INET)
+    if (domain != AF_INET) {
         return -1;
+    }
 
     fdcoll_logfunc("fd=%d", fd);
 
-    if (!is_valid_fd(fd))
+    if (!is_valid_fd(fd)) {
         return -1;
+    }
 
     lock();
 
@@ -276,10 +280,12 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     BULLSEYE_EXCLUDE_BLOCK_END
 
     if (sock_flags) {
-        if (sock_flags & SOCK_NONBLOCK)
+        if (sock_flags & SOCK_NONBLOCK) {
             p_sfd_api_obj->fcntl(F_SETFL, O_NONBLOCK);
-        if (sock_flags & SOCK_CLOEXEC)
+        }
+        if (sock_flags & SOCK_CLOEXEC) {
             p_sfd_api_obj->fcntl(F_SETFD, FD_CLOEXEC);
+        }
     }
 
     m_p_sockfd_map[fd] = p_sfd_api_obj;
@@ -363,8 +369,9 @@ int fd_collection::addpipe(int fdrd, int fdwr)
 {
     fdcoll_logfunc("fdrd=%d, fdwr=%d", fdrd, fdwr);
 
-    if (!is_valid_fd(fdrd) || !is_valid_fd(fdwr))
+    if (!is_valid_fd(fdrd) || !is_valid_fd(fdwr)) {
         return -1;
+    }
 
     lock();
 
@@ -414,8 +421,9 @@ int fd_collection::addepfd(int epfd, int size)
 {
     fdcoll_logfunc("epfd=%d", epfd);
 
-    if (!is_valid_fd(epfd))
+    if (!is_valid_fd(epfd)) {
         return -1;
+    }
 
     lock();
 
@@ -449,8 +457,9 @@ int fd_collection::addtapfd(int tapfd, ring_tap *p_ring)
 {
     fdcoll_logfunc("tapfd=%d, p_ring=%p", tapfd, p_ring);
 
-    if (!is_valid_fd(tapfd))
+    if (!is_valid_fd(tapfd)) {
         return -1;
+    }
 
     lock();
 
@@ -471,8 +480,9 @@ int fd_collection::add_cq_channel_fd(int cq_ch_fd, ring *p_ring)
 {
     fdcoll_logfunc("cq_ch_fd=%d", cq_ch_fd);
 
-    if (!is_valid_fd(cq_ch_fd))
+    if (!is_valid_fd(cq_ch_fd)) {
         return -1;
+    }
 
     lock();
 
@@ -578,8 +588,9 @@ int fd_collection::del_cq_channel_fd(int fd, bool b_cleanup /*=false*/)
 
 void fd_collection::del_tapfd(int fd)
 {
-    if (!is_valid_fd(fd))
+    if (!is_valid_fd(fd)) {
         return;
+    }
 
     lock();
     m_p_tap_map[fd] = NULL;
@@ -591,8 +602,9 @@ template <typename cls> int fd_collection::del(int fd, bool b_cleanup, cls **map
     fdcoll_logfunc("fd=%d%s", fd,
                    b_cleanup ? ", cleanup case: trying to remove old socket handler" : "");
 
-    if (!is_valid_fd(fd))
+    if (!is_valid_fd(fd)) {
         return -1;
+    }
 
     lock();
     cls *p_obj = map_type[fd];

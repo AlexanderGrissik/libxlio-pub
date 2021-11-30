@@ -336,8 +336,9 @@ void mapping_cache::release_mapping(mapping_t *mapping)
     assert(mapping->is_free());
 
     /* TODO Rework */
-    if (mapping->m_state == MAPPING_STATE_FAILED)
+    if (mapping->m_state == MAPPING_STATE_FAILED) {
         return;
+    }
 
     m_lru_list.push_back(mapping);
 }

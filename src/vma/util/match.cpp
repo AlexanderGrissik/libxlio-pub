@@ -78,8 +78,9 @@ static void free_dbl_lst(struct dbl_lst *dbl_lst)
     node = dbl_lst->head;
     while (node) {
         tmp = node->next;
-        if (node->data)
+        if (node->data) {
             free(node->data);
+        }
 
         free(node);
         node = tmp;
@@ -90,8 +91,9 @@ static void free_dbl_lst(struct dbl_lst *dbl_lst)
 
 static void free_instance_content(struct instance *instance)
 {
-    if (!instance)
+    if (!instance) {
         return;
+    }
 
     /* free srever's rules */
     free_dbl_lst(&instance->tcp_srv_rules_lst);
@@ -100,11 +102,13 @@ static void free_instance_content(struct instance *instance)
     free_dbl_lst(&instance->tcp_clt_rules_lst);
 
     /* free the instance id content*/
-    if (instance->id.prog_name_expr)
+    if (instance->id.prog_name_expr) {
         free(instance->id.prog_name_expr);
+    }
 
-    if (instance->id.user_defined_id)
+    if (instance->id.user_defined_id) {
         free(instance->id.user_defined_id);
+    }
     free(instance);
 }
 
@@ -140,13 +144,15 @@ void get_address_port_rule_str(char *addr_buf, char *ports_buf, struct address_p
         sprintf(addr_buf, "%s", "*");
     }
 
-    if (rule->match_by_port)
-        if (rule->eport > rule->sport)
+    if (rule->match_by_port) {
+        if (rule->eport > rule->sport) {
             sprintf(ports_buf, "%d-%d", rule->sport, rule->eport);
-        else
+        } else {
             sprintf(ports_buf, "%d", rule->sport);
-    else
+        }
+    } else {
         sprintf(ports_buf, "*");
+    }
 }
 
 static void get_rule_str(struct use_family_rule *rule, char *buf, size_t len)
@@ -175,11 +181,12 @@ static void get_rule_str(struct use_family_rule *rule, char *buf, size_t len)
 
 static void get_instance_id_str(struct instance *instance, char *buf, size_t len)
 {
-    if (instance)
+    if (instance) {
         snprintf(buf, len, "application-id %s %s", instance->id.prog_name_expr,
                  instance->id.user_defined_id);
-    else
+    } else {
         snprintf(buf, len, " ");
+    }
 }
 
 static void print_rule(struct use_family_rule *rule)
@@ -300,8 +307,9 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
                                        MAX_ADDR_STR_LEN);
             port_first = ntohs(sin_first->sin_port);
         }
-        if (addr_str_first == NULL)
+        if (addr_str_first == NULL) {
             addr_str_first = "INVALID_ADDR";
+        }
 
         if (addr_in_second) {
             if (sin6_second->sin6_family == AF_INET6) {
@@ -313,8 +321,9 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
                                             addr_buf_second, MAX_ADDR_STR_LEN);
                 port_second = ntohs(sin_second->sin_port);
             }
-            if (addr_str_second == NULL)
+            if (addr_str_second == NULL) {
                 addr_str_second = "INVALID_ADDR";
+            }
 
             match_logdbg("MATCH: matching %s:%d:%s:%d to %s => ", addr_str_first, port_first,
                          addr_str_second, port_second, rule_str);
@@ -326,10 +335,11 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
 
     /* We currently only support IPv4 and IPv4 embedded in IPv6 */
     if (rule->first.match_by_port) {
-        if (sin6_first->sin6_family == AF_INET6)
+        if (sin6_first->sin6_family == AF_INET6) {
             port_first = ntohs(sin6_first->sin6_port);
-        else
+        } else {
             port_first = ntohs(sin_first->sin_port);
+        }
 
         if ((port_first < rule->first.sport) || (port_first > rule->first.eport)) {
             match_logdbg("NEGATIVE MATCH by port range");
@@ -347,10 +357,11 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
 
     if (match && rule->use_second && addr_in_second) {
         if (rule->second.match_by_port) {
-            if (sin6_second->sin6_family == AF_INET6)
+            if (sin6_second->sin6_family == AF_INET6) {
                 port_second = ntohs(sin6_second->sin6_port);
-            else
+            } else {
                 port_second = ntohs(sin_second->sin_port);
+            }
 
             if ((port_second < rule->second.sport) || (port_second > rule->second.eport)) {
                 match_logdbg("NEGATIVE MATCH by port range");
@@ -383,8 +394,9 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
 /* return 1 on match */
 int __vma_match_program_name(struct instance *instance)
 {
-    if (!instance)
+    if (!instance) {
         return 1;
+    }
 
     return !fnmatch(instance->id.prog_name_expr, program_invocation_short_name, 0);
 }
@@ -394,14 +406,15 @@ int __vma_match_user_defined_id(struct instance *instance, const char *app_id)
 {
     int ret_val = 0;
 
-    if (!instance || !instance->id.user_defined_id || !app_id)
+    if (!instance || !instance->id.user_defined_id || !app_id) {
         ret_val = 1;
-    else if (!strcmp(app_id, "*"))
+    } else if (!strcmp(app_id, "*")) {
         ret_val = 1;
-    else if (!strcmp(instance->id.user_defined_id, "*"))
+    } else if (!strcmp(instance->id.user_defined_id, "*")) {
         ret_val = 1;
-    else
+    } else {
         ret_val = !strcmp(app_id, instance->id.user_defined_id);
+    }
 
     return ret_val;
 }
@@ -418,10 +431,12 @@ static transport_t get_family_by_first_matching_rule(transport_t my_transport,
     for (node = rules_lst.head; node != NULL; node = node->next) {
         /* first rule wins */
         struct use_family_rule *rule = (struct use_family_rule *)node->data;
-        if (rule)
+        if (rule) {
             if (match_ip_addr_and_port(my_transport, rule, sin_first, addrlen_first, sin_second,
-                                       addrlen_second))
+                                       addrlen_second)) {
                 return rule->target_transport;
+            }
+        }
     }
 
     match_logdbg("No matching rule. Using VMA (default)");
@@ -584,26 +599,29 @@ static transport_t match_by_all_rules_program(in_protocol_t my_protocol, struct 
          */
         rule = (struct use_family_rule *)node->data;
 
-        if (!rule)
+        if (!rule) {
             continue;
+        }
         if ((rule->protocol == my_protocol || my_protocol == PROTO_ALL) &&
             (rule->first.match_by_addr || rule->first.match_by_port ||
              (rule->use_second && (rule->second.match_by_addr || rule->second.match_by_port)))) {
             /* not a global match rule - just track the target family */
-            if (rule->target_transport == TRANS_VMA || rule->target_transport == TRANS_ULP)
+            if (rule->target_transport == TRANS_VMA || rule->target_transport == TRANS_ULP) {
                 any_vma++;
-            else if (rule->target_transport == TRANS_OS)
+            } else if (rule->target_transport == TRANS_OS) {
                 any_os++;
+            }
         } else if (rule->protocol == my_protocol &&
                    !(rule->first.match_by_addr || rule->first.match_by_port ||
                      (rule->use_second &&
                       (rule->second.match_by_addr || rule->second.match_by_port)))) {
             /* a global match so we can declare a match by program */
             if ((rule->target_transport == TRANS_VMA || rule->target_transport == TRANS_ULP) &&
-                (any_os == 0))
+                (any_os == 0)) {
                 target_family = TRANS_VMA;
-            else if ((rule->target_transport == TRANS_OS) && (any_vma == 0) && (any_sdp == 0))
+            } else if ((rule->target_transport == TRANS_OS) && (any_vma == 0) && (any_sdp == 0)) {
                 target_family = TRANS_OS;
+            }
         }
     }
     if (target_family == TRANS_DEFAULT) { // no matching rules under application-id. use VMA. Don't
@@ -649,15 +667,18 @@ transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id
                 }
 
                 /* only if both agree */
-                if (server_target_family == client_target_family)
+                if (server_target_family == client_target_family) {
                     target_family = server_target_family;
+                }
             }
             node = node->next;
         }
     }
 
-    if (strcmp(MCE_DEFAULT_APP_ID, app_id) && !b_found_app_id_match)
-        match_logwarn("requested VMA_APPLICATION_ID does not exist in the configuration file");
+    if (strcmp(MCE_DEFAULT_APP_ID, app_id) && !b_found_app_id_match) {
+        match_logwarn("requested %s does not exist in the configuration file",
+                      SYS_VAR_APPLICATION_ID);
+    }
 
     return target_family;
 }
@@ -668,13 +689,15 @@ static int is_ipv4_embedded_in_ipv6(const struct sockaddr_in6 *sin6)
     static struct in6_addr ipv4_embedded_addr = {{{0}}};
 
     /* 10 first bytes must be 0 */
-    if (memcmp(&ipv4_embedded_addr.s6_addr[0], &sin6->sin6_addr.s6_addr[0], 10))
+    if (memcmp(&ipv4_embedded_addr.s6_addr[0], &sin6->sin6_addr.s6_addr[0], 10)) {
         return 0;
+    }
 
     /* next two must be all zeros or all ones */
     if (((sin6->sin6_addr.s6_addr[10] == 0) && (sin6->sin6_addr.s6_addr[11] == 0)) ||
-        ((sin6->sin6_addr.s6_addr[10] == 0xff) && (sin6->sin6_addr.s6_addr[11] == 0xff)))
+        ((sin6->sin6_addr.s6_addr[10] == 0xff) && (sin6->sin6_addr.s6_addr[11] == 0xff))) {
         return 1;
+    }
 
     return 0;
 }
@@ -712,8 +735,9 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
         }
 
         memcpy(addr_out, sin, sizeof(*addr_out));
-        if (was_ipv6)
+        if (was_ipv6) {
             *was_ipv6 = 0;
+        }
     } else if (sin6->sin6_family == AF_INET6) {
         if (addrlen < IPV6_ADDR_IN_MIN_LEN) {
             match_logdbg("Error __vma_sockaddr_to_vma: "
@@ -736,8 +760,9 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
         if (addr_out->sin_addr.s_addr == ntohl(1)) {
             addr_out->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
             match_logdbg("__vma_sockaddr_to_vma: Given IPv6 loopback address");
-        } else
+        } else {
             match_logdbg("__vma_sockaddr_to_vma: Given IPv4 embedded in IPv6");
+        }
 
         addr_out->sin_family = AF_INET;
         addr_out->sin_port = sin6->sin6_port;
@@ -748,8 +773,9 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
         } else {
             match_logdbg("__vma_sockaddr_to_vma: Converted IPv4 is:%s", buf);
         }
-        if (was_ipv6)
+        if (was_ipv6) {
             *was_ipv6 = 1;
+        }
 
     } else if (sin->sin_family == 0) {
 

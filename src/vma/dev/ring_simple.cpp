@@ -729,14 +729,16 @@ int ring_simple::mem_buf_tx_release(mem_buf_desc_t *p_mem_buf_desc_list, bool b_
 {
     ring_logfuncall("");
 
-    if (!trylock)
+    if (!trylock) {
         m_lock_ring_tx.lock();
-    else if (m_lock_ring_tx.trylock())
+    } else if (m_lock_ring_tx.trylock()) {
         return 0;
+    }
 
     int accounting = put_tx_buffers(p_mem_buf_desc_list);
-    if (b_accounting)
+    if (b_accounting) {
         m_missing_buf_ref_count -= accounting;
+    }
     m_lock_ring_tx.unlock();
     return accounting;
 }
@@ -1019,15 +1021,17 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t *buff_list)
         next = buff_list->p_next_desc;
         buff_list->p_next_desc = NULL;
 
-        if (buff_list->tx.dev_mem_length)
+        if (buff_list->tx.dev_mem_length) {
             m_p_qp_mgr->dm_release_data(buff_list);
+        }
 
         // potential race, ref is protected here by ring_tx lock, and in dst_entry_tcp &
         // sockinfo_tcp by tcp lock
-        if (likely(buff_list->lwip_pbuf.pbuf.ref))
+        if (likely(buff_list->lwip_pbuf.pbuf.ref)) {
             buff_list->lwip_pbuf.pbuf.ref--;
-        else
+        } else {
             ring_logerr("ref count of %p is already zero, double free??", buff_list);
+        }
 
         if (buff_list->lwip_pbuf.pbuf.ref == 0) {
             type = (pbuf_type)buff_list->lwip_pbuf.pbuf.type;
@@ -1055,15 +1059,17 @@ int ring_simple::put_tx_single_buffer(mem_buf_desc_t *buff)
     if (likely(buff)) {
         pool = buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
 
-        if (buff->tx.dev_mem_length)
+        if (buff->tx.dev_mem_length) {
             m_p_qp_mgr->dm_release_data(buff);
+        }
 
         // potential race, ref is protected here by ring_tx lock, and in dst_entry_tcp &
         // sockinfo_tcp by tcp lock
-        if (likely(buff->lwip_pbuf.pbuf.ref))
+        if (likely(buff->lwip_pbuf.pbuf.ref)) {
             buff->lwip_pbuf.pbuf.ref--;
-        else
+        } else {
             ring_logerr("ref count of %p is already zero, double free??", buff);
+        }
 
         if (buff->lwip_pbuf.pbuf.ref == 0) {
             buff->p_next_desc = NULL;
@@ -1087,8 +1093,9 @@ void ring_simple::modify_cq_moderation(uint32_t period, uint32_t count)
                                                              : m_cq_moderation_info.count - count;
 
     if (period_diff < (m_cq_moderation_info.period / 20) &&
-        (count_diff < m_cq_moderation_info.count / 20))
+        (count_diff < m_cq_moderation_info.count / 20)) {
         return;
+    }
 
     m_cq_moderation_info.period = period;
     m_cq_moderation_info.count = count;
@@ -1204,8 +1211,9 @@ int ring_simple::modify_ratelimit(struct xlio_rate_limit_t &rate_limit)
 
     uint32_t rl_changes = m_p_qp_mgr->is_ratelimit_change(rate_limit);
 
-    if (m_up && rl_changes)
+    if (m_up && rl_changes) {
         return m_p_qp_mgr->modify_qp_ratelimit(rate_limit, rl_changes);
+    }
 
     return 0;
 }
@@ -1229,10 +1237,11 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length, void *p_mappin
         lkey = m_user_lkey_map.get(addr, 0);
         if (!lkey) {
             lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
-            if (lkey == (uint32_t)(-1))
+            if (lkey == (uint32_t)(-1)) {
                 ring_logerr("Can't register user memory addr %p len %lx", addr, length);
-            else
+            } else {
                 m_user_lkey_map.set(addr, lkey);
+            }
         }
     } else {
         mapping_t *mapping = (mapping_t *)p_mapping;

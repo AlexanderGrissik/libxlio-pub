@@ -80,9 +80,10 @@ void subject::notify_observers(event *ev /*=NULL*/)
 
     auto_unlocker lock(m_lock);
     for (observers_t::iterator iter = m_observers.begin(); iter != m_observers.end(); iter++) {
-        if (ev)
+        if (ev) {
             (*iter)->notify_cb(ev);
-        else
+        } else {
             (*iter)->notify_cb();
+        }
     }
 }

@@ -102,16 +102,18 @@ public:
     int get_tcp_max_syn_backlog(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/tcp_max_syn_backlog", 1024);
+        }
         return val;
     }
 
     int get_listen_maxconn(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/core/somaxconn", SOMAXCONN);
+        }
         return val;
     }
 
@@ -155,40 +157,45 @@ public:
     int get_tcp_window_scaling(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/tcp_window_scaling", 0);
+        }
         return val;
     }
 
     int get_net_core_rmem_max(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/core/rmem_max", 229376);
+        }
         return val;
     }
 
     int get_net_core_wmem_max(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/core/wmem_max", 229376);
+        }
         return val;
     }
 
     int get_net_ipv4_tcp_timestamps(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/tcp_timestamps", 0);
+        }
         return val;
     }
 
     int get_net_ipv4_ttl(bool update = false)
     {
         static int val;
-        if (update)
+        if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/ip_default_ttl", 64);
+        }
         return val;
     }
 

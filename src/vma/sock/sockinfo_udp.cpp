@@ -286,8 +286,9 @@ inline int sockinfo_udp::rx_wait(bool blocking)
         // ..or some other sockinfo::rx might have added a ready rx datagram to our list
         // In case of multiple frag we'de like to try and get all parts out of the corresponding
         // ring, so we do want to poll the cq besides the select notification
-        if (is_readable(&poll_sn))
+        if (is_readable(&poll_sn)) {
             return 0;
+        }
 
     } // while (blocking)
 
@@ -374,8 +375,9 @@ sockinfo_udp::sockinfo_udp(int fd)
     socklen_t option_len = sizeof(n_so_rcvbuf_bytes);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (unlikely(
-            orig_os_api.getsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &n_so_rcvbuf_bytes, &option_len)))
+            orig_os_api.getsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &n_so_rcvbuf_bytes, &option_len))) {
         si_udp_logdbg("Failure in getsockopt (errno=%d %m)", errno);
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
     si_udp_logdbg("Sockets RCVBUF = %d bytes", n_so_rcvbuf_bytes);
     rx_ready_byte_count_limit_update(n_so_rcvbuf_bytes);
@@ -388,8 +390,9 @@ sockinfo_udp::sockinfo_udp(int fd)
     ev.data.fd = m_fd;
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (unlikely(orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_ADD, ev.data.fd, &ev)))
+    if (unlikely(orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_ADD, ev.data.fd, &ev))) {
         si_udp_logpanic("failed to add user's fd to internal epfd errno=%d (%m)", errno);
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     si_udp_logfunc("done");
@@ -432,13 +435,14 @@ sockinfo_udp::~sockinfo_udp()
     statistics_print();
 
     if (m_n_rx_pkt_ready_list_count || m_rx_ready_byte_count || m_rx_pkt_ready_list.size() ||
-        m_rx_ring_map.size() || m_rx_reuse_buff.n_buff_num)
+        m_rx_ring_map.size() || m_rx_reuse_buff.n_buff_num) {
         si_udp_logerr("not all buffers were freed. protocol=UDP. m_n_rx_pkt_ready_list_count=%d, "
                       "m_rx_ready_byte_count=%lu, m_rx_pkt_ready_list.size()=%d, "
                       "m_rx_ring_map.size()=%d, m_rx_reuse_buff.n_buff_num=%d",
                       m_n_rx_pkt_ready_list_count, m_rx_ready_byte_count,
                       (int)m_rx_pkt_ready_list.size(), (int)m_rx_ring_map.size(),
                       m_rx_reuse_buff.n_buff_num);
+    }
 
     si_udp_logfunc("done");
 }
@@ -707,8 +711,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
     int ret = 0;
 
-    if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit))
+    if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
         return orig_os_api.setsockopt(m_fd, __level, __optname, __optval, __optlen);
+    }
 
     auto_unlocker lock_tx(m_lock_snd);
     auto_unlocker lock_rx(m_lock_rcv);
@@ -761,11 +766,12 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         case SO_RCVTIMEO:
             if (__optval) {
                 struct timeval *tv = (struct timeval *)__optval;
-                if (tv->tv_sec || tv->tv_usec)
+                if (tv->tv_sec || tv->tv_usec) {
                     m_loops_timer.set_timeout_msec(tv->tv_sec * 1000 +
                                                    (tv->tv_usec ? tv->tv_usec / 1000 : 0));
-                else
+                } else {
                     m_loops_timer.set_timeout_msec(-1);
+                }
                 si_udp_logdbg("SOL_SOCKET: SO_RCVTIMEO=%d", m_loops_timer.get_timeout_msec());
             } else {
                 si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, optval == NULL",
@@ -921,11 +927,11 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
         case IP_MULTICAST_TTL: {
             int n_mc_ttl = -1;
-            if (__optlen == sizeof(m_n_mc_ttl))
+            if (__optlen == sizeof(m_n_mc_ttl)) {
                 n_mc_ttl = *(char *)__optval;
-            else if (__optlen == sizeof(int))
+            } else if (__optlen == sizeof(int)) {
                 n_mc_ttl = *(int *)__optval;
-            else {
+            } else {
                 break;
             }
             if (n_mc_ttl == -1) {
@@ -1098,8 +1104,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             else if (INPORT_ANY == m_bound.get_in_port()) {
                 // Delay attaching to this MC group until we have bound UDP port
                 ret = orig_os_api.setsockopt(m_fd, __level, __optname, __optval, __optlen);
-                if (ret)
+                if (ret) {
                     return ret;
+                }
                 mc_change_pending_mreq(&mcpram);
             }
             // Handle attach to this MC group now
@@ -1110,8 +1117,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
             if (goto_os) {
                 ret = orig_os_api.setsockopt(m_fd, __level, __optname, __optval, __optlen);
-                if (ret)
+                if (ret) {
                     return ret;
+                }
             }
 
             mc_change_membership_end_helper(mc_grp, __optname, mreqprm.imr_sourceaddr.s_addr);
@@ -1119,10 +1127,11 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         } break;
         case IP_PKTINFO:
             if (__optval) {
-                if (*(int *)__optval)
+                if (*(int *)__optval) {
                     m_b_pktinfo = true;
-                else
+                } else {
                     m_b_pktinfo = false;
+                }
             }
             break;
         case IP_TOS: {
@@ -1221,8 +1230,9 @@ int sockinfo_udp::getsockopt(int __level, int __optname, void *__optval, socklen
 
     int ret = orig_os_api.getsockopt(m_fd, __level, __optname, __optval, __optlen);
 
-    if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit))
+    if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
         return ret;
+    }
 
     if (0 == sockinfo::getsockopt(__level, __optname, __optval, __optlen)) {
         return 0;
@@ -1240,9 +1250,10 @@ int sockinfo_udp::getsockopt(int __level, int __optname, void *__optval, socklen
             uint32_t n_so_rcvbuf_bytes = *(int *)__optval;
             si_udp_logdbg("SOL_SOCKET, SO_RCVBUF=%d", n_so_rcvbuf_bytes);
 
-            if (m_p_socket_stats->n_rx_ready_byte_count > n_so_rcvbuf_bytes)
+            if (m_p_socket_stats->n_rx_ready_byte_count > n_so_rcvbuf_bytes) {
                 si_udp_logdbg("Releasing at least %lu bytes from ready rx packets queue",
                               m_p_socket_stats->n_rx_ready_byte_count - n_so_rcvbuf_bytes);
+            }
 
             rx_ready_byte_count_limit_update(n_so_rcvbuf_bytes);
         } break;
@@ -1296,8 +1307,9 @@ void sockinfo_udp::rx_ready_byte_count_limit_update(size_t n_rx_ready_bytes_limi
                    n_rx_ready_bytes_limit_new, m_p_socket_stats->n_rx_ready_byte_limit,
                    m_n_sysvar_rx_ready_byte_min_limit);
     if (n_rx_ready_bytes_limit_new > 0 &&
-        n_rx_ready_bytes_limit_new < m_n_sysvar_rx_ready_byte_min_limit)
+        n_rx_ready_bytes_limit_new < m_n_sysvar_rx_ready_byte_min_limit) {
         n_rx_ready_bytes_limit_new = m_n_sysvar_rx_ready_byte_min_limit;
+    }
     m_p_socket_stats->n_rx_ready_byte_limit = n_rx_ready_bytes_limit_new;
     drop_rx_ready_byte_count(m_p_socket_stats->n_rx_ready_byte_limit);
 
@@ -1318,8 +1330,9 @@ void sockinfo_udp::drop_rx_ready_byte_count(size_t n_rx_bytes_limit)
 
             reuse_buffer(p_rx_pkt_desc);
             return_reuse_buffers_postponed();
-        } else
+        } else {
             break;
+        }
     }
     m_lock_rcv.unlock();
 }
@@ -1385,8 +1398,9 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
         m_rx_udp_poll_os_ratio_counter++;
         if (m_n_rx_pkt_ready_list_count > 0) {
             // Found a ready packet in the list
-            if (__msg)
+            if (__msg) {
                 handle_cmsg(__msg, in_flags);
+            }
             ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags,
                                  &out_flags);
             goto out;
@@ -1407,8 +1421,9 @@ wait:
     if (likely(rx_wait_ret == 0)) {
         // Got 0, means we might have a ready packet
         if (m_n_rx_pkt_ready_list_count > 0) {
-            if (__msg)
+            if (__msg) {
                 handle_cmsg(__msg, in_flags);
+            }
             ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags,
                                  &out_flags);
             goto out;
@@ -1452,8 +1467,9 @@ out:
     /* coverity[double_unlock] TODO: RM#1049980 */
     m_lock_rcv.unlock();
 
-    if (__msg)
+    if (__msg) {
         __msg->msg_flags |= out_flags & MSG_TRUNC;
+    }
 
     if (ret < 0) {
 #ifdef VMA_TIME_MEASURE
@@ -1539,8 +1555,9 @@ bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t *p_fd_ready_array
         m_rx_ring_map_lock.lock();
         for (rx_ring_iter = m_rx_ring_map.begin(); rx_ring_iter != m_rx_ring_map.end();
              rx_ring_iter++) {
-            if (rx_ring_iter->second->refcnt <= 0)
+            if (rx_ring_iter->second->refcnt <= 0) {
                 continue;
+            }
 
             ring *p_ring = rx_ring_iter->first;
             while (1) {
@@ -1738,8 +1755,9 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
 #ifdef DEFINED_TSO
         vma_send_attr attr = {(vma_wr_tx_packet_attr)0, 0, 0, 0};
         bool b_blocking = m_b_blocking;
-        if (unlikely(__flags & MSG_DONTWAIT))
+        if (unlikely(__flags & MSG_DONTWAIT)) {
             b_blocking = false;
+        }
 
         attr.flags = (vma_wr_tx_packet_attr)((b_blocking * VMA_TX_PACKET_BLOCK) |
                                              (is_dummy * VMA_TX_PACKET_DUMMY));
@@ -2057,8 +2075,9 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
             if (!sock_api || sock_api->get_type() != FD_TYPE_SOCKET) {
                 m_port_map.erase(std::remove(m_port_map.begin(), m_port_map.end(),
                                              m_port_map[m_port_map_index].port));
-                if (m_port_map_index)
+                if (m_port_map_index) {
                     m_port_map_index--;
+                }
                 m_port_map_lock.unlock();
                 continue;
             }
@@ -2129,10 +2148,11 @@ void sockinfo_udp::set_blocking(bool is_blocked)
     if (m_b_blocking) {
         // Set the high CQ polling RX_POLL value
         // depending on where we have mapped offloaded MC gorups
-        if (m_rx_ring_map.size() > 0)
+        if (m_rx_ring_map.size() > 0) {
             m_loops_to_go = m_n_sysvar_rx_poll_num;
-        else
+        } else {
             m_loops_to_go = safe_mce_sys().rx_poll_num_init;
+        }
     } else {
         // Force single CQ poll in case of non-blocking socket
         m_loops_to_go = 1;
@@ -2426,15 +2446,17 @@ void sockinfo_udp::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 void sockinfo_udp::save_stats_threadid_rx()
 {
     // Save Thread Id for statistics module
-    if (g_vlogger_level >= VLOG_DEBUG)
+    if (g_vlogger_level >= VLOG_DEBUG) {
         m_p_socket_stats->threadid_last_rx = gettid();
+    }
 }
 
 void sockinfo_udp::save_stats_threadid_tx()
 {
     // Save Thread Id for statistics module
-    if (g_vlogger_level >= VLOG_DEBUG)
+    if (g_vlogger_level >= VLOG_DEBUG) {
         m_p_socket_stats->threadid_last_tx = gettid();
+    }
 }
 
 void sockinfo_udp::save_stats_tx_offload(int bytes, bool is_dummy)
@@ -2500,8 +2522,9 @@ void sockinfo_udp::post_deqeue(bool release_buff)
     mem_buf_desc_t *to_resue = m_rx_pkt_ready_list.get_and_pop_front();
     m_p_socket_stats->n_rx_ready_pkt_count--;
     m_n_rx_pkt_ready_list_count--;
-    if (release_buff)
+    if (release_buff) {
         reuse_buffer(to_resue);
+    }
     m_rx_pkt_ready_offset = 0;
 }
 
@@ -2546,8 +2569,9 @@ size_t sockinfo_udp::handle_msg_trunc(size_t total_rx, size_t payload_size, int 
         m_rx_ready_byte_count -= (payload_size - total_rx);
         m_p_socket_stats->n_rx_ready_byte_count -= (payload_size - total_rx);
         *p_out_flags |= MSG_TRUNC;
-        if (in_flags & MSG_TRUNC)
+        if (in_flags & MSG_TRUNC) {
             return payload_size;
+        }
     }
 
     return total_rx;

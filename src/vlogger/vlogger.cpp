@@ -220,11 +220,13 @@ static vma_log_cb_t vma_log_get_cb_func()
 {
     vma_log_cb_t log_cb = NULL;
     const char *const CB_STR = getenv(XLIO_LOG_CB_ENV_VAR);
-    if (!CB_STR || !*CB_STR)
+    if (!CB_STR || !*CB_STR) {
         return NULL;
+    }
 
-    if (1 != sscanf(CB_STR, "%p", &log_cb))
+    if (1 != sscanf(CB_STR, "%p", &log_cb)) {
         return NULL;
+    }
     return log_cb;
 }
 
@@ -265,8 +267,9 @@ void vlog_start(const char *log_module_name, vlog_levels_t log_level, const char
     g_p_vlogger_details = &g_vlogger_details;
 
     int file_fd = fileno(g_vlogger_file);
-    if (file_fd >= 0 && isatty(file_fd) && log_in_colors)
+    if (file_fd >= 0 && isatty(file_fd) && log_in_colors) {
         g_vlogger_log_in_colors = log_in_colors;
+    }
 }
 
 void vlog_stop(void)
@@ -280,8 +283,9 @@ void vlog_stop(void)
     strcpy(g_vlogger_module_name, VLOG_DEFAULT_MODULE_NAME);
 
     // Close output stream
-    if (g_vlogger_file && g_vlogger_file != stderr)
+    if (g_vlogger_file && g_vlogger_file != stderr) {
         fclose(g_vlogger_file);
+    }
 
     // fix for using LD_PRELOAD with LBM. Unset the pointer given by the parent process, so a child
     // could get his own pointer without issues.
@@ -296,9 +300,10 @@ void vlog_output(vlog_levels_t log_level, const char *fmt, ...)
     // Format header
 
     // Set color scheme
-    if (g_vlogger_log_in_colors)
+    if (g_vlogger_log_in_colors) {
         len +=
             snprintf(buf + len, VLOGGER_STR_SIZE - len - 1, "%s", log_level::get_color(log_level));
+    }
 
     switch (g_vlogger_details) {
     case 3: // Time
@@ -324,15 +329,17 @@ void vlog_output(vlog_levels_t log_level, const char *fmt, ...)
     // Format body
     va_list ap;
     va_start(ap, fmt);
-    if (fmt != NULL)
+    if (fmt != NULL) {
         len += vsnprintf(buf + len, VLOGGER_STR_SIZE - len, fmt, ap);
+    }
     va_end(ap);
 
     // Reset color scheme
     if (g_vlogger_log_in_colors) {
         // Save enough room for color code termination and EOL
-        if (len > VLOGGER_STR_SIZE - VLOGGER_STR_TERMINATION_SIZE)
+        if (len > VLOGGER_STR_SIZE - VLOGGER_STR_TERMINATION_SIZE) {
             len = VLOGGER_STR_SIZE - VLOGGER_STR_TERMINATION_SIZE - 1;
+        }
 
         len = snprintf(buf + len, VLOGGER_STR_TERMINATION_SIZE, VLOGGER_STR_COLOR_TERMINATION_STR);
         if (len < 0) {

@@ -189,10 +189,12 @@ io_mux_call::io_mux_call(int *off_fds_buffer, offloaded_mode_t *off_modes_buffer
     tv_clear(&m_start);
     tv_clear(&m_elapsed);
 
-    if (m_p_all_offloaded_fds)
+    if (m_p_all_offloaded_fds) {
         memset(m_p_all_offloaded_fds, 0, num_fds * sizeof(m_p_all_offloaded_fds[0]));
-    if (m_p_offloaded_modes)
+    }
+    if (m_p_offloaded_modes) {
         memset(m_p_offloaded_modes, 0, num_fds * sizeof(m_p_offloaded_modes[0]));
+    }
 
     m_fd_ready_array.fd_max = FD_ARRAY_MAX;
     m_fd_ready_array.fd_count = 0;
@@ -339,8 +341,9 @@ void io_mux_call::polling_loops()
          * If this is successful we must exit - wait_os() might mess the results.
          */
         //__log_func("before check_all_offloaded_sockets");
-        if (check_all_offloaded_sockets())
+        if (check_all_offloaded_sockets()) {
             break;
+        }
 
         /*
          * Update elapsed time & Check for timeout or expiry of polling loops duration
@@ -492,12 +495,13 @@ int io_mux_call::call()
         // wake up mechanism can bring up events of later joined offloaded sockets
         if (*m_p_num_all_offloaded_fds) {
             check_all_offloaded_sockets();
-            if (m_n_all_ready_fds)
+            if (m_n_all_ready_fds) {
                 goto done;
-            else { // false wake-up, and we already discovered that we should be in 2nd scenario
+            } else { // false wake-up, and we already discovered that we should be in 2nd scenario
                 timer_update();
-                if (is_timeout(m_elapsed))
+                if (is_timeout(m_elapsed)) {
                     goto done;
+                }
             }
         } else {
             goto done;
@@ -571,8 +575,9 @@ int io_mux_call::ring_wait_for_notification_and_process_element(void *pv_fd_read
 
 bool io_mux_call::is_sig_pending()
 {
-    if (!m_sigmask)
+    if (!m_sigmask) {
         return false;
+    }
 
     if (m_check_sig_pending_ratio >= CHECK_INTERRUPT_RATIO) {
         m_check_sig_pending_ratio = 0;

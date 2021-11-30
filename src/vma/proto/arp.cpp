@@ -70,7 +70,8 @@ void set_ib_arp_hdr(ib_arp_hdr *p_arph, in_addr_t ipsrc_addr, in_addr_t ipdst_ad
     p_arph->m_opcode = htons(ARP_REQUEST);
     IBADDR_COPY(p_arph->m_shwaddr, hwsrc_addr);
     p_arph->m_sipaddr = ipsrc_addr;
-    if (hwdst_addr)
+    if (hwdst_addr) {
         IBADDR_COPY(p_arph->m_dhwaddr, hwdst_addr);
+    }
     p_arph->m_dipaddr = ipdst_addr;
 }

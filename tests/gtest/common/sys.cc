@@ -54,32 +54,39 @@ void sys_hexdump(const char *tag, void *ptr, int buflen)
     for (i = 0; i < buflen; i += 16) {
         out_pos = 0;
         ret = sprintf(out_buf + out_pos, "%06x: ", i);
-        if (ret < 0)
+        if (ret < 0) {
             return;
+        }
         out_pos += ret;
         for (j = 0; j < 16; j++) {
-            if (i + j < buflen)
+            if (i + j < buflen) {
                 ret = sprintf(out_buf + out_pos, "%02x ", buf[i + j]);
-            else
+            } else {
                 ret = sprintf(out_buf + out_pos, "   ");
-            if (ret < 0)
+            }
+            if (ret < 0) {
                 return;
+            }
             out_pos += ret;
         }
         ret = sprintf(out_buf + out_pos, " ");
-        if (ret < 0)
+        if (ret < 0) {
             return;
+        }
         out_pos += ret;
-        for (j = 0; j < 16; j++)
+        for (j = 0; j < 16; j++) {
             if (i + j < buflen) {
                 ret = sprintf(out_buf + out_pos, "%c", isprint(buf[i + j]) ? buf[i + j] : '.');
-                if (ret < 0)
+                if (ret < 0) {
                     return;
+                }
                 out_pos += ret;
             }
+        }
         ret = sprintf(out_buf + out_pos, "\n");
-        if (ret < 0)
+        if (ret < 0) {
             return;
+        }
         log_trace("%s", out_buf);
     }
 }

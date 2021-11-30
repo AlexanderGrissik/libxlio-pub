@@ -540,8 +540,9 @@ uint32_t qp_mgr::get_rx_max_wr_num()
 void qp_mgr::post_recv_buffer(mem_buf_desc_t *p_mem_buf_desc)
 {
     if (m_n_sysvar_rx_prefetch_bytes_before_poll) {
-        if (m_p_prev_rx_desc_pushed)
+        if (m_p_prev_rx_desc_pushed) {
             m_p_prev_rx_desc_pushed->p_prev_desc = p_mem_buf_desc;
+        }
         m_p_prev_rx_desc_pushed = p_mem_buf_desc;
     }
 
@@ -878,8 +879,9 @@ rfs_rule *qp_mgr::create_rfs_rule(vma_ibv_flow_attr &attrs, xlio_tir *tir_ext)
     }
 
     unique_ptr<rfs_rule_ibv> new_rule(new rfs_rule_ibv());
-    if (new_rule->create(attrs, this->get_ibv_qp()))
+    if (new_rule->create(attrs, this->get_ibv_qp())) {
         return new_rule.release();
+    }
 
     return nullptr;
 }
