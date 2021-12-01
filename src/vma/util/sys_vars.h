@@ -847,7 +847,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TSO                               (true)
 #endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
-#define MCE_DEFAULT_UTLS_RX                           (true)
+#define MCE_DEFAULT_UTLS_RX                           (false)
 #define MCE_DEFAULT_UTLS_TX                           (true)
 #endif /* DEFINED_UTLS */
 

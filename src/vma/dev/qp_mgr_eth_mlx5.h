@@ -146,6 +146,7 @@ protected:
 	virtual cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
 	virtual cq_mgr*	init_tx_cq_mgr(void);
 
+	void		put_tir_in_cache(xlio_tir* tir);
 	void		ti_released(xlio_ti *ti);
 	inline bool	is_sq_wqe_prop_valid(sq_wqe_prop *p, sq_wqe_prop *prev)
 	{

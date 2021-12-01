@@ -258,7 +258,7 @@ public:
 	inline uint32_t get_tisn(void) { return 0; }
 	inline void reset(void) {}
 };
-class xlio_tir {
+class xlio_tir : public xlio_ti {
 public:
 	/* A stub class to compile without uTLS support. */
 	inline uint32_t get_tirn(void) { return 0; }
@@ -1508,8 +1508,7 @@ void qp_mgr_eth_mlx5::tls_release_tir(xlio_tir *tir)
 	tir->m_released = true;
 	tir->assign_callback(NULL, NULL);
 	if (tir->m_ref == 0) {
-		tir->reset();
-		m_tir_cache.push_back(tir);
+		put_tir_in_cache(tir);
 	}
 }
 
@@ -1531,10 +1530,21 @@ void qp_mgr_eth_mlx5::ti_released(xlio_ti *ti)
 		tis->reset();
 		m_tis_cache.push_back(tis);
 	} else if (ti->m_type == XLIO_TI_TIR) {
-		xlio_tir *tir = (xlio_tir*)ti;
-		tir->reset();
-		m_tir_cache.push_back(tir);
+		put_tir_in_cache(static_cast<xlio_tir*>(ti));
 	}
+}
+
+void qp_mgr_eth_mlx5::put_tir_in_cache(xlio_tir* tir)
+{
+	tir->reset();
+
+	// Because the absense of TIR flush command, reusing a TIR
+	// may result in undefined behaviour.
+	// Until a flush command is available the TIR cache is disabled.
+	// Re-enabling TIR cache should also add destroy_tir_cache on ring cleanup.
+	// m_tir_cache.push_back(tir);
+
+	delete tir;
 }
 
 void qp_mgr_eth_mlx5::post_nop_fence(void)
