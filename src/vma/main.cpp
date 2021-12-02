@@ -783,20 +783,20 @@ void print_vma_global_settings()
     VLOG_PARAM_STRING("SocketXtreme mode", safe_mce_sys().enable_socketxtreme,
                       MCE_DEFAULT_SOCKETXTREME, SYS_VAR_SOCKETXTREME,
                       safe_mce_sys().enable_socketxtreme ? "Enabled " : "Disabled");
-    VLOG_PARAM_STRING("TSO support", safe_mce_sys().enable_tso, MCE_DEFAULT_TSO, SYS_VAR_TSO,
-                      safe_mce_sys().enable_tso ? "Enabled " : "Disabled");
+    VLOG_STR_PARAM_STRING("TSO support", option_3::to_str(safe_mce_sys().enable_tso),
+                          option_3::to_str(MCE_DEFAULT_TSO), SYS_VAR_TSO,
+                          option_3::to_str(safe_mce_sys().enable_tso));
+    VLOG_STR_PARAM_STRING("LRO support", option_3::to_str(safe_mce_sys().enable_lro),
+                          option_3::to_str(MCE_DEFAULT_LRO), SYS_VAR_LRO,
+                          option_3::to_str(safe_mce_sys().enable_lro));
+    VLOG_PARAM_STRING("BF (Blue Flame)", safe_mce_sys().handle_bf, MCE_DEFAULT_BF_FLAG, SYS_VAR_BF,
+                      safe_mce_sys().handle_bf ? "Enabled " : "Disabled");
 #ifdef DEFINED_UTLS
     VLOG_PARAM_STRING("UTLS RX support", safe_mce_sys().enable_utls_rx, MCE_DEFAULT_UTLS_RX,
                       SYS_VAR_UTLS_RX, safe_mce_sys().enable_utls_rx ? "Enabled " : "Disabled");
     VLOG_PARAM_STRING("UTLS TX support", safe_mce_sys().enable_utls_tx, MCE_DEFAULT_UTLS_TX,
                       SYS_VAR_UTLS_TX, safe_mce_sys().enable_utls_tx ? "Enabled " : "Disabled");
 #endif /* DEFINED_UTLS */
-
-    VLOG_STR_PARAM_STRING("LRO support", option_3::to_str(safe_mce_sys().enable_lro),
-                          option_3::to_str(MCE_DEFAULT_LRO), SYS_VAR_LRO,
-                          option_3::to_str(safe_mce_sys().enable_lro));
-    VLOG_PARAM_STRING("BF (Blue Flame)", safe_mce_sys().handle_bf, MCE_DEFAULT_BF_FLAG, SYS_VAR_BF,
-                      safe_mce_sys().handle_bf ? "Enabled " : "Disabled");
 #if defined(DEFINED_NGINX)
     VLOG_PARAM_NUMBER("Src port stirde", safe_mce_sys().src_port_stride,
                       MCE_DEFAULT_SRC_PORT_STRIDE, SYS_VAR_SRC_PORT_STRIDE);

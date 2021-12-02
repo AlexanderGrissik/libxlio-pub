@@ -467,7 +467,7 @@ public:
 
     bool enable_ipoib;
     bool enable_socketxtreme;
-    bool enable_tso;
+    option_3::mode_t enable_tso;
     option_3::mode_t enable_lro;
     option_strq::mode_t enable_strq_env;
 #ifdef DEFINED_UTLS
@@ -837,7 +837,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_MAX_CQ_POLL_BATCH               (128)
 #define MCE_DEFAULT_IPOIB_FLAG              (1)
 #define MCE_DEFAULT_SOCKETXTREME            (false)
-#define MCE_DEFAULT_TSO                     (true)
+#define MCE_DEFAULT_TSO                     (option_3::AUTO)
 #ifdef DEFINED_UTLS
 #define MCE_DEFAULT_UTLS_RX (false)
 #define MCE_DEFAULT_UTLS_TX (true)

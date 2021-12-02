@@ -855,7 +855,7 @@ void mce_sys_var::get_env_params()
         tx_bufs_batch_tcp = 1; // MCE_DEFAULT_TX_BUFS_BATCH_TCP;
         rx_bufs_batch = 4; // MCE_DEFAULT_RX_BUFS_BATCH (64)
         rx_poll_num = -1; // MCE_DEFAULT_RX_NUM_POLLS
-        enable_tso = false; // MCE_DEFAULT_TSO (true)
+        enable_tso = option_3::OFF; // MCE_DEFAULT_TSO (option_3::AUTO)
         rx_udp_poll_os_ratio = 0; // MCE_DEFAULT_RX_UDP_POLL_OS_RATIO
         rx_prefetch_bytes = MCE_DEFAULT_RX_PREFETCH_BYTES; //(256)
         rx_prefetch_bytes_before_poll = 256; // MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL 0
@@ -892,7 +892,7 @@ void mce_sys_var::get_env_params()
         rx_bufs_batch = 4; // MCE_DEFAULT_RX_BUFS_BATCH (64)
 
         rx_poll_num = -1; // MCE_DEFAULT_RX_NUM_POLLS (100000)
-        enable_tso = false; // MCE_DEFAULT_TSO (true)
+        enable_tso = option_3::OFF; // MCE_DEFAULT_TSO (option_3::AUTO)
         rx_prefetch_bytes_before_poll = 256; // MCE_DEFAULT_RX_PREFETCH_BYTES_BEFORE_POLL (0)
         select_poll_num = -1; // MCE_DEFAULT_SELECT_NUM_POLLS (100000)
         avoid_sys_calls_on_tcp_fd = true; // MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD (false)
@@ -1008,7 +1008,7 @@ void mce_sys_var::get_env_params()
             1000000; // MCE_DEFAULT_TX_NUM_BUFS (200000), Global TX data buffers allocated.
         tx_num_segs_tcp = 4000000; // MCE_DEFAULT_TX_NUM_SEGS_TCP (1000000), Number of TX TCP
                                    // segments in the pool.
-	tx_buf_size = 0; // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
+        tx_buf_size = 0; // MCE_DEFAULT_TX_BUF_SIZE (0), Size of single data buffer.
         zc_tx_size = 32768; // MCE_DEFAULT_ZC_TX_SIZE (32768), zero copy segment maximum size.
         progress_engine_interval_msec = 0; // MCE_DEFAULT_PROGRESS_ENGINE_INTERVAL_MSEC (10),
                                            // Disable internal thread CQ draining logic.
@@ -1025,7 +1025,7 @@ void mce_sys_var::get_env_params()
         rx_poll_on_tx_tcp = true; // MCE_DEFAULT_RX_POLL_ON_TX_TCP(false), Do polling on RX queue on
                                   // TX operations, helpful to maintain TCP stack management.
         enable_tso =
-            true; // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
+            option_3::ON; // MCE_DEFAULT_TSO(option_3::AUTO), Enable TCP Segmentation Offload(=TSO).
         tx_num_wr = 4096; // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
         timer_resolution_msec = 256; // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread
                                      // timer resolution, reduce CPU utilization of internal thread.
@@ -1080,7 +1080,7 @@ void mce_sys_var::get_env_params()
         thread_mode = THREAD_MODE_SINGLE; // MCE_DEFAULT_THREAD_MODE (THREAD_MODE_MULTI), Single
                                           // threaded mode to reduce locking.
         enable_tso =
-            true; // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
+            option_3::ON; // MCE_DEFAULT_TSO(true), Enable TCP Segmentation Offload(=TSO) mechanism.
         tx_num_wr = 4096; // MCE_DEFAULT_TX_NUM_WRE (2048), Amount of WREs in TX queue.
         timer_resolution_msec = 32; // MCE_DEFAULT_TIMER_RESOLUTION_MSEC (10), Internal thread timer
                                     // resolution, reduce CPU utilization of internal thread.
@@ -1766,10 +1766,10 @@ void mce_sys_var::get_env_params()
     }
 
     if ((env_ptr = getenv(SYS_VAR_TSO)) != NULL) {
-        enable_tso = atoi(env_ptr) ? true : false;
+        enable_tso = option_3::from_str(env_ptr, MCE_DEFAULT_TSO);
     }
 
-    if (enable_tso && (ring_migration_ratio_tx != -1)) {
+    if ((enable_tso != option_3::OFF) && (ring_migration_ratio_tx != -1)) {
         ring_migration_ratio_tx = -1;
         vlog_printf(VLOG_DEBUG, "%s parameter is forced to %d in case %s is enabled\n",
                     SYS_VAR_RING_MIGRATION_RATIO_TX, -1, SYS_VAR_TSO);

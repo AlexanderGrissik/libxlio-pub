@@ -163,7 +163,7 @@ Example:
  XLIO DETAILS: Num of neigh restart retries   1                          [XLIO_NEIGH_NUM_ERR_RETRIES]
  XLIO DETAILS: IPOIB support                  Enabled                    [XLIO_IPOIB]
  XLIO DETAILS: SocketXtreme mode              Disabled                   [XLIO_SOCKETXTREME]
- XLIO DETAILS: TSO support                    Enabled                    [XLIO_TSO]
+ XLIO DETAILS: TSO support                    auto                       [XLIO_TSO]
  XLIO DETAILS: UTLS RX support                Enabled                    [XLIO_UTLS_RX]
  XLIO DETAILS: UTLS TX support                Enabled                    [XLIO_UTLS_TX]
  XLIO DETAILS: LRO support                    auto                       [XLIO_LRO]
@@ -506,7 +506,15 @@ prototype TCP and IP headers of the incoming send buffer to carve out segments
 of required size. Copying the prototype header and options, then calculating
 the sequence number and checksum fields creates TCP segment headers.
 Expected benefits: Throughput increase and CPU unload.
-Default value is 1 (Enable)
+Default value: auto
+
+auto
+    Depends on ethtool setting and adapter ability.
+    See ethtool -k <eth0> | grep tcp-segmentation-offload
+on
+    Enabled in case adapter supports it
+off
+    Disabled
 
 XLIO_UTLS_RX
 UTLS provides TLS data path acceleration. This is achieved by offloading Linux
