@@ -1169,7 +1169,7 @@ int net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn,
             nd_logfunc("ring[%p] RX Returned with: %d (sn=%d)", THE_RING, ret, *p_poll_sn);
             ret_total += ret;
         }
-#if defined(DEFINED_ZCOPY)
+#if defined(DEFINED_FORCE_TX_POLLING)
         ret = THE_RING->poll_and_process_element_tx(p_poll_sn);
         BULLSEYE_EXCLUDE_BLOCK_START
         if (ret < 0 && errno != EAGAIN) {
@@ -1182,7 +1182,7 @@ int net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn,
             nd_logfunc("ring[%p] TX Returned with: %d (sn=%d)", THE_RING, ret, *p_poll_sn);
             ret_total += ret;
         }
-#endif /* DEFINED_ZCOPY */
+#endif /* DEFINED_FORCE_TX_POLLING */
     }
     return ret_total;
 }
@@ -1203,7 +1203,7 @@ int net_device_val::global_ring_request_notification(uint64_t poll_sn)
         BULLSEYE_EXCLUDE_BLOCK_END
         nd_logfunc("ring[%p] RX Returned with: %d (sn=%d)", THE_RING, ret, poll_sn);
         ret_total += ret;
-#if defined(DEFINED_ZCOPY)
+#if defined(DEFINED_FORCE_TX_POLLING)
         ret = THE_RING->request_notification(CQT_TX, poll_sn);
         BULLSEYE_EXCLUDE_BLOCK_START
         if (ret < 0) {
@@ -1213,7 +1213,7 @@ int net_device_val::global_ring_request_notification(uint64_t poll_sn)
         BULLSEYE_EXCLUDE_BLOCK_END
         nd_logfunc("ring[%p] TX Returned with: %d (sn=%d)", THE_RING, ret, poll_sn);
         ret_total += ret;
-#endif /* DEFINED_ZCOPY */
+#endif /* DEFINED_FORCE_TX_POLLING */
     }
     return ret_total;
 }
