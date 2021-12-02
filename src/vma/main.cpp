@@ -510,7 +510,8 @@ void print_vma_global_settings()
     }
 
     VLOG_PARAM_NUMBER("Ring migration ratio TX", safe_mce_sys().ring_migration_ratio_tx,
-                      MCE_DEFAULT_RING_MIGRATION_RATIO_TX, SYS_VAR_RING_MIGRATION_RATIO_TX);
+                      (safe_mce_sys().enable_tso ? -1 : MCE_DEFAULT_RING_MIGRATION_RATIO_TX),
+                      SYS_VAR_RING_MIGRATION_RATIO_TX);
     VLOG_PARAM_NUMBER("Ring migration ratio RX", safe_mce_sys().ring_migration_ratio_rx,
                       MCE_DEFAULT_RING_MIGRATION_RATIO_RX, SYS_VAR_RING_MIGRATION_RATIO_RX);
 
@@ -566,13 +567,18 @@ void print_vma_global_settings()
                       MCE_DEFAULT_TX_SEGS_BATCH_TCP, SYS_VAR_TX_SEGS_BATCH_TCP);
     VLOG_PARAM_NUMBER("TCP Send Buffer size", safe_mce_sys().tcp_send_buffer_size,
                       MCE_DEFAULT_TCP_SEND_BUFFER_SIZE, SYS_VAR_TCP_SEND_BUFFER_SIZE);
-
-    VLOG_PARAM_NUMBER("Rx Mem Bufs", safe_mce_sys().rx_num_bufs, MCE_DEFAULT_RX_NUM_BUFS,
-                      SYS_VAR_RX_NUM_BUFS);
-    VLOG_PARAM_NUMBER("Rx QP WRE", safe_mce_sys().rx_num_wr, MCE_DEFAULT_RX_NUM_WRE,
-                      SYS_VAR_RX_NUM_WRE);
+    VLOG_PARAM_NUMBER(
+        "Rx Mem Bufs", safe_mce_sys().rx_num_bufs,
+        (safe_mce_sys().enable_striding_rq ? MCE_DEFAULT_STRQ_NUM_BUFS : MCE_DEFAULT_RX_NUM_BUFS),
+        SYS_VAR_RX_NUM_BUFS);
+    VLOG_PARAM_NUMBER(
+        "Rx QP WRE", safe_mce_sys().rx_num_wr,
+        (safe_mce_sys().enable_striding_rq ? MCE_DEFAULT_STRQ_NUM_WRE : MCE_DEFAULT_RX_NUM_WRE),
+        SYS_VAR_RX_NUM_WRE);
     VLOG_PARAM_NUMBER("Rx QP WRE Batching", safe_mce_sys().rx_num_wr_to_post_recv,
-                      MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV, SYS_VAR_RX_NUM_WRE_TO_POST_RECV);
+                      (safe_mce_sys().enable_striding_rq ? MCE_DEFAULT_STRQ_NUM_WRE_TO_POST_RECV
+                                                         : MCE_DEFAULT_RX_NUM_WRE_TO_POST_RECV),
+                      SYS_VAR_RX_NUM_WRE_TO_POST_RECV);
     VLOG_PARAM_NUMBER("Rx Byte Min Limit", safe_mce_sys().rx_ready_byte_min_limit,
                       MCE_DEFAULT_RX_BYTE_MIN_LIMIT, SYS_VAR_RX_BYTE_MIN_LIMIT);
     VLOG_PARAM_NUMBER("Rx Poll Loops", safe_mce_sys().rx_poll_num, MCE_DEFAULT_RX_NUM_POLLS,
@@ -701,7 +707,9 @@ void print_vma_global_settings()
                       MCE_DEFAULT_CQ_KEEP_QP_FULL, SYS_VAR_CQ_KEEP_QP_FULL,
                       safe_mce_sys().cq_keep_qp_full ? "Enabled" : "Disabled");
     VLOG_PARAM_NUMBER("QP Compensation Level", safe_mce_sys().qp_compensation_level,
-                      MCE_DEFAULT_QP_COMPENSATION_LEVEL, SYS_VAR_QP_COMPENSATION_LEVEL);
+                      (safe_mce_sys().enable_striding_rq ? MCE_DEFAULT_STRQ_COMPENSATION_LEVEL
+                                                         : MCE_DEFAULT_QP_COMPENSATION_LEVEL),
+                      SYS_VAR_QP_COMPENSATION_LEVEL);
     VLOG_PARAM_STRING("Offloaded Sockets", safe_mce_sys().offloaded_sockets,
                       MCE_DEFAULT_OFFLOADED_SOCKETS, SYS_VAR_OFFLOADED_SOCKETS,
                       safe_mce_sys().offloaded_sockets ? "Enabled" : "Disabled");
