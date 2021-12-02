@@ -553,12 +553,10 @@ void print_vma_global_settings()
                       MCE_DEFAULT_TX_NUM_SEGS_TCP, SYS_VAR_TX_NUM_SEGS_TCP);
     VLOG_PARAM_NUMBER("Tx Mem Bufs", safe_mce_sys().tx_num_bufs, MCE_DEFAULT_TX_NUM_BUFS,
                       SYS_VAR_TX_NUM_BUFS);
-#ifdef DEFINED_TSO
     VLOG_PARAM_NUMBER("Tx Mem Buf size", safe_mce_sys().tx_buf_size, MCE_DEFAULT_TX_BUF_SIZE,
                       SYS_VAR_TX_BUF_SIZE);
     VLOG_PARAM_NUMBER("ZC TX size", safe_mce_sys().zc_tx_size, MCE_DEFAULT_ZC_TX_SIZE,
                       SYS_VAR_ZC_TX_SIZE);
-#endif /* DEFINED_TSO */
     VLOG_PARAM_NUMBER("Tx QP WRE", safe_mce_sys().tx_num_wr, MCE_DEFAULT_TX_NUM_WRE,
                       SYS_VAR_TX_NUM_WRE);
     VLOG_PARAM_NUMBER("Tx QP WRE Batching", safe_mce_sys().tx_num_wr_to_signal,
@@ -785,10 +783,8 @@ void print_vma_global_settings()
     VLOG_PARAM_STRING("SocketXtreme mode", safe_mce_sys().enable_socketxtreme,
                       MCE_DEFAULT_SOCKETXTREME, SYS_VAR_SOCKETXTREME,
                       safe_mce_sys().enable_socketxtreme ? "Enabled " : "Disabled");
-#ifdef DEFINED_TSO
     VLOG_PARAM_STRING("TSO support", safe_mce_sys().enable_tso, MCE_DEFAULT_TSO, SYS_VAR_TSO,
                       safe_mce_sys().enable_tso ? "Enabled " : "Disabled");
-#endif /* DEFINED_TSO */
 #ifdef DEFINED_UTLS
     VLOG_PARAM_STRING("UTLS RX support", safe_mce_sys().enable_utls_rx, MCE_DEFAULT_UTLS_RX,
                       SYS_VAR_UTLS_RX, safe_mce_sys().enable_utls_rx ? "Enabled " : "Disabled");
@@ -1051,7 +1047,6 @@ static void do_global_ctors_helper()
         g_buffer_pool_rx_ptr = g_buffer_pool_rx_rwqe;
     }
 
-#ifdef DEFINED_TSO
     safe_mce_sys().tx_buf_size = MIN((int)safe_mce_sys().tx_buf_size, (int)0xFF00);
     if (safe_mce_sys().tx_buf_size <=
         get_lwip_tcp_mss(g_p_net_device_table_mgr->get_max_mtu(), safe_mce_sys().lwip_mss)) {
@@ -1070,19 +1065,6 @@ static void do_global_ctors_helper()
                          (safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_TX
                               ? safe_mce_sys().m_ioctl.user_alloc.memfree
                               : NULL)));
-#else
-    NEW_CTOR(g_buffer_pool_tx,
-             buffer_pool(safe_mce_sys().tx_num_bufs,
-                         TX_BUF_SIZE(get_lwip_tcp_mss(g_p_net_device_table_mgr->get_max_mtu(),
-                                                      safe_mce_sys().lwip_mss)),
-                         buffer_pool::free_tx_lwip_pbuf_custom,
-                         (safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_TX
-                              ? safe_mce_sys().m_ioctl.user_alloc.memalloc
-                              : NULL),
-                         (safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_TX
-                              ? safe_mce_sys().m_ioctl.user_alloc.memfree
-                              : NULL)));
-#endif /* DEFINED_TSO */
     g_buffer_pool_tx->set_RX_TX_for_stats(false);
 
     NEW_CTOR(g_buffer_pool_zc,

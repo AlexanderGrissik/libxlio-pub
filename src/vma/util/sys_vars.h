@@ -703,27 +703,22 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_RING_DEV_MEM_TX          (0)
 #define MCE_DEFAULT_TCP_MAX_SYN_RATE         (0)
 #define MCE_DEFAULT_ZC_NUM_BUFS              (200000)
+#define MCE_DEFAULT_ZC_TX_SIZE               (32768)
 #define MCE_DEFAULT_ZC_CACHE_THRESHOLD       (10 * 1024) // 10GB
 #define MCE_DEFAULT_TX_NUM_SEGS_TCP          (1000000)
 #define MCE_DEFAULT_TX_NUM_BUFS              (200000)
-#ifdef DEFINED_TSO
-#define MCE_DEFAULT_TX_BUF_SIZE (0)
-#define MCE_DEFAULT_ZC_TX_SIZE  (32768)
-#else
-#define MCE_DEFAULT_TX_BUF_SIZE (0)
-#define MCE_DEFAULT_ZC_TX_SIZE  (0)
-#endif /* DEFINED_TSO */
-#define MCE_DEFAULT_TX_NUM_WRE            (2048)
-#define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL  (64)
-#define MCE_DEFAULT_TX_MAX_INLINE         (204) //+18(always inline ETH header) = 222
-#define MCE_DEFAULT_TX_BUILD_IP_CHKSUM    (true)
-#define MCE_DEFAULT_TX_MC_LOOPBACK        (true)
-#define MCE_DEFAULT_TX_NONBLOCKED_EAGAINS (false)
-#define MCE_DEFAULT_TX_PREFETCH_BYTES     (256)
-#define MCE_DEFAULT_TX_BUFS_BATCH_UDP     (8)
-#define MCE_DEFAULT_TX_BUFS_BATCH_TCP     (16)
-#define MCE_DEFAULT_TX_SEGS_BATCH_TCP     (64)
-#define MCE_DEFAULT_TX_NUM_SGE (4)
+#define MCE_DEFAULT_TX_BUF_SIZE              (0)
+#define MCE_DEFAULT_TX_NUM_WRE               (2048)
+#define MCE_DEFAULT_TX_NUM_WRE_TO_SIGNAL     (64)
+#define MCE_DEFAULT_TX_MAX_INLINE            (204) //+18(always inline ETH header) = 222
+#define MCE_DEFAULT_TX_BUILD_IP_CHKSUM       (true)
+#define MCE_DEFAULT_TX_MC_LOOPBACK           (true)
+#define MCE_DEFAULT_TX_NONBLOCKED_EAGAINS    (false)
+#define MCE_DEFAULT_TX_PREFETCH_BYTES        (256)
+#define MCE_DEFAULT_TX_BUFS_BATCH_UDP        (8)
+#define MCE_DEFAULT_TX_BUFS_BATCH_TCP        (16)
+#define MCE_DEFAULT_TX_SEGS_BATCH_TCP        (64)
+#define MCE_DEFAULT_TX_NUM_SGE               (4)
 
 #if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
 #define MCE_DEFAULT_STRQ (option_strq::ON)
@@ -842,11 +837,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_MAX_CQ_POLL_BATCH               (128)
 #define MCE_DEFAULT_IPOIB_FLAG              (1)
 #define MCE_DEFAULT_SOCKETXTREME            (false)
-#ifdef DEFINED_TSO
-#define MCE_DEFAULT_TSO (true)
-#else
-#define MCE_DEFAULT_TSO (false)
-#endif /* DEFINED_TSO */
+#define MCE_DEFAULT_TSO                     (true)
 #ifdef DEFINED_UTLS
 #define MCE_DEFAULT_UTLS_RX (false)
 #define MCE_DEFAULT_UTLS_TX (true)

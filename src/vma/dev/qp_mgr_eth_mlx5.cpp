@@ -122,10 +122,8 @@ static inline uint32_t get_mlx5_opcode(vma_ibv_wr_opcode verbs_opcode)
     switch (verbs_opcode) {
     case VMA_IBV_WR_SEND:
         return MLX5_OPCODE_SEND;
-#ifdef DEFINED_TSO
     case VMA_IBV_WR_TSO:
         return MLX5_OPCODE_TSO;
-#endif /* DEFINED_TSO */
     case VMA_IBV_WR_NOP:
         return MLX5_OPCODE_NOP;
     default:

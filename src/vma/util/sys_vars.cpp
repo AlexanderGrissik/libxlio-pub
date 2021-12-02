@@ -1208,7 +1208,6 @@ void mce_sys_var::get_env_params()
         tx_num_bufs = (uint32_t)atoi(env_ptr);
     }
 
-#ifdef DEFINED_TSO
     if ((env_ptr = getenv(SYS_VAR_TX_BUF_SIZE)) != NULL) {
         tx_buf_size = (uint32_t)atoi(env_ptr);
     }
@@ -1222,10 +1221,6 @@ void mce_sys_var::get_env_params()
             zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
         }
     }
-#else
-    tx_buf_size = MCE_DEFAULT_TX_BUF_SIZE;
-    zc_tx_size = MCE_DEFAULT_ZC_TX_SIZE;
-#endif /* DEFINED_TSO */
 
     if ((env_ptr = getenv(SYS_VAR_TX_NUM_WRE)) != NULL) {
         tx_num_wr = (uint32_t)atoi(env_ptr);
@@ -1770,7 +1765,6 @@ void mce_sys_var::get_env_params()
         enable_ipoib = atoi(env_ptr) ? true : false;
     }
 
-#ifdef DEFINED_TSO
     if ((env_ptr = getenv(SYS_VAR_TSO)) != NULL) {
         enable_tso = atoi(env_ptr) ? true : false;
     }
@@ -1780,7 +1774,6 @@ void mce_sys_var::get_env_params()
         vlog_printf(VLOG_DEBUG, "%s parameter is forced to %d in case %s is enabled\n",
                     SYS_VAR_RING_MIGRATION_RATIO_TX, -1, SYS_VAR_TSO);
     }
-#endif /* DEFINED_TSO */
 
 #ifdef DEFINED_UTLS
     if ((env_ptr = getenv(SYS_VAR_UTLS_RX)) != NULL)

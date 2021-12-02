@@ -2093,7 +2093,6 @@ static ssize_t sendfile_helper(socket_fd_api *p_socket_object, int in_fd, __off6
     }
 
     if (PROTO_TCP == s->get_protocol()) {
-#ifdef DEFINED_TSO
         mapping_t *mapping;
         int rc;
 
@@ -2137,7 +2136,6 @@ static ssize_t sendfile_helper(socket_fd_api *p_socket_object, int in_fd, __off6
 
         mapping->put();
     fallback:
-#endif /* DEFINED_TSO */
         /* Fallback to readv() implementation */
         if (totSent == 0) {
             s->m_p_socket_stats->counters.n_tx_sendfile_fallbacks++;
