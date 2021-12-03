@@ -77,16 +77,6 @@ bool rfs_uc::prepare_flow_spec()
     attach_flow_data_eth_ipv4_tcp_udp_t *attach_flow_data_eth = NULL;
 
     switch (type) {
-    case VMA_TRANSPORT_IB: {
-        attach_flow_data_ib_ipv4_tcp_udp_v2_t *attach_flow_data_ib_v2 = NULL;
-
-        attach_flow_data_ib_v2 = new attach_flow_data_ib_ipv4_tcp_udp_v2_t(p_ring->m_p_qp_mgr);
-
-        p_ipv4 = &(attach_flow_data_ib_v2->ibv_flow_attr.ipv4);
-        p_tcp_udp = &(attach_flow_data_ib_v2->ibv_flow_attr.tcp_udp);
-        p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_ib_v2;
-        break;
-    }
     case VMA_TRANSPORT_ETH: {
         attach_flow_data_eth = new attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
 
