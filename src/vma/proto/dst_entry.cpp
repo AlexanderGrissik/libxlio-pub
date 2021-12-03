@@ -421,48 +421,6 @@ bool dst_entry::conf_l2_hdr_and_snd_wqe_eth()
     return ret_val;
 }
 
-bool dst_entry::conf_l2_hdr_and_snd_wqe_ib()
-{
-    bool ret_val = false;
-    neigh_ib_val *neigh_ib = dynamic_cast<neigh_ib_val *>(m_p_neigh_val);
-
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (!neigh_ib) {
-        dst_logerr("Dynamic cast to neigh_ib failed, can't build proper ibv_send_wqe: header");
-        BULLSEYE_EXCLUDE_BLOCK_END
-    } else {
-        uint32_t qpn = neigh_ib->get_qpn();
-        uint32_t qkey = neigh_ib->get_qkey();
-        struct ibv_ah *ah = (struct ibv_ah *)neigh_ib->get_ah();
-
-        // Maybe we after invalidation so we free the wqe_handler since we are going to build it
-        // from scratch
-        if (m_p_send_wqe_handler) {
-            delete m_p_send_wqe_handler;
-            m_p_send_wqe_handler = NULL;
-        }
-        m_p_send_wqe_handler = new wqe_send_ib_handler();
-
-        BULLSEYE_EXCLUDE_BLOCK_START
-        if (!m_p_send_wqe_handler) {
-            dst_logpanic("%s Failed to allocate send WQE handler", to_str().c_str());
-        }
-        BULLSEYE_EXCLUDE_BLOCK_END((wqe_send_ib_handler *)(m_p_send_wqe_handler))
-            ->init_inline_ib_wqe(m_inline_send_wqe, get_sge_lst_4_inline_send(),
-                                 get_inline_sge_num(), ah, qpn, qkey);
-        ((wqe_send_ib_handler *)(m_p_send_wqe_handler))
-            ->init_not_inline_ib_wqe(m_not_inline_send_wqe, get_sge_lst_4_not_inline_send(), 1, ah,
-                                     qpn, qkey);
-        ((wqe_send_ib_handler *)(m_p_send_wqe_handler))
-            ->init_ib_wqe(m_fragmented_send_wqe, get_sge_lst_4_not_inline_send(), 1, ah, qpn, qkey);
-        m_header.configure_ipoib_headers();
-        init_sge();
-
-        ret_val = true;
-    }
-    return ret_val;
-}
-
 bool dst_entry::conf_hdrs_and_snd_wqe()
 {
     transport_type_t tranposrt = VMA_TRANSPORT_IB;
@@ -480,9 +438,8 @@ bool dst_entry::conf_hdrs_and_snd_wqe()
     case VMA_TRANSPORT_ETH:
         ret_val = conf_l2_hdr_and_snd_wqe_eth();
         break;
-    case VMA_TRANSPORT_IB:
     default:
-        ret_val = conf_l2_hdr_and_snd_wqe_ib();
+        ret_val = false;
         break;
     }
     return ret_val;

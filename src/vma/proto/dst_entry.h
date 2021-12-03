@@ -175,7 +175,6 @@ protected:
     virtual void configure_headers() { conf_hdrs_and_snd_wqe(); };
     bool conf_hdrs_and_snd_wqe();
     virtual bool conf_l2_hdr_and_snd_wqe_eth();
-    virtual bool conf_l2_hdr_and_snd_wqe_ib();
     virtual void init_sge() {};
     bool alloc_transport_dep_res();
     bool alloc_neigh_val(transport_type_t tranport);
