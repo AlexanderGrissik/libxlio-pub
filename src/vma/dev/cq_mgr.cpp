@@ -142,9 +142,6 @@ void cq_mgr::configure(int cq_size)
     BULLSEYE_EXCLUDE_BLOCK_END
     VALGRIND_MAKE_MEM_DEFINED(m_p_ibv_cq, sizeof(ibv_cq));
     switch (m_transport_type) {
-    case VMA_TRANSPORT_IB:
-        m_sz_transport_header = GRH_HDR_LEN;
-        break;
     case VMA_TRANSPORT_ETH:
         m_sz_transport_header = ETH_HDR_LEN;
         break;
@@ -872,9 +869,6 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
                     bool procces_now = false;
                     if (m_transport_type == VMA_TRANSPORT_ETH) {
                         procces_now = is_eth_tcp_frame(buff);
-                    }
-                    if (m_transport_type == VMA_TRANSPORT_IB) {
-                        procces_now = is_ib_tcp_frame(buff);
                     }
                     // We process immediately all non udp/ip traffic..
                     if (procces_now) {

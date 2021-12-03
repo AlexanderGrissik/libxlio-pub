@@ -143,18 +143,12 @@ typedef enum {
 } buffer_batching_mode_t;
 
 // See ibv_transport_type for general verbs transport types
-typedef enum {
-    VMA_TRANSPORT_UNKNOWN = -1,
-    VMA_TRANSPORT_IB = 0,
-    VMA_TRANSPORT_ETH
-} transport_type_t;
+typedef enum { VMA_TRANSPORT_UNKNOWN = -1, VMA_TRANSPORT_ETH } transport_type_t;
 
 static inline const char *priv_vma_transport_type_str(transport_type_t transport_type)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     switch (transport_type) {
-    case VMA_TRANSPORT_IB:
-        return "IB";
     case VMA_TRANSPORT_ETH:
         return "ETH";
     case VMA_TRANSPORT_UNKNOWN:

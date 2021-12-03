@@ -467,34 +467,11 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         sge[0].addr = (uintptr_t)(p_mem_buf_desc->p_buffer);
         sge[0].lkey = m_p_ring->m_tx_lkey;
 
-        struct ibv_ah *p_ah = NULL;
-        ibv_ah_attr ah_attr;
-
-        if (m_p_ring->get_transport_type() == VMA_TRANSPORT_IB) {
-            memset(&ah_attr, 0, sizeof(ah_attr));
-            ah_attr.dlid = FICTIVE_AH_DLID;
-            ah_attr.sl = FICTIVE_AH_SL;
-            ah_attr.src_path_bits = 0;
-            ah_attr.static_rate = 0;
-            ah_attr.is_global = 0;
-            ah_attr.port_num = m_port_num; // Do we need it?
-
-            p_ah = ibv_create_ah(m_p_ib_ctx_handler->get_ibv_pd(), &ah_attr);
-            BULLSEYE_EXCLUDE_BLOCK_START
-            if (!p_ah && (errno != EIO)) {
-                qp_logpanic("failed creating address handler (errno=%d %m)", errno);
-            }
-            BULLSEYE_EXCLUDE_BLOCK_END
-        }
-
         // Prepare send wr for (does not care if it is UD/IB or RAW/ETH)
         // UD requires AH+qkey, RAW requires minimal payload instead of MAC header.
 
         memset(&send_wr, 0, sizeof(send_wr));
         send_wr.wr_id = (uintptr_t)p_mem_buf_desc;
-        send_wr.wr.ud.ah = p_ah;
-        send_wr.wr.ud.remote_qpn = FICTIVE_REMOTE_QPN;
-        send_wr.wr.ud.remote_qkey = FICTIVE_REMOTE_QKEY;
         send_wr.sg_list = sge;
         send_wr.num_sge = 1;
         send_wr.next = NULL;
@@ -513,13 +490,6 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         send_to_wire(&send_wr,
                      (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM), true,
                      NULL);
-        if (p_ah) {
-            IF_VERBS_FAILURE_EX(ibv_destroy_ah(p_ah), EIO)
-            {
-                qp_logpanic("failed destroying address handle (errno=%d %m)", errno);
-            }
-            ENDIF_VERBS_FAILURE;
-        }
     }
 }
 

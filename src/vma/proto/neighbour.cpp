@@ -1567,7 +1567,7 @@ ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
 //==================================================
 
 neigh_ib::neigh_ib(neigh_key key, bool is_init_resources)
-    : neigh_entry(key, VMA_TRANSPORT_IB, is_init_resources)
+    : neigh_entry(key, (transport_type_t)0, is_init_resources)
     , m_pd(NULL)
     , m_n_sysvar_wait_after_join_msec(safe_mce_sys().wait_after_join_msec)
 {

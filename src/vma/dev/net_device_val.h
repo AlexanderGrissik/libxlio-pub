@@ -346,7 +346,7 @@ public:
         , m_pkey(0)
         , m_br_neigh(NULL)
     {
-        set_transport_type(VMA_TRANSPORT_IB);
+        set_transport_type((transport_type_t)0);
         if (INVALID != get_state()) {
             set_slave_array();
             configure();

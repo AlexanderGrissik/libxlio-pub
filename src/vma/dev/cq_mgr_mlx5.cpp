@@ -335,9 +335,6 @@ int cq_mgr_mlx5::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=N
                         if (m_transport_type == VMA_TRANSPORT_ETH) {
                             procces_now = is_eth_tcp_frame(m_rx_hot_buffer);
                         }
-                        if (m_transport_type == VMA_TRANSPORT_IB) {
-                            procces_now = is_ib_tcp_frame(m_rx_hot_buffer);
-                        }
                         // We process immediately all non udp/ip traffic..
                         if (procces_now) {
                             m_rx_hot_buffer->rx.is_vma_thr = true;
@@ -383,9 +380,6 @@ int cq_mgr_mlx5::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=N
                     bool procces_now = false;
                     if (m_transport_type == VMA_TRANSPORT_ETH) {
                         procces_now = is_eth_tcp_frame(buff);
-                    }
-                    if (m_transport_type == VMA_TRANSPORT_IB) {
-                        procces_now = is_ib_tcp_frame(buff);
                     }
                     /* We process immediately all non udp/ip traffic.. */
                     if (procces_now) {

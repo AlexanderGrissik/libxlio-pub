@@ -423,7 +423,7 @@ bool dst_entry::conf_l2_hdr_and_snd_wqe_eth()
 
 bool dst_entry::conf_hdrs_and_snd_wqe()
 {
-    transport_type_t tranposrt = VMA_TRANSPORT_IB;
+    transport_type_t tranposrt = VMA_TRANSPORT_ETH;
     bool ret_val = true;
 
     dst_logdbg("dst_entry %s configuring the header template", to_str().c_str());
@@ -698,9 +698,6 @@ bool dst_entry::alloc_neigh_val(transport_type_t tranport)
     }
 
     switch (tranport) {
-    case VMA_TRANSPORT_IB:
-        m_p_neigh_val = new neigh_ib_val;
-        break;
     case VMA_TRANSPORT_ETH:
     default:
         m_p_neigh_val = new neigh_eth_val;

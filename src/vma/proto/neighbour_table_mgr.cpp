@@ -108,14 +108,7 @@ neigh_entry *neigh_table_mgr::create_new_entry(neigh_key neigh_key, const observ
 
     transport_type_t transport = dst->get_obs_transport_type();
 
-    if (transport == VMA_TRANSPORT_IB) {
-        if (IS_BROADCAST_N(neigh_key.get_in_addr())) {
-            neigh_mgr_logdbg("Creating new neigh_ib_broadcast");
-            return (new neigh_ib_broadcast(neigh_key));
-        }
-        neigh_mgr_logdbg("Creating new neigh_ib");
-        return (new neigh_ib(neigh_key));
-    } else if (transport == VMA_TRANSPORT_ETH) {
+    if (transport == VMA_TRANSPORT_ETH) {
         neigh_mgr_logdbg("Creating new neigh_eth");
         return (new neigh_eth(neigh_key));
     } else {
