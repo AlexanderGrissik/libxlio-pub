@@ -74,7 +74,7 @@ bool rfs_mc::prepare_flow_spec()
     case VMA_TRANSPORT_IB: {
         attach_flow_data_ib_v2_t *attach_flow_data_ib_v2 = NULL;
 
-        if (0 == p_ring->m_p_qp_mgr->get_underly_qpn()) {
+        if (0) {
             // IB MC flow steering is done only on L2 --> need to zero other fields to get correct
             // behaviour CX3 HW does not support L3+L4 MC flow steering rule
             return false;

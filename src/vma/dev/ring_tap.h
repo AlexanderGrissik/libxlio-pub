@@ -105,7 +105,6 @@ public:
         NOT_IN_USE(length);
         return (uint32_t)-1;
     }
-    virtual uint32_t get_underly_qpn() { return -1; }
     virtual uint32_t get_max_inline_data() { return 0; }
     ib_ctx_handler *get_ctx(ring_user_id_t id)
     {

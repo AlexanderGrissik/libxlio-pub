@@ -1631,16 +1631,6 @@ bool net_device_val::verify_enable_ipoib(const char *interface_name)
         return false;
     }
 
-#ifndef DEFINED_IBV_QP_INIT_SOURCE_QPN
-    // Note: mlx4 does not support this capability
-    ib_ctx_handler *ib_ctx = g_p_ib_ctx_handler_collection->get_ib_ctx(get_ifname_link());
-    if (!ib_ctx->is_mlx4()) {
-        nd_logwarn("Blocking offload: SOURCE_QPN is not supported for this driver ('%s')",
-                   interface_name);
-        return false;
-    }
-#endif
-
     // Verify IPoIB is in 'datagram mode' for proper VMA with flow steering operation
     if (validate_ipoib_prop(get_ifname(), m_flags, IPOIB_MODE_PARAM_FILE, "datagram", 8, filename,
                             ifname)) {
@@ -1779,7 +1769,6 @@ bool net_device_val::verify_qp_creation(const char *ifname, enum ibv_qp_type qp_
         unsigned char hw_addr[IPOIB_HW_ADDR_LEN];
         get_local_ll_addr(ifname, hw_addr, IPOIB_HW_ADDR_LEN, false);
         IPoIB_addr ipoib_addr(hw_addr);
-        ibv_source_qpn_set(qp_init_attr, ipoib_addr.get_qpn());
     }
 
     qp = vma_ibv_create_qp(p_ib_ctx->get_ibv_pd(), &qp_init_attr);

@@ -90,9 +90,8 @@ int priv_ibv_find_pkey_index(struct ibv_context *verbs, uint8_t port_num, uint16
 
 int priv_ibv_modify_qp_to_err(struct ibv_qp *qp);
 int priv_ibv_modify_qp_from_err_to_init_raw(struct ibv_qp *qp, uint8_t port_num);
-int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index,
-                                           uint32_t underly_qpn);
-int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp, uint32_t underly_qpn = 0);
+int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index);
+int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp);
 
 // Return 'ibv_qp_state' of the ibv_qp
 int priv_ibv_query_qp_state(struct ibv_qp *qp);
@@ -123,19 +122,23 @@ int priv_ibv_query_burst_supported(struct ibv_qp *qp, uint8_t port_num);
  * 3 - Upstream Verbs API
  */
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 1 || DEFINED_VERBS_VERSION == 3)
-// ibv_create_qp
-#ifdef DEFINED_IBV_QP_INIT_SOURCE_QPN
+
+// ibv_query_device / ibv_create_qp
+#define vma_ibv_device_attr_comp_mask(attr) NOT_IN_USE(attr)
+typedef struct ibv_device_attr vma_ibv_device_attr;
+
+#ifdef DEFINED_IBV_DEVICE_ATTR_EX
 #define vma_ibv_create_qp(pd, attr) ibv_create_qp_ex((pd)->context, attr)
 typedef struct ibv_qp_init_attr_ex vma_ibv_qp_init_attr;
-#define vma_ibv_qp_create_flags(attr)    (attr).create_flags
-#define vma_ibv_qp_source_qpn(attr)      (attr).source_qpn
-#define VMA_IBV_QP_INIT_QPN_CREATE_FLAGS IBV_QP_CREATE_SOURCE_QPN
-#define VMA_IBV_QP_INIT_QPN_MASK         IBV_QP_INIT_ATTR_CREATE_FLAGS
 #define vma_ibv_qp_init_attr_comp_mask(_pd, _attr)                                                 \
     {                                                                                              \
         (_attr).pd = _pd;                                                                          \
         (_attr).comp_mask |= IBV_QP_INIT_ATTR_PD;                                                  \
     }
+
+#define vma_ibv_query_device(context, attr) ibv_query_device_ex(context, NULL, attr)
+typedef struct ibv_device_attr_ex vma_ibv_device_attr_ex;
+#define vma_get_device_orig_attr(device_attr) &device_attr->orig_attr
 #else
 #define vma_ibv_create_qp(pd, attr) ibv_create_qp(pd, attr)
 typedef struct ibv_qp_init_attr vma_ibv_qp_init_attr;
@@ -144,17 +147,7 @@ typedef struct ibv_qp_init_attr vma_ibv_qp_init_attr;
         NOT_IN_USE(_pd);                                                                           \
         NOT_IN_USE(_attr);                                                                         \
     }
-#endif
 
-// ibv_query_device
-#define vma_ibv_device_attr_comp_mask(attr) NOT_IN_USE(attr)
-typedef struct ibv_device_attr vma_ibv_device_attr;
-
-#ifdef DEFINED_IBV_DEVICE_ATTR_EX
-#define vma_ibv_query_device(context, attr) ibv_query_device_ex(context, NULL, attr)
-typedef struct ibv_device_attr_ex vma_ibv_device_attr_ex;
-#define vma_get_device_orig_attr(device_attr) &device_attr->orig_attr
-#else
 #define vma_ibv_query_device(context, attr)   ibv_query_device(context, attr)
 typedef vma_ibv_device_attr vma_ibv_device_attr_ex;
 #define vma_get_device_orig_attr(device_attr) device_attr
@@ -242,12 +235,12 @@ typedef struct ibv_send_wr vma_ibv_send_wr;
 // flow steering
 #define VMA_IBV_FLOW_ATTR_NORMAL                IBV_FLOW_ATTR_NORMAL
 #define VMA_IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK
-#define VMA_IBV_FLOW_SPEC_ETH         IBV_FLOW_SPEC_ETH
-#define VMA_IBV_FLOW_SPEC_IPV4        IBV_FLOW_SPEC_IPV4
-#define VMA_IBV_FLOW_SPEC_TCP         IBV_FLOW_SPEC_TCP
-#define VMA_IBV_FLOW_SPEC_UDP         IBV_FLOW_SPEC_UDP
-#define vma_ibv_create_flow(qp, flow) ibv_create_flow(qp, flow)
-#define vma_ibv_destroy_flow(flow_id) ibv_destroy_flow(flow_id)
+#define VMA_IBV_FLOW_SPEC_ETH                   IBV_FLOW_SPEC_ETH
+#define VMA_IBV_FLOW_SPEC_IPV4                  IBV_FLOW_SPEC_IPV4
+#define VMA_IBV_FLOW_SPEC_TCP                   IBV_FLOW_SPEC_TCP
+#define VMA_IBV_FLOW_SPEC_UDP                   IBV_FLOW_SPEC_UDP
+#define vma_ibv_create_flow(qp, flow)           ibv_create_flow(qp, flow)
+#define vma_ibv_destroy_flow(flow_id)           ibv_destroy_flow(flow_id)
 typedef struct ibv_flow vma_ibv_flow;
 typedef struct ibv_flow_attr vma_ibv_flow_attr;
 typedef struct ibv_flow_spec_ib vma_ibv_flow_spec_ib;
@@ -353,13 +346,6 @@ typedef struct ibv_exp_qp_init_attr vma_ibv_qp_init_attr;
         (_attr).pd = _pd;                                                                          \
         (_attr).comp_mask |= IBV_EXP_QP_INIT_ATTR_PD;                                              \
     }
-
-#ifdef DEFINED_IBV_QP_INIT_SOURCE_QPN
-#define vma_ibv_qp_create_flags(attr)    (attr).exp_create_flags
-#define vma_ibv_qp_source_qpn(attr)      (attr).associated_qpn
-#define VMA_IBV_QP_INIT_QPN_CREATE_FLAGS 0
-#define VMA_IBV_QP_INIT_QPN_MASK         IBV_EXP_QP_INIT_ATTR_ASSOCIATED_QPN
-#endif
 
 // ibv_query_device
 #define vma_ibv_query_device(context, attr)   ibv_exp_query_device(context, attr)
@@ -501,12 +487,12 @@ typedef struct ibv_exp_send_wr vma_ibv_send_wr;
 // flow steering
 #define VMA_IBV_FLOW_ATTR_NORMAL                IBV_EXP_FLOW_ATTR_NORMAL
 #define VMA_IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK IBV_EXP_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK
-#define VMA_IBV_FLOW_SPEC_ETH         IBV_EXP_FLOW_SPEC_ETH
-#define VMA_IBV_FLOW_SPEC_IPV4        IBV_EXP_FLOW_SPEC_IPV4
-#define VMA_IBV_FLOW_SPEC_TCP         IBV_EXP_FLOW_SPEC_TCP
-#define VMA_IBV_FLOW_SPEC_UDP         IBV_EXP_FLOW_SPEC_UDP
-#define vma_ibv_create_flow(qp, flow) ibv_exp_create_flow(qp, flow)
-#define vma_ibv_destroy_flow(flow_id) ibv_exp_destroy_flow(flow_id)
+#define VMA_IBV_FLOW_SPEC_ETH                   IBV_EXP_FLOW_SPEC_ETH
+#define VMA_IBV_FLOW_SPEC_IPV4                  IBV_EXP_FLOW_SPEC_IPV4
+#define VMA_IBV_FLOW_SPEC_TCP                   IBV_EXP_FLOW_SPEC_TCP
+#define VMA_IBV_FLOW_SPEC_UDP                   IBV_EXP_FLOW_SPEC_UDP
+#define vma_ibv_create_flow(qp, flow)           ibv_exp_create_flow(qp, flow)
+#define vma_ibv_destroy_flow(flow_id)           ibv_exp_destroy_flow(flow_id)
 typedef struct ibv_exp_flow vma_ibv_flow;
 typedef struct ibv_exp_flow_attr vma_ibv_flow_attr;
 typedef struct ibv_exp_flow_spec_ib vma_ibv_flow_spec_ib;
@@ -659,20 +645,6 @@ static inline void ibv_flow_spec_flow_tag_set(vma_ibv_flow_spec_action_tag *flow
     flow_tag->size = sizeof(vma_ibv_flow_spec_action_tag);
     flow_tag->tag_id = tag_id;
 #endif // DEFINED_IBV_FLOW_TAG
-}
-
-static inline void ibv_source_qpn_set(vma_ibv_qp_init_attr &qp_init_attr, uint32_t source_qpn)
-{
-    NOT_IN_USE(qp_init_attr);
-    NOT_IN_USE(source_qpn);
-
-#ifdef DEFINED_IBV_QP_INIT_SOURCE_QPN
-    if (source_qpn) {
-        qp_init_attr.comp_mask |= VMA_IBV_QP_INIT_QPN_MASK;
-        vma_ibv_qp_create_flags(qp_init_attr) |= VMA_IBV_QP_INIT_QPN_CREATE_FLAGS;
-        vma_ibv_qp_source_qpn(qp_init_attr) = source_qpn;
-    }
-#endif /* DEFINED_IBV_QP_INIT_SOURCE_QPN */
 }
 
 #endif

@@ -216,8 +216,7 @@ int priv_ibv_modify_qp_from_err_to_init_raw(struct ibv_qp *qp, uint8_t port_num)
     return 0;
 }
 
-int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index,
-                                           uint32_t underly_qpn)
+int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index)
 {
     vma_ibv_qp_attr qp_attr;
     ibv_qp_attr_mask qp_attr_mask = (ibv_qp_attr_mask)IBV_QP_STATE;
@@ -234,13 +233,11 @@ int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, 
 
     memset(&qp_attr, 0, sizeof(qp_attr));
     qp_attr.qp_state = IBV_QPS_INIT;
-    if (0 == underly_qpn) {
-        qp_attr_mask =
-            (ibv_qp_attr_mask)(qp_attr_mask | IBV_QP_QKEY | IBV_QP_PKEY_INDEX | IBV_QP_PORT);
-        qp_attr.qkey = IPOIB_QKEY;
-        qp_attr.pkey_index = pkey_index;
-        qp_attr.port_num = port_num;
-    }
+    qp_attr_mask =
+        (ibv_qp_attr_mask)(qp_attr_mask | IBV_QP_QKEY | IBV_QP_PKEY_INDEX | IBV_QP_PORT);
+    qp_attr.qkey = IPOIB_QKEY;
+    qp_attr.pkey_index = pkey_index;
+    qp_attr.port_num = port_num;
 
     BULLSEYE_EXCLUDE_BLOCK_START
     IF_VERBS_FAILURE(vma_ibv_modify_qp(qp, &qp_attr, qp_attr_mask)) { return -3; }
@@ -250,7 +247,7 @@ int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, 
     return 0;
 }
 
-int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp, uint32_t underly_qpn)
+int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp)
 {
     vma_ibv_qp_attr qp_attr;
     ibv_qp_attr_mask qp_attr_mask = (ibv_qp_attr_mask)IBV_QP_STATE;
@@ -268,7 +265,7 @@ int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp, uint32_t underly_qpn)
 
     qp_attr.qp_state = IBV_QPS_RTS;
 
-    if ((qp->qp_type == IBV_QPT_UD) && (0 == underly_qpn)) {
+    if (qp->qp_type == IBV_QPT_UD) {
         qp_attr_mask = (ibv_qp_attr_mask)(qp_attr_mask | IBV_QP_SQ_PSN);
         qp_attr.sq_psn = 0;
     }
@@ -298,7 +295,7 @@ int priv_ibv_query_burst_supported(struct ibv_qp *qp, uint8_t port_num)
 {
 #ifdef DEFINED_IBV_QP_SUPPORT_BURST
     if (priv_ibv_modify_qp_from_err_to_init_raw(qp, port_num) == 0) {
-        if (priv_ibv_modify_qp_from_init_to_rts(qp, 0) == 0) {
+        if (priv_ibv_modify_qp_from_init_to_rts(qp) == 0) {
             struct xlio_rate_limit_t rate = {1000, 100, 100};
             if (priv_ibv_modify_qp_ratelimit(qp, rate, RL_RATE | RL_BURST_SIZE | RL_PKT_SIZE) ==
                 0) {

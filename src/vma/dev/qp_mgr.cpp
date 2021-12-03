@@ -747,12 +747,11 @@ void qp_mgr_ib::modify_qp_to_ready_state()
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (qp_state != IBV_QPS_INIT) {
-        if ((ret = priv_ibv_modify_qp_from_err_to_init_ud(m_qp, m_port_num, m_pkey_index,
-                                                          m_underly_qpn)) != 0) {
+        if ((ret = priv_ibv_modify_qp_from_err_to_init_ud(m_qp, m_port_num, m_pkey_index)) != 0) {
             qp_logpanic("failed to modify QP from %d to RTS state (ret = %d)", qp_state, ret);
         }
     }
-    if ((ret = priv_ibv_modify_qp_from_init_to_rts(m_qp, m_underly_qpn)) != 0) {
+    if ((ret = priv_ibv_modify_qp_from_init_to_rts(m_qp)) != 0) {
         qp_logpanic("failed to modify QP from INIT to RTS state (ret = %d)", ret);
     }
     BULLSEYE_EXCLUDE_BLOCK_END
@@ -771,11 +770,6 @@ int qp_mgr_ib::prepare_ibv_qp(vma_ibv_qp_init_attr &qp_init_attr)
         qp_logdbg("create qp with max_tso_header = %d", m_p_ring->get_max_header_sz());
     }
 
-    if (m_underly_qpn) {
-        ibv_source_qpn_set(qp_init_attr, m_underly_qpn);
-        qp_logdbg("create qp using underly qpn = 0x%X", m_underly_qpn);
-    }
-
     m_qp = vma_ibv_create_qp(m_p_ib_ctx_handler->get_ibv_pd(), &qp_init_attr);
 
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -784,8 +778,7 @@ int qp_mgr_ib::prepare_ibv_qp(vma_ibv_qp_init_attr &qp_init_attr)
         return -1;
     }
 
-    if ((ret = priv_ibv_modify_qp_from_err_to_init_ud(m_qp, m_port_num, m_pkey_index,
-                                                      m_underly_qpn)) != 0) {
+    if ((ret = priv_ibv_modify_qp_from_err_to_init_ud(m_qp, m_port_num, m_pkey_index)) != 0) {
         VLOG_PRINTF_INFO_ONCE_THEN_ALWAYS(VLOG_ERROR, VLOG_DEBUG,
                                           "failed to modify QP from ERR to INIT state (ret = %d) "
                                           "check number of available fds (ulimit -n)",
@@ -808,22 +801,6 @@ void qp_mgr_ib::update_pkey_index()
     } else {
         qp_logdbg("IB: Found correct pkey_index (%d) for pkey '%d'", m_pkey_index, m_pkey);
     }
-#ifdef DEFINED_IBV_QP_INIT_SOURCE_QPN
-    /* m_underly_qpn is introduced to detect if current qp_mgr is able to
-     * use associated qp.
-     * It is set to non zero value if OFED supports such possibility only but final
-     * decision can be made just after attempt to create qp. The value of
-     * m_underly_qpn is reverted to zero if function to qp creation returns
-     * failure.
-     * So zero value for this field means no such capability.
-     * Note: mlx4 does not support this capability. Disable it explicitly because dynamic check
-     * using ibv_create_qp does not help
-     */
-    if (!m_p_ib_ctx_handler->is_mlx4()) {
-        m_underly_qpn = m_p_ring->get_qpn();
-    }
-    qp_logdbg("IB: Use qpn = 0x%X for device: %s", m_underly_qpn, m_p_ib_ctx_handler->get_ibname());
-#endif /* DEFINED_IBV_QP_INIT_SOURCE_QPN */
 }
 
 uint32_t qp_mgr::is_ratelimit_change(struct xlio_rate_limit_t &rate_limit)

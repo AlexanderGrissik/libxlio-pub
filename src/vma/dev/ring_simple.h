@@ -106,7 +106,6 @@ public:
     {
         return (m_p_l2_addr ? ((IPoIB_addr *)m_p_l2_addr)->get_qpn() : 0);
     }
-    virtual uint32_t get_underly_qpn() { return m_p_qp_mgr->get_underly_qpn(); }
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
     virtual int get_tx_channel_fd() const
     {
