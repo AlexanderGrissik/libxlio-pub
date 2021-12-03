@@ -51,7 +51,6 @@
 #include "vma/dev/ring_slave.h"
 #include "vma/dev/ring_bond.h"
 #include "vma/dev/ring_simple.h"
-#include "vma/dev/ring_profile.h"
 #include "vma/proto/route_table_mgr.h"
 #include "vma/proto/rule_table_mgr.h"
 #include "vma/proto/dst_entry_tcp.h"

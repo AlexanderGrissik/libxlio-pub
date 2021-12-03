@@ -56,7 +56,6 @@
 #include "vma/sock/sock-redirect.h"
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/proto/neighbour_table_mgr.h"
-#include "ring_profile.h"
 
 #ifdef HAVE_LIBNL3
 #include <netlink/route/link/vlan.h>
@@ -74,7 +73,6 @@
 
 ring_alloc_logic_attr::ring_alloc_logic_attr()
     : m_ring_alloc_logic(RING_LOGIC_PER_INTERFACE)
-    , m_ring_profile_key(0)
     , m_user_id_key(0)
 {
     m_mem_desc.iov_base = NULL;
@@ -84,7 +82,6 @@ ring_alloc_logic_attr::ring_alloc_logic_attr()
 
 ring_alloc_logic_attr::ring_alloc_logic_attr(ring_logic_t ring_logic)
     : m_ring_alloc_logic(ring_logic)
-    , m_ring_profile_key(0)
     , m_user_id_key(0)
 {
     m_mem_desc.iov_base = NULL;
@@ -95,7 +92,6 @@ ring_alloc_logic_attr::ring_alloc_logic_attr(ring_logic_t ring_logic)
 ring_alloc_logic_attr::ring_alloc_logic_attr(const ring_alloc_logic_attr &other)
     : m_hash(other.m_hash)
     , m_ring_alloc_logic(other.m_ring_alloc_logic)
-    , m_ring_profile_key(other.m_ring_profile_key)
     , m_user_id_key(other.m_user_id_key)
     , m_mem_desc(other.m_mem_desc)
 {
@@ -122,7 +118,6 @@ void ring_alloc_logic_attr::init()
 #define HASH_ITER(val, type) h = h * 19 + (size_t)val;
 
     HASH_ITER(m_ring_alloc_logic, size_t);
-    HASH_ITER(m_ring_profile_key, size_t);
     HASH_ITER(m_user_id_key, uint64_t);
     HASH_ITER(m_mem_desc.iov_base, uintptr_t);
     HASH_ITER(m_mem_desc.iov_len, size_t);
@@ -135,14 +130,6 @@ void ring_alloc_logic_attr::set_ring_alloc_logic(ring_logic_t logic)
 {
     if (m_ring_alloc_logic != logic) {
         m_ring_alloc_logic = logic;
-        init();
-    }
-}
-
-void ring_alloc_logic_attr::set_ring_profile_key(xlio_ring_profile_key profile)
-{
-    if (m_ring_profile_key != profile) {
-        m_ring_profile_key = profile;
         init();
     }
 }
@@ -167,10 +154,9 @@ const char *ring_alloc_logic_attr::to_str()
 {
     if (unlikely(m_str[0] == '\0')) {
         snprintf(m_str, RING_ALLOC_STR_SIZE,
-                 "allocation logic %d profile %d key %ld user address %p "
+                 "allocation logic %d key %ld user address %p "
                  "user length %zd",
-                 m_ring_alloc_logic, m_ring_profile_key, m_user_id_key, m_mem_desc.iov_base,
-                 m_mem_desc.iov_len);
+                 m_ring_alloc_logic, m_user_id_key, m_mem_desc.iov_base, m_mem_desc.iov_len);
     }
     return m_str;
 }
@@ -1108,9 +1094,7 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
     int min_ref_count = ring_iter->second.second;
     resource_allocation_key *min_key = ring_iter->first;
     while (ring_iter != m_h_ring_map.end()) {
-        // redirect only to ring with the same profile
-        if (ring_iter->first->get_ring_profile_key() == key->get_ring_profile_key() &&
-            ring_iter->second.second < min_ref_count) {
+        if (ring_iter->second.second < min_ref_count) {
             min_ref_count = ring_iter->second.second;
             min_key = ring_iter->first;
         }
@@ -1390,38 +1374,28 @@ ring *net_device_val_eth::create_ring(resource_allocation_key *key)
 {
     ring *ring = NULL;
 
-    // if this is a ring profile key get the profile from the global map
-    if (key->get_ring_profile_key()) {
-        if (!g_p_ring_profile) {
-            nd_logdbg("could not find ring profile");
-            return NULL;
+    NOT_IN_USE(key);
+
+    try {
+        switch (m_bond) {
+        case NO_BOND:
+            ring = new ring_eth(get_if_idx());
+            break;
+        case ACTIVE_BACKUP:
+        case LAG_8023ad:
+            ring = new ring_bond_eth(get_if_idx());
+            break;
+        case NETVSC:
+            ring = new ring_bond_netvsc(get_if_idx());
+            break;
+        default:
+            nd_logdbg("Unknown ring type");
+            break;
         }
-        ring_profile *prof = g_p_ring_profile->get_profile(key->get_ring_profile_key());
-        if (prof == NULL) {
-            nd_logerr("could not find ring profile %d", key->get_ring_profile_key());
-            return NULL;
-        }
-    } else {
-        try {
-            switch (m_bond) {
-            case NO_BOND:
-                ring = new ring_eth(get_if_idx());
-                break;
-            case ACTIVE_BACKUP:
-            case LAG_8023ad:
-                ring = new ring_bond_eth(get_if_idx());
-                break;
-            case NETVSC:
-                ring = new ring_bond_netvsc(get_if_idx());
-                break;
-            default:
-                nd_logdbg("Unknown ring type");
-                break;
-            }
-        } catch (vma_error &error) {
-            nd_logdbg("failed creating ring %s", error.message);
-        }
+    } catch (vma_error &error) {
+        nd_logdbg("failed creating ring %s", error.message);
     }
+
     return ring;
 }
 

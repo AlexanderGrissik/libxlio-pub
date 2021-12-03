@@ -30,7 +30,6 @@
  * SOFTWARE.
  */
 
-#include <dev/ring_profile.h>
 #include "vma/dev/ring_allocation_logic.h"
 
 #define MODULE_NAME "ral"
@@ -69,8 +68,7 @@ ring_allocation_logic::ring_allocation_logic(ring_logic_t allocation_logic,
     , m_source(source)
     , m_migration_try_count(ring_migration_ratio)
 {
-    if (ring_profile.get_ring_alloc_logic() == RING_LOGIC_PER_INTERFACE &&
-        ring_profile.get_ring_profile_key() < START_RING_INDEX) {
+    if (ring_profile.get_ring_alloc_logic() == RING_LOGIC_PER_INTERFACE) {
         ring_profile.set_ring_alloc_logic(allocation_logic);
     }
     m_res_key = resource_allocation_key(ring_profile);

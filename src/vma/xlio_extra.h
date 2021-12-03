@@ -219,8 +219,6 @@ struct xlio_rate_limit_t {
     uint16_t typical_pkt_sz; /* typical packet size in bytes */
 };
 
-typedef int xlio_ring_profile_key;
-
 typedef enum {
     RING_LOGIC_PER_INTERFACE = 0, //!< RING_LOGIC_PER_INTERFACE
     RING_LOGIC_PER_IP = 1, //!< RING_LOGIC_PER_IP
@@ -233,10 +231,9 @@ typedef enum {
 } ring_logic_t;
 
 typedef enum {
-    XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY = (1 << 0),
-    XLIO_RING_ALLOC_MASK_RING_USER_ID = (1 << 1),
-    XLIO_RING_ALLOC_MASK_RING_INGRESS = (1 << 2),
-    XLIO_RING_ALLOC_MASK_RING_ENGRESS = (1 << 3),
+    XLIO_RING_ALLOC_MASK_RING_USER_ID = (1 << 0),
+    XLIO_RING_ALLOC_MASK_RING_INGRESS = (1 << 1),
+    XLIO_RING_ALLOC_MASK_RING_ENGRESS = (1 << 2),
 } xlio_ring_alloc_logic_attr_comp_mask;
 
 /**
@@ -247,9 +244,6 @@ typedef enum {
  * @param comp_mask - what fields are read when processing this struct
  * 	see @ref xlio_ring_alloc_logic_attr_comp_mask
  * @param ring_alloc_logic- allocation ratio to use
- * @param ring_profile_key - what ring profile to use - get the profile when
- * 	creating ring using @ref add_ring_profile in extra_api
- * 	can only be set once
  * @param user_idx - when used RING_LOGIC_PER_USER_ID int @ref ring_alloc_logic
  * 	this is the user id to define. This lets you define the same ring for
  * 	few FD's regardless the interface\thread\core.
@@ -259,38 +253,10 @@ typedef enum {
 struct xlio_ring_alloc_logic_attr {
     uint32_t comp_mask;
     ring_logic_t ring_alloc_logic;
-    uint32_t ring_profile_key;
     uint32_t user_id;
     uint32_t ingress : 1;
     uint32_t engress : 1;
     uint32_t reserved : 30;
-};
-
-struct xlio_packet_queue_ring_attr {
-    uint32_t comp_mask;
-};
-
-typedef enum {
-    // for future use
-    XLIO_RING_ATTR_LAST
-} xlio_ring_type_attr_mask;
-
-typedef enum {
-    XLIO_RING_PACKET,
-} xlio_ring_type;
-
-/**
- * @param comp_mask - what fields are read when processing this struct
- * 	see @ref xlio_ring_type_attr_mask
- * @param ring_type - use cyclic buffer ring or default packets ring
- *
- */
-struct xlio_ring_type_attr {
-    uint32_t comp_mask;
-    xlio_ring_type ring_type;
-    union {
-        struct xlio_packet_queue_ring_attr ring_pktq;
-    };
 };
 
 enum {
@@ -306,8 +272,7 @@ enum {
     XLIO_EXTRA_API_SOCKETXTREME_REF_XLIO_BUFF = (1 << 9),
     XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF = (1 << 10),
     XLIO_EXTRA_API_DUMP_FD_STATS = (1 << 11),
-    XLIO_EXTRA_API_ADD_RING_PROFILE = (1 << 12),
-    XLIO_EXTRA_API_IOCTL = (1 << 13),
+    XLIO_EXTRA_API_IOCTL = (1 << 12),
 };
 
 /**
@@ -573,16 +538,6 @@ struct __attribute__((packed)) xlio_api_t {
      * errno is set to: EOPNOTSUPP - Function is not supported when socketXtreme is enabled.
      */
     int (*dump_fd_stats)(int fd, int log_level);
-
-    /**
-     * add a ring profile to the library defined ring profile list. you can use this
-     * to create advanced rings.
-     * pass the special formatted ring profile using the fd's setsockopt
-     * @param profile the profile to add to the list
-     * @param key - the profile key
-     * @return 0 on success -1 on failure
-     */
-    int (*add_ring_profile)(struct xlio_ring_type_attr *profile, int *key);
 
     /**
      * This function allows to communicate with library using extendable protocol

@@ -283,15 +283,6 @@ int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
 int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
                                    xlio_ring_alloc_logic_attr *user_attr)
 {
-    if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY) {
-        if (sock_attr->get_ring_profile_key()) {
-            si_logdbg("ring_profile_key is already set and "
-                      "cannot be changed");
-            return -1;
-        }
-        sock_attr->set_ring_profile_key(user_attr->ring_profile_key);
-    }
-
     sock_attr->set_ring_alloc_logic(user_attr->ring_alloc_logic);
 
     if (user_attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_USER_ID) {
@@ -476,8 +467,8 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                 uint32_t val = ((xlio_ring_alloc_logic_attr *)__optval)->comp_mask;
 
                 if (val &
-                    (XLIO_RING_ALLOC_MASK_RING_PROFILE_KEY | XLIO_RING_ALLOC_MASK_RING_USER_ID |
-                     XLIO_RING_ALLOC_MASK_RING_INGRESS | XLIO_RING_ALLOC_MASK_RING_ENGRESS)) {
+                    (XLIO_RING_ALLOC_MASK_RING_USER_ID | XLIO_RING_ALLOC_MASK_RING_INGRESS |
+                     XLIO_RING_ALLOC_MASK_RING_ENGRESS)) {
                     if (__optlen == sizeof(xlio_ring_alloc_logic_attr)) {
                         xlio_ring_alloc_logic_attr *attr = (xlio_ring_alloc_logic_attr *)__optval;
                         return set_ring_attr(attr);

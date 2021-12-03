@@ -40,7 +40,6 @@
 #include "utils/lock_wrapper.h"
 #include <vma/proto/ip_frag.h>
 #include <vma/dev/buffer_pool.h>
-#include <vma/dev/ring_profile.h>
 #include <vma/event/event_handler_manager.h>
 #include <vma/event/vlogger_timer_handler.h>
 #include <vma/iomux/poll_call.h>
@@ -793,16 +792,6 @@ extern "C" int vma_dump_fd_stats(int fd, int log_level)
     return -1;
 }
 
-extern "C" int add_ring_profile(xlio_ring_type_attr *profile, xlio_ring_profile_key *res)
-{
-    if (!g_p_ring_profile) {
-        vlog_printf(VLOG_DEBUG, "%s g_p_ring_profile is null\n", __func__);
-        return -1;
-    }
-    *res = g_p_ring_profile->add_profile(profile);
-    return 0;
-}
-
 static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct cmsghdr *__cmsg)
 {
     struct cmsghdr *__ptr;
@@ -1222,7 +1211,6 @@ extern "C" int getsockopt(int __fd, int __level, int __optname, void *__optval, 
                 enable_socketxtreme ? vma_socketxtreme_free_buff : dummy_vma_socketxtreme_free_buff,
                 XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF);
             SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
-            SET_EXTRA_API(add_ring_profile, add_ring_profile, XLIO_EXTRA_API_ADD_RING_PROFILE);
             SET_EXTRA_API(ioctl, vma_ioctl, XLIO_EXTRA_API_IOCTL);
         }
 
