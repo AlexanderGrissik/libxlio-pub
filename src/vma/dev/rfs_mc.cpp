@@ -71,27 +71,6 @@ bool rfs_mc::prepare_flow_spec()
     attach_flow_data_t *p_attach_flow_data = NULL;
 
     switch (type) {
-    case VMA_TRANSPORT_IB: {
-        attach_flow_data_ib_v2_t *attach_flow_data_ib_v2 = NULL;
-
-        if (0) {
-            // IB MC flow steering is done only on L2 --> need to zero other fields to get correct
-            // behaviour CX3 HW does not support L3+L4 MC flow steering rule
-            return false;
-        }
-
-        attach_flow_data_ib_v2 = new attach_flow_data_ib_v2_t(p_ring->m_p_qp_mgr);
-
-        ibv_flow_spec_ipv4_set(&(attach_flow_data_ib_v2->ibv_flow_attr.ipv4),
-                               m_flow_tuple.get_dst_ip(), 0);
-
-        ibv_flow_spec_tcp_udp_set(&(attach_flow_data_ib_v2->ibv_flow_attr.tcp_udp),
-                                  (m_flow_tuple.get_protocol() == PROTO_TCP),
-                                  m_flow_tuple.get_dst_port(), m_flow_tuple.get_src_port());
-
-        p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_ib_v2;
-        break;
-    }
     case VMA_TRANSPORT_ETH: {
         attach_flow_data_eth_ipv4_tcp_udp_t *attach_flow_data_eth = NULL;
 
