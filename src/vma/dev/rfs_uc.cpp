@@ -80,19 +80,6 @@ bool rfs_uc::prepare_flow_spec()
     case VMA_TRANSPORT_IB: {
         attach_flow_data_ib_ipv4_tcp_udp_v2_t *attach_flow_data_ib_v2 = NULL;
 
-#ifdef DEFINED_IBV_FLOW_SPEC_IB
-        if (0 == p_ring->m_p_qp_mgr->get_underly_qpn()) {
-            attach_flow_data_ib_ipv4_tcp_udp_v1_t *attach_flow_data_ib_v1 = NULL;
-
-            attach_flow_data_ib_v1 = new attach_flow_data_ib_ipv4_tcp_udp_v1_t(p_ring->m_p_qp_mgr);
-            ibv_flow_spec_ib_set_by_dst_qpn(&(attach_flow_data_ib_v1->ibv_flow_attr.ib),
-                                            htonl(((IPoIB_addr *)p_ring->m_p_l2_addr)->get_qpn()));
-            p_ipv4 = &(attach_flow_data_ib_v1->ibv_flow_attr.ipv4);
-            p_tcp_udp = &(attach_flow_data_ib_v1->ibv_flow_attr.tcp_udp);
-            p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_ib_v1;
-            break;
-        }
-#endif
         attach_flow_data_ib_v2 = new attach_flow_data_ib_ipv4_tcp_udp_v2_t(p_ring->m_p_qp_mgr);
 
         p_ipv4 = &(attach_flow_data_ib_v2->ibv_flow_attr.ipv4);

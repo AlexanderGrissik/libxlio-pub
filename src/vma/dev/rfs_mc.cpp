@@ -77,21 +77,7 @@ bool rfs_mc::prepare_flow_spec()
         if (0 == p_ring->m_p_qp_mgr->get_underly_qpn()) {
             // IB MC flow steering is done only on L2 --> need to zero other fields to get correct
             // behaviour CX3 HW does not support L3+L4 MC flow steering rule
-#ifdef DEFINED_IBV_FLOW_SPEC_IB
-            attach_flow_data_ib_v1_t *attach_flow_data_ib_v1 = NULL;
-
-            attach_flow_data_ib_v1 = new attach_flow_data_ib_v1_t(p_ring->m_p_qp_mgr);
-
-            uint8_t dst_gid[16];
-            create_mgid_from_ipv4_mc_ip(dst_gid, p_ring->m_p_qp_mgr->get_partiton(),
-                                        m_flow_tuple.get_dst_ip());
-            ibv_flow_spec_ib_set_by_dst_gid(&(attach_flow_data_ib_v1->ibv_flow_attr.ib), dst_gid);
-
-            p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_ib_v1;
-            break;
-#else
             return false;
-#endif
         }
 
         attach_flow_data_ib_v2 = new attach_flow_data_ib_v2_t(p_ring->m_p_qp_mgr);

@@ -120,34 +120,6 @@ typedef struct attach_flow_data_ib_v2_t {
 
 } attach_flow_data_ib_v2_t;
 
-#ifdef DEFINED_IBV_FLOW_SPEC_IB
-typedef struct attach_flow_data_ib_v1_t {
-    rfs_rule *rfs_flow;
-    qp_mgr *p_qp_mgr;
-    struct ibv_flow_attr_ib_v1 {
-        vma_ibv_flow_attr attr;
-        vma_ibv_flow_spec_ib ib;
-
-        ibv_flow_attr_ib_v1(uint8_t port)
-        {
-            memset(this, 0, sizeof(*this));
-            attr.size = sizeof(struct ibv_flow_attr_ib_v1);
-            attr.num_of_specs = 1;
-            attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-            attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
-            attr.port = port;
-        }
-    } ibv_flow_attr;
-    attach_flow_data_ib_v1_t(qp_mgr *qp_mgr)
-        : rfs_flow(NULL)
-        , p_qp_mgr(qp_mgr)
-        , ibv_flow_attr(qp_mgr->get_port_num())
-    {
-    }
-
-} attach_flow_data_ib_v1_t;
-#endif
-
 /* IPOIB (UC)
  */
 typedef struct attach_flow_data_ib_ipv4_tcp_udp_v2_t {
@@ -176,36 +148,6 @@ typedef struct attach_flow_data_ib_ipv4_tcp_udp_v2_t {
     {
     }
 } attach_flow_data_ib_ipv4_tcp_udp_v2_t;
-
-#ifdef DEFINED_IBV_FLOW_SPEC_IB
-typedef struct attach_flow_data_ib_ipv4_tcp_udp_v1_t {
-    rfs_rule *rfs_flow;
-    qp_mgr *p_qp_mgr;
-    struct ibv_flow_attr_ib_ipv4_tcp_udp_v1 {
-
-        vma_ibv_flow_attr attr;
-        vma_ibv_flow_spec_ib ib;
-        vma_ibv_flow_spec_ipv4 ipv4;
-        vma_ibv_flow_spec_tcp_udp tcp_udp;
-
-        ibv_flow_attr_ib_ipv4_tcp_udp_v1(uint8_t port)
-        {
-            memset(this, 0, sizeof(*this));
-            attr.size = sizeof(struct ibv_flow_attr_ib_ipv4_tcp_udp_v1);
-            attr.num_of_specs = 3;
-            attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-            attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
-            attr.port = port;
-        }
-    } ibv_flow_attr;
-    attach_flow_data_ib_ipv4_tcp_udp_v1_t(qp_mgr *qp_mgr)
-        : rfs_flow(NULL)
-        , p_qp_mgr(qp_mgr)
-        , ibv_flow_attr(qp_mgr->get_port_num())
-    {
-    }
-} attach_flow_data_ib_ipv4_tcp_udp_v1_t;
-#endif /* DEFINED_IBV_FLOW_SPEC_IB */
 
 typedef struct attach_flow_data_t {
     rfs_rule *rfs_flow;
