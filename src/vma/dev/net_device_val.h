@@ -52,7 +52,6 @@
 class L2_address;
 class ring;
 class ib_ctx_handler;
-class neigh_ib_broadcast;
 
 #define RING_ALLOC_STR_SIZE 256
 class ring_alloc_logic_attr {
@@ -344,7 +343,6 @@ public:
     net_device_val_ib(struct net_device_val_desc *desc)
         : net_device_val(desc)
         , m_pkey(0)
-        , m_br_neigh(NULL)
     {
         set_transport_type((transport_type_t)0);
         if (INVALID != get_state()) {
@@ -356,7 +354,6 @@ public:
 
     std::string to_str();
     uint16_t get_pkey() { return m_pkey; }
-    const neigh_ib_broadcast *get_br_neigh() { return m_br_neigh; }
     virtual transport_type_t get_obs_transport_type() const { return get_transport_type(); }
 
 protected:
@@ -367,7 +364,6 @@ private:
     L2_address *create_L2_address(const char *ifname);
     void create_br_address(const char *ifname);
     uint16_t m_pkey;
-    neigh_ib_broadcast *m_br_neigh;
 };
 
 #endif

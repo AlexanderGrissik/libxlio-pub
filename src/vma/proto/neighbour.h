@@ -126,9 +126,7 @@ public:
 
 protected:
     friend class neigh_entry;
-    friend class neigh_ib;
     friend class neigh_eth;
-    friend class neigh_ib_broadcast;
     transport_type_t m_trans_type;
     L2_address *m_l2_address;
 };
@@ -145,45 +143,6 @@ public:
 
 private:
     friend class neigh_eth;
-};
-
-class neigh_ib_val : public neigh_val {
-public:
-    neigh_ib_val()
-        : m_ah(NULL)
-    {
-        zero_all_members();
-    };
-
-    ibv_ah *get_ah() const { return m_ah; };
-    ibv_ah_attr get_ah_attr() const { return m_ah_attr; };
-    uint32_t get_qkey() const { return m_qkey; };
-    uint32_t get_qpn() const
-    {
-        if (m_l2_address) {
-            return (((IPoIB_addr *)m_l2_address)->get_qpn());
-        } else {
-            return 0;
-        }
-    }
-
-    neigh_val &operator=(const neigh_val &val);
-
-private:
-    friend class neigh_ib;
-    friend class neigh_ib_broadcast;
-
-    ibv_ah_attr m_ah_attr;
-    ibv_ah *m_ah;
-    uint32_t m_qkey;
-
-    void zero_all_members()
-    {
-        memset(&m_ah_attr, 0, sizeof(m_ah_attr));
-        // m_ah 	= NULL;
-        m_qkey = 0;
-        neigh_val::zero_all_members();
-    }
 };
 
 /* neigh_entry inherits from cache_entry_subject where
@@ -339,61 +298,6 @@ private:
     bool post_send_packet(neigh_send_data *n_send_data);
     bool post_send_udp(neigh_send_data *n_send_data);
     bool post_send_tcp(neigh_send_data *n_send_data);
-};
-
-class neigh_ib : public neigh_entry, public event_handler_ibverbs {
-public:
-    friend class neighbour_table_mgr;
-    neigh_ib(neigh_key key, bool is_init_resources = true);
-    ~neigh_ib();
-
-    static void dofunc_enter_arp_resolved(const sm_info_t &func_info);
-    static void dofunc_enter_path_resolved(const sm_info_t &func_info);
-
-protected:
-    ibv_pd *m_pd;
-
-    int find_pd();
-    int create_ah();
-    int destroy_ah();
-    virtual int build_mc_neigh_val(struct rdma_cm_event *event_data,
-                                   uint32_t &wait_after_join_msec);
-
-private:
-    // Implementation of pure virtual functions
-    void handle_event_ibverbs_cb(void *ev_data, void *ctx);
-    void handle_timer_expired(void *user_data);
-
-    // Overriding neigh_entry priv_enter_not_active
-    void priv_enter_not_active();
-    void priv_enter_error();
-    int priv_enter_arp_resolved();
-    int priv_enter_path_resolved(struct rdma_cm_event *event_data, uint32_t &wait_after_join_msec);
-    virtual bool priv_handle_neigh_is_l2_changed(address_t);
-    // Overriding neigh_entry priv_enter_ready
-    int priv_enter_ready();
-
-    int handle_enter_arp_resolved_uc();
-    int handle_enter_arp_resolved_mc();
-    int build_uc_neigh_val(struct rdma_cm_event *event_data, uint32_t &wait_after_join_msec);
-
-    event_t ibverbs_event_mapping(void *p_event_info);
-    virtual bool post_send_arp(bool);
-    virtual bool prepare_to_send_packet(header *);
-
-    const uint32_t m_n_sysvar_wait_after_join_msec;
-};
-
-class neigh_ib_broadcast : public neigh_ib {
-public:
-    neigh_ib_broadcast(neigh_key key);
-    virtual int send(neigh_send_info &s_info);
-    virtual bool get_peer_info(neigh_val *p_val);
-    virtual bool is_deletable() { return false; };
-
-private:
-    void build_mc_neigh_val();
-    virtual void send_arp();
 };
 
 class neigh_eth : public neigh_entry {

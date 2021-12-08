@@ -1464,7 +1464,6 @@ void net_device_val_ib::configure()
         g_p_neigh_table_mgr->register_observer(neigh_key(ip_address(in.s_addr), this), this,
                                                &p_ces);
     }
-    m_br_neigh = dynamic_cast<neigh_ib_broadcast *>(p_ces);
 
     p_ib_ctx = g_p_ib_ctx_handler_collection->get_ib_ctx(get_ifname_link());
     if (!p_ib_ctx ||
