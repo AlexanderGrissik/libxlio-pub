@@ -102,10 +102,6 @@ public:
     {
         m_p_ib_ctx->convert_hw_time_to_system_time(hwtime, systime);
     }
-    inline uint32_t get_qpn() const
-    {
-        return (m_p_l2_addr ? ((IPoIB_addr *)m_p_l2_addr)->get_qpn() : 0);
-    }
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
     virtual int get_tx_channel_fd() const
     {
