@@ -140,8 +140,6 @@ libxlio_la_SOURCES := \
 	proto/dst_entry_tcp.cpp \
 	proto/header.cpp \
 	proto/arp.cpp \
-	proto/igmp_mgr.cpp \
-	proto/igmp_handler.cpp \
 	\
 	sock/sockinfo.cpp \
 	sock/sockinfo_udp.cpp \
@@ -252,8 +250,6 @@ libxlio_la_SOURCES := \
 	proto/dst_entry_udp_mc.h \
 	proto/flow_tuple.h \
 	proto/header.h \
-	proto/igmp_handler.h \
-	proto/igmp_mgr.h \
 	proto/ip_address.h \
 	proto/ip_frag.h \
 	proto/L2_address.h \

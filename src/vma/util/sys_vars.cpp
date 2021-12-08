@@ -60,7 +60,6 @@
 #include "vma/proto/vma_lwip.h"
 #include "vma/proto/route_table_mgr.h"
 #include "vma/proto/rule_table_mgr.h"
-#include "vma/proto/igmp_mgr.h"
 
 #include "vma/proto/neighbour_table_mgr.h"
 #include "vma/netlink/netlink_wrapper.h"

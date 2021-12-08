@@ -59,7 +59,6 @@
 #include "vma/proto/vma_lwip.h"
 #include "vma/proto/route_table_mgr.h"
 #include "vma/proto/rule_table_mgr.h"
-#include "vma/proto/igmp_mgr.h"
 #include "vma/proto/mapping.h"
 
 #include "vma/proto/neighbour_table_mgr.h"
@@ -121,12 +120,6 @@ static int free_libvma_resources()
     // Handle pending received data, this is critical for proper TCP connection termination
     if (g_p_net_device_table_mgr) {
         g_p_net_device_table_mgr->global_ring_drain_and_procces();
-    }
-
-    if (g_p_igmp_mgr) {
-        igmp_mgr *g_p_igmp_mgr_tmp = g_p_igmp_mgr;
-        g_p_igmp_mgr = NULL;
-        delete g_p_igmp_mgr_tmp;
     }
 
     if (g_p_event_handler_manager) {
@@ -1004,8 +997,6 @@ static void do_global_ctors_helper()
 
     NEW_CTOR(g_p_route_table_mgr, route_table_mgr());
 
-    NEW_CTOR(g_p_igmp_mgr, igmp_mgr());
-
     NEW_CTOR(g_zc_cache, mapping_cache((size_t)safe_mce_sys().zc_cache_threshold * ONE_MB));
 
     safe_mce_sys().rx_buf_size = MIN((int)safe_mce_sys().rx_buf_size, (int)0xFF00);
@@ -1147,7 +1138,6 @@ int do_global_ctors()
 void reset_globals()
 {
     g_p_fd_collection = NULL;
-    g_p_igmp_mgr = NULL;
     g_p_ip_frag_manager = NULL;
     g_zc_cache = NULL;
     g_buffer_pool_rx_ptr = NULL;

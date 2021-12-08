@@ -33,7 +33,6 @@
 #include "ring_slave.h"
 
 #include "vma/proto/ip_frag.h"
-#include "vma/proto/igmp_mgr.h"
 #include "vma/dev/rfs_mc.h"
 #include "vma/dev/rfs_uc_tcp_gro.h"
 #include "vma/sock/fd_collection.h"
@@ -43,30 +42,6 @@
 #define MODULE_NAME "ring_slave"
 #undef MODULE_HDR
 #define MODULE_HDR MODULE_NAME "%d:%s() "
-
-#ifndef IGMP_V3_MEMBERSHIP_REPORT
-#define IGMP_V3_MEMBERSHIP_REPORT                                                                  \
-    0x22 /* V3 version of 0x11 */ /* ALEXR: taken from <linux/igmp.h> */
-#endif
-
-// String formating helper function for IGMP
-const char *priv_igmp_type_tostr(uint8_t igmptype)
-{
-    switch (igmptype) {
-    case IGMP_HOST_MEMBERSHIP_QUERY:
-        return "IGMP_QUERY";
-    case IGMP_HOST_MEMBERSHIP_REPORT:
-        return "IGMPV1_REPORT";
-    case IGMP_V2_MEMBERSHIP_REPORT:
-        return "IGMPV2_REPORT";
-    case IGMP_V3_MEMBERSHIP_REPORT:
-        return "IGMPV3_REPORT";
-    case IGMP_HOST_LEAVE_MESSAGE:
-        return "IGMP_LEAVE_MESSAGE";
-    default:
-        return "IGMP type UNKNOWN";
-    }
-}
 
 ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     : ring()
@@ -960,27 +935,6 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                                                           0, p_rx_wc_buf_desc->rx.dst.sin_port, 0),
                                        NULL);
         }
-    } break;
-
-    case IPPROTO_IGMP: {
-        struct igmp *p_igmp_h = (struct igmp *)((uint8_t *)p_ip_h + ip_hdr_len);
-        NOT_IN_USE(p_igmp_h); /* to supress warning in case MAX_DEFINED_LOG_LEVEL */
-        ring_logdbg("Rx IGMP packet info: type=%s (%d), group=%d.%d.%d.%d, code=%d",
-                    priv_igmp_type_tostr(p_igmp_h->igmp_type), p_igmp_h->igmp_type,
-                    NIPQUAD(p_igmp_h->igmp_group.s_addr), p_igmp_h->igmp_code);
-        if (m_b_sysvar_eth_mc_l2_only_rules) {
-            ring_logdbg("eth_mc_l2_only_rules, passing igmp packet to "
-                        "igmp_manager to process");
-            if (g_p_igmp_mgr) {
-                (g_p_igmp_mgr->process_igmp_packet(p_ip_h, m_local_if));
-                return false; // we return false in order to free the buffer, although we handled
-                              // the packet
-            }
-            ring_logdbg("IGMP packet drop. IGMP manager does not exist.");
-            return false;
-        }
-        ring_logerr("Transport type is ETH, dropping the packet");
-        return false;
     } break;
 
     default:
