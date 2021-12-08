@@ -282,9 +282,6 @@ bool check_netvsc_device_exist(const char *ifname);
 bool get_netvsc_slave(IN const char *ifname, OUT char *slave_name, OUT unsigned int &slave_flags);
 bool get_interface_oper_state(IN const char *interface_name, OUT char *slaves_list, IN int sz);
 
-int validate_ipoib_prop(const char *ifname, unsigned int ifflags, const char prop_file[],
-                        const char *expected_val, int val_size, char *filename, char *base_ifname);
-
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
 int validate_raw_qp_privliges();
 #endif /* DEFINED_VERBS_VERSION */

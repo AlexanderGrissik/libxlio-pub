@@ -847,7 +847,7 @@ extern mce_sys_var &safe_mce_sys();
 /*
  * This block consists of auxiliary constants
  */
-#define RX_BUF_SIZE(mtu) ((mtu) + IPOIB_HDR_LEN + GRH_HDR_LEN) // RX buffers are larger in IB
+#define RX_BUF_SIZE(mtu) (mtu)
 #define TX_BUF_SIZE(mtu)                                                                           \
     ((mtu) + 92) // Tx buffers are larger in Ethernet (they include L2 for RAW QP)
 #define NUM_TX_WRE_TO_SIGNAL_MAX            64
@@ -858,7 +858,6 @@ extern mce_sys_var &safe_mce_sys();
 #define IFTYPE_PARAM_FILE                   "/sys/class/net/%s/type"
 #define IFADDR_MTU_PARAM_FILE               "/sys/class/net/%s/mtu"
 #define UMCAST_PARAM_FILE                   "/sys/class/net/%s/umcast"
-#define IPOIB_MODE_PARAM_FILE               "/sys/class/net/%s/mode"
 #define VERBS_DEVICE_PORT_PARAM_FILE        "/sys/class/net/%s/dev_port"
 #define VERBS_DEVICE_ID_PARAM_FILE          "/sys/class/net/%s/dev_id"
 #define BONDING_MODE_PARAM_FILE             "/sys/class/net/%s/bonding/mode"

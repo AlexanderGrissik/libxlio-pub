@@ -74,7 +74,6 @@ inline int _errnocheck(int rc)
 
 #define IF_RDMACM_FAILURE(__func__) IF_VERBS_FAILURE(__func__)
 #define ENDIF_RDMACM_FAILURE        ENDIF_VERBS_FAILURE
-#define IPOIB_QKEY                  0x0b1b
 
 // See - IB Arch Spec - 11.6.2 COMPLETION RETURN STATUS
 const char *priv_ibv_wc_status_str(enum ibv_wc_status status);

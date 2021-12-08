@@ -113,16 +113,6 @@ void header::configure_ip_header(uint8_t protocol, in_addr_t src_addr, in_addr_t
     m_total_hdr_len += m_ip_header_len;
 }
 
-void header::configure_ipoib_headers(uint32_t ipoib_header /*=IPOIB_HEADER*/)
-{
-    ib_hdr_template_t *p_hdr = &m_header.hdr.m_l2_hdr.ib_hdr;
-    m_transport_header_tx_offset = sizeof(p_hdr->m_alignment);
-    m_transport_header_len = sizeof(p_hdr->m_ipoib_hdr);
-    m_total_hdr_len += m_transport_header_len;
-    p_hdr->m_ipoib_hdr.ipoib_header = htonl(ipoib_header);
-    update_actual_hdr_addr();
-}
-
 void header::set_mac_to_eth_header(const L2_address &src, const L2_address &dst, ethhdr &eth_header)
 {
     // copy source and destination mac address to eth header

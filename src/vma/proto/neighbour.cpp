@@ -340,7 +340,7 @@ void neigh_entry::handle_timer_expired(void *ctx)
 
     if (!priv_is_failed(state)) {
         // We want to verify that L2 address wasn't changed
-        unsigned char tmp[IPOIB_HW_ADDR_LEN];
+        unsigned char tmp[MAX_L2_ADDR_LEN];
         address_t l2_addr = (address_t)tmp;
         if (!priv_get_neigh_l2(l2_addr)) {
             return;

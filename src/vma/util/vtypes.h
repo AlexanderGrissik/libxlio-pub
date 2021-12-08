@@ -119,54 +119,13 @@ static inline uint64_t ntohll(uint64_t x)
         ((unsigned char *)(__addr))[2], ((unsigned char *)(__addr))[3],                            \
         ((unsigned char *)(__addr))[4], ((unsigned char *)(__addr))[5]
 
-#define IPOIB_HW_ADDR_PRINT_FMT_16                                                                 \
-    "%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X"
-#define IPOIB_HW_ADDR_PRINT_ADDR_16(__addr)                                                        \
-    ((unsigned char *)(__addr))[0], ((unsigned char *)(__addr))[1],                                \
-        ((unsigned char *)(__addr))[2], ((unsigned char *)(__addr))[3],                            \
-        ((unsigned char *)(__addr))[4], ((unsigned char *)(__addr))[5],                            \
-        ((unsigned char *)(__addr))[6], ((unsigned char *)(__addr))[7],                            \
-        ((unsigned char *)(__addr))[8], ((unsigned char *)(__addr))[9],                            \
-        ((unsigned char *)(__addr))[10], ((unsigned char *)(__addr))[11],                          \
-        ((unsigned char *)(__addr))[12], ((unsigned char *)(__addr))[13],                          \
-        ((unsigned char *)(__addr))[14], ((unsigned char *)(__addr))[15]
-
-#define IPOIB_HW_ADDR_PRINT_FMT                                                                    \
-    "%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X"
-#define IPOIB_HW_ADDR_PRINT_ADDR(__addr)                                                           \
-    ((unsigned char *)(__addr))[0], ((unsigned char *)(__addr))[1],                                \
-        ((unsigned char *)(__addr))[2], ((unsigned char *)(__addr))[3],                            \
-        ((unsigned char *)(__addr))[4], ((unsigned char *)(__addr))[5],                            \
-        ((unsigned char *)(__addr))[6], ((unsigned char *)(__addr))[7],                            \
-        ((unsigned char *)(__addr))[8], ((unsigned char *)(__addr))[9],                            \
-        ((unsigned char *)(__addr))[10], ((unsigned char *)(__addr))[11],                          \
-        ((unsigned char *)(__addr))[12], ((unsigned char *)(__addr))[13],                          \
-        ((unsigned char *)(__addr))[14], ((unsigned char *)(__addr))[15],                          \
-        ((unsigned char *)(__addr))[16], ((unsigned char *)(__addr))[17],                          \
-        ((unsigned char *)(__addr))[18], ((unsigned char *)(__addr))[19]
-
 #define ETH_HW_ADDR_SSCAN_FMT "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX"
 #define ETH_HW_ADDR_SSCAN(__addr)                                                                  \
     &(__addr[0]), &(__addr[1]), &(__addr[2]), &(__addr[3]), &(__addr[4]), &(__addr[5])
 
-#define IPOIB_HW_ADDR_SSCAN_FMT                                                                    \
-    "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%" \
-    "02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX"
-#define IPOIB_HW_ADDR_SSCAN(__addr)                                                                \
-    &(__addr[0]), &(__addr[1]), &(__addr[2]), &(__addr[3]), &(__addr[4]), &(__addr[5]),            \
-        &(__addr[6]), &(__addr[7]), &(__addr[8]), &(__addr[9]), &(__addr[10]), &(__addr[11]),      \
-        &(__addr[12]), &(__addr[13]), &(__addr[14]), &(__addr[15]), &(__addr[16]), &(__addr[17]),  \
-        &(__addr[18]), &(__addr[19])
-
 #define ETH_HDR_LEN                  (ETH_HLEN)
 #define ETH_VLAN_HDR_LEN             (ETH_HDR_LEN + sizeof(struct vlanhdr))
-#define GRH_HDR_LEN                  (sizeof(struct ibv_grh))
-#define IPOIB_HDR_LEN                (sizeof(struct ipoibhdr))
-#define IPOIB_HEADER                 ((uint32_t)0x08000000)
-#define IPOIB_ARP_HEADER             ((uint32_t)0x08060000)
-#define IPOIB_HW_ADDR_LEN            20
-#define IPOIB_HW_ADDR_GID_LEN        16
-#define MAX_L2_ADDR_LEN              (MAX(IPOIB_HW_ADDR_LEN, ETH_ALEN))
+#define MAX_L2_ADDR_LEN              (ETH_ALEN)
 #define IPV4_VERSION                 0x4
 #define IPV4_HDR_LEN_WITHOUT_OPTIONS (sizeof(struct iphdr)) // Ip Header without any options
 #define IPV4_IGMP_HDR_LEN            (IPV4_HDR_LEN_WITHOUT_OPTIONS + sizeof(uint32_t))
@@ -195,10 +154,6 @@ static inline uint64_t ntohll(uint64_t x)
 #ifndef ETH_P_8021Q
 #define ETH_P_8021Q 0x8100 /* 802.1Q VLAN Extended Header  */
 #endif
-
-struct __attribute__((packed)) ipoibhdr {
-    uint32_t ipoib_header;
-};
 
 struct __attribute__((packed)) vlanhdr {
     uint16_t h_vlan_TCI; /* Encapsulates priority and VLAN ID */

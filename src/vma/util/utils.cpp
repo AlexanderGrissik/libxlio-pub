@@ -147,11 +147,9 @@ int get_base_interface_name(const char *if_name, char *base_ifname, size_t sz_ba
 
             unsigned char tmp_mac[ADDR_LEN];
             if (ADDR_LEN == get_local_ll_addr(ifa->ifa_name, tmp_mac, ADDR_LEN, false)) {
-                int size_to_compare;
+                int size_to_compare = 0;
                 if (ADDR_LEN == ETH_ALEN) {
                     size_to_compare = ETH_ALEN;
-                } else {
-                    size_to_compare = IPOIB_HW_ADDR_GID_LEN;
                 }
                 int offset = ADDR_LEN - size_to_compare;
                 if (0 == memcmp(vlan_if_address + offset, tmp_mac + offset, size_to_compare) &&
@@ -823,13 +821,7 @@ size_t get_local_ll_addr(IN const char *ifname, OUT unsigned char *addr, IN int 
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    if (bytes_len == IPOIB_HW_ADDR_LEN &&
-        addr_len >=
-            IPOIB_HW_ADDR_LEN) { // addr_len >= IPOIB_HW_ADDR_LEN is just for silencing coverity
-        sscanf(buf, IPOIB_HW_ADDR_SSCAN_FMT, IPOIB_HW_ADDR_SSCAN(addr));
-        __log_dbg("found IB %s address " IPOIB_HW_ADDR_PRINT_FMT " for interface %s",
-                  is_broadcast ? "BR" : "UC", IPOIB_HW_ADDR_PRINT_ADDR(addr), ifname);
-    } else if (bytes_len == ETH_ALEN) {
+    if (bytes_len == ETH_ALEN) {
         sscanf(buf, ETH_HW_ADDR_SSCAN_FMT, ETH_HW_ADDR_SSCAN(addr));
         __log_dbg("found ETH %s address" ETH_HW_ADDR_PRINT_FMT " for interface %s",
                   is_broadcast ? "BR" : "UC", ETH_HW_ADDR_PRINT_ADDR(addr), ifname);
@@ -1134,43 +1126,6 @@ bool get_interface_oper_state(IN const char *interface_name, OUT char *curr_stat
         *p = '\0'; // Remove the tailing 'new line" char
     }
     return true;
-}
-
-int validate_ipoib_prop(const char *ifname, unsigned int ifflags, const char prop_file[],
-                        const char *expected_val, int val_size, OUT char *filename,
-                        OUT char *base_ifname)
-{
-    char mode[10];
-    char ifname_tmp[IFNAMSIZ];
-    char active_slave_name[IFNAMSIZ];
-
-    // In case of alias (ib0:xx) take only the device name for that interface (ib0)
-    strncpy(ifname_tmp, ifname, sizeof(ifname_tmp) - 1);
-    ifname_tmp[sizeof(ifname_tmp) - 1] = '\0';
-    base_ifname = strtok(ifname_tmp, ":");
-
-    if (ifflags & IFF_MASTER) {
-        // this is a bond interface, let find the slave
-        BULLSEYE_EXCLUDE_BLOCK_START
-        if (!get_bond_active_slave_name(base_ifname, active_slave_name, IFNAMSIZ)) {
-            return -1;
-        }
-        BULLSEYE_EXCLUDE_BLOCK_END
-        sprintf(filename, prop_file, active_slave_name);
-    } else {
-        sprintf(filename, prop_file, base_ifname);
-    }
-
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (priv_read_file(filename, mode, val_size) <= 0) {
-        return -1;
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
-    if (strncmp(mode, expected_val, val_size)) {
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
