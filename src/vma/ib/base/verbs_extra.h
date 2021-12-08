@@ -84,13 +84,8 @@ const char *priv_ibv_event_desc_str(enum ibv_event_type type);
 
 #define priv_rdma_cm_event_type_str(__rdma_cm_ev_t__) rdma_event_str(__rdma_cm_ev_t__)
 
-// Find pkey_index from the ibv_context + port_num + pkey
-int priv_ibv_find_pkey_index(struct ibv_context *verbs, uint8_t port_num, uint16_t pkey,
-                             uint16_t *pkey_index);
-
 int priv_ibv_modify_qp_to_err(struct ibv_qp *qp);
 int priv_ibv_modify_qp_from_err_to_init_raw(struct ibv_qp *qp, uint8_t port_num);
-int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index);
 int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp);
 
 // Return 'ibv_qp_state' of the ibv_qp

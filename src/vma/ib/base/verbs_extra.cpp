@@ -147,21 +147,6 @@ const char *priv_ibv_event_desc_str(enum ibv_event_type type)
     BULLSEYE_EXCLUDE_BLOCK_END
 }
 
-int priv_ibv_find_pkey_index(struct ibv_context *verbs, uint8_t port_num, uint16_t pkey,
-                             uint16_t *pkey_index)
-{
-    int ret, i;
-    uint16_t chk_pkey = 0;
-    for (i = 0, ret = 0; !ret; i++) {
-        ret = ibv_query_pkey(verbs, port_num, i, &chk_pkey);
-        if (!ret && pkey == chk_pkey) {
-            *pkey_index = (uint16_t)i;
-            return 0;
-        }
-    }
-    return -1;
-}
-
 int priv_ibv_modify_qp_to_err(struct ibv_qp *qp)
 {
     vma_ibv_qp_attr qp_attr;
@@ -216,37 +201,6 @@ int priv_ibv_modify_qp_from_err_to_init_raw(struct ibv_qp *qp, uint8_t port_num)
     return 0;
 }
 
-int priv_ibv_modify_qp_from_err_to_init_ud(struct ibv_qp *qp, uint8_t port_num, uint16_t pkey_index)
-{
-    vma_ibv_qp_attr qp_attr;
-    ibv_qp_attr_mask qp_attr_mask = (ibv_qp_attr_mask)IBV_QP_STATE;
-
-    if (qp->qp_type != IBV_QPT_UD) {
-        return -1;
-    }
-
-    if (priv_ibv_query_qp_state(qp) != IBV_QPS_RESET) {
-        if (priv_ibv_modify_qp_to_reset(qp)) {
-            return -2;
-        }
-    }
-
-    memset(&qp_attr, 0, sizeof(qp_attr));
-    qp_attr.qp_state = IBV_QPS_INIT;
-    qp_attr_mask =
-        (ibv_qp_attr_mask)(qp_attr_mask | IBV_QP_QKEY | IBV_QP_PKEY_INDEX | IBV_QP_PORT);
-    qp_attr.qkey = IPOIB_QKEY;
-    qp_attr.pkey_index = pkey_index;
-    qp_attr.port_num = port_num;
-
-    BULLSEYE_EXCLUDE_BLOCK_START
-    IF_VERBS_FAILURE(vma_ibv_modify_qp(qp, &qp_attr, qp_attr_mask)) { return -3; }
-    ENDIF_VERBS_FAILURE;
-    BULLSEYE_EXCLUDE_BLOCK_END
-
-    return 0;
-}
-
 int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp)
 {
     vma_ibv_qp_attr qp_attr;
@@ -264,11 +218,6 @@ int priv_ibv_modify_qp_from_init_to_rts(struct ibv_qp *qp)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     qp_attr.qp_state = IBV_QPS_RTS;
-
-    if (qp->qp_type == IBV_QPT_UD) {
-        qp_attr_mask = (ibv_qp_attr_mask)(qp_attr_mask | IBV_QP_SQ_PSN);
-        qp_attr.sq_psn = 0;
-    }
 
     BULLSEYE_EXCLUDE_BLOCK_START
     IF_VERBS_FAILURE(vma_ibv_modify_qp(qp, &qp_attr, qp_attr_mask)) { return -3; }
