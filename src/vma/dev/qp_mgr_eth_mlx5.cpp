@@ -728,6 +728,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr *pswr)
         inl_hdr_copy_size = inl_hdr_size;
         /* coverity[overrun-buffer-arg] */
         /* coverity[buffer_size] */
+        /* cppcheck-suppress bufferAccessOutOfBounds */
         memcpy(eseg->inline_hdr_start, addr, inl_hdr_copy_size);
     } else {
         uint32_t inl_hdr_size_left = inl_hdr_size;

@@ -756,7 +756,6 @@ void mce_sys_var::get_env_params()
     thread_mode = MCE_DEFAULT_THREAD_MODE;
     buffer_batching_mode = MCE_DEFAULT_BUFFER_BATCHING_MODE;
     mem_alloc_type = MCE_DEFAULT_MEM_ALLOC_TYPE;
-    enable_ipoib = MCE_DEFAULT_IPOIB_FLAG;
     enable_socketxtreme = MCE_DEFAULT_SOCKETXTREME;
     enable_tso = MCE_DEFAULT_TSO;
 #ifdef DEFINED_UTLS
@@ -1758,10 +1757,6 @@ void mce_sys_var::get_env_params()
 
     if ((env_ptr = getenv(SYS_VAR_FORK)) != NULL) {
         handle_fork = atoi(env_ptr) ? true : false;
-    }
-
-    if ((env_ptr = getenv(SYS_VAR_IPOIB)) != NULL) {
-        enable_ipoib = atoi(env_ptr) ? true : false;
     }
 
     if ((env_ptr = getenv(SYS_VAR_TSO)) != NULL) {

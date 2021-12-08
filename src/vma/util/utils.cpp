@@ -822,9 +822,10 @@ size_t get_local_ll_addr(IN const char *ifname, OUT unsigned char *addr, IN int 
     BULLSEYE_EXCLUDE_BLOCK_END
 
     if (bytes_len == ETH_ALEN) {
-        sscanf(buf, ETH_HW_ADDR_SSCAN_FMT, ETH_HW_ADDR_SSCAN(addr));
-        __log_dbg("found ETH %s address" ETH_HW_ADDR_PRINT_FMT " for interface %s",
-                  is_broadcast ? "BR" : "UC", ETH_HW_ADDR_PRINT_ADDR(addr), ifname);
+        if (6 == sscanf(buf, ETH_HW_ADDR_SSCAN_FMT, ETH_HW_ADDR_SSCAN(addr))) {
+            __log_dbg("found ETH %s address" ETH_HW_ADDR_PRINT_FMT " for interface %s",
+                      is_broadcast ? "BR" : "UC", ETH_HW_ADDR_PRINT_ADDR(addr), ifname);
+        }
     } else {
         return 0; // error
     }

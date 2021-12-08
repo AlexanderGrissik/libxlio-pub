@@ -765,8 +765,6 @@ void print_vma_global_settings()
     VLOG_PARAM_NUMBER("Num of neigh restart retries", safe_mce_sys().neigh_num_err_retries,
                       MCE_DEFAULT_NEIGH_NUM_ERR_RETRIES, SYS_VAR_NEIGH_NUM_ERR_RETRIES);
 
-    VLOG_PARAM_STRING("IPOIB support", safe_mce_sys().enable_ipoib, MCE_DEFAULT_IPOIB_FLAG,
-                      SYS_VAR_IPOIB, safe_mce_sys().enable_ipoib ? "Enabled " : "Disabled");
     VLOG_PARAM_STRING("SocketXtreme mode", safe_mce_sys().enable_socketxtreme,
                       MCE_DEFAULT_SOCKETXTREME, SYS_VAR_SOCKETXTREME,
                       safe_mce_sys().enable_socketxtreme ? "Enabled " : "Disabled");

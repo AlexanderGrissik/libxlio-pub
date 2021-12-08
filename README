@@ -31,14 +31,6 @@ The installation copies the XLIO library to: /usr/lib[64]/libxlio.so
 The XLIO monitoring utility is installed at: /usr/bin/xlio_stats
 The XLIO extra socket API is located at: /usr/include/mellanox/xlio_extra.h
 
-Post Installation:
-When working over Infiniband, we recommend to manually add persistence
-for the following system parameters:
-1. Force IPoIB to work in 'datagram' mode (disabling IPoIB 'connected' mode)
-   Modify "SET_IPOIB_CM=no" in file "/etc/infiniband/openib.conf"
-2. Force IGMP to work in V2 on IB interfaces
-   Add "net.ipv4.conf.all.force_igmp_version = 2" in file "/etc/sysctl.conf"
-
 Upgrading:
 Use rpm update procedure: # rpm -U libxlio.X.Y.Z-R.rpm
 You can upgrade by uninstalling (rpm -e) the previously installed package
@@ -161,7 +153,6 @@ Example:
  XLIO DETAILS: Num of UC ARPs                 3                          [XLIO_NEIGH_UC_ARP_QUATA]
  XLIO DETAILS: UC ARP delay (msec)            10000                      [XLIO_NEIGH_UC_ARP_DELAY_MSEC]
  XLIO DETAILS: Num of neigh restart retries   1                          [XLIO_NEIGH_NUM_ERR_RETRIES]
- XLIO DETAILS: IPOIB support                  Enabled                    [XLIO_IPOIB]
  XLIO DETAILS: SocketXtreme mode              Disabled                   [XLIO_SOCKETXTREME]
  XLIO DETAILS: TSO support                    auto                       [XLIO_TSO]
  XLIO DETAILS: UTLS RX support                Enabled                    [XLIO_UTLS_RX]
@@ -598,7 +589,7 @@ Default value is 0 (Disable)
 XLIO_RX_PREFETCH_BYTES
 Size of receive buffer to prefetch into cache while processing ingress packets.
 The default is a single cache line of 64 bytes which should be at least 32
-bytes to cover the IPoIB+IP+UDP headers and a small part of the users payload.
+bytes to cover the IP+UDP headers and a small part of the users payload.
 Increasing this can help improve performance for larger user payload sizes.
 Value range is 32 bytes to MTU size
 Default value is 256 bytes
@@ -1124,19 +1115,6 @@ automatically to reach a desired rate of interrupts.
 5. Disable Adaptive CQ moderation with XLIO_CQ_AIM_INTERVAL_MSEC=0
 
 
-
-
-Notes
-=====
-* Multicast loopback behavior:
-	There is a different behavior between IPoIB and XLIO when dealing with
-	multicast packets at the same machine:
-	- When sending from XLIO application to IPoIB application on the same
-	machine the packet will never be accepted by the IPoIB side (even when
-	the loopback is enabled)
-	- When sending from IPoIB application to XLIO application on the same
-	machine, the packet will always be accepted by the XLIO side (even when
-	the loop is disabled
 
 
 Troubleshooting
