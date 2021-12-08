@@ -285,9 +285,8 @@ protected:
 private:
     void verify_bonding_mode();
     bool verify_qp_creation(const char *ifname, enum ibv_qp_type qp_type);
-    bool verify_bond_ipoib_or_eth_qp_creation();
-    bool verify_ipoib_or_eth_qp_creation(const char *interface_name);
-    bool verify_enable_ipoib(const char *ifname);
+    bool verify_bond_or_eth_qp_creation();
+    bool verify_eth_qp_creation(const char *interface_name);
 
     resource_allocation_key *ring_key_redirection_reserve(resource_allocation_key *key);
     resource_allocation_key *get_ring_key_redirection(resource_allocation_key *key);
@@ -336,34 +335,6 @@ private:
     L2_address *create_L2_address(const char *ifname);
     void create_br_address(const char *ifname);
     uint16_t m_vlan;
-};
-
-class net_device_val_ib : public net_device_val, public neigh_observer, public cache_observer {
-public:
-    net_device_val_ib(struct net_device_val_desc *desc)
-        : net_device_val(desc)
-        , m_pkey(0)
-    {
-        set_transport_type((transport_type_t)0);
-        if (INVALID != get_state()) {
-            set_slave_array();
-            configure();
-        }
-    }
-    ~net_device_val_ib();
-
-    std::string to_str();
-    uint16_t get_pkey() { return m_pkey; }
-    virtual transport_type_t get_obs_transport_type() const { return get_transport_type(); }
-
-protected:
-    ring *create_ring(resource_allocation_key *key);
-
-private:
-    void configure();
-    L2_address *create_L2_address(const char *ifname);
-    void create_br_address(const char *ifname);
-    uint16_t m_pkey;
 };
 
 #endif

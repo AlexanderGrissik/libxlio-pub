@@ -184,10 +184,6 @@ static inline uint64_t ntohll(uint64_t x)
 
 #define BROADCAST_IP "255.255.255.255"
 
-#ifndef ARPHRD_INFINIBAND
-#define ARPHRD_INFINIBAND 32 /* InfiniBand			*/
-#endif
-
 #ifndef ARPHRD_ETHER
 #define ARPHRD_ETHER 1 /* Ethernet 10Mbps                   */
 #endif

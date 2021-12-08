@@ -262,10 +262,10 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
     case LAG_8023ad:
     case ACTIVE_BACKUP:
         // this is a bond interface (or a vlan/alias over bond), find the slaves
-        valid = verify_bond_ipoib_or_eth_qp_creation();
+        valid = verify_bond_or_eth_qp_creation();
         break;
     default:
-        valid = (bool)(ib_ctx && verify_ipoib_or_eth_qp_creation(get_ifname_link()));
+        valid = (bool)(ib_ctx && verify_eth_qp_creation(get_ifname_link()));
         break;
     }
 
@@ -474,9 +474,6 @@ void net_device_val::set_str()
         break;
     case ARPHRD_ETHER:
         sprintf(str_x, " type %s", "ether");
-        break;
-    case ARPHRD_INFINIBAND:
-        sprintf(str_x, " type %s", "infiniband");
         break;
     default:
         sprintf(str_x, " type %s", "unknown");
@@ -1431,107 +1428,7 @@ std::string net_device_val_eth::to_str()
     return std::string("ETH: " + net_device_val::to_str());
 }
 
-net_device_val_ib::~net_device_val_ib()
-{
-    struct in_addr in;
-    if (1 == inet_pton(AF_INET, BROADCAST_IP, &in)) {
-        g_p_neigh_table_mgr->unregister_observer(neigh_key(ip_address(in.s_addr), this), this);
-    }
-}
-
-void net_device_val_ib::configure()
-{
-    ib_ctx_handler *p_ib_ctx = NULL;
-    struct in_addr in;
-
-    m_p_L2_addr = create_L2_address(get_ifname());
-
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_p_L2_addr == NULL) {
-        nd_logpanic("m_p_L2_addr allocation error");
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
-
-    create_br_address(get_ifname());
-
-    if (1 == inet_pton(AF_INET, BROADCAST_IP, &in)) {
-        g_p_neigh_table_mgr->unregister_observer(neigh_key(ip_address(in.s_addr), this), this);
-    }
-
-    // Register to IB BR neigh
-    cache_entry_subject<neigh_key, neigh_val *> *p_ces = NULL;
-    if (1 == inet_pton(AF_INET, BROADCAST_IP, &in)) {
-        g_p_neigh_table_mgr->register_observer(neigh_key(ip_address(in.s_addr), this), this,
-                                               &p_ces);
-    }
-
-    p_ib_ctx = g_p_ib_ctx_handler_collection->get_ib_ctx(get_ifname_link());
-    if (!p_ib_ctx ||
-        ibv_query_pkey(p_ib_ctx->get_ibv_context(), get_port_from_ifname(get_ifname_link()), 0,
-                       &m_pkey)) {
-        nd_logerr("failed querying pkey");
-    }
-    nd_logdbg("pkey: %d", m_pkey);
-}
-
-ring *net_device_val_ib::create_ring(resource_allocation_key *key)
-{
-    ring *ring = NULL;
-
-    NOT_IN_USE(key);
-    try {
-        switch (m_bond) {
-        case NO_BOND:
-            ring = new ring_ib(get_if_idx());
-            break;
-        case ACTIVE_BACKUP:
-        case LAG_8023ad:
-            ring = new ring_bond_ib(get_if_idx());
-            break;
-        default:
-            nd_logdbg("Unknown ring type");
-            break;
-        }
-    } catch (vma_error &error) {
-        nd_logdbg("failed creating ring %s", error.message);
-    }
-
-    return ring;
-}
-
-L2_address *net_device_val_ib::create_L2_address(const char *ifname)
-{
-    if (m_p_L2_addr) {
-        delete m_p_L2_addr;
-        m_p_L2_addr = NULL;
-    }
-    unsigned char hw_addr[IPOIB_HW_ADDR_LEN];
-    get_local_ll_addr(ifname, hw_addr, IPOIB_HW_ADDR_LEN, false);
-    return new IPoIB_addr(hw_addr);
-}
-
-void net_device_val_ib::create_br_address(const char *ifname)
-{
-    if (m_p_br_addr) {
-        delete m_p_br_addr;
-        m_p_br_addr = NULL;
-    }
-    unsigned char hw_addr[IPOIB_HW_ADDR_LEN];
-    get_local_ll_addr(ifname, hw_addr, IPOIB_HW_ADDR_LEN, true);
-    m_p_br_addr = new IPoIB_addr(hw_addr);
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_p_br_addr == NULL) {
-        nd_logpanic("m_p_br_addr allocation error");
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
-}
-
-std::string net_device_val_ib::to_str()
-{
-    return std::string("IB: " + net_device_val::to_str());
-}
-
-bool net_device_val::verify_bond_ipoib_or_eth_qp_creation()
+bool net_device_val::verify_bond_or_eth_qp_creation()
 {
     char slaves[IFNAMSIZ * MAX_SLAVES] = {0};
 
@@ -1558,7 +1455,7 @@ bool net_device_val::verify_bond_ipoib_or_eth_qp_creation()
         if (p) {
             *p = '\0'; // Remove the tailing 'new line" char
         }
-        if (!verify_ipoib_or_eth_qp_creation(slave_name)) {
+        if (!verify_eth_qp_creation(slave_name)) {
             // check all slaves but print only once for bond
             bond_ok = false;
         }
@@ -1605,76 +1502,14 @@ bool net_device_val::verify_bond_ipoib_or_eth_qp_creation()
 }
 
 // interface name can be slave while ifa struct can describe bond
-bool net_device_val::verify_ipoib_or_eth_qp_creation(const char *interface_name)
+bool net_device_val::verify_eth_qp_creation(const char *interface_name)
 {
-    if (m_type == ARPHRD_INFINIBAND) {
-        if (verify_enable_ipoib(interface_name) && verify_qp_creation(interface_name, IBV_QPT_UD)) {
-            return true;
-        }
-    } else {
+    if (m_type == ARPHRD_ETHER) {
         if (verify_qp_creation(interface_name, IBV_QPT_RAW_PACKET)) {
             return true;
         }
     }
     return false;
-}
-
-bool net_device_val::verify_enable_ipoib(const char *interface_name)
-{
-    char filename[256] = "\0";
-    char ifname[IFNAMSIZ] = "\0";
-    NOT_IN_USE(interface_name); // Suppress --enable-opt-log=high warning
-
-    if (!safe_mce_sys().enable_ipoib) {
-        nd_logdbg("Blocking offload: IPoIB interfaces ('%s')", interface_name);
-        return false;
-    }
-
-    // Verify IPoIB is in 'datagram mode' for proper VMA with flow steering operation
-    if (validate_ipoib_prop(get_ifname(), m_flags, IPOIB_MODE_PARAM_FILE, "datagram", 8, filename,
-                            ifname)) {
-        vlog_printf(VLOG_WARNING,
-                    "******************************************************************************"
-                    "*************************\n");
-        vlog_printf(VLOG_WARNING, "* IPoIB mode of interface '%s' is \"connected\" !\n",
-                    get_ifname());
-        vlog_printf(VLOG_WARNING,
-                    "* Please change it to datagram: \"echo datagram > %s\" before loading your "
-                    "application with " PRODUCT_NAME " library\n",
-                    filename);
-        vlog_printf(VLOG_WARNING, "* " PRODUCT_NAME " doesn't support IPoIB in connected mode.\n");
-        vlog_printf(VLOG_WARNING,
-                    "* Please refer to " PRODUCT_NAME " Release Notes for more information\n");
-        vlog_printf(VLOG_WARNING,
-                    "******************************************************************************"
-                    "*************************\n");
-        return false;
-    } else {
-        nd_logdbg("verified interface '%s' is running in datagram mode", get_ifname());
-    }
-
-    // Verify umcast is disabled for IB flow
-    if (validate_ipoib_prop(get_ifname(), m_flags, UMCAST_PARAM_FILE, "0", 1, filename,
-                            ifname)) { // Extract UMCAST flag (only for IB transport types)
-        vlog_printf(VLOG_WARNING,
-                    "******************************************************************************"
-                    "*************************\n");
-        vlog_printf(VLOG_WARNING, "* UMCAST flag is Enabled for interface %s !\n", get_ifname());
-        vlog_printf(VLOG_WARNING,
-                    "* Please disable it: \"echo 0 > %s\" before loading your application "
-                    "with " PRODUCT_NAME " library\n",
-                    filename);
-        vlog_printf(VLOG_WARNING, "* This option in no longer needed in this version\n");
-        vlog_printf(VLOG_WARNING, "* Please refer to Release Notes for more information\n");
-        vlog_printf(VLOG_WARNING,
-                    "******************************************************************************"
-                    "*************************\n");
-        return false;
-    } else {
-        nd_logdbg("verified interface '%s' is running with umcast disabled", get_ifname());
-    }
-
-    return true;
 }
 
 // ifname should point to a physical device
@@ -1763,40 +1598,26 @@ bool net_device_val::verify_qp_creation(const char *ifname, enum ibv_qp_type qp_
     qp_init_attr.recv_cq = cq;
     qp_init_attr.send_cq = cq;
 
-    // Set source qpn for non mlx4 IPoIB devices
-    if (qp_type == IBV_QPT_UD && !p_ib_ctx->is_mlx4()) {
-        unsigned char hw_addr[IPOIB_HW_ADDR_LEN];
-        get_local_ll_addr(ifname, hw_addr, IPOIB_HW_ADDR_LEN, false);
-        IPoIB_addr ipoib_addr(hw_addr);
-    }
-
     qp = vma_ibv_create_qp(p_ib_ctx->get_ibv_pd(), &qp_init_attr);
     if (qp) {
-        if (qp_type == IBV_QPT_UD && priv_ibv_create_flow_supported(qp, port_num) == -1) {
-            nd_logdbg("Create_ibv_flow failed on interface %s (errno=%d %s), Traffic will not be "
-                      "offloaded",
-                      ifname, errno, strerror(errno));
-            goto qp_failure;
-        } else {
-            success = true;
+        success = true;
 
-            if (qp_type == IBV_QPT_RAW_PACKET && !priv_ibv_query_flow_tag_supported(qp, port_num)) {
-                p_ib_ctx->set_flow_tag_capability(true);
-            }
-            nd_logdbg("verified interface %s for flow tag capabilities : %s", ifname,
-                      p_ib_ctx->get_flow_tag_capability() ? "enabled" : "disabled");
-
-            if (qp_type == IBV_QPT_RAW_PACKET && p_ib_ctx->is_packet_pacing_supported() &&
-                !priv_ibv_query_burst_supported(qp, port_num)) {
-                p_ib_ctx->set_burst_capability(true);
-            }
-            nd_logdbg("verified interface %s for burst capabilities : %s", ifname,
-                      p_ib_ctx->get_burst_capability() ? "enabled" : "disabled");
+        if (qp_type == IBV_QPT_RAW_PACKET && !priv_ibv_query_flow_tag_supported(qp, port_num)) {
+            p_ib_ctx->set_flow_tag_capability(true);
         }
+        nd_logdbg("verified interface %s for flow tag capabilities : %s", ifname,
+                  p_ib_ctx->get_flow_tag_capability() ? "enabled" : "disabled");
+
+        if (qp_type == IBV_QPT_RAW_PACKET && p_ib_ctx->is_packet_pacing_supported() &&
+            !priv_ibv_query_burst_supported(qp, port_num)) {
+            p_ib_ctx->set_burst_capability(true);
+        }
+        nd_logdbg("verified interface %s for burst capabilities : %s", ifname,
+                  p_ib_ctx->get_burst_capability() ? "enabled" : "disabled");
     } else {
         nd_logdbg("QP creation failed on interface %s (errno=%d %s), Traffic will not be offloaded",
                   ifname, errno, strerror(errno));
-    qp_failure:
+
         int err = errno; // verify_raw_qp_privliges can overwrite errno so keep it before the call
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
         if (validate_raw_qp_privliges() == 0) {

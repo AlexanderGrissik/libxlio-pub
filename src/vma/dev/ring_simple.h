@@ -423,12 +423,7 @@ public:
     ring_ib(int if_index, ring *parent = NULL)
         : ring_simple(if_index, parent, RING_IB)
     {
-        net_device_val_ib *p_ndev = dynamic_cast<net_device_val_ib *>(
-            g_p_net_device_table_mgr->get_net_device_val(m_parent->get_if_index()));
-        if (p_ndev) {
-            m_partition = p_ndev->get_pkey();
-            create_resources();
-        }
+        create_resources();
     }
 
 protected:
