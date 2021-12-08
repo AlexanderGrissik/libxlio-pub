@@ -103,7 +103,8 @@ qp_mgr *ring_eth::create_qp_mgr(struct qp_mgr_desc *desc)
 
 qp_mgr *ring_ib::create_qp_mgr(struct qp_mgr_desc *desc)
 {
-    return new qp_mgr_ib(desc, get_tx_num_wr(), m_partition);
+    NOT_IN_USE(desc);
+    return NULL;
 }
 
 ring_simple::ring_simple(int if_index, ring *parent, ring_type_t type)
