@@ -418,16 +418,4 @@ protected:
     virtual qp_mgr *create_qp_mgr(struct qp_mgr_desc *desc);
 };
 
-class ring_ib : public ring_simple {
-public:
-    ring_ib(int if_index, ring *parent = NULL)
-        : ring_simple(if_index, parent, RING_IB)
-    {
-        create_resources();
-    }
-
-protected:
-    virtual qp_mgr *create_qp_mgr(struct qp_mgr_desc *desc);
-};
-
 #endif // RING_SIMPLE_H
