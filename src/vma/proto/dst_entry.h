@@ -47,7 +47,6 @@
 #include "vma/dev/net_device_val.h"
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/dev/wqe_send_handler.h"
-#include "vma/dev/wqe_send_ib_handler.h"
 #include "vma/dev/ring.h"
 #include "vma/dev/ring_allocation_logic.h"
 #include "vma/infra/sender.h"

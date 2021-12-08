@@ -43,7 +43,6 @@
 #include "vma/proto/route_rule_table_key.h"
 #include "vma/proto/route_table_mgr.h"
 #include "vma/dev/wqe_send_handler.h"
-#include "vma/dev/wqe_send_ib_handler.h"
 
 // This include should be after vma includes
 #include <netinet/tcp.h>

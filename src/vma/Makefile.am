@@ -86,7 +86,6 @@ libxlio_la_SOURCES := \
 	dev/net_device_entry.cpp \
 	dev/net_device_table_mgr.cpp \
 	dev/wqe_send_handler.cpp \
-	dev/wqe_send_ib_handler.cpp \
 	dev/ring.cpp \
 	dev/ring_bond.cpp \
 	dev/ring_slave.cpp \
@@ -194,7 +193,6 @@ libxlio_la_SOURCES := \
 	dev/ring_tap.h \
 	dev/ring_allocation_logic.h \
 	dev/wqe_send_handler.h \
-	dev/wqe_send_ib_handler.h \
 	\
 	event/command.h \
 	event/delta_timer.h \
