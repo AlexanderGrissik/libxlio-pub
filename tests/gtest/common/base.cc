@@ -144,7 +144,7 @@ err:
 
 int test_base::wait_fork(int pid)
 {
-    int status;
+    int status = 0;
 
     pid = waitpid(pid, &status, 0);
     if (0 > pid) {
@@ -158,9 +158,12 @@ int test_base::wait_fork(int pid)
                       strerror(errno));
         }
         return exit_status;
-    } else {
-        log_error("non-normal exit from child process errno: %s\n", strerror(errno));
+    } else if (WIFSIGNALED(status)) {
+        log_error("child process killed by signal: %d\n", WTERMSIG(status));
         return (-2);
+    } else {
+        log_error("non-normal exit from child process status: %d\n", status);
+        return (-3);
     }
 }
 

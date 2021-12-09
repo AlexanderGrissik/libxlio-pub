@@ -265,16 +265,20 @@ mapping_cache::~mapping_cache()
 {
     mapping_t *mapping;
 
-    for (mapping_fd_map_iter_t iter = m_cache_fd.begin(); iter != m_cache_fd.end(); ++iter) {
-        handle_close(iter->first);
+    mapping_fd_map_iter_t fd_map_iter;
+    while ((fd_map_iter = m_cache_fd.begin()) != m_cache_fd.end()) {
+        /* do m_cache_fd.erase() */
+        handle_close(fd_map_iter->first);
     }
 
     while (!m_lru_list.empty()) {
         mapping = m_lru_list.get_and_pop_front();
         evict_mapping_unlocked(mapping);
     }
-    for (mapping_uid_map_iter_t iter = m_cache_uid.begin(); iter != m_cache_uid.end(); ++iter) {
-        mapping = iter->second;
+
+    mapping_uid_map_iter_t uid_map_iter;
+    for (uid_map_iter = m_cache_uid.begin(); uid_map_iter != m_cache_uid.end(); ++uid_map_iter) {
+        mapping = uid_map_iter->second;
         map_loginfo("Cache not empty: fd=%d ref=%u owners=%u", mapping->m_fd,
                     (unsigned)mapping->m_ref, (unsigned)mapping->m_owners);
     }
@@ -362,7 +366,6 @@ void mapping_cache::handle_close(int local_fd)
             delete mapping;
         }
         m_cache_fd.erase(iter);
-        /* TODO Check FAILED mappings, maybe they will appear in lru list */
     }
     unlock();
 }
@@ -405,7 +408,7 @@ mapping_t *mapping_cache::get_mapping_by_uid_unlocked(file_uid_t &uid, ib_ctx_ha
     }
 
     if (mapping == NULL) {
-        mapping = new mapping_t(uid, this, p_ib_ctx);
+        mapping = new (std::nothrow) mapping_t(uid, this, p_ib_ctx);
         if (mapping != NULL) {
             m_cache_uid[uid] = mapping;
         }

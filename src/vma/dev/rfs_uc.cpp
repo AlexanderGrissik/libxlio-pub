@@ -78,7 +78,8 @@ bool rfs_uc::prepare_flow_spec()
 
     switch (type) {
     case VMA_TRANSPORT_ETH: {
-        attach_flow_data_eth = new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
+        attach_flow_data_eth =
+            new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
         if (!attach_flow_data_eth) {
             return false;
         }
