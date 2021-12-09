@@ -738,8 +738,9 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 }
                 if (tls_arg.attr.msg.iov[0].iov_len != rec->m_size) {
                     /* We cannot recover from a fail in the middle of a TLS record */
-                    if (!g_b_exit)
+                    if (!g_b_exit) {
                         m_p_sock->abort_connection();
+                    }
                     ret += (rec->m_size - tls_arg.attr.msg.iov[0].iov_len);
                     rec->put();
                     goto done;
@@ -820,8 +821,9 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
                 }
                 for (uint32_t i = 0; i < nr; ++i) {
                     len = (i == nr - 1) ? (seg->seqno - rec->m_seqno) % mss : mss;
-                    if (len == 0)
+                    if (len == 0) {
                         len = mss;
+                    }
                     m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey, (i == 0));
                     addr += mss;
                 }
@@ -1332,8 +1334,9 @@ err_t sockinfo_tcp_ops_tls::rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct p
     sockinfo_tcp *conn = (sockinfo_tcp *)arg;
     sockinfo_tcp_ops *ops = conn->get_ops();
 
-    if (likely(p != NULL && err == ERR_OK))
+    if (likely(p != NULL && err == ERR_OK)) {
         return ops->recv(p);
+    }
     return sockinfo_tcp::rx_lwip_cb(arg, tpcb, p, err);
 }
 

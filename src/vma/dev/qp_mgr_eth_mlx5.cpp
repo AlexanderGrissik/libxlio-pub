@@ -153,10 +153,12 @@ public:
 
     ~xlio_tis()
     {
-        if (m_p_tis != NULL)
+        if (m_p_tis != NULL) {
             delete m_p_tis;
-        if (m_p_dek != NULL)
+        }
+        if (m_p_dek != NULL) {
             delete m_p_dek;
+        }
     }
 
     void reset(void)
@@ -205,10 +207,12 @@ public:
 
     ~xlio_tir()
     {
-        if (m_p_tir != NULL)
+        if (m_p_tir != NULL) {
             delete m_p_tir;
-        if (m_p_dek != NULL)
+        }
+        if (m_p_dek != NULL) {
             delete m_p_dek;
+        }
     }
 
     void reset(void)

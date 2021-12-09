@@ -647,8 +647,9 @@ bool fd_collection::pop_socket_pool(int &fd, bool &add_to_udp_pool, int type)
 
     // socket pool is used only for udp sockets
     // here we verify it, while in all other places we use general case for socket fd
-    if ((type != SOCK_DGRAM) || (safe_mce_sys().nginx_udp_socket_pool_size == 0))
+    if ((type != SOCK_DGRAM) || (safe_mce_sys().nginx_udp_socket_pool_size == 0)) {
         return ret;
+    }
 
     lock();
     if (!m_socket_pool.empty()) {
@@ -674,12 +675,14 @@ bool fd_collection::pop_socket_pool(int &fd, bool &add_to_udp_pool, int type)
 void fd_collection::handle_socket_pool(int fd)
 {
     // socket pool will work only for child processes
-    if (m_use_socket_pool == false || !g_p_fd_collection_parent_process)
+    if (m_use_socket_pool == false || !g_p_fd_collection_parent_process) {
         return;
+    }
 
     socket_fd_api *sockfd = get_sockfd(fd);
-    if (!sockfd)
+    if (!sockfd) {
         return;
+    }
 
     if (m_socket_pool_counter++ >= m_socket_pool_size) {
         fdcoll_logdbg("Nginx worker num %d reached max UDP socket pool size (%d).", g_worker_index,

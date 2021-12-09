@@ -78,7 +78,10 @@ bool rfs_uc::prepare_flow_spec()
 
     switch (type) {
     case VMA_TRANSPORT_ETH: {
-        attach_flow_data_eth = new attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
+        attach_flow_data_eth = new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
+        if (!attach_flow_data_eth) {
+            return false;
+        }
 
         ibv_flow_spec_eth_set(&(attach_flow_data_eth->ibv_flow_attr.eth),
                               p_ring->m_p_l2_addr->get_address(),
@@ -130,8 +133,7 @@ bool rfs_uc::prepare_flow_spec()
         }
     }
 #endif
-    if (m_flow_tag_id &&
-        attach_flow_data_eth) { // Will not attach flow_tag spec to rule for tag_id==0
+    if (m_flow_tag_id) { // Will not attach flow_tag spec to rule for tag_id==0
         ibv_flow_spec_flow_tag_set(p_flow_tag, m_flow_tag_id);
         attach_flow_data_eth->ibv_flow_attr.add_flow_tag_spec();
         rfs_logdbg("Adding flow_tag spec to rule, num_of_specs: %d flow_tag_id: %d",

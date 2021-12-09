@@ -508,8 +508,9 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         m_state != SOCKINFO_DESTROYING) {
         in_addr_t dst_ip = connect_to.get_in_addr();
         in_port_t dst_port = connect_to.get_in_port();
-        if ((m_connected.get_in_addr() == dst_ip) && m_connected.get_in_port() == dst_port)
+        if ((m_connected.get_in_addr() == dst_ip) && m_connected.get_in_port() == dst_port) {
             return 0;
+        }
     }
 #endif
 

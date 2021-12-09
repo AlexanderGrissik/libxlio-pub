@@ -74,7 +74,10 @@ bool rfs_mc::prepare_flow_spec()
     case VMA_TRANSPORT_ETH: {
         attach_flow_data_eth_ipv4_tcp_udp_t *attach_flow_data_eth = NULL;
 
-        attach_flow_data_eth = new attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
+        attach_flow_data_eth = new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
+        if (!attach_flow_data_eth) {
+            return false;
+        }
 
         uint8_t dst_mac[6];
         create_multicast_mac_from_ip(dst_mac, m_flow_tuple.get_dst_ip());

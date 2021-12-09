@@ -483,11 +483,13 @@ int init_child_process_for_nginx()
                     uint16_t port = ntohs(addr.sin_port);
                     use_as_udp_listen_socket = use_as_udp_listen_socket && val;
                     use_as_udp_listen_socket = use_as_udp_listen_socket && port;
-                    if (!use_as_udp_listen_socket)
+                    if (!use_as_udp_listen_socket) {
                         continue;
+                    }
 
-                    if (add_to_list(port, map_port_list, i))
+                    if (add_to_list(port, map_port_list, i)) {
                         port_list.push_back(port);
+                    }
                 }
             }
         }
@@ -871,8 +873,10 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
 
 #if defined(DEFINED_NGINX)
     bool add_to_udp_pool = false;
-    if (g_p_fd_collection && g_p_fd_collection->pop_socket_pool(fd, add_to_udp_pool, __type & 0xf))
+    if (g_p_fd_collection &&
+        g_p_fd_collection->pop_socket_pool(fd, add_to_udp_pool, __type & 0xf)) {
         return fd;
+    }
 #endif
 
     fd = orig_os_api.socket(__domain, __type, __protocol);
@@ -894,8 +898,9 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
     }
 
 #if defined(DEFINED_NGINX)
-    if (add_to_udp_pool)
+    if (add_to_udp_pool) {
         g_p_fd_collection->handle_socket_pool(fd);
+    }
 #endif
 
     return fd;
@@ -3093,8 +3098,9 @@ extern "C" sighandler_t signal(int signum, sighandler_t handler)
 extern "C" int setuid(uid_t uid)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (!orig_os_api.setuid)
+    if (!orig_os_api.setuid) {
         get_orig_funcs();
+    }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     uid_t previous_uid = geteuid();

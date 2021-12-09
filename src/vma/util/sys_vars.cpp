@@ -810,8 +810,9 @@ void mce_sys_var::get_env_params()
     }
 
 #if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
-    if ((env_ptr = getenv(SYS_VAR_STRQ)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_STRQ)) != NULL) {
         enable_strq_env = option_strq::from_str(env_ptr, MCE_DEFAULT_STRQ);
+    }
 #endif
 
     enable_striding_rq =
@@ -1770,11 +1771,13 @@ void mce_sys_var::get_env_params()
     }
 
 #ifdef DEFINED_UTLS
-    if ((env_ptr = getenv(SYS_VAR_UTLS_RX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_UTLS_RX)) != NULL) {
         enable_utls_rx = atoi(env_ptr) ? true : false;
+    }
 
-    if ((env_ptr = getenv(SYS_VAR_UTLS_TX)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_UTLS_TX)) != NULL) {
         enable_utls_tx = atoi(env_ptr) ? true : false;
+    }
 #endif /* DEFINED_UTLS */
 
     if ((env_ptr = getenv(SYS_VAR_LRO)) != NULL) {
@@ -1799,10 +1802,12 @@ void mce_sys_var::get_env_params()
     }
     vlog_printf(VLOG_DEBUG, "Actual nginx workers num: %d Power of  two nginx workers num: %d\n",
                 actual_nginx_workers_num, power_2_nginx_workers_num);
-    if ((env_ptr = getenv(SYS_VAR_SRC_PORT_STRIDE)) != NULL)
+    if ((env_ptr = getenv(SYS_VAR_SRC_PORT_STRIDE)) != NULL) {
         src_port_stride = (uint32_t)atoi(env_ptr);
-    if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_SIZE)) != NULL)
+    }
+    if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_SIZE)) != NULL) {
         nginx_udp_socket_pool_size = (uint32_t)atoi(env_ptr);
+    }
 #endif // DEFINED_NGINX
     if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL) {
         lwip_mss = (uint32_t)atoi(env_ptr);
