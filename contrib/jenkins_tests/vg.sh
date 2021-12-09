@@ -73,11 +73,11 @@ for test_link in $test_ip_list; do
 			--fullpath-after=${WORKSPACE} --gen-suppressions=all \
 			--suppressions=${WORKSPACE}/contrib/valgrind/valgrind_xlio.supp \
 			"
-		eval "${sudo_cmd} LD_PRELOAD=$test_lib \
+		eval "${sudo_cmd} $timeout_exe env LD_PRELOAD=$test_lib \
 			${vg_tool} --log-file=${vg_dir}/${test_name}-valgrind-sr.log $vg_args \
 			$test_app_path sr ${test_opt} -i ${test_ip} > /dev/null 2>&1 &"
 		sleep 30
-		eval "${sudo_cmd} LD_PRELOAD=$test_lib \
+		eval "${sudo_cmd} $timeout_exe env LD_PRELOAD=$test_lib \
 			${vg_tool} --log-file=${vg_dir}/${test_name}-valgrind-cl.log $vg_args \
 			$test_app_path pp ${test_opt} -i ${test_ip} -t 10"
 

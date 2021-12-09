@@ -37,8 +37,8 @@ runs_on_dockers:
   - {name: 'rhel8.3-inbox-x86_64',  url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'base', arch: 'x86_64'}
   - {name: 'rhel8.3-inbox-aarch64', url: 'harbor.mellanox.com/hpcx/aarch64/rhel8.3/builder:inbox', category: 'base', arch: 'aarch64'}
 # legacy
-  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', category: 'base', arch: 'x86_64'}
-  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', category: 'base', arch: 'x86_64'}
+#  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', category: 'legacy', arch: 'x86_64'}
+#  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', category: 'legacy', arch: 'x86_64'}
 # tool
   - {name: 'toolbox', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'tool', arch: 'x86_64'}
   - {name: 'blackduck', url: 'harbor.mellanox.com/toolbox/ngci-centos:7.9.2009.2', category: 'tool', arch: 'x86_64'}
@@ -50,7 +50,6 @@ matrix:
   axes:
     flags:
       - default
-      - extra
       - dpcp
     arch:
       - x86_64
@@ -83,6 +82,10 @@ steps:
 
   - name: Build
     enable: ${do_build}
+    containerSelector:
+      - "{category: 'base'}"
+    agentSelector:
+      - "{category: 'base'}"
     run: |
       [ "x${do_build}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_build=${action} ./contrib/test_jenkins.sh 
@@ -129,6 +132,10 @@ steps:
 
   - name: Package
     enable: ${do_package}
+    containerSelector:
+      - "{category: 'base'}"
+    agentSelector:
+      - "{nodeLabel: 'skip-agent'}"
     run: |
       [ "x${do_package}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_rpm=${action} ./contrib/test_jenkins.sh
@@ -151,7 +158,7 @@ steps:
   - name: Style
     enable: ${do_style}
     containerSelector:
-      - "{name: 'toolbox', category: 'tool', variant:1}"
+      - "{name: 'toolbox', category: 'tool'}"
     agentSelector:
       - "{nodeLabel: 'skip-agent'}"
     run: |
@@ -274,6 +281,31 @@ steps:
     archiveTap-onfail: |
       jenkins/**/*.tap
 
+  - name: Tidy
+    enable: ${do_tidy}
+    containerSelector:
+      - "{name: 'skip-container'}"
+    agentSelector:
+      - "{nodeLabel: 'r-aa-fatty09', variant:2}"
+    run: |
+      [ "x${do_tidy}" == "xtrue" ] && action=yes || action=no
+      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tidy=${action} ./contrib/test_jenkins.sh
+    parallel: false
+    onfail: |
+      if [ -d jenkins ]; then
+        gzip -f ./jenkins/*.tar 2>/dev/null || true
+        cd ./jenkins/ ;
+          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
+        cd ..
+        cd ./jenkins/${flags};
+          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+        cd ../..
+      fi
+    archiveArtifacts-onfail: |
+      jenkins/**/arch-*.tar.gz
+    archiveTap-onfail: |
+      jenkins/**/*.tap
+
   - name: Test
     enable: ${do_test}
     containerSelector:
@@ -304,7 +336,7 @@ steps:
     containerSelector:
       - "{name: 'skip-container'}"
     agentSelector:
-      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
+      - "{nodeLabel: 'r-aa-fatty09'}"
     run: |
       [ "x${do_gtest}" == "xtrue" ] && action=yes || action=no
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_gtest=${action} ./contrib/test_jenkins.sh
@@ -378,31 +410,6 @@ steps:
     archiveTap-onfail: |
       jenkins/**/*.tap
 
-  - name: Tidy
-    enable: ${do_tidy}
-    containerSelector:
-      - "{name: 'skip-container'}"
-    agentSelector:
-      - "{nodeLabel: 'r-aa-fatty09', variant:1}"
-    run: |
-      [ "x${do_style}" == "xtrue" ] && action=yes || action=no
-      env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tidy=${action} ./contrib/test_jenkins.sh
-    parallel: false
-    onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
-    archiveArtifacts-onfail: |
-      jenkins/**/arch-*.tar.gz
-    archiveTap-onfail: |
-      jenkins/**/*.tap
-
   - name: Artifacts
     enable: ${do_artifact}
     run: |
@@ -411,10 +418,12 @@ steps:
         cd ./jenkins/ ;
           for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
         cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-          for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
+        if [ -d jenkins ]; then
+          cd ./jenkins/${flags};
+            for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+            for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
+          cd ../..
+        fi
       fi
     parallel: false
     archiveArtifacts: |

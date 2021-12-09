@@ -15,7 +15,7 @@
 
 echo "======================================================"
 echo
-echo "# starting on host --------->  $(hostname 2>/dev/null) "
+echo "# starting on host --------->  ${HOSTNAME} "
 echo "# arguments called with ---->  ${@}        "
 echo "# path to me --------------->  ${0}        "
 echo "# parent path -------------->  ${0%/*}     "
@@ -98,10 +98,6 @@ if [ "$TARGET" == "all" -o "$TARGET" == "default" ]; then
     target_list[$i]="default: --disable-nginx"
     i=$((i+1))
 fi
-if [ "$TARGET" == "all" -o "$TARGET" == "extra" ]; then
-    target_list[$i]="extra: --enable-nginx"
-    i=$((i+1))
-fi
 if [ "$TARGET" == "all" -o "$TARGET" == "dpcp" ]; then
     do_check_dpcp opt_value
     if [ ! -z "${opt_value}" ]; then
@@ -124,7 +120,7 @@ for target_v in "${target_list[@]}"; do
     ret=0
     IFS=':' read target_name target_option <<< "$target_v"
 
-    export jenkins_test_artifacts="${WORKSPACE}/${prefix}/xlio-${BUILD_NUMBER}-$(hostname -s)-${target_name}"
+    export jenkins_test_artifacts="${WORKSPACE}/${prefix}/xlio-${BUILD_NUMBER}-${HOSTNAME}-${target_name}"
     export jenkins_test_custom_configure="${jenkins_test_custom_configure} ${target_option}"
     export jenkins_target="${target_name}"
     set +x
