@@ -138,8 +138,14 @@ TEST_F(udp_send, ti_3)
 
     errno = EOK;
     rc = send(fd, (void *)buf, sizeof(buf), 0);
-    EXPECT_EQ(EMSGSIZE, errno);
-    EXPECT_EQ(-1, rc);
+    if (m_family == PF_INET) {
+        EXPECT_EQ(EMSGSIZE, errno);
+        EXPECT_EQ(-1, rc);
+    }
+    if (m_family == PF_INET6) {
+        EXPECT_EQ(ECONNREFUSED, errno);
+        EXPECT_EQ(-1, rc);
+    }
 
     close(fd);
 }
@@ -164,7 +170,7 @@ TEST_F(udp_send, ti_4)
     EXPECT_EQ(0, rc);
 
     errno = EOK;
-    rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr) - 1);
+    rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr) - 1);
     EXPECT_EQ(EINVAL, errno);
     EXPECT_EQ(-1, rc);
 
@@ -174,7 +180,7 @@ TEST_F(udp_send, ti_4)
 /**
  * @test udp_send.ti_5
  * @brief
- *    send() invalid flag set
+ *    send() invalid flag set (MSG_OOB for TCP only)
  * @details
  */
 TEST_F(udp_send, ti_5)
@@ -197,9 +203,11 @@ TEST_F(udp_send, ti_5)
     EXPECT_EQ(0, rc);
 
     errno = EOK;
-    rc = send(fd, (void *)buf, sizeof(buf), 0x000000FF);
-    EXPECT_EQ(EOPNOTSUPP, errno);
-    EXPECT_EQ(-1, rc);
+    rc = send(fd, (void *)buf, sizeof(buf), MSG_OOB);
+    if (m_family == PF_INET) {
+        EXPECT_EQ(EOPNOTSUPP, errno);
+        EXPECT_EQ(-1, rc);
+    }
 
     close(fd);
 }
@@ -215,7 +223,7 @@ TEST_F(udp_send, ti_6)
     int rc = EOK;
     int fd;
     char buf[] = "hello";
-    struct sockaddr_in addr;
+    sockaddr_store_t addr;
 
     fd = udp_base::sock_create();
     ASSERT_LE(0, fd);
@@ -226,7 +234,7 @@ TEST_F(udp_send, ti_6)
     EXPECT_EQ(0, rc);
 
     memcpy(&addr, &server_addr, sizeof(addr));
-    addr.sin_port = 0;
+    sys_set_port((struct sockaddr *)&addr, 0);
 
     errno = EOK;
     rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));

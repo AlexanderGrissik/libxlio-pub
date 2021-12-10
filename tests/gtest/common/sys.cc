@@ -91,7 +91,7 @@ void sys_hexdump(const char *tag, void *ptr, int buflen)
     }
 }
 
-int sys_get_addr(char *dst, struct sockaddr_in *addr)
+int sys_get_addr(char *dst, struct sockaddr *addr)
 {
     int rc = 0;
     struct addrinfo *res;
@@ -102,18 +102,35 @@ int sys_get_addr(char *dst, struct sockaddr_in *addr)
         return rc;
     }
 
-    if (res->ai_family != PF_INET) {
+    if (!sys_check_af(res->ai_family)) {
         rc = -1;
         goto out;
     }
 
-    *addr = *(struct sockaddr_in *)res->ai_addr;
+    addr->sa_family = res->ai_family;
+    memcpy(addr, res->ai_addr, res->ai_addrlen);
+
 out:
     freeaddrinfo(res);
     return rc;
 }
 
-char *sys_addr2dev(struct sockaddr_in *addr, char *buf, size_t size)
+bool sys_cmp_addr(const struct sockaddr *addr1, const struct sockaddr *addr2)
+{
+    if (addr1->sa_family == addr2->sa_family) {
+        switch (addr1->sa_family) {
+        case AF_INET:
+            return (((struct sockaddr_in *)addr1)->sin_addr.s_addr ==
+                    ((struct sockaddr_in *)addr2)->sin_addr.s_addr);
+        case AF_INET6:
+            return (sys_ipv6_addr_equal(&((const struct sockaddr_in6 *)addr1)->sin6_addr,
+                                        &((const struct sockaddr_in6 *)addr2)->sin6_addr));
+        }
+    }
+    return false;
+}
+
+char *sys_addr2dev(struct sockaddr *addr, char *buf, size_t size)
 {
     struct ifaddrs *interfaces;
     struct ifaddrs *ifa;
@@ -122,10 +139,8 @@ char *sys_addr2dev(struct sockaddr_in *addr, char *buf, size_t size)
         buf[0] = '\0';
         for (ifa = interfaces; ifa; ifa = ifa->ifa_next) {
             if (ifa->ifa_addr) {
-                if (AF_INET == ifa->ifa_addr->sa_family) {
-                    struct sockaddr_in *inaddr = (struct sockaddr_in *)ifa->ifa_addr;
-
-                    if (inaddr->sin_addr.s_addr == addr->sin_addr.s_addr) {
+                if (sys_check_af(ifa->ifa_addr->sa_family)) {
+                    if (sys_cmp_addr(ifa->ifa_addr, addr)) {
                         if (ifa->ifa_name) {
                             size_t n = sys_min(strlen(ifa->ifa_name), size - 1);
                             memcpy(buf, ifa->ifa_name, n);
@@ -142,13 +157,13 @@ char *sys_addr2dev(struct sockaddr_in *addr, char *buf, size_t size)
     return NULL;
 }
 
-int sys_dev2addr(char *dev, struct sockaddr_in *addr)
+int sys_dev2addr(char *dev, struct sockaddr *addr)
 {
     int rc = 0;
     int fd;
     struct ifreq ifr;
 
-    fd = socket(AF_INET, SOCK_STREAM, 0);
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
         rc = -1;
         goto out;
@@ -170,23 +185,50 @@ out:
     return rc;
 }
 
-int sys_gateway(struct sockaddr_in *addr)
+int sys_gateway(struct sockaddr *addr)
 {
-    char *gateway = NULL;
+    int ret = -1;
     char line[256];
     char cmd[] = "route -n | grep 'UG[ \t]' | awk '{print $2}'";
     FILE *file = NULL;
 
     file = popen(cmd, "r");
-
     if (fgets(line, sizeof(line), file) != NULL) {
-        gateway = line;
-        addr->sin_addr.s_addr = inet_addr(gateway);
+        size_t len = strlen(line);
+        if (line[len - 1] == '\n' || line[len - 1] == '\r') {
+            line[len - 1] = 0;
+        }
+        sys_str2addr(line, addr, false);
+        ret = 0;
     }
 
     pclose(file);
 
-    return (gateway ? 0 : -1);
+    return ret;
+}
+
+void sys_str2addr(const char *buf, struct sockaddr *addr, bool port)
+{
+    if (!buf) {
+        return;
+    }
+
+    if (!strchr(buf, ':')) {
+        inet_pton(AF_INET, buf, &((struct sockaddr_in *)addr)->sin_addr);
+    } else {
+        inet_pton(AF_INET6, buf, &((struct sockaddr_in6 *)addr)->sin6_addr);
+    }
+
+    if (port) {
+        const char *p = strchr(buf, '[');
+        /* Scan port number */
+        if (p && strlen(p) > 1) {
+            unsigned int port_value;
+            if (sscanf(p, "[%u]", &port_value) == 1 && port_value <= 65535) {
+                sys_set_port(addr, port_value);
+            }
+        }
+    }
 }
 
 pid_t sys_procpid(const char *name)

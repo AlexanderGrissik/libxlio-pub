@@ -249,7 +249,7 @@ TEST_F(tcp_send_zc, ti_1_send_once)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
         ASSERT_EQ(0, rc);
@@ -299,7 +299,7 @@ TEST_F(tcp_send_zc, ti_1_send_once)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = recv(m_fd, (void *)buf, sizeof(buf), 0);
         EXPECT_EQ(sizeof(test_msg), rc);
@@ -358,7 +358,7 @@ TEST_F(tcp_send_zc, ti_2_few_send)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
         ASSERT_EQ(0, rc);
@@ -418,7 +418,7 @@ TEST_F(tcp_send_zc, ti_2_few_send)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         ptr = m_test_buf;
         for (i = 0; i < test_iter; i++) {
@@ -493,7 +493,7 @@ TEST_F(tcp_send_zc, ti_3_large_send)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         opt_val = 1;
         rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
@@ -548,7 +548,7 @@ TEST_F(tcp_send_zc, ti_3_large_send)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         i = m_test_buf_size;
         while (i > 0 && !child_fork_exit()) {
@@ -595,7 +595,7 @@ TEST_F(tcp_send_zc, ti_4_mass_send_check_every_call)
 
         log_trace("Test case [%d]: iter: %d data size: %d chunk size: %d\n", i, test_call,
                   test_buf_size, test_buf_chunk);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -632,7 +632,7 @@ TEST_F(tcp_send_zc, ti_4_mass_send_check_every_call)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             opt_val = 1;
             rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
@@ -688,7 +688,7 @@ TEST_F(tcp_send_zc, ti_4_mass_send_check_every_call)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             for (i = 0; (i < test_call) && (!child_fork_exit()); i++) {
                 int j = test_buf_size;
@@ -739,7 +739,7 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call)
 
         log_trace("Test case [%d]: op: %d data size: %d chunk size: %d\n", i, test_call,
                   test_buf_size, test_buf_chunk);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -765,7 +765,7 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             opt_val = 1;
             rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
@@ -827,7 +827,7 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             int j = test_buf_size;
             while (j > 0 && !child_fork_exit()) {
@@ -883,7 +883,7 @@ TEST_F(tcp_send_zc, ti_6_epoll_notification)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(m_fd, SOL_SOCKET, SO_ZEROCOPY, &opt_val, sizeof(opt_val));
         ASSERT_EQ(0, rc);
@@ -942,7 +942,7 @@ TEST_F(tcp_send_zc, ti_6_epoll_notification)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = recv(m_fd, (void *)buf, sizeof(buf), 0);
         EXPECT_EQ(sizeof(test_msg), rc);

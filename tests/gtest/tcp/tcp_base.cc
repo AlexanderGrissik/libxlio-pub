@@ -52,7 +52,7 @@ int tcp_base::sock_create(void)
     int fd;
     int opt_val = 0;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     if (fd < 0) {
         log_error("failed socket() %s\n", strerror(errno));
         return -1;
@@ -78,7 +78,7 @@ int tcp_base::sock_create_nb(void)
     int fd;
     int opt_val = 0;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     if (fd < 0) {
         log_error("failed socket() %s\n", strerror(errno));
         goto err;

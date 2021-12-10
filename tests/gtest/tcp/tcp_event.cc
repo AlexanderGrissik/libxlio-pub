@@ -165,7 +165,7 @@ static void _proc_server(void *ptr)
 	EXPECT_EQ(sizeof(peer_addr), socklen);
 
 	log_trace("Accepted connection: fd=%d from %s\n",
-			fd_peer, sys_addr2str((struct sockaddr_in *) &peer_addr));
+			fd_peer, sys_addr2str((struct sockaddr *) &peer_addr));
 
 	close(fd_peer);
 	close(fd);
@@ -197,7 +197,7 @@ static void _proc_client(void *ptr)
 	EXPECT_EQ((uint32_t)(EPOLLOUT), event.events);
 
 	log_trace("Established connection: fd=%d to %s\n",
-			fd, sys_addr2str((struct sockaddr_in *) &gtest_conf.server_addr));
+			fd, sys_addr2str((struct sockaddr *) &gtest_conf.server_addr));
 
 	close(fd);
 }

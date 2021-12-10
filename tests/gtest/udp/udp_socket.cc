@@ -37,69 +37,39 @@
 
 #include "udp_base.h"
 
-class udp_rfs : public udp_base {
+class udp_socket : public udp_base {
 };
 
 /**
- * @test udp_rfs.single_rule_send
+ * @test udp_socket.ti_1_ipv4
  * @brief
- *    Check single RFS rule per ring.
+ *    Create IPv4 UDP socket
  * @details
  */
-TEST_F(udp_rfs, single_rule_send)
+TEST_F(udp_socket, ti_1_ipv4)
 {
-    int rc = EOK;
     int fd;
-    char buf[] = "hello";
 
-    int pid = fork();
+    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    EXPECT_LE(0, fd);
+    EXPECT_EQ(errno, EOK);
 
-    if (0 == pid) { /* I am the child */
-        barrier_fork(pid);
+    close(fd);
+}
 
-        fd = udp_base::sock_create();
-        ASSERT_LE(0, fd);
+/**
+ * @test udp_socket.ti_6_ipv6
+ * @brief
+ *    Create IPv6 UDP socket
+ * @details
+ */
+TEST_F(udp_socket, ti_2_ipv6)
+{
+    int fd;
 
-        rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
-        ASSERT_EQ(0, rc);
+    fd = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
+    EXPECT_LE(0, fd);
+    EXPECT_EQ(errno, EOK);
 
-        log_trace("Client bound: fd=%d to %s\n", fd, sys_addr2str((struct sockaddr *)&client_addr));
-
-        rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-        ASSERT_EQ(0, rc);
-
-        rc = send(fd, (const void *)buf, sizeof(buf), 0);
-        EXPECT_GE(rc, 0);
-
-        close(fd);
-
-        /* This exit is very important, otherwise the fork
-         * keeps running and may duplicate other tests.
-         */
-        exit(testing::Test::HasFailure());
-    } else { /* I am the parent */
-        memset(buf, 0, sizeof(buf));
-
-        fd = udp_base::sock_create();
-        ASSERT_LE(0, fd);
-
-        rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-        ASSERT_EQ(0, rc);
-
-        log_trace("Server bound: fd=%d to %s\n", fd, sys_addr2str((struct sockaddr *)&server_addr));
-
-        barrier_fork(pid);
-
-        int i = sizeof(buf);
-        while (i > 0 && !child_fork_exit()) {
-            rc = recv(fd, (void *)buf, i, MSG_WAITALL);
-            EXPECT_GE(rc, 0);
-            i -= rc;
-        }
-        EXPECT_EQ(0, i);
-
-        close(fd);
-
-        ASSERT_EQ(0, wait_fork(pid));
-    }
+    close(fd);
 }

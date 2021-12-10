@@ -94,22 +94,22 @@ TEST_F(tcp_bind, ti_3)
 {
     int rc = EOK;
     int fd;
-    struct sockaddr_in addr1;
-    struct sockaddr_in addr2;
+    sockaddr_store_t addr1;
+    sockaddr_store_t addr2;
 
     fd = tcp_base::sock_create();
     ASSERT_LE(0, fd);
 
     errno = EOK;
     memcpy(&addr1, &client_addr, sizeof(addr1));
-    addr1.sin_port = htons(17001);
+    sys_set_port((struct sockaddr *)&addr1, 17001);
     rc = bind(fd, (struct sockaddr *)&addr1, sizeof(addr1));
     EXPECT_EQ(EOK, errno);
     EXPECT_EQ(0, rc);
 
     errno = EOK;
     memcpy(&addr2, &client_addr, sizeof(addr2));
-    addr2.sin_port = htons(17002);
+    sys_set_port((struct sockaddr *)&addr2, 17002);
     rc = bind(fd, (struct sockaddr *)&addr2, sizeof(addr2));
     EXPECT_EQ(EINVAL, errno);
     EXPECT_GT(0, rc);
@@ -128,15 +128,14 @@ TEST_F(tcp_bind, ti_4)
     int rc = EOK;
     int fd;
     int fd2;
-    struct sockaddr_in addr;
+    sockaddr_store_t addr;
 
     fd = tcp_base::sock_create();
     ASSERT_LE(0, fd);
 
-    memcpy(&addr, &client_addr, sizeof(addr));
-    addr.sin_port = htons(17003);
-
     errno = EOK;
+    memcpy(&addr, &client_addr, sizeof(addr));
+    sys_set_port((struct sockaddr *)&addr, 17001);
     rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
     EXPECT_EQ(EOK, errno);
     EXPECT_EQ(0, rc);

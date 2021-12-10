@@ -64,7 +64,7 @@ TEST_F(vma_sockopt, ti_1)
     profile.comp_mask = XLIO_RING_ALLOC_MASK_RING_USER_ID | XLIO_RING_ALLOC_MASK_RING_ENGRESS;
 
     errno = EOK;
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     EXPECT_LE(0, fd);
     EXPECT_EQ(EOK, errno);
 
@@ -98,7 +98,7 @@ TEST_F(vma_sockopt, ti_2)
     profile.comp_mask = unsupported_mask;
 
     errno = EOK;
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     EXPECT_LE(0, fd);
     EXPECT_EQ(EOK, errno);
 

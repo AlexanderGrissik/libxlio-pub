@@ -76,10 +76,10 @@ TEST_F(vmad_state, ti_1)
     m_data.fid = 0;
     m_data.state = ESTABLISHED;
     m_data.type = SOCK_STREAM;
-    m_data.src_ip = client_addr.sin_addr.s_addr;
-    m_data.src_port = client_addr.sin_port;
-    m_data.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.dst_port = server_addr.sin_port;
+    m_data.src_ip = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
+    m_data.src_port = htons(sys_get_port((struct sockaddr *)&client_addr));
+    m_data.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);

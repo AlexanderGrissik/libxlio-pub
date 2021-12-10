@@ -113,12 +113,17 @@
 
 #define UNDEFINED_VALUE (-1)
 
+typedef union {
+    struct sockaddr_in addr;
+    struct sockaddr_in6 addr6;
+} sockaddr_store_t;
+
 struct gtest_configure_t {
     int log_level;
     int random_seed;
-    struct sockaddr_in client_addr;
-    struct sockaddr_in server_addr;
-    struct sockaddr_in remote_addr;
+    sockaddr_store_t client_addr;
+    sockaddr_store_t server_addr;
+    sockaddr_store_t remote_addr;
     uint16_t port;
 };
 

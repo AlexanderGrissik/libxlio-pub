@@ -60,9 +60,9 @@ protected:
 
         opt_val[0] = '\0';
         opt_len = sizeof(opt_val);
-        sys_addr2dev(&server_addr, opt_val, opt_len);
+        sys_addr2dev((struct sockaddr *)&server_addr, opt_val, opt_len);
         m_if = if_nametoindex(opt_val);
-        sys_addr2dev(&client_addr, opt_val, opt_len);
+        sys_addr2dev((struct sockaddr *)&client_addr, opt_val, opt_len);
         m_tap = if_nametoindex(opt_val);
         m_data.if_id = m_if;
         m_data.tap_id = m_tap;
@@ -86,8 +86,8 @@ TEST_F(vmad_flow, ti_1)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_TCP_3T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -124,10 +124,10 @@ TEST_F(vmad_flow, ti_2)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_TCP_5T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
-    m_data.flow.t5.src_ip = client_addr.sin_addr.s_addr;
-    m_data.flow.t5.src_port = client_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
+    m_data.flow.t5.src_ip = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
+    m_data.flow.t5.src_port = htons(sys_get_port((struct sockaddr *)&client_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -164,8 +164,8 @@ TEST_F(vmad_flow, ti_3)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_TCP_3T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -219,10 +219,10 @@ TEST_F(vmad_flow, ti_4)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_TCP_5T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
-    m_data.flow.t5.src_ip = client_addr.sin_addr.s_addr;
-    m_data.flow.t5.src_port = client_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
+    m_data.flow.t5.src_ip = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
+    m_data.flow.t5.src_port = htons(sys_get_port((struct sockaddr *)&client_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -276,8 +276,8 @@ TEST_F(vmad_flow, ti_5)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_UDP_3T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -314,10 +314,10 @@ TEST_F(vmad_flow, ti_6)
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
     m_data.type = VMA_MSG_FLOW_UDP_5T;
-    m_data.flow.dst_ip = server_addr.sin_addr.s_addr;
-    m_data.flow.dst_port = server_addr.sin_port;
-    m_data.flow.t5.src_ip = client_addr.sin_addr.s_addr;
-    m_data.flow.t5.src_port = client_addr.sin_port;
+    m_data.flow.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    m_data.flow.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
+    m_data.flow.t5.src_ip = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
+    m_data.flow.t5.src_port = htons(sys_get_port((struct sockaddr *)&client_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);

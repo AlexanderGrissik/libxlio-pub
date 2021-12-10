@@ -67,7 +67,7 @@ TEST_F(vma_ring, ti_2)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
@@ -83,7 +83,7 @@ TEST_F(vma_ring, ti_3)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -102,7 +102,7 @@ TEST_F(vma_ring, ti_4)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -121,7 +121,7 @@ TEST_F(vma_ring, ti_5)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = test_base::sock_noblock(fd);
@@ -143,7 +143,7 @@ TEST_F(vma_ring, ti_6)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = xlio_api->get_socket_rings_fds(fd, &ring_fd, 1);
@@ -159,7 +159,7 @@ TEST_F(vma_ring, ti_7)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -179,7 +179,7 @@ TEST_F(vma_ring, ti_8)
     int fd;
     struct sockaddr_in addr;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     /*
@@ -209,7 +209,7 @@ TEST_F(vma_ring, ti_9)
     int ring_fd = UNDEFINED_VALUE;
     int fd;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = test_base::sock_noblock(fd);
@@ -236,14 +236,14 @@ TEST_F(vma_ring, ti_10)
 
     SKIP_TRUE(sys_rootuser(), "This test requires root permission");
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     opt_val[0] = '\0';
     opt_len = sizeof(opt_val);
-    ASSERT_TRUE(sys_addr2dev(&server_addr, opt_val, opt_len));
+    ASSERT_TRUE(sys_addr2dev((struct sockaddr *)&server_addr, opt_val, opt_len));
     log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd,
-              sys_addr2str((struct sockaddr_in *)&server_addr), opt_val);
+              sys_addr2str((struct sockaddr *)&server_addr), opt_val);
 
     errno = EOK;
     rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
@@ -268,14 +268,14 @@ TEST_F(vma_ring, ti_11)
 
     SKIP_TRUE(sys_rootuser(), "This test requires root permission");
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     opt_val[0] = '\0';
     opt_len = sizeof(opt_val);
-    ASSERT_TRUE(sys_addr2dev(&server_addr, opt_val, opt_len));
+    ASSERT_TRUE(sys_addr2dev((struct sockaddr *)&server_addr, opt_val, opt_len));
 
-    log_trace("bind(): fd=%d as %s on %s\n", fd, sys_addr2str((struct sockaddr_in *)&server_addr),
+    log_trace("bind(): fd=%d as %s on %s\n", fd, sys_addr2str((struct sockaddr *)&server_addr),
               opt_val);
 
     rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -287,10 +287,10 @@ TEST_F(vma_ring, ti_11)
 
     opt_val[0] = '\0';
     opt_len = sizeof(opt_val);
-    ASSERT_TRUE(sys_addr2dev(&client_addr, opt_val, opt_len));
+    ASSERT_TRUE(sys_addr2dev((struct sockaddr *)&client_addr, opt_val, opt_len));
 
     log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd,
-              sys_addr2str((struct sockaddr_in *)&client_addr), opt_val);
+              sys_addr2str((struct sockaddr *)&client_addr), opt_val);
 
     errno = EOK;
     rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
@@ -329,15 +329,15 @@ TEST_F(vma_ring, ti_12)
 
     SKIP_TRUE(sys_rootuser(), "This test requires root permission");
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     opt_val[0] = '\0';
     opt_len = sizeof(opt_val);
-    ASSERT_TRUE(sys_addr2dev(&server_addr, opt_val, opt_len));
+    ASSERT_TRUE(sys_addr2dev((struct sockaddr *)&server_addr, opt_val, opt_len));
 
     log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd,
-              sys_addr2str((struct sockaddr_in *)&server_addr), opt_val);
+              sys_addr2str((struct sockaddr *)&server_addr), opt_val);
 
     errno = EOK;
     rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)opt_val, opt_len);
@@ -349,9 +349,9 @@ TEST_F(vma_ring, ti_12)
 
     opt_val[0] = '\0';
     opt_len = sizeof(opt_val);
-    ASSERT_TRUE(sys_addr2dev(&client_addr, opt_val, opt_len));
+    ASSERT_TRUE(sys_addr2dev((struct sockaddr *)&client_addr, opt_val, opt_len));
 
-    log_trace("bind(): fd=%d as %s on %s\n", fd, sys_addr2str((struct sockaddr_in *)&client_addr),
+    log_trace("bind(): fd=%d as %s on %s\n", fd, sys_addr2str((struct sockaddr *)&client_addr),
               opt_val);
 
     rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));

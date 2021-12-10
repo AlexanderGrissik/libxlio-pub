@@ -135,7 +135,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = send(m_fd, (void *)m_test_buf, m_test_buf_size, MSG_DONTWAIT);
         EXPECT_EQ(m_test_buf_size, rc);
@@ -180,7 +180,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size - 1, &flags, NULL, NULL);
         EXPECT_EQ(-1, rc);
@@ -230,7 +230,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = send(m_fd, (void *)m_test_buf, m_test_buf_size, MSG_DONTWAIT);
         EXPECT_EQ(m_test_buf_size, rc);
@@ -276,7 +276,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
         EXPECT_EQ(m_test_buf_size, rc);
@@ -324,7 +324,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
         ASSERT_TRUE(test_buf);
 
         log_trace("Test case [%d]: data size: %d\n", i, test_buf_size);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -348,7 +348,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             vec[0].iov_base = (void *)test_buf;
             vec[0].iov_len = test_buf_size;
@@ -401,7 +401,7 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             rc = test_base::sock_noblock(m_fd);
             ASSERT_EQ(0, rc);

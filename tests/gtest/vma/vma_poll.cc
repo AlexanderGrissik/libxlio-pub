@@ -90,7 +90,7 @@ TEST_F(vma_poll, ti_1)
         EXPECT_EQ((uint32_t)(EPOLLOUT), event.events);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         close(fd);
 
@@ -128,7 +128,7 @@ TEST_F(vma_poll, ti_1)
                 EXPECT_LE(0, fd_peer);
                 memcpy(&peer_addr, &vma_comps.src, sizeof(peer_addr));
                 log_trace("Accepted connection: fd=%d from %s\n", fd_peer,
-                          sys_addr2str((struct sockaddr_in *)&peer_addr));
+                          sys_addr2str((struct sockaddr *)&peer_addr));
                 rc = 0;
             }
         }
@@ -169,7 +169,7 @@ TEST_F(vma_poll, ti_2)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = send(fd, (void *)msg, sizeof(msg), 0);
         EXPECT_EQ(sizeof(msg), rc);
@@ -217,7 +217,7 @@ TEST_F(vma_poll, ti_2)
                 EXPECT_LE(0, fd_peer);
                 memcpy(&peer_addr, &vma_comps.src, sizeof(peer_addr));
                 log_trace("Accepted connection: fd=%d from %s\n", fd_peer,
-                          sys_addr2str((struct sockaddr_in *)&peer_addr));
+                          sys_addr2str((struct sockaddr *)&peer_addr));
                 rc = 0;
             }
             if (vma_comps.events & XLIO_SOCKETXTREME_PACKET) {
@@ -267,7 +267,7 @@ TEST_F(vma_poll, ti_3)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = send(fd, (void *)msg, sizeof(msg), 0);
         EXPECT_EQ(sizeof(msg), rc);
@@ -314,7 +314,7 @@ TEST_F(vma_poll, ti_3)
                 fd_peer = (int)vma_comps.user_data;
                 memcpy(&peer_addr, &vma_comps.src, sizeof(peer_addr));
                 log_trace("Accepted connection: fd: %d from %s\n", fd_peer,
-                          sys_addr2str((struct sockaddr_in *)&peer_addr));
+                          sys_addr2str((struct sockaddr *)&peer_addr));
 
                 errno = EOK;
                 rc = setsockopt(fd_peer, SOL_SOCKET, SO_XLIO_USER_DATA, &user_data, sizeof(void *));

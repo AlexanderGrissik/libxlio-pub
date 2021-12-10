@@ -52,7 +52,7 @@ TEST_F(tcp_connect, DISABLED_ti_1)
     int fd;
     int i;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -81,7 +81,7 @@ TEST_F(tcp_connect, DISABLED_ti_2)
     int fd;
     int i;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -95,7 +95,7 @@ TEST_F(tcp_connect, DISABLED_ti_2)
         usleep(500);
         if (ETIMEDOUT == errno) {
             log_warn("Routing issue, consider another remote address instead of %s\n",
-                     sys_addr2str(&remote_addr));
+                     sys_addr2str((struct sockaddr *)&remote_addr));
             break;
         }
     }
@@ -115,7 +115,7 @@ TEST_F(tcp_connect, DISABLED_ti_3)
     int fd;
     int i;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));

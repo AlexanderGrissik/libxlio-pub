@@ -75,16 +75,17 @@ static int _def_config(void)
     memset(&gtest_conf, 0, sizeof(gtest_conf));
     gtest_conf.log_level = 4;
     gtest_conf.random_seed = time(NULL) % 32768;
-    gtest_conf.client_addr.sin_family = PF_INET;
-    gtest_conf.client_addr.sin_addr.s_addr = INADDR_ANY;
-    gtest_conf.client_addr.sin_port = 0;
-    gtest_conf.server_addr.sin_family = PF_INET;
-    gtest_conf.server_addr.sin_addr.s_addr = INADDR_ANY;
-    gtest_conf.server_addr.sin_port = 0;
-    gtest_conf.remote_addr.sin_family = PF_INET;
-    gtest_conf.remote_addr.sin_addr.s_addr = INADDR_ANY;
-    gtest_conf.remote_addr.sin_port = 0;
-    sys_gateway(&gtest_conf.remote_addr);
+
+    ((struct sockaddr *)&gtest_conf.client_addr)->sa_family = AF_INET;
+    sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.client_addr, true);
+
+    ((struct sockaddr *)&gtest_conf.server_addr)->sa_family = AF_INET;
+    sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.server_addr, true);
+
+    ((struct sockaddr *)&gtest_conf.remote_addr)->sa_family = AF_INET;
+    sys_str2addr("0.0.0.0[8888]", (struct sockaddr *)&gtest_conf.remote_addr, true);
+    sys_gateway((struct sockaddr *)&gtest_conf.remote_addr);
+
     gtest_conf.port = 55555;
 
     return rc;
@@ -106,9 +107,9 @@ static int _set_config(int argc, char **argv)
         case 'a': {
             char *token1 = NULL;
             char *token2 = NULL;
-            const char s[2] = ":";
+            const char s[2] = ",";
             if (optarg) {
-                if (optarg[0] != ':') {
+                if (optarg[0] != ',') {
                     token1 = strtok(optarg, s);
                     token2 = strtok(NULL, s);
                 } else {
@@ -118,14 +119,14 @@ static int _set_config(int argc, char **argv)
             }
 
             if (token1) {
-                rc = sys_get_addr(token1, &gtest_conf.client_addr);
+                rc = sys_get_addr(token1, (struct sockaddr *)&gtest_conf.client_addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token1);
                 }
             }
             if (token2) {
-                rc = sys_get_addr(token2, &gtest_conf.server_addr);
+                rc = sys_get_addr(token2, (struct sockaddr *)&gtest_conf.server_addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token2);
@@ -135,9 +136,9 @@ static int _set_config(int argc, char **argv)
         case 'i': {
             char *token1 = NULL;
             char *token2 = NULL;
-            const char s[2] = ":";
+            const char s[2] = ",";
             if (optarg) {
-                if (optarg[0] != ':') {
+                if (optarg[0] != ',') {
                     token1 = strtok(optarg, s);
                     token2 = strtok(NULL, s);
                 } else {
@@ -147,14 +148,14 @@ static int _set_config(int argc, char **argv)
             }
 
             if (token1) {
-                rc = sys_dev2addr(token1, &gtest_conf.client_addr);
+                rc = sys_dev2addr(token1, (struct sockaddr *)&gtest_conf.client_addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token1);
                 }
             }
             if (token2) {
-                rc = sys_dev2addr(token2, &gtest_conf.server_addr);
+                rc = sys_dev2addr(token2, (struct sockaddr *)&gtest_conf.server_addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token2);
@@ -199,13 +200,13 @@ static int _set_config(int argc, char **argv)
         _usage();
     } else {
         srand(gtest_conf.random_seed);
-        gtest_conf.server_addr.sin_port = htons(gtest_conf.port);
+        sys_set_port((struct sockaddr *)&gtest_conf.server_addr, gtest_conf.port);
         log_info("CONFIGURATION:\n");
         log_info("log level: %d\n", gtest_conf.log_level);
         log_info("seed: %d\n", gtest_conf.random_seed);
-        log_info("client ip: %s\n", sys_addr2str(&gtest_conf.client_addr));
-        log_info("server ip: %s\n", sys_addr2str(&gtest_conf.server_addr));
-        log_info("remote ip: %s\n", sys_addr2str(&gtest_conf.remote_addr));
+        log_info("client ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.client_addr));
+        log_info("server ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.server_addr));
+        log_info("remote ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.remote_addr));
         log_info("port: %d\n", gtest_conf.port);
     }
 
@@ -215,8 +216,8 @@ static int _set_config(int argc, char **argv)
 static void _usage(void)
 {
     printf("Usage: gtest [options]\n"
-           "\t--addr,-a <ip:ip>       IP address client:server\n"
-           "\t--if,-i <ip:ip>         Interface client:server\n"
+           "\t--addr,-a <ip,ip>       IP address client,server\n"
+           "\t--if,-i <ip,ip>         Interface client,server\n"
            "\t--port,-p <num>         Listen/connect to port <num> (default %d).\n"
            "\t--random,-s <count>     Seed (default %d).\n"
            "\t--debug,-d <level>      Output verbose level (default: %d).\n"

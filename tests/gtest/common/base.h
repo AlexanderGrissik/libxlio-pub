@@ -54,12 +54,12 @@ protected:
     void barrier_fork(int);
     bool child_fork_exit() { return m_break_signal; }
 
-    struct sockaddr_in client_addr;
-    struct sockaddr_in server_addr;
-    struct sockaddr_in remote_addr;
-    struct sockaddr_in bogus_addr;
-    uint16_t port;
-    uint16_t bogus_port;
+    sockaddr_store_t client_addr;
+    sockaddr_store_t server_addr;
+    sockaddr_store_t remote_addr;
+    sockaddr_store_t bogus_addr;
+    static uint16_t m_port;
+    static int m_family;
 
 private:
     static void *thread_func(void *arg);

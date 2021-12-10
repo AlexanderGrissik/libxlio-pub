@@ -107,7 +107,7 @@ TEST_F(vma_ioctl, ti_1)
     EXPECT_TRUE(EINVAL == errno);
 
     /* scenario #3: Command can not be used after initialization of internals */
-    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
     errno = EOK;

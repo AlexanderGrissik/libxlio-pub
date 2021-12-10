@@ -155,7 +155,7 @@ TEST_F(tcp_tls, DISABLED_ti_2)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -194,7 +194,7 @@ TEST_F(tcp_tls, DISABLED_ti_2)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -246,7 +246,7 @@ TEST_F(tcp_tls, DISABLED_ti_3_12_gcm_send_small)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -288,7 +288,7 @@ TEST_F(tcp_tls, DISABLED_ti_3_12_gcm_send_small)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -343,7 +343,7 @@ TEST_F(tcp_tls, DISABLED_ti_4_12_gcm_send_max)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -385,7 +385,7 @@ TEST_F(tcp_tls, DISABLED_ti_4_12_gcm_send_max)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -440,7 +440,7 @@ TEST_F(tcp_tls, DISABLED_ti_5_12_gcm_send_more)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -485,7 +485,7 @@ TEST_F(tcp_tls, DISABLED_ti_5_12_gcm_send_more)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -545,7 +545,7 @@ TEST_F(tcp_tls, DISABLED_ti_6_12_gcm_sendfile)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -593,7 +593,7 @@ TEST_F(tcp_tls, DISABLED_ti_6_12_gcm_sendfile)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -647,7 +647,7 @@ TEST_F(tcp_tls, DISABLED_ti_7_12_gcm_sendfile_chunk)
         EXPECT_GE(test_file, 0);
 
         log_trace("Test case [%d]: chunk size: %d file size: %d\n", i, test_chunk, test_file_size);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -665,7 +665,7 @@ TEST_F(tcp_tls, DISABLED_ti_7_12_gcm_sendfile_chunk)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
             SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -714,7 +714,7 @@ TEST_F(tcp_tls, DISABLED_ti_7_12_gcm_sendfile_chunk)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
             SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -774,7 +774,7 @@ TEST_F(tcp_tls, DISABLED_ti_8_12_gcm_sendmsg)
         msg.msg_iovlen = i;
 
         log_trace("Test case [%d]: fragments: %d total size: %d\n", i, i, test_msg_size);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -790,7 +790,7 @@ TEST_F(tcp_tls, DISABLED_ti_8_12_gcm_sendmsg)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
             SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -834,7 +834,7 @@ TEST_F(tcp_tls, DISABLED_ti_8_12_gcm_sendmsg)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
             SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -894,7 +894,7 @@ TEST_F(tcp_tls, DISABLED_ti_9_12_gcm_send_bidirect)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -944,7 +944,7 @@ TEST_F(tcp_tls, DISABLED_ti_9_12_gcm_send_bidirect)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -1029,7 +1029,7 @@ TEST_F(tcp_tls, DISABLED_ti_10_12_gcm_control_msg)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");
@@ -1071,7 +1071,7 @@ TEST_F(tcp_tls, DISABLED_ti_10_12_gcm_control_msg)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
         SKIP_TRUE((0 == rc), "TLS is not supported");

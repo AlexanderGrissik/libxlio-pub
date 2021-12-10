@@ -143,7 +143,7 @@ TEST_F(tcp_sendfile, ti_1_basic)
         ASSERT_EQ(0, rc);
 
         log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&server_addr));
+                  sys_addr2str((struct sockaddr *)&server_addr));
 
         while (m_test_file_size > 0) {
             rc = sendfile(m_fd, m_test_file, &test_file_offset, m_test_file_size);
@@ -185,7 +185,7 @@ TEST_F(tcp_sendfile, ti_1_basic)
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr_in *)&peer_addr));
+                  sys_addr2str((struct sockaddr *)&peer_addr));
 
         int i = m_test_buf_size;
         while (i > 0 && !child_fork_exit()) {
@@ -234,7 +234,7 @@ TEST_F(tcp_sendfile, ti_2_vary_size)
         ASSERT_TRUE(file_ptr != MAP_FAILED);
 
         log_trace("Test case [%d]: chunk size: %d file size: %d\n", i, test_chunk, test_file_size);
-        server_addr.sin_port = htons(gtest_conf.port + i);
+        sys_set_port((struct sockaddr *)&server_addr, m_port + i);
 
         int pid = fork();
         if (0 == pid) { /* I am the child */
@@ -252,7 +252,7 @@ TEST_F(tcp_sendfile, ti_2_vary_size)
             ASSERT_EQ(0, rc);
 
             log_trace("Established connection: fd=%d to %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&server_addr));
+                      sys_addr2str((struct sockaddr *)&server_addr));
 
             while (test_file_size > 0) {
                 rc = sendfile(m_fd, test_file, &test_file_offset, test_file_size);
@@ -296,7 +296,7 @@ TEST_F(tcp_sendfile, ti_2_vary_size)
             close(l_fd);
 
             log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                      sys_addr2str((struct sockaddr_in *)&peer_addr));
+                      sys_addr2str((struct sockaddr *)&peer_addr));
 
             int s = test_file_size;
             while (s > 0 && !child_fork_exit()) {

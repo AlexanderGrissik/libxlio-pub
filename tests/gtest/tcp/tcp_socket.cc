@@ -41,16 +41,33 @@ class tcp_socket : public tcp_base {
 };
 
 /**
- * @test tcp_socket.ti_1
+ * @test tcp_socket.ti_1_ipv4
  * @brief
- *    Create TCP socket
+ *    Create IPv4 TCP socket
  * @details
  */
-TEST_F(tcp_socket, ti_1)
+TEST_F(tcp_socket, ti_1_ipv4)
 {
     int fd;
 
     fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    EXPECT_LE(0, fd);
+    EXPECT_EQ(errno, EOK);
+
+    close(fd);
+}
+
+/**
+ * @test tcp_socket.ti_6_ipv6
+ * @brief
+ *    Create IPv6 TCP socket
+ * @details
+ */
+TEST_F(tcp_socket, ti_2_ipv6)
+{
+    int fd;
+
+    fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_IP);
     EXPECT_LE(0, fd);
     EXPECT_EQ(errno, EOK);
 

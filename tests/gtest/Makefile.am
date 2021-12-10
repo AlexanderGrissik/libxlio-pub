@@ -107,6 +107,7 @@ gtest_SOURCES = \
 	tcp/tcp_rfs.cc \
 	\
 	udp/udp_base.cc \
+	udp/udp_socket.cc \
 	udp/udp_bind.cc \
 	udp/udp_connect.cc \
 	udp/udp_send.cc \
