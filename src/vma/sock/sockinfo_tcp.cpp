@@ -4458,19 +4458,7 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool blocking)
 		return 0;
 	}
 
-	//sleep on different CQs and OS listen socket
-	epoll_event ev = {0, {0}};
-	ev.events = EPOLLIN;
-	size_t num_ring_rx_fds;
-	int *ring_rx_fds_array = m_p_rx_ring->get_rx_channel_fds(num_ring_rx_fds);
-	ev.data.fd = ring_rx_fds_array[0];
-	if (unlikely( orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_ADD, ev.data.fd, &ev))) {
-		__log_err("failed to add cq channel fd to internal epfd errno=%d (%m)", errno);
-	}
-	ret = orig_os_api.epoll_wait(m_rx_epfd, rx_epfd_events, SI_RX_EPFD_EVENT_MAX, m_loops_timer.time_left_msec());
-	if (unlikely( orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_DEL, ev.data.fd, NULL))) {
-		__log_err("failed to delete cq channel fd from internal epfd (errno=%d %m)", errno);
-	}
+	ret = os_wait_sock_rx_epfd(rx_epfd_events, SI_RX_EPFD_EVENT_MAX);
 
 	lock_tcp_con();
 	return_from_sleep();

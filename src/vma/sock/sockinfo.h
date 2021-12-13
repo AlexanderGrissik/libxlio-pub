@@ -323,6 +323,7 @@ protected:
 	void*			m_fd_context; // Context data stored with socket
 	uint32_t		m_flow_tag_id;	// Flow Tag for this socket
 	bool			m_flow_tag_enabled; // for this socket
+	bool                    m_rx_cq_wait_ctrl;
 	uint8_t			m_n_uc_ttl; // time to live
 
 	int*			m_p_rings_fds;
@@ -393,7 +394,9 @@ protected:
 	void            insert_cmsg(struct cmsg_state *cm_state, int level, int type, void *data, int len);
 	void            handle_cmsg(struct msghdr * msg, int flags);
 	void            process_timestamps(mem_buf_desc_t* p_desc);
-
+	void            add_cqfd_to_sock_rx_epfd(ring* p_ring);
+	void            remove_cqfd_from_sock_rx_epfd(ring* p_ring);
+	int             os_wait_sock_rx_epfd(epoll_event *ep_events, int maxevents);
 	virtual bool try_un_offloading(); // un-offload the socket if possible
 
 	virtual inline void do_wakeup()	{

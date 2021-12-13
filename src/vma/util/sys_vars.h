@@ -486,6 +486,7 @@ public:
 	sysctl_reader_t & sysctl_reader;
 	bool		tcp_abort_on_close;
 	bool		rx_poll_on_tx_tcp;
+	bool            rx_cq_wait_ctrl;
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
 #if defined(DEFINED_NGINX)
@@ -677,6 +678,7 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_TIME_MEASURE_DUMP_FILE                "XLIO_TIME_MEASURE_DUMP_FILE"
 #define SYS_VAR_TCP_ABORT_ON_CLOSE                    "XLIO_TCP_ABORT_ON_CLOSE"
 #define SYS_VAR_RX_POLL_ON_TX_TCP                     "XLIO_RX_POLL_ON_TX_TCP"
+#define SYS_VAR_RX_CQ_WAIT_CTRL                       "XLIO_RX_CQ_WAIT_CTRL"
 #define SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME        "XLIO_TRIGGER_DUMMY_SEND_GETSOCKNAME"
 #define SYS_VAR_TCP_SEND_BUFFER_SIZE                  "XLIO_TCP_SEND_BUFFER_SIZE"
 
@@ -855,6 +857,7 @@ extern mce_sys_var & safe_mce_sys();
 #define MCE_DEFAULT_TCP_ABORT_ON_CLOSE                (false)
 #define MCE_DEFAULT_RX_POLL_ON_TX_TCP                 (false)
 #define MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME    (false)
+#define MCE_DEFAULT_RX_CQ_WAIT_CTRL                   (false)
 #define MCE_ALIGNMENT                                 ((unsigned long)63)
 
 /*

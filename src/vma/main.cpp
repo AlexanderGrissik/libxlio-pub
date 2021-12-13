@@ -597,6 +597,7 @@ void print_vma_global_settings()
 	VLOG_PARAM_NUMSTR("TCP CC Algorithm", safe_mce_sys().lwip_cc_algo_mod, MCE_DEFAULT_LWIP_CC_ALGO_MOD, SYS_VAR_TCP_CC_ALGO, lwip_cc_algo_str(safe_mce_sys().lwip_cc_algo_mod));
 	VLOG_PARAM_STRING("TCP abort on close", safe_mce_sys().tcp_abort_on_close, MCE_DEFAULT_TCP_ABORT_ON_CLOSE, SYS_VAR_TCP_ABORT_ON_CLOSE, safe_mce_sys().tcp_abort_on_close ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Polling Rx on Tx TCP", safe_mce_sys().rx_poll_on_tx_tcp, MCE_DEFAULT_RX_POLL_ON_TX_TCP, SYS_VAR_RX_POLL_ON_TX_TCP, safe_mce_sys().rx_poll_on_tx_tcp ? "Enabled " : "Disabled");
+	VLOG_PARAM_STRING("RX CQ wait control", safe_mce_sys().rx_cq_wait_ctrl, MCE_DEFAULT_RX_CQ_WAIT_CTRL, SYS_VAR_RX_CQ_WAIT_CTRL, safe_mce_sys().rx_cq_wait_ctrl ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Trig dummy send getsockname()", safe_mce_sys().trigger_dummy_send_getsockname, MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME, SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME, safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
 
 #ifdef VMA_TIME_MEASURE

@@ -213,7 +213,7 @@ inline int sockinfo_udp::rx_wait(bool blocking)
 			continue;
 		}
 
-		ret = orig_os_api.epoll_wait(m_rx_epfd, rx_epfd_events, SI_RX_EPFD_EVENT_MAX, m_loops_timer.time_left_msec());
+		ret = os_wait_sock_rx_epfd(rx_epfd_events, SI_RX_EPFD_EVENT_MAX);
 
 		/* coverity[double_lock] TODO: RM#1049980 */
 		m_lock_rcv.lock();

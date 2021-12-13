@@ -90,6 +90,7 @@ sockinfo::sockinfo(int fd):
 		m_fd_context((void *)((uintptr_t)m_fd)),
 		m_flow_tag_id(0),
 		m_flow_tag_enabled(false),
+		m_rx_cq_wait_ctrl(safe_mce_sys().rx_cq_wait_ctrl),
 		m_n_uc_ttl(safe_mce_sys().sysctl_reader.get_net_ipv4_ttl()),
 		m_p_rings_fds(NULL)
 
@@ -1190,6 +1191,53 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 	}
 }
 
+// Sleep on different CQs and OS listen socket
+int sockinfo::os_wait_sock_rx_epfd(epoll_event *ep_events, int maxevents)
+{
+	if (unlikely(m_rx_cq_wait_ctrl)) {
+		add_cqfd_to_sock_rx_epfd(m_p_rx_ring);
+		int ret = orig_os_api.epoll_wait(m_rx_epfd, ep_events, maxevents, m_loops_timer.time_left_msec());
+		remove_cqfd_from_sock_rx_epfd(m_p_rx_ring);
+		return ret;
+	}
+
+	return orig_os_api.epoll_wait(m_rx_epfd, ep_events, maxevents, m_loops_timer.time_left_msec());
+}
+
+// Add this new CQ channel fd to the rx epfd handle (no need to wake up any sleeping thread about this new fd)
+void sockinfo::add_cqfd_to_sock_rx_epfd(ring* p_ring)
+{
+	epoll_event ev = {0, {0}};
+	ev.events = EPOLLIN;
+	size_t num_ring_rx_fds;
+	int *ring_rx_fds_array = p_ring->get_rx_channel_fds(num_ring_rx_fds);
+
+	for (size_t i = 0; i < num_ring_rx_fds; i++) {
+		ev.data.fd = ring_rx_fds_array[i];
+
+		BULLSEYE_EXCLUDE_BLOCK_START
+		if (unlikely(orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_ADD, ev.data.fd, &ev))) {
+			si_logerr("failed to add cq channel fd to internal epfd errno=%d (%m)", errno);
+		}
+		BULLSEYE_EXCLUDE_BLOCK_END
+	}
+}
+
+void sockinfo::remove_cqfd_from_sock_rx_epfd(ring* base_ring)
+{
+	size_t num_ring_rx_fds;
+	int *ring_rx_fds_array = base_ring->get_rx_channel_fds(num_ring_rx_fds);
+
+	for (size_t i = 0; i < num_ring_rx_fds; i++) {
+		BULLSEYE_EXCLUDE_BLOCK_START
+		if (unlikely((orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_DEL, ring_rx_fds_array[i], NULL)) &&
+				(!(errno == ENOENT || errno == EBADF)))) {
+			si_logerr("failed to delete cq channel fd from internal epfd (errno=%d %s)", errno, strerror(errno));
+		}
+		BULLSEYE_EXCLUDE_BLOCK_END
+	}
+}
+
 void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 {
 	si_logdbg("");
@@ -1220,25 +1268,16 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 
 		notify_epoll = true;
 
-#if 0
-		// Add this new CQ channel fd to the rx epfd handle (no need to wake up any sleeping thread about this new fd)
-		epoll_event ev = {0, {0}};
-		ev.events = EPOLLIN;
-		size_t num_ring_rx_fds;
-		int *ring_rx_fds_array = p_ring->get_rx_channel_fds(num_ring_rx_fds);
-
-		for (size_t i = 0; i < num_ring_rx_fds; i++) {
-			int cq_ch_fd = ring_rx_fds_array[i];
-
-			ev.data.fd = cq_ch_fd;
-
-			BULLSEYE_EXCLUDE_BLOCK_START
-			if (unlikely( orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_ADD, cq_ch_fd, &ev))) {
-				si_logerr("failed to add cq channel fd to internal epfd errno=%d (%m)", errno);
-			}
-			BULLSEYE_EXCLUDE_BLOCK_END
+		// In case of many connections, adding the cq-fd to the epfd of each socket (Each socket has its own epoll descriptor)
+		// introduces a long linear scan of the waiter to be awaken for each event on the cq-fd.
+		// This causes high latency and increased CPU usage by the Kernel which leads to decreased performance.
+		// For example, for 350K connections and a single ring. there will be 350K epfds watching a single cq-fd.
+		// When this cq-fd has an event, the Kernel loops through all the 350K epfds.
+		// By setting m_rx_cq_wait_ctrl=true, we add the cq-fd only to the epfds of the sockets that are going to sleep
+		// inside sockinfo_tcp::rx_wait_helper/sockinfo_udp::rx_wait.
+		if (!m_rx_cq_wait_ctrl) {
+			add_cqfd_to_sock_rx_epfd(p_ring);
 		}
-#endif
 
 		do_wakeup(); // A ready wce can be pending due to the drain logic (cq channel will not wake up by itself)
 	} else {
@@ -1295,20 +1334,9 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring)
 				si_logerr("possible buffer leak, p_ring_info->rx_reuse_buff still contain %lu buffers.", p_ring_info->rx_reuse_info.rx_reuse.size());
 			}
 
-#if 0
-			size_t num_ring_rx_fds;
-			int *ring_rx_fds_array = base_ring->get_rx_channel_fds(num_ring_rx_fds);
-
-			for (size_t i = 0; i < num_ring_rx_fds; i++) {
-				int cq_ch_fd = ring_rx_fds_array[i];
-				BULLSEYE_EXCLUDE_BLOCK_START
-				if (unlikely((orig_os_api.epoll_ctl(m_rx_epfd, EPOLL_CTL_DEL, cq_ch_fd, NULL)) &&
-							 (!(errno == ENOENT || errno == EBADF)))) {
-					si_logerr("failed to delete cq channel fd from internal epfd (errno=%d %s)", errno, strerror(errno));
-				}
-				BULLSEYE_EXCLUDE_BLOCK_END
+			if (!m_rx_cq_wait_ctrl) {
+				remove_cqfd_from_sock_rx_epfd(base_ring);
 			}
-#endif
 
 			notify_epoll = true;
 
