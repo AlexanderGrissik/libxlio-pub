@@ -404,12 +404,16 @@ private:
 
 	//Called when legal syn is received in order to remember the new active pcb which
 	//is already created by lwip, but no sockinfo instance is created yet at this stage
-	static err_t syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
-	static err_t syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
+	static err_t syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb);
+	static err_t syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb);
 
-	static err_t syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err);
+	static err_t syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb);
 
-	static err_t clone_conn_cb(void *arg, struct tcp_pcb **newpcb, err_t err);
+	static err_t clone_conn_cb(void *arg, struct tcp_pcb **newpcb);
+
+	// Called by L3_level_tcp_input to unlock a new pcb/socket.
+	// @param newpcb The new pcb. Can be nullptr.
+	static void accepted_pcb_cb(struct tcp_pcb *newpcb);
 
 	int accept_helper(struct sockaddr *__addr, socklen_t *__addrlen, int __flags = 0);
 

@@ -72,7 +72,7 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static bool tcp_parseopt_ts(u8_t *opts, u16_t opts_len, u32_t *tsval);
 static void tcp_parseopt(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
-static err_t tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
+static struct tcp_pcb* tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
 static err_t tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static s8_t tcp_quickack(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
@@ -293,13 +293,14 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 					in_data.inseg.p = NULL;
 				}
 			}
-    	 else if (PCB_IN_LISTEN_STATE(pcb)) {
-    		LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for LISTENing connection.\n"));
-			// TODO: tcp_listen_input creates a pcb and puts in the active pcb list.
-			// how should we approach?
-			tcp_listen_input((struct tcp_pcb_listen*)pcb, &in_data);
-			pbuf_free(p);
-    	}
+      else if (PCB_IN_LISTEN_STATE(pcb)) {
+        LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for LISTENing connection.\n"));
+
+        struct tcp_pcb_listen* listen_pcb = (struct tcp_pcb_listen*)pcb;
+        TCP_EVENT_ACCEPTED_PCB(listen_pcb, tcp_listen_input(listen_pcb, &in_data));
+
+        pbuf_free(p);
+      }
     	else if (PCB_IN_TIME_WAIT_STATE(pcb)){
     		LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for TIME_WAITing connection.\n"));
     		tcp_timewait_input(pcb, &in_data);
@@ -327,53 +328,48 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 }
 #endif //LWIP_3RD_PARTY_L3
 /**
- * Called by tcp_input() when a segment arrives for a listening
- * connection (from tcp_input()).
+ * Called by L3_level_tcp_input() when a segment arrives for a listening
+ * connection (from L3_level_tcp_input()).
  *
  * @param pcb the tcp_pcb_listen for which a segment arrived
- * @return ERR_OK if the segment was processed
- *         another err_t on error
+ * @return The new pcb if there is one. Otherwise, NULL.
  *
- * @note the return value is not (yet?) used in tcp_input()
  * @note the segment which arrived is saved in global variables, therefore only the pcb
  *       involved is passed as a parameter to this function
  */
-static err_t
+static struct tcp_pcb*
 tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
 {
   struct tcp_pcb *npcb = NULL;
   err_t rc;
 
-  if (in_data->flags & TCP_RST) {
-    /* An incoming RST should be ignored. Return. */
-    return ERR_OK;
-  }
-
-  if (in_data->flags & TCP_FIN) {
-    /* An incoming FIN should be ignored. Return. */
-    return ERR_OK;
+  if (in_data->flags & (TCP_RST | TCP_FIN)) {
+    /* An incoming RST should be ignored. Return.
+       An incoming FIN should be ignored. Return. */
+    return NULL;
   }
 
   /* In the LISTEN state, we check for incoming SYN segments,
      creates a new PCB, and responds with a SYN|ACK. */
   if (in_data->flags & TCP_ACK) {
-    /* For incoming segments with the ACK flag set, respond with a
-       RST. */
+    /* For incoming segments with the ACK flag set, respond with a RST. */
     LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_listen_input: ACK in LISTEN, sending reset\n"));
     tcp_rst(in_data->ackno + 1, in_data->seqno + in_data->tcplen,
       in_data->tcphdr->dest, in_data->tcphdr->src, NULL);
   } else if (in_data->flags & TCP_SYN) {
     LWIP_DEBUGF(TCP_DEBUG, ("TCP connection request %"U16_F" -> %"U16_F".\n", in_data->tcphdr->src, in_data->tcphdr->dest));
 
-    TCP_EVENT_CLONE_PCB(pcb,&npcb,ERR_OK,rc);
+    TCP_EVENT_CLONE_PCB(pcb, &npcb, rc);
+
     /* If a new PCB could not be created (probably due to lack of memory),
        we don't do anything, but rely on the sender will retransmit the
        SYN at a time when we have more memory available. */
     if (npcb == NULL) {
       LWIP_DEBUGF(TCP_DEBUG, ("tcp_listen_input: could not allocate PCB\n"));
       TCP_STATS_INC(tcp.memerr);
-      return ERR_MEM;
+      return NULL;
     }
+
     /* Set up the new PCB. */
     ip_addr_copy(npcb->local_ip, in_data->iphdr->dest);
     npcb->local_port = pcb->local_port;
@@ -416,20 +412,23 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
 
     /* Register the new PCB so that we can begin sending segments
      for it. */
-    TCP_EVENT_SYN_RECEIVED(pcb, npcb, ERR_OK, rc);
+    TCP_EVENT_SYN_RECEIVED(pcb, npcb, rc);
     if (rc != ERR_OK) {
-          return rc;
+          return NULL;
     }
 
     /* Send a SYN|ACK together with the MSS option. */
     rc = tcp_enqueue_flags(npcb, TCP_SYN | TCP_ACK);
     if (rc != ERR_OK) {
       tcp_abandon(npcb, 0);
-      return rc;
+      return NULL;
     }
-    return tcp_output(npcb);
+
+    tcp_output(npcb); 
+    return npcb;
   }
-  return ERR_OK;
+
+  return NULL;
 }
 
 /**
@@ -458,7 +457,7 @@ tcp_pcb_reuse(struct tcp_pcb *pcb, tcp_in_data *in_data)
   pcb->ssthresh = pcb->snd_wnd;
   u16_t snd_mss = tcp_eff_send_mss(pcb->mss, pcb);
   UPDATE_PCB_BY_MSS(pcb, snd_mss);
-  rc = pcb->syn_tw_handled_cb(pcb->listen_sock, pcb, ERR_OK);
+  rc = pcb->syn_tw_handled_cb(pcb->listen_sock, pcb);
   if (rc != ERR_OK) {
     return rc;
   }

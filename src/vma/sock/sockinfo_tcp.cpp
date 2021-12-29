@@ -543,6 +543,7 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 			tcp_accept(&m_pcb, 0);
 			tcp_syn_handled((struct tcp_pcb_listen*)(&m_pcb), 0);
 			tcp_clone_conn((struct tcp_pcb_listen*)(&m_pcb), 0);
+			tcp_accepted_pcb((struct tcp_pcb_listen*)(&m_pcb), 0);
 			prepare_listen_to_close(); //close pending to accept sockets
 		} else {
 			tcp_recv(&m_pcb, sockinfo_tcp::rx_drop_lwip_cb);
@@ -1420,6 +1421,7 @@ bool sockinfo_tcp::process_peer_ctl_packets(vma_desc_list_t &peer_packets)
 		sock->m_vma_thr = true;
 		// -- start loop
 		desc->inc_ref_count();
+
 		L3_level_tcp_input((pbuf *)desc, pcb);
 
 		if (desc->dec_ref_count() <= 1)
@@ -1532,6 +1534,7 @@ void sockinfo_tcp::process_children_ctl_packets()
 			mem_buf_desc_t* desc = sock->m_rx_ctl_packets_list.get_and_pop_front();
 			sock->m_rx_ctl_packets_list_lock.unlock();
 			desc->inc_ref_count();
+
 			L3_level_tcp_input((pbuf *)desc, &sock->m_pcb);
 			if (desc->dec_ref_count() <= 1) //todo reuse needed?
 				sock->m_rx_ctl_reuse_list.push_back(desc);
@@ -2641,6 +2644,7 @@ int sockinfo_tcp::listen(int backlog)
 	tcp_accept(&m_pcb, sockinfo_tcp::accept_lwip_cb);
 	tcp_syn_handled((struct tcp_pcb_listen*)(&m_pcb), sockinfo_tcp::syn_received_lwip_cb);
 	tcp_clone_conn((struct tcp_pcb_listen*)(&m_pcb), sockinfo_tcp::clone_conn_cb);
+	tcp_accepted_pcb((struct tcp_pcb_listen*)(&m_pcb), sockinfo_tcp::accepted_pcb_cb);
 
 	bool success = attach_as_uc_receiver(ROLE_TCP_SERVER);
 
@@ -3025,6 +3029,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 			while (!temp_list.empty()) {
 				mem_buf_desc_t* desc = temp_list.get_and_pop_front();
 				desc->inc_ref_count();
+
 				L3_level_tcp_input((pbuf *)desc, &new_sock->m_pcb);
 				if (desc->dec_ref_count() <= 1) //todo reuse needed?
 					new_sock->m_rx_ctl_reuse_list.push_back(desc);
@@ -3104,13 +3109,12 @@ struct tcp_pcb* sockinfo_tcp::get_syn_received_pcb(in_addr_t peer_ip, in_port_t 
 	return get_syn_received_pcb(key);
 }
 
-err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb, err_t err)
+err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb)
 {
 	sockinfo_tcp *new_sock;
 	err_t ret_val = ERR_OK;
 
 	sockinfo_tcp *conn = (sockinfo_tcp *)((arg));
-	NOT_IN_USE(err);
 
 	if (!conn || !newpcb) {
 		return ERR_VAL;
@@ -3140,7 +3144,18 @@ err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb, err_t err)
 	return ret_val;
 }
 
-err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
+void sockinfo_tcp::accepted_pcb_cb(struct tcp_pcb *accepted_pcb)
+{
+	if (accepted_pcb) {
+		// A new pcb is always locked. When this callback is called the new pcb is ready
+		// and all related processing is done. Now it must be unlocked.
+		sockinfo_tcp* accepted_sock = reinterpret_cast<sockinfo_tcp*>(accepted_pcb->my_container);
+		ASSERT_LOCKED(accepted_sock->m_tcp_con_lock);
+		accepted_sock->unlock_tcp_con();
+	}
+}
+
+err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb)
 {
 	sockinfo_tcp *listen_sock = (sockinfo_tcp *)((arg));
 
@@ -3150,7 +3165,6 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 
 	sockinfo_tcp *new_sock = (sockinfo_tcp *)((newpcb->my_container));
 
-	NOT_IN_USE(err);
 	ASSERT_LOCKED(new_sock->m_tcp_con_lock);
 
 	/*
@@ -3205,7 +3219,7 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb, 
 	return ERR_OK;
 }
 
-err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
+err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb)
 {
 	sockinfo_tcp *listen_sock = (sockinfo_tcp *)((arg));
 
@@ -3214,8 +3228,6 @@ err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_
 	}
 
 	sockinfo_tcp *new_sock = (sockinfo_tcp *)((newpcb->my_container));
-
-	NOT_IN_USE(err);
 
 	ASSERT_LOCKED(listen_sock->m_tcp_con_lock);
 
@@ -3245,6 +3257,12 @@ err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_
 		return ERR_ABRT;
 	}
 
+	// This method is called from a flow which assumes that the socket is locked
+	// (tcp_listen_input, Le_level_tcp_input).
+	// Since we created a new socket and we are about to add it to the timers,
+	// we need to make sure it is also locked for further processing.
+	new_sock->lock_tcp_con();
+
 	new_sock->register_timer();
 
 	listen_sock->m_tcp_con_lock.lock();
@@ -3259,7 +3277,7 @@ err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_
 	return ERR_OK;
 }
 
-err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
+err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb)
 {
 	sockinfo_tcp *listen_sock = (sockinfo_tcp *)((arg));
 
@@ -3268,8 +3286,6 @@ err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb,
 	}
 
 	sockinfo_tcp *new_sock = (sockinfo_tcp *)((newpcb->my_container));
-
-	NOT_IN_USE(err);
 
 	ASSERT_LOCKED(listen_sock->m_tcp_con_lock);
 	listen_sock->m_tcp_con_lock.unlock();

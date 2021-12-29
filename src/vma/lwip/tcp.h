@@ -109,22 +109,21 @@ typedef err_t (*tcp_accept_fn)(void *arg, struct tcp_pcb *newpcb, err_t err);
  *
  * @param arg Additional argument to pass to the callback function (@see tcp_arg())
  * @param newpcb The new connection pcb
- * @param err An error code if there has been an error.
- *            Only return ERR_ABRT if you have called tcp_abort from within the
- *            callback function!
  */
-typedef err_t (*tcp_syn_handled_fn)(void *arg, struct tcp_pcb *newpcb, err_t err);
+typedef err_t (*tcp_syn_handled_fn)(void *arg, struct tcp_pcb *newpcb);
 
 /** Function prototype for tcp clone callback functions. Called to clone listen pcb
  * on connection establishment.
  * @param arg Additional argument to pass to the callback function (@see tcp_arg())
  * @param newpcb The new connection pcb
- * @param err An error code if there has been an error.
- *            Only return ERR_ABRT if you have called tcp_abort from within the
- *            callback function!
- *
  */
-typedef err_t (*tcp_clone_conn_fn)(void *arg, struct tcp_pcb **newpcb, err_t err);
+typedef err_t (*tcp_clone_conn_fn)(void *arg, struct tcp_pcb **newpcb);
+
+/** Function prototype for tcp new-pcb callback functions.
+ * Called when a new pcb is ready as part of tcp_listen_input handling.
+ * @param newpcb The new connection pcb
+ */
+typedef void (*tcp_accepted_pcb_fn)(struct tcp_pcb *accepted_pcb);
 
 
 /** Function prototype for tcp receive callback functions. Called when data has
@@ -415,7 +414,7 @@ struct tcp_pcb {
 #ifdef VMA_NO_TCP_PCB_LISTEN_STRUCT
   tcp_syn_handled_fn syn_handled_cb;
   tcp_clone_conn_fn clone_conn;
-
+  tcp_accepted_pcb_fn accepted_pcb;
 #endif /* VMA_NO_TCP_PCB_LISTEN_STRUCT */
 
   /* Delayed ACK control: number of quick acks */
@@ -454,6 +453,7 @@ struct tcp_pcb_listen {
   TCP_PCB_COMMON(struct tcp_pcb_listen);
   tcp_syn_handled_fn syn_handled_cb;
   tcp_clone_conn_fn clone_conn;
+  tcp_accepted_pcb_fn accepted_pcb;
 };
 #endif /* VMA_NO_TCP_PCB_LISTEN_STRUCT */
 
@@ -490,6 +490,7 @@ void             tcp_ip_output          (struct tcp_pcb *pcb, ip_output_fn ip_ou
 void             tcp_accept  		(struct tcp_pcb *pcb, tcp_accept_fn accept);
 void             tcp_syn_handled	(struct tcp_pcb_listen *pcb, tcp_syn_handled_fn syn_handled);
 void             tcp_clone_conn		(struct tcp_pcb_listen *pcb, tcp_clone_conn_fn clone_conn);
+void             tcp_accepted_pcb	(struct tcp_pcb_listen *pcb, tcp_accepted_pcb_fn accepted_pcb);
 void             tcp_recv    		(struct tcp_pcb *pcb, tcp_recv_fn recv);
 void             tcp_sent    		(struct tcp_pcb *pcb, tcp_sent_fn sent);
 void             tcp_poll    		(struct tcp_pcb *pcb, tcp_poll_fn poll, u8_t interval);

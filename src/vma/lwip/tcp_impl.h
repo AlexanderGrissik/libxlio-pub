@@ -204,18 +204,24 @@ PACK_STRUCT_END
     else (ret) = ERR_ARG;                                      			  \
   } while (0)
 
-#define TCP_EVENT_SYN_RECEIVED(pcb,p_npcb,err,ret)               \
+#define TCP_EVENT_SYN_RECEIVED(pcb,p_npcb,ret)                 \
   do {                                                         \
     if((pcb)->syn_handled_cb != NULL)                            \
-      (ret) = (pcb)->syn_handled_cb((pcb)->callback_arg,(p_npcb),(err)); \
+      (ret) = (pcb)->syn_handled_cb((pcb)->callback_arg,(p_npcb)); \
     else (ret) = ERR_ARG;                                           \
   } while (0)
 
-#define TCP_EVENT_CLONE_PCB(pcb,p_npcb,err,ret)               \
+#define TCP_EVENT_CLONE_PCB(pcb,p_npcb,ret)                    \
   do {                                                         \
     if((pcb)->clone_conn != NULL)                            \
-      (ret) = (pcb)->clone_conn((pcb)->callback_arg,(p_npcb),(err)); \
+      (ret) = (pcb)->clone_conn((pcb)->callback_arg,(p_npcb)); \
     else (ret) = ERR_ARG;                                           \
+  } while (0)
+
+#define TCP_EVENT_ACCEPTED_PCB(pcb, newpcb)                         \
+  do {                                                         \
+    if((pcb)->accepted_pcb != NULL)                                 \
+      (pcb)->accepted_pcb((newpcb));                                \
   } while (0)
 
 #define TCP_EVENT_SENT(pcb,space,ret)                          \
