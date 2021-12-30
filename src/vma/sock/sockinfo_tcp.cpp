@@ -270,7 +270,7 @@ sockinfo_tcp::sockinfo_tcp(int fd)
     setPassthrough(false); // by default we try to accelerate
     si_tcp_logdbg("tcp socket created");
 
-    tcp_pcb_init(&m_pcb, TCP_PRIO_NORMAL);
+    tcp_pcb_init(&m_pcb, TCP_PRIO_NORMAL, this);
 
     si_tcp_logdbg("new pcb %p pcb state %d", &m_pcb, get_tcp_state(&m_pcb));
     tcp_arg(&m_pcb, this);
@@ -278,7 +278,6 @@ sockinfo_tcp::sockinfo_tcp(int fd)
     tcp_recv(&m_pcb, sockinfo_tcp::rx_lwip_cb);
     tcp_err(&m_pcb, sockinfo_tcp::err_lwip_cb);
     tcp_sent(&m_pcb, sockinfo_tcp::ack_recvd_lwip_cb);
-    m_pcb.my_container = this;
 
     m_n_pbufs_rcvd = m_n_pbufs_freed = 0;
 
@@ -1285,8 +1284,8 @@ uint16_t sockinfo_tcp::get_route_mtu(struct tcp_pcb *pcb)
     }
     route_result res;
 
-    g_p_route_table_mgr->route_resolve(
-        route_rule_table_key(pcb->local_ip.addr, pcb->remote_ip.addr, pcb->tos), res);
+    auto rule_key = route_rule_table_key(pcb->local_ip.ip4.addr, pcb->remote_ip.ip4.addr, pcb->tos);
+    g_p_route_table_mgr->route_resolve(rule_key, res);
 
     if (res.mtu) {
         vlog_printf(VLOG_DEBUG, "Using route mtu %u\n", res.mtu);
@@ -2420,9 +2419,10 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     }
 
     if (m_bound.is_anyaddr()) {
-        m_bound.set_in_addr(m_p_connected_dst_entry->get_src_addr());
-        in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
-        tcp_bind(&m_pcb, (ip_addr_t *)(&ip), (ntohs(m_bound.get_in_port())));
+        auto ip = m_p_connected_dst_entry->get_src_addr();
+        m_bound.set_in_addr(ip);
+        tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
+                 m_pcb.is_ipv6);
     }
     m_conn_state = TCP_CONN_CONNECTING;
     bool success = attach_as_uc_receiver((role_t)NULL, true);
@@ -2433,11 +2433,12 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
         return -1;
     }
 
-    in_addr_t peer_ip_addr = m_connected.get_ip_addr().get_in_addr();
     fit_rcv_wnd(true);
 
-    int err = tcp_connect(&m_pcb, (ip_addr_t *)(&peer_ip_addr), ntohs(m_connected.get_in_port()),
-                          /*(tcp_connected_fn)*/ sockinfo_tcp::connect_lwip_cb);
+    auto ip = m_connected.get_ip_addr();
+    int err =
+        tcp_connect(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_connected.get_in_port()),
+                    m_pcb.is_ipv6, sockinfo_tcp::connect_lwip_cb);
     if (err != ERR_OK) {
         // todo consider setPassthrough and go to OS
         destructor_helper();
@@ -2560,12 +2561,12 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         unlock_tcp_con();
         return -1; // error
     }
+    m_pcb.is_ipv6 = false;
     m_bound.set_sockaddr(&tmp_sin, tmp_sin_len);
     in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
 
-    if (!m_bound.is_anyaddr() &&
-        !g_p_net_device_table_mgr->get_net_device_val(
-            ip)) { // if socket is not bound to INADDR_ANY and not offloaded socket- only bind OS
+    if (!m_bound.is_anyaddr() && !g_p_net_device_table_mgr->get_net_device_val(ip)) {
+        // if socket is not bound to INADDR_ANY and not offloaded socket- only bind OS
         setPassthrough();
         m_sock_state = TCP_SOCK_BOUND;
         si_tcp_logdbg("socket bound only via OS");
@@ -2573,7 +2574,9 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         return 0;
     }
 
-    if (tcp_bind(&m_pcb, (ip_addr_t *)(&ip), ntohs(m_bound.get_in_port())) != ERR_OK) {
+    if (ERR_OK !=
+        tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
+                 m_pcb.is_ipv6)) {
         errno = EINVAL;
         unlock_tcp_con();
         return -1; // error
@@ -3155,7 +3158,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 
 void sockinfo_tcp::create_flow_tuple_key_from_pcb(flow_tuple &key, struct tcp_pcb *pcb)
 {
-    key = flow_tuple(pcb->local_ip.addr, htons(pcb->local_port), pcb->remote_ip.addr,
+    key = flow_tuple(pcb->local_ip.ip4.addr, htons(pcb->local_port), pcb->remote_ip.ip4.addr,
                      htons(pcb->remote_port), PROTO_TCP);
 }
 
@@ -3409,8 +3412,8 @@ err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb)
 void sockinfo_tcp::set_conn_properties_from_pcb()
 {
     // setup peer address and local address
-    m_connected.set_ip_port(AF_INET, &m_pcb.remote_ip, htons(m_pcb.remote_port));
-    m_bound.set_ip_port(AF_INET, &m_pcb.local_ip, htons(m_pcb.local_port));
+    m_connected.set_ip_port(AF_INET, &m_pcb.remote_ip.ip4.addr, htons(m_pcb.remote_port));
+    m_bound.set_ip_port(AF_INET, &m_pcb.local_ip.ip4.addr, htons(m_pcb.local_port));
 }
 
 void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)

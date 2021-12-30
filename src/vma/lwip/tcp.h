@@ -478,7 +478,7 @@ err_t lwip_tcp_event(void *arg, struct tcp_pcb *pcb,
 
 
 /*Initialization of tcp_pcb structure*/
-void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio);
+void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio, void *container);
 void tcp_pcb_recycle(struct tcp_pcb* pcb);
 
 void             tcp_arg     		(struct tcp_pcb *pcb, void *arg);
@@ -505,10 +505,11 @@ void             tcp_err     		(struct tcp_pcb *pcb, tcp_err_fn err);
 		get_tcp_state(pcb) == LISTEN)
 
 void             tcp_recved  (struct tcp_pcb *pcb, u32_t len);
-err_t            tcp_bind    (struct tcp_pcb *pcb, ip_addr_t *ipaddr,
-                              u16_t port);
-err_t            tcp_connect (struct tcp_pcb *pcb, ip_addr_t *ipaddr,
-                              u16_t port, tcp_connected_fn connected);
+err_t            tcp_bind    (struct tcp_pcb *pcb, const ip_addr_t *ipaddr,
+                              u16_t port,
+                              bool is_ipv6);
+err_t            tcp_connect (struct tcp_pcb *pcb, const ip_addr_t *ipaddr,
+                              u16_t port, bool is_ipv6, tcp_connected_fn connected);
 
 err_t            tcp_listen(struct tcp_pcb_listen *listen_pcb, struct tcp_pcb *conn_pcb);
 

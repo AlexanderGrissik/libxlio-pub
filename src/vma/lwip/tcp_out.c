@@ -1919,7 +1919,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
 
   /* If we don't have a local IP address, we get one by
      calling ip_route(). */
-  if (ip_addr_isany(&(pcb->local_ip))) {
+  if (ip_addr_isany(&(pcb->local_ip), pcb->is_ipv6)) {
 	  LWIP_ASSERT("tcp_output_segment: need to find route to host", 0);
   }
 
@@ -2173,9 +2173,9 @@ tcp_keepalive(struct tcp_pcb *pcb)
   u8_t optlen = 0;
   u32_t *opts;
 
-  LWIP_DEBUGF(TCP_DEBUG, ("tcp_keepalive: sending KEEPALIVE probe to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
-                          ip4_addr1_16(&pcb->remote_ip), ip4_addr2_16(&pcb->remote_ip),
-                          ip4_addr3_16(&pcb->remote_ip), ip4_addr4_16(&pcb->remote_ip)));
+  LWIP_DEBUGF_IP_ADDR(TCP_DEBUG,
+                      "tcp_keepalive: sending KEEPALIVE probe to ",
+                      pcb->remote_ip, pcb->is_ipv6);
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_keepalive: tcp_ticks %"U32_F"   pcb->tmr %"U32_F" pcb->keep_cnt_sent %"U16_F"\n",
                           tcp_ticks, pcb->tmr, pcb->keep_cnt_sent));
@@ -2240,11 +2240,9 @@ tcp_zero_window_probe(struct tcp_pcb *pcb)
   u8_t optlen = 0;
   u32_t *opts;
 
-  LWIP_DEBUGF(TCP_DEBUG,
-              ("tcp_zero_window_probe: sending ZERO WINDOW probe to %"
-               U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
-               ip4_addr1_16(&pcb->remote_ip), ip4_addr2_16(&pcb->remote_ip),
-               ip4_addr3_16(&pcb->remote_ip), ip4_addr4_16(&pcb->remote_ip)));
+  LWIP_DEBUGF_IP_ADDR(TCP_DEBUG,
+                      "tcp_zero_window_probe: sending ZERO WINDOW probe to ",
+                      pcb->remote_ip, pcb->is_ipv6);
 
   LWIP_DEBUGF(TCP_DEBUG,
               ("tcp_zero_window_probe: tcp_ticks %"U32_F

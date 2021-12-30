@@ -462,10 +462,7 @@ u32_t tcp_next_iss(void);
 void tcp_keepalive(struct tcp_pcb *pcb);
 void tcp_zero_window_probe(struct tcp_pcb *pcb);
 
-#if TCP_CALCULATE_EFF_SEND_MSS
-u16_t tcp_eff_send_mss(u16_t sendmss, struct tcp_pcb *pcb);
-#endif /* TCP_CALCULATE_EFF_SEND_MSS */
-u16_t tcp_mss_follow_mtu_with_default(u16_t sendmss, struct tcp_pcb *pcb);
+u16_t tcp_send_mss(struct tcp_pcb *pcb);
 
 #if LWIP_CALLBACK_API
 err_t tcp_recv_null(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
