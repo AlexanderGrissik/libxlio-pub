@@ -5370,9 +5370,9 @@ void tcp_timers_collection::handle_timer_expired(void *user_data)
          * of the same object mast be ingored.
          * TODO Check on is_cleaned() is not safe completely.
          */
-        if (!(p_sock && p_sock->is_cleaned())) {
+        if (p_sock && !p_sock->is_cleaned()) {
             iter->handler->handle_timer_expired(iter->user_data);
-            if (p_sock && p_sock->is_destroyable_lock()) {
+            if (p_sock->is_destroyable_lock()) {
                 g_p_fd_collection->destroy_sockfd(p_sock);
             }
         }
