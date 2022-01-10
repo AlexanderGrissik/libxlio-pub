@@ -311,6 +311,7 @@ protected:
 
 private:
     int fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit);
+    void get_tcp_info(struct tcp_info *ti);
 
     sockinfo_tcp_ops *m_ops;
     sockinfo_tcp_ops *m_ops_tcp;

@@ -4255,6 +4255,35 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                              allow_privileged_sock_opt);
 }
 
+void sockinfo_tcp::get_tcp_info(struct tcp_info *ti)
+{
+    unsigned state = get_tcp_state(&m_pcb);
+
+    memset(ti, 0, sizeof(*ti));
+
+    static const uint8_t pcb_to_tcp_state[] = {
+        [CLOSED] = TCP_CLOSE,         [LISTEN] = TCP_LISTEN,           [SYN_SENT] = TCP_SYN_SENT,
+        [SYN_RCVD] = TCP_SYN_RECV,    [ESTABLISHED] = TCP_ESTABLISHED, [FIN_WAIT_1] = TCP_FIN_WAIT1,
+        [FIN_WAIT_2] = TCP_FIN_WAIT2, [CLOSE_WAIT] = TCP_CLOSE_WAIT,   [CLOSING] = TCP_CLOSING,
+        [LAST_ACK] = TCP_LAST_ACK,    [TIME_WAIT] = TCP_TIME_WAIT,
+    };
+
+    ti->tcpi_state = state < sizeof(pcb_to_tcp_state) ? pcb_to_tcp_state[state] : 0;
+    ti->tcpi_options = (!!(m_pcb.flags & TF_TIMESTAMP) * TCPI_OPT_TIMESTAMPS) |
+        (!!(m_pcb.flags & TF_WND_SCALE) * TCPI_OPT_WSCALE);
+    // We keep rto with TCP slow timer granularity and need to convert it to usec.
+    ti->tcpi_rto = m_pcb.rto * safe_mce_sys().tcp_timer_resolution_msec * 2 * 1000U;
+    ti->tcpi_advmss = m_pcb.advtsd_mss;
+    ti->tcpi_snd_mss = m_pcb.mss;
+    ti->tcpi_retransmits = m_pcb.nrtx;
+    // ti->tcpi_retrans - we don't keep it and calculation would be O(N).
+    ti->tcpi_total_retrans = m_p_socket_stats->counters.n_tx_retransmits;
+    ti->tcpi_snd_cwnd = m_pcb.cwnd / m_pcb.mss;
+    ti->tcpi_snd_ssthresh = m_pcb.ssthresh / m_pcb.mss;
+
+    // Currently we miss per segment statistics and most of congestion control fields.
+}
+
 int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
                                      socklen_t *__optlen)
 {
@@ -4289,6 +4318,16 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
             } else {
                 errno = EINVAL;
             }
+            break;
+        case TCP_INFO:
+            struct tcp_info ti;
+            unsigned len;
+            get_tcp_info(&ti);
+            // Due to compatibility reasons TCP_INFO can return partial result.
+            len = std::min<unsigned>(sizeof(ti), *__optlen);
+            memcpy(__optval, &ti, len);
+            *__optlen = len;
+            ret = 0;
             break;
         default:
             ret = SOCKOPT_HANDLE_BY_OS;
