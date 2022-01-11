@@ -684,7 +684,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_LOG_DETAILS              (0)
 #define MCE_DEFAULT_LOG_COLORS               (true)
 #define MCE_DEFAULT_APP_ID                   ("XLIO_DEFAULT_APPLICATION_ID")
-#define MCE_DEFAULT_HANDLE_SIGINTR           (false)
+#define MCE_DEFAULT_HANDLE_SIGINTR           (true)
 #define MCE_DEFAULT_HANDLE_SIGFAULT          (false)
 #define MCE_DEFAULT_STATS_FD_NUM             100
 #define MCE_DEFAULT_RING_ALLOCATION_LOGIC_TX (RING_LOGIC_PER_INTERFACE)

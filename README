@@ -76,7 +76,7 @@ Example:
  XLIO DETAILS: Conf File                      /etc/libxlio.conf          [XLIO_CONFIG_FILE]
  XLIO DETAILS: Application ID                 XLIO_DEFAULT_APPLICATION_ID [XLIO_APPLICATION_ID]
  XLIO DETAILS: Polling CPU idle usage         Disabled                   [XLIO_CPU_USAGE_STATS]
- XLIO DETAILS: SigIntr Ctrl-C Handle          Disabled                   [XLIO_HANDLE_SIGINTR]
+ XLIO DETAILS: SigIntr Ctrl-C Handle          Enabled                    [XLIO_HANDLE_SIGINTR]
  XLIO DETAILS: SegFault Backtrace             Disabled                   [XLIO_HANDLE_SIGSEGV]
  XLIO DETAILS: Ring allocation logic TX       0 (Ring per interface)     [XLIO_RING_ALLOCATION_LOGIC_TX]
  XLIO DETAILS: Ring allocation logic RX       0 (Ring per interface)     [XLIO_RING_ALLOCATION_LOGIC_RX]
@@ -324,7 +324,7 @@ XLIO_HANDLE_SIGINTR
 When Enabled, the library handler will be called when interrupt signal is sent to the process.
 XLIO will also call to application's handler if exist.
 Value range is 0 to 1
-Default value is 0 (Disabled)
+Default value is 1 (Enabled)
 
 XLIO_HANDLE_SIGSEGV
 When Enabled, print backtrace if segmentation fault happens.
