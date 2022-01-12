@@ -2961,6 +2961,12 @@ sockinfo_tcp *sockinfo_tcp::accept_clone()
         return 0;
     }
 
+    // This method is called from a flow which assumes that the socket is locked
+    // (tcp_listen_input, L3_level_tcp_input).
+    // Since we created a new socket and we are about to add it to the timers,
+    // we need to make sure it is also locked for further processing.
+    si->lock_tcp_con();
+
     si->m_parent = this;
 
     si->m_sock_state = TCP_SOCK_BOUND;
@@ -3226,13 +3232,11 @@ err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb)
 
 void sockinfo_tcp::accepted_pcb_cb(struct tcp_pcb *accepted_pcb)
 {
-    if (accepted_pcb) {
-        // A new pcb is always locked. When this callback is called the new pcb is ready
-        // and all related processing is done. Now it must be unlocked.
-        sockinfo_tcp *accepted_sock = reinterpret_cast<sockinfo_tcp *>(accepted_pcb->my_container);
-        ASSERT_LOCKED(accepted_sock->m_tcp_con_lock);
-        accepted_sock->unlock_tcp_con();
-    }
+    // A new pcb is always locked. When this callback is called the new pcb is ready
+    // and all related processing is done. Now it must be unlocked.
+    sockinfo_tcp *accepted_sock = reinterpret_cast<sockinfo_tcp *>(accepted_pcb->my_container);
+    ASSERT_LOCKED(accepted_sock->m_tcp_con_lock);
+    accepted_sock->unlock_tcp_con();
 }
 
 err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb)
@@ -3334,16 +3338,16 @@ err_t sockinfo_tcp::syn_received_lwip_cb(void *arg, struct tcp_pcb *newpcb)
     if (!is_new_offloaded) {
         new_sock->setPassthrough();
         set_tcp_state(&new_sock->m_pcb, CLOSED);
+
+        // This method is called from a flow (tcp_listen_input, L3_level_tcp_input) which priorly
+        // called clone_conn_cb which creates a locked new socket. Before we call to close() we need
+        // to unlock the socket, so close() can perform as a regular close() call.
+        new_sock->unlock_tcp_con();
+
         close(new_sock->get_fd());
         listen_sock->m_tcp_con_lock.lock();
         return ERR_ABRT;
     }
-
-    // This method is called from a flow which assumes that the socket is locked
-    // (tcp_listen_input, Le_level_tcp_input).
-    // Since we created a new socket and we are about to add it to the timers,
-    // we need to make sure it is also locked for further processing.
-    new_sock->lock_tcp_con();
 
     new_sock->register_timer();
 
@@ -3380,6 +3384,12 @@ err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb)
         tcp_arg(&(new_sock->m_pcb), new_sock);
         new_sock->abort_connection();
     }
+
+    // This method is called from a flow (tcp_listen_input, L3_level_tcp_input) which priorly called
+    // clone_conn_cb which creates a locked new socket. Before we call to close() we need to unlock
+    // the socket, so close() can perform as a regular close() call.
+    new_sock->unlock_tcp_con();
+
     close(new_sock->get_fd());
 
     listen_sock->m_tcp_con_lock.lock();

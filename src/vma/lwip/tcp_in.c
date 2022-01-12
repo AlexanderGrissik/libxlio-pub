@@ -72,7 +72,7 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static bool tcp_parseopt_ts(u8_t *opts, u16_t opts_len, u32_t *tsval);
 static void tcp_parseopt(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
-static struct tcp_pcb* tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
+static void tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
 static err_t tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static s8_t tcp_quickack(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
@@ -291,10 +291,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 			}
       else if (PCB_IN_LISTEN_STATE(pcb)) {
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for LISTENing connection.\n"));
-
-        struct tcp_pcb_listen* listen_pcb = (struct tcp_pcb_listen*)pcb;
-        TCP_EVENT_ACCEPTED_PCB(listen_pcb, tcp_listen_input(listen_pcb, &in_data));
-
+        tcp_listen_input(pcb, &in_data);
         pbuf_free(p);
       }
     	else if (PCB_IN_TIME_WAIT_STATE(pcb)){
@@ -333,7 +330,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
  * @note the segment which arrived is saved in global variables, therefore only the pcb
  *       involved is passed as a parameter to this function
  */
-static struct tcp_pcb*
+static void
 tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
 {
   struct tcp_pcb *npcb = NULL;
@@ -342,7 +339,7 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
   if (in_data->flags & (TCP_RST | TCP_FIN)) {
     /* An incoming RST should be ignored. Return.
        An incoming FIN should be ignored. Return. */
-    return NULL;
+    return;
   }
 
   /* In the LISTEN state, we check for incoming SYN segments,
@@ -363,7 +360,7 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
     if (npcb == NULL) {
       LWIP_DEBUGF(TCP_DEBUG, ("tcp_listen_input: could not allocate PCB\n"));
       TCP_STATS_INC(tcp.memerr);
-      return NULL;
+      return;
     }
 
     /* Set up the new PCB. */
@@ -410,21 +407,18 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
      for it. */
     TCP_EVENT_SYN_RECEIVED(pcb, npcb, rc);
     if (rc != ERR_OK) {
-          return NULL;
+          return;
     }
 
     /* Send a SYN|ACK together with the MSS option. */
-    rc = tcp_enqueue_flags(npcb, TCP_SYN | TCP_ACK);
-    if (rc != ERR_OK) {
+    if (ERR_OK == tcp_enqueue_flags(npcb, TCP_SYN | TCP_ACK)) {
+      tcp_output(npcb);
+    } else {
       tcp_abandon(npcb, 0);
-      return NULL;
     }
 
-    tcp_output(npcb); 
-    return npcb;
+    TCP_EVENT_ACCEPTED_PCB(pcb, npcb);
   }
-
-  return NULL;
 }
 
 /**
