@@ -828,11 +828,11 @@ void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t *p_rx_
         transport_header_len = ETH_VLAN_HDR_LEN;
     }
 
-    assert(p_ip_h->protocol == IPPROTO_TCP);
-    assert(p_ip_h->version == IPV4_VERSION);
-
     p_ip_h = (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
     p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + (int)(p_ip_h->ihl) * 4);
+
+    assert(p_ip_h->protocol == IPPROTO_TCP);
+    assert(p_ip_h->version == IPV4_VERSION);
 
     if ((cqe->lro_tcppsh_abort_dupack >> 6) & 1) {
         p_tcp_h->psh = 1;
