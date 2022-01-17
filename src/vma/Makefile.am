@@ -248,7 +248,6 @@ libxlio_la_SOURCES := \
 	proto/dst_entry_udp_mc.h \
 	proto/flow_tuple.h \
 	proto/header.h \
-	proto/ip_address.h \
 	proto/ip_frag.h \
 	proto/L2_address.h \
 	proto/mapping.h \
@@ -287,6 +286,7 @@ libxlio_la_SOURCES := \
 	util/libvma.h \
 	util/list.h \
 	util/sg_array.h \
+	util/ip_address.h \
 	util/sock_addr.h \
 	util/sysctl_reader.h \
 	util/sys_vars.h \

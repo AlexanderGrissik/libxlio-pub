@@ -247,11 +247,8 @@ const char *socket_get_type_str(int type)
 char *sprintf_sockaddr(char *buf, int buflen, const struct sockaddr *_addr, socklen_t _addrlen)
 {
     if ((_addrlen >= sizeof(struct sockaddr_in)) && (get_sa_family(_addr) == AF_INET)) {
-        in_addr_t in_addr = get_sa_ipv4_addr(_addr);
-        in_port_t in_port = get_sa_port(_addr);
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        snprintf(buf, buflen, "AF_INET, addr=%d.%d.%d.%d, port=%d", NIPQUAD(in_addr),
-                 ntohs(in_port));
+        snprintf(buf, buflen, "AF_INET, addr=%s", sockaddr2str(_addr, true).c_str());
     } else {
         snprintf(buf, buflen, "sa_family=%d", get_sa_family(_addr));
     }
@@ -296,8 +293,8 @@ void dbg_send_mcpkt()
     const char msgbuf[256] = "Hello Alex";
 
     vlog_printf(VLOG_WARNING,
-                "send_mc_packet_test:%d: Sending MC test packet to address: %d.%d.%d.%d [%s]\n",
-                __LINE__, NIPQUAD(get_sa_ipv4_addr(p_addr)), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
+                "send_mc_packet_test:%d: Sending MC test packet to address: %s [%s]\n",
+                __LINE__, sockaddr2str(p_addr).c_str(), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
     if (sendto(fd, msgbuf, strlen(msgbuf), 0, p_addr, sizeof(struct sockaddr)) < 0) {
         vlog_printf(VLOG_ERROR, "sendto mc_packet failed! errno %d %s\n", errno, strerror(errno));
     }

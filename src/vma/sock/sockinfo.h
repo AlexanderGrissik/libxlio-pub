@@ -368,8 +368,8 @@ protected:
     // If local_ip is ANY then we need to attach to all offloaded interfaces OR to the one our
     // connected_ip is routed to
     bool attach_as_uc_receiver(role_t role, bool skip_rules = false);
-    transport_t find_target_family(role_t role, struct sockaddr *sock_addr_first,
-                                   struct sockaddr *sock_addr_second = NULL);
+    transport_t find_target_family(role_t role, const struct sockaddr *sock_addr_first,
+                                   const struct sockaddr *sock_addr_second = NULL);
 
     // This callback will notify that socket is ready to receive and map the cq.
     virtual void rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring);

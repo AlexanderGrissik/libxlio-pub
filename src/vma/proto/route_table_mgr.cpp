@@ -51,7 +51,7 @@
 #include "vma/sock/socket_fd_api.h"
 #include "vma/sock/sock-redirect.h"
 #include "vma/dev/net_device_table_mgr.h"
-#include "ip_address.h"
+#include "vma/util/ip_address.h"
 
 // debugging macros
 #define MODULE_NAME        "rtm:"

@@ -45,7 +45,7 @@
 #include "vma/event/event_handler_manager.h"
 #include "vma/event/timer_handler.h"
 #include "vma/event/netlink_event.h"
-#include "vma/proto/ip_address.h"
+#include "vma/util/ip_address.h"
 #include "vma/proto/L2_address.h"
 
 #include "vma/proto/header.h"

@@ -37,11 +37,16 @@
 #include "vma/util/to_str.h"
 #include "vma/util/vtypes.h"
 
+// This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member except IPv4/IPv6 union.
+// If any other memeber is needed, this class should be split into two classes ip_addr and ip_address.
 /* coverity[missing_move_assignment] */
-class ip_address : public tostr {
+class ip_address {
 public:
     ip_address(in_addr_t ip)
         : m_ip(ip) {};
+
+    ip_address(const ip_address& addr) { *this = addr; }
+
     ~ip_address() {};
 
     const std::string to_str() const
@@ -56,6 +61,8 @@ public:
     bool is_mc() { return (IN_MULTICAST_N(m_ip)); };
 
     bool operator==(const ip_address &ip) const { return (m_ip == ip.get_in_addr()); };
+
+    ip_address& operator=(const ip_address& ip) { m_ip = ip.m_ip;  return *this; }
 
 private:
     in_addr_t m_ip;

@@ -463,11 +463,11 @@ int sockinfo_udp::bind_no_os()
     BULLSEYE_EXCLUDE_BLOCK_END
     // save the bound info and then attach to offload flows
     on_sockname_change(name, *namelen);
-    si_udp_logdbg("bound to %s", m_bound.to_str());
+    si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true));
     dst_entry_map_t::iterator dst_entry_iter = m_dst_entry_map.begin();
     while (dst_entry_iter != m_dst_entry_map.end()) {
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            dst_entry_iter->second->set_bound_addr(m_bound.get_in_addr());
+            dst_entry_iter->second->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
         }
         dst_entry_iter++;
     }
@@ -497,8 +497,8 @@ int sockinfo_udp::bind(const struct sockaddr *__addr, socklen_t __addrlen)
 
 int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 {
-    sock_addr connect_to((struct sockaddr *)__to);
-    si_udp_logdbg("to %s", connect_to.to_str());
+    sock_addr connect_to(__to, __tolen);
+    si_udp_logdbg("to %s", connect_to.to_str_ip_port(true));
 
 #if defined(DEFINED_NGINX)
     // check if we can skip "connect()" flow, to increase performance of redundant connect() calls
@@ -506,9 +506,9 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     // in case dst ip and port are the same as the last connect() call
     if ((connect_to.get_sa_family() == AF_INET) && m_is_connected && m_is_for_socket_pool &&
         m_state != SOCKINFO_DESTROYING) {
-        in_addr_t dst_ip = connect_to.get_in_addr();
+        in_addr_t dst_ip = connect_to.get_ip_addr().get_in_addr();
         in_port_t dst_port = connect_to.get_in_port();
-        if ((m_connected.get_in_addr() == dst_ip) && m_connected.get_in_port() == dst_port) {
+        if ((m_connected.get_ip_addr().get_in_addr() == dst_ip) && m_connected.get_in_port() == dst_port) {
             return 0;
         }
     }
@@ -531,25 +531,24 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     // Dissolve the current connection setting if it's not AF_INET
     // (this also support the default dissolve by AF_UNSPEC)
     if (connect_to.get_sa_family() == AF_INET) {
-        m_connected.set_sa_family(AF_INET);
-
-        in_addr_t dst_ip = connect_to.get_in_addr();
+        in_addr_t dst_ip = connect_to.get_ip_addr().get_in_addr();
         in_port_t dst_port = connect_to.get_in_port();
 
-        // Check & Save connect ip info
-        if (dst_ip != INADDR_ANY && m_connected.get_in_addr() != dst_ip) {
-            si_udp_logdbg("connected ip changed (%s -> %s)", m_connected.to_str_in_addr(),
-                          connect_to.to_str_in_addr());
+        // Check connect ip info
+        if (dst_ip != INADDR_ANY && m_connected.get_ip_addr().get_in_addr() != dst_ip) {
+            si_udp_logdbg("connected ip changed (%s -> %s)", m_connected.to_str_ip_port().c_str(),
+                          connect_to.to_str_ip_port().c_str());
         }
-        m_connected.set_in_addr(dst_ip);
-        m_p_socket_stats->connected_ip = dst_ip;
 
-        // Check & Save connect port info
+        // Check connect port info
         if (dst_port != INPORT_ANY && m_connected.get_in_port() != dst_port) {
-            si_udp_logdbg("connected port changed (%s -> %s)", m_connected.to_str_in_port(),
-                          connect_to.to_str_in_port());
+            si_udp_logdbg("connected port changed (%s -> %s)", m_connected.to_str_ip_port().c_str(),
+                          connect_to.to_str_ip_port().c_str());
         }
-        m_connected.set_in_port(dst_port);
+
+        m_connected = connect_to;
+
+        m_p_socket_stats->connected_ip = dst_ip;
         m_p_socket_stats->connected_port = dst_port;
 
         // Connect can change the OS bound address,
@@ -572,7 +571,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 
         on_sockname_change(name, *namelen);
 
-        si_udp_logdbg("bound to %s", m_bound.to_str());
+        si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true));
         in_port_t src_port = m_bound.get_in_port();
 
         if (TRANS_VMA !=
@@ -589,7 +588,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         if (IN_MULTICAST_N(dst_ip)) {
             socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
             m_p_connected_dst_entry = new dst_entry_udp_mc(
-                dst_ip, dst_port, src_port, m_mc_tx_if ? m_mc_tx_if : m_bound.get_in_addr(),
+                dst_ip, dst_port, src_port, m_mc_tx_if ? m_mc_tx_if : m_bound.get_ip_addr().get_in_addr(),
                 m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
         } else {
             socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
@@ -602,16 +601,15 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
             si_udp_logerr(
                 "Failed to create dst_entry(dst_ip:%d.%d.%d.%d, dst_port:%d, src_port:%d)",
                 NIPQUAD(dst_ip), ntohs(dst_port), ntohs(src_port));
-            m_connected.set_in_addr(INADDR_ANY);
+            m_connected.set_any(AF_INET);
             m_p_socket_stats->connected_ip = INADDR_ANY;
-            m_connected.set_in_port(INPORT_ANY);
             m_p_socket_stats->connected_port = INPORT_ANY;
             m_is_connected = false; // will skip inspection for SRC
             return 0;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            m_p_connected_dst_entry->set_bound_addr(m_bound.get_in_addr());
+            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
         }
         if (m_so_bindtodevice_ip) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
@@ -647,7 +645,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    sock_addr bindname(__name);
+    sock_addr bindname(__name, __namelen);
 
     sa_family_t sin_family = bindname.get_sa_family();
     if (sin_family != AF_INET) {
@@ -656,26 +654,27 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
     }
 
     bool is_bound_modified = false;
-    in_addr_t bound_if = bindname.get_in_addr();
+    in_addr_t bound_if = bindname.get_ip_addr().get_in_addr();
     in_port_t bound_port = bindname.get_in_port();
 
     auto_unlocker _lock(m_lock_rcv);
 
     // Check & Save bind port info
     if (m_bound.get_in_port() != bound_port) {
-        si_udp_logdbg("bound port defined (%s -> %d)", m_bound.to_str_in_port(), ntohs(bound_port));
-        m_bound.set_in_port(bound_port);
+        si_udp_logdbg("bound port defined (%s -> %d)", m_bound.to_str_port().c_str(), ntohs(bound_port));
         m_p_socket_stats->bound_port = bound_port;
         is_bound_modified = true;
     }
 
     // Check & Save bind if info
-    if (m_bound.get_in_addr() != bound_if) {
-        si_udp_logdbg("bound if changed (%s -> %d.%d.%d.%d)", m_bound.to_str_in_addr(),
-                      NIPQUAD(bound_if));
-        m_bound.set_in_addr(bound_if);
+    if (m_bound.get_ip_addr().get_in_addr() != bound_if) {
+        si_udp_logdbg("bound if changed (%s -> %s)", 
+            m_bound.to_str_ip_port().c_str(), bindname.to_str_ip_port().c_str());
         m_p_socket_stats->bound_if = bound_if;
     }
+
+    m_bound = bindname;
+
     // Check if this is the new 'name' (local port) of the socket
     if ((m_is_connected || is_bound_modified) && bound_port != INPORT_ANY) {
 
@@ -684,7 +683,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
         // 2. Verify not binding to MC address in the UC case
         // 3. if not offloaded then set a PassThrough
         if ((m_bound.is_anyaddr() ||
-             g_p_net_device_table_mgr->get_net_device_val(m_bound.get_in_addr()))) {
+             g_p_net_device_table_mgr->get_net_device_val(m_bound.get_ip_addr().get_in_addr()))) {
             attach_as_uc_receiver(ROLE_UDP_RECEIVER); // if failed, we will get RX from OS
         } else if (m_bound.is_mc()) {
             // MC address binding will happen later as part of the ADD_MEMBERSHIP in
@@ -692,7 +691,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
             si_udp_logdbg("bound to MC address, no need to attach to UC address as offloaded");
         } else {
             si_udp_logdbg("will be passed to OS for handling - not offload interface (%s)",
-                          m_bound.to_str());
+                          m_bound.to_str_ip_port(true));
             setPassthrough();
         }
 
@@ -1053,7 +1052,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 in_addr_t src_ip = 0;
 
                 if ((!m_bound.is_anyaddr()) && (!m_bound.is_mc())) {
-                    src_ip = m_bound.get_in_addr();
+                    src_ip = m_bound.get_ip_addr().get_in_addr();
                 } else if (m_so_bindtodevice_ip) {
                     src_ip = m_so_bindtodevice_ip;
                 }
@@ -1078,7 +1077,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
             bool goto_os = false;
             // Check MC rules for not offloading
-            sock_addr tmp_grp_addr(AF_INET, mc_grp, m_bound.get_in_port());
+            sock_addr tmp_grp_addr(AF_INET, &mc_grp, m_bound.get_in_port());
             mc_pending_pram mcpram = {mreqprm.imr_multiaddr, mreqprm.imr_interface,
                                       mreqprm.imr_sourceaddr, __optname};
 
@@ -1171,7 +1170,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             if (std::find(m_port_map.begin(), m_port_map.end(), port_socket.port) ==
                 m_port_map.end()) {
                 port_socket.fd =
-                    get_sock_by_L3_L4(PROTO_UDP, m_bound.get_in_addr(), port_socket.port);
+                    get_sock_by_L3_L4(PROTO_UDP, m_bound.get_ip_addr().get_in_addr(), port_socket.port);
                 if (port_socket.fd == -1) {
                     si_udp_logdbg("could not find UDP_MAP_ADD socket for port %d",
                                   ntohs(port_socket.port));
@@ -1678,7 +1677,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
             goto tx_packet_to_os;
         }
 
-        sock_addr dst((struct sockaddr *)__dst);
+        sock_addr dst(__dst, __dstlen);
 
         if (dst == m_last_sock_addr && m_p_last_dst_entry) {
             p_dst_entry = m_p_last_dst_entry;
@@ -1715,23 +1714,23 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 if (dst.is_mc()) {
                     socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
                     p_dst_entry =
-                        new dst_entry_udp_mc(dst.get_in_addr(), dst.get_in_port(), src_port,
-                                             m_mc_tx_if ? m_mc_tx_if : m_bound.get_in_addr(),
+                        new dst_entry_udp_mc(dst.get_ip_addr().get_in_addr(), dst.get_in_port(), src_port,
+                                             m_mc_tx_if ? m_mc_tx_if : m_bound.get_ip_addr().get_in_addr(),
                                              m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
                 } else {
                     socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
-                    p_dst_entry = new dst_entry_udp(dst.get_in_addr(), dst.get_in_port(), src_port,
+                    p_dst_entry = new dst_entry_udp(dst.get_ip_addr().get_in_addr(), dst.get_in_port(), src_port,
                                                     data, m_ring_alloc_log_tx);
                 }
                 BULLSEYE_EXCLUDE_BLOCK_START
                 if (!p_dst_entry) {
                     si_udp_logerr("Failed to create dst_entry(dst_ip:%s, dst_port:%s, src_port:%d)",
-                                  dst.to_str_in_addr(), dst.to_str_in_port(), ntohs(src_port));
+                                  dst.to_str_ip_port().c_str(), dst.to_str_port().c_str(), ntohs(src_port));
                     goto tx_packet_to_os;
                 }
                 BULLSEYE_EXCLUDE_BLOCK_END
                 if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-                    p_dst_entry->set_bound_addr(m_bound.get_in_addr());
+                    p_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
                 }
                 if (m_so_bindtodevice_ip) {
                     p_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
@@ -1992,23 +1991,22 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
      */
     if (unlikely(p_desc->rx.dst.sin_port != m_bound.get_in_port())) {
         si_udp_logfunc("rx packet discarded - not socket's bound port (pkt: %d, sock:%s)",
-                       ntohs(p_desc->rx.dst.sin_port), m_bound.to_str_in_port());
+                       ntohs(p_desc->rx.dst.sin_port), m_bound.to_str_port().c_str());
         return false;
     }
 
     /* Inspects UDP packets in case socket was connected */
-    if (m_is_connected && (m_connected.get_in_port() != INPORT_ANY) &&
-        (m_connected.get_in_addr() != INADDR_ANY)) {
+    if (m_is_connected && (m_connected.get_in_port() != INPORT_ANY) && !m_connected.is_anyaddr()) {
         if (unlikely(m_connected.get_in_port() != p_desc->rx.src.sin_port)) {
             si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %d, sock:%s)",
-                           ntohs(p_desc->rx.src.sin_port), m_connected.to_str_in_port());
+                           ntohs(p_desc->rx.src.sin_port), m_connected.to_str_port().c_str());
             return false;
         }
 
-        if (unlikely(m_connected.get_in_addr() != p_desc->rx.src.sin_addr.s_addr)) {
+        if (unlikely(m_connected.get_ip_addr().get_in_addr() != p_desc->rx.src.sin_addr.s_addr)) {
             si_udp_logfunc(
                 "rx packet discarded - not socket's connected port (pkt: [%d:%d:%d:%d], sock:[%s])",
-                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_connected.to_str_in_addr());
+                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_connected.to_str_ip_port().c_str());
             return false;
         }
     }
@@ -2023,7 +2021,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
                      p_desc->rx.udp.local_if == p_desc->rx.src.sin_addr.s_addr)) {
             si_udp_logfunc(
                 "rx packet discarded - loopback is disabled (pkt: [%d:%d:%d:%d], sock:%s)",
-                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_bound.to_str_in_addr());
+                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_bound.to_str_ip_port().c_str());
             return false;
         }
         if (m_mc_num_grp_with_src_filter) {
@@ -2283,7 +2281,7 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    sock_addr tmp_grp_addr(AF_INET, mc_grp, m_bound.get_in_port());
+    sock_addr tmp_grp_addr(AF_INET, &mc_grp, m_bound.get_in_port());
     if (__vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
                                  tmp_grp_addr.get_socklen()) == TRANS_OS) {
         // Break so we call orig setsockopt() and don't try to offload
@@ -2297,7 +2295,7 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         in_addr_t src_ip = 0;
 
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            src_ip = m_bound.get_in_addr();
+            src_ip = m_bound.get_ip_addr().get_in_addr();
         } else if (m_so_bindtodevice_ip) {
             src_ip = m_so_bindtodevice_ip;
         }
@@ -2340,14 +2338,14 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
 
         // The address specified in bind() has a filtering role.
         // i.e. sockets should discard datagrams which sent to an unbound ip address.
-        if (!m_bound.is_anyaddr() && mc_grp != m_bound.get_in_addr()) {
+        if (!m_bound.is_anyaddr() && mc_grp != m_bound.get_ip_addr().get_in_addr()) {
             // Ignore for socketXtreme because m_bound is used as part of the legacy implementation
             if (!safe_mce_sys().enable_socketxtreme) {
                 return -1; // Socket was bound to a different ip address
             }
         }
 
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_in_addr(),
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_ip_addr().get_in_addr(),
                                           m_connected.get_in_port(), PROTO_UDP, mc_if);
         if (!attach_receiver(flow_key)) {
             // we will get RX from OS
@@ -2371,7 +2369,7 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         break;
     }
     case IP_DROP_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_in_addr(),
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_ip_addr().get_in_addr(),
                                           m_connected.get_in_port(), PROTO_UDP, mc_if);
         original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
         if (!detach_receiver(flow_key)) {

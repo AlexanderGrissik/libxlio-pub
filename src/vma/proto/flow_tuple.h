@@ -47,7 +47,7 @@
 class flow_tuple {
 public:
     flow_tuple();
-    flow_tuple(sock_addr &dst, sock_addr &src, in_protocol_t protocol);
+    flow_tuple(const sock_addr &dst, const sock_addr &src, in_protocol_t protocol);
     flow_tuple(in_addr_t dst_ip, in_port_t dst_port, in_addr_t src_ip, in_port_t src_port,
                in_protocol_t protocol);
     flow_tuple(const flow_tuple &ft); // Copy Constructor

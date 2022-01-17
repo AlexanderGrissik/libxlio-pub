@@ -47,12 +47,12 @@ flow_tuple::flow_tuple()
     set_str();
 }
 
-flow_tuple::flow_tuple(sock_addr &dst, sock_addr &src, in_protocol_t protocol)
+flow_tuple::flow_tuple(const sock_addr &dst, const sock_addr &src, in_protocol_t protocol)
 {
     m_protocol = protocol;
-    m_dst_ip = dst.get_in_addr();
+    m_dst_ip = dst.get_ip_addr().get_in_addr();
     m_dst_port = dst.get_in_port();
-    m_src_ip = src.get_in_addr();
+    m_src_ip = src.get_ip_addr().get_in_addr();
     m_src_port = src.get_in_port();
     set_str();
 }

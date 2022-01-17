@@ -51,7 +51,7 @@
 #include "vma/dev/ring_allocation_logic.h"
 #include "vma/infra/sender.h"
 #include "header.h"
-#include "ip_address.h"
+#include "vma/util/ip_address.h"
 
 /* Forward declarations */
 class xlio_tis;

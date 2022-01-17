@@ -178,16 +178,6 @@ inline int priv_safe_try_read_file(const char *path, char *buf, size_t size)
 int read_file_to_int(const char *path, int default_value);
 
 /**
- * Get interface name and flags from local address
- *
- * @char ifname[IFNAMSIZ];
- * @unsigned int ifflags; Flags as from SIOCGIFFLAGS ioctl.
- *
- * @return zero on success
- */
-int get_ifinfo_from_ip(const struct sockaddr &local_addr, char *ifname, uint32_t &ifflags);
-
-/**
  * Get port number from interface name
  * @param ifname input interface name of device (e.g. eth1, ib2)
  *  should be of size IFNAMSIZ

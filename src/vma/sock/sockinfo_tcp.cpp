@@ -258,7 +258,7 @@ sockinfo_tcp::sockinfo_tcp(int fd)
     m_linger.l_linger = 0;
     m_linger.l_onoff = 0;
 
-    m_bound.set_sa_family(AF_INET);
+    m_bound.set_any(AF_INET);
     m_protocol = PROTO_TCP;
     m_p_socket_stats->socket_type = SOCK_STREAM;
 
@@ -626,7 +626,7 @@ void sockinfo_tcp::create_dst_entry()
     if (!m_p_connected_dst_entry) {
         socket_data data = {m_fd, m_n_uc_ttl, m_pcb.tos, m_pcp};
         m_p_connected_dst_entry =
-            new dst_entry_tcp(m_connected.get_in_addr(), m_connected.get_in_port(),
+            new dst_entry_tcp(m_connected.get_ip_addr().get_in_addr(), m_connected.get_in_port(),
                               m_bound.get_in_port(), data, m_ring_alloc_log_tx);
 
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -636,7 +636,7 @@ void sockinfo_tcp::create_dst_entry()
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         if (!m_bound.is_anyaddr()) {
-            m_p_connected_dst_entry->set_bound_addr(m_bound.get_in_addr());
+            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
         }
         if (m_so_bindtodevice_ip) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
@@ -774,9 +774,9 @@ void sockinfo_tcp::put_agent_msg(void *arg)
     data.fid = p_si_tcp->get_fd();
     data.state = get_tcp_state(&p_si_tcp->m_pcb);
     data.type = SOCK_STREAM;
-    data.src_ip = p_si_tcp->m_bound.get_in_addr();
+    data.src_ip = p_si_tcp->m_bound.get_ip_addr().get_in_addr();
     data.src_port = p_si_tcp->m_bound.get_in_port();
-    data.dst_ip = p_si_tcp->m_connected.get_in_addr();
+    data.dst_ip = p_si_tcp->m_connected.get_ip_addr().get_in_addr();
     data.dst_port = p_si_tcp->m_connected.get_in_port();
 
     g_p_agent->put((const void *)&data, sizeof(data), (intptr_t)data.fid);
@@ -1791,7 +1791,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
     mem_buf_desc_t *p_curr_desc = p_first_desc;
 
     pbuf *p_curr_buff = p;
-    conn->m_connected.get_sa(p_first_desc->rx.src);
+    conn->m_connected.get_sa(
+        reinterpret_cast<sockaddr*>(&p_first_desc->rx.src), static_cast<socklen_t>(sizeof(p_first_desc->rx.src)));
 
     // We go over the p_first_desc again, so decrement what we did in rx_input_cb.
     conn->m_socket_stats.strq_counters.n_strq_total_strides -=
@@ -2384,7 +2385,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     // setup peer address
     // TODO: Currenlty we don't check the if __to is supported and legal
     // socket-redirect probably should do this
-    m_connected.set(*((sockaddr *)__to));
+    m_connected.set_sockaddr(__to, __tolen);
 
     create_dst_entry();
     if (!m_p_connected_dst_entry) {
@@ -2403,7 +2404,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     remote_addr.sin_family = AF_INET;
     remote_addr.sin_addr.s_addr = m_p_connected_dst_entry->get_dst_addr();
     remote_addr.sin_port = m_p_connected_dst_entry->get_dst_port();
-    sock_addr local_addr(m_bound.get_p_sa());
+    sock_addr local_addr(m_bound);
     if (local_addr.is_anyaddr()) {
         local_addr.set_in_addr(m_p_connected_dst_entry->get_src_addr());
     }
@@ -2421,7 +2422,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     if (m_bound.is_anyaddr()) {
         m_bound.set_in_addr(m_p_connected_dst_entry->get_src_addr());
-        in_addr_t ip = m_bound.get_in_addr();
+        in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
         tcp_bind(&m_pcb, (ip_addr_t *)(&ip), (ntohs(m_bound.get_in_port())));
     }
     m_conn_state = TCP_CONN_CONNECTING;
@@ -2433,7 +2434,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
         return -1;
     }
 
-    in_addr_t peer_ip_addr = m_connected.get_in_addr();
+    in_addr_t peer_ip_addr = m_connected.get_ip_addr().get_in_addr();
     fit_rcv_wnd(true);
 
     int err = tcp_connect(&m_pcb, (ip_addr_t *)(&peer_ip_addr), ntohs(m_connected.get_in_port()),
@@ -2560,8 +2561,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         unlock_tcp_con();
         return -1; // error
     }
-    m_bound.set(tmp_sin);
-    in_addr_t ip = m_bound.get_in_addr();
+    m_bound.set_sockaddr(&tmp_sin, tmp_sin_len);
+    in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
 
     if (!m_bound.is_anyaddr() &&
         !g_p_net_device_table_mgr->get_net_device_val(
@@ -2581,10 +2582,9 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 
     m_sock_state = TCP_SOCK_BOUND;
 
-    m_bound.set(tmp_sin);
     si_tcp_logdbg("socket bound");
 
-    m_p_socket_stats->bound_if = m_bound.get_in_addr();
+    m_p_socket_stats->bound_if = m_bound.get_ip_addr().get_in_addr();
     m_p_socket_stats->bound_port = m_bound.get_in_port();
 
     unlock_tcp_con();
@@ -2906,10 +2906,10 @@ int sockinfo_tcp::accept_helper(struct sockaddr *__addr, socklen_t *__addrlen,
         }
     }
 
-    ns->m_p_socket_stats->connected_ip = ns->m_connected.get_in_addr();
+    ns->m_p_socket_stats->connected_ip = ns->m_connected.get_ip_addr().get_in_addr();
     ns->m_p_socket_stats->connected_port = ns->m_connected.get_in_port();
 
-    ns->m_p_socket_stats->bound_if = ns->m_bound.get_in_addr();
+    ns->m_p_socket_stats->bound_if = ns->m_bound.get_ip_addr().get_in_addr();
     ns->m_p_socket_stats->bound_port = ns->m_bound.get_in_port();
 
     if (__flags & SOCK_NONBLOCK) {
@@ -2999,20 +2999,21 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
     parent->unlock_tcp_con();
     child->lock_tcp_con();
 
-    child->m_p_socket_stats->connected_ip = child->m_connected.get_in_addr();
+    child->m_p_socket_stats->connected_ip = child->m_connected.get_ip_addr().get_in_addr();
     child->m_p_socket_stats->connected_port = child->m_connected.get_in_port();
-    child->m_p_socket_stats->bound_if = child->m_bound.get_in_addr();
+    child->m_p_socket_stats->bound_if = child->m_bound.get_ip_addr().get_in_addr();
     child->m_p_socket_stats->bound_port = child->m_bound.get_in_port();
-    if (child->m_socketxtreme.completion) {
-        child->m_connected.get_sa(parent->m_socketxtreme.completion->src);
-    } else {
-        child->m_connected.get_sa(parent->m_socketxtreme.ec.completion.src);
-    }
+
+    xlio_socketxtreme_completion_t& parent_compl =
+        (child->m_socketxtreme.completion ? *parent->m_socketxtreme.completion : parent->m_socketxtreme.ec.completion);
+
+    child->m_connected.get_sa(reinterpret_cast<sockaddr*>(&parent_compl.src), static_cast<socklen_t>(sizeof(parent_compl.src)));
 
     /* Update vma_completion with
      * XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED related data
      */
     if (likely(child->m_parent)) {
+
         if (child->m_socketxtreme.completion) {
             child->m_socketxtreme.completion->src = parent->m_socketxtreme.completion->src;
             child->m_socketxtreme.completion->listen_fd = child->m_parent->get_fd();
@@ -3400,14 +3401,8 @@ err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb)
 void sockinfo_tcp::set_conn_properties_from_pcb()
 {
     // setup peer address and local address
-
-    m_connected.set_in_addr(m_pcb.remote_ip.addr);
-    m_connected.set_in_port(htons(m_pcb.remote_port));
-    m_connected.set_sa_family(AF_INET);
-
-    m_bound.set_in_addr(m_pcb.local_ip.addr);
-    m_bound.set_in_port(htons(m_pcb.local_port));
-    m_bound.set_sa_family(AF_INET);
+    m_connected.set_ip_port(AF_INET, &m_pcb.remote_ip, htons(m_pcb.remote_port));
+    m_bound.set_ip_port(AF_INET, &m_pcb.local_ip, htons(m_pcb.local_port));
 }
 
 void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)
@@ -3461,7 +3456,7 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
     // OLG: Now we should wakeup all threads that are sleeping on this socket.
     conn->do_wakeup();
 
-    conn->m_p_socket_stats->connected_ip = conn->m_connected.get_in_addr();
+    conn->m_p_socket_stats->connected_ip = conn->m_connected.get_ip_addr().get_in_addr();
     conn->m_p_socket_stats->connected_port = conn->m_connected.get_in_port();
 
     conn->unlock_tcp_con();

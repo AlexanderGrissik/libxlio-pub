@@ -41,7 +41,7 @@
 
 #include "vma/event/timer_handler.h"
 #include "vma/util/sys_vars.h"
-#include "vma/proto/ip_address.h"
+#include "vma/util/ip_address.h"
 #include "vma/infra/cache_subject_observer.h"
 #include "net_device_val.h"
 #include "net_device_entry.h"

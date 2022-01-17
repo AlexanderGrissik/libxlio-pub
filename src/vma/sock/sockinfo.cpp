@@ -116,13 +116,8 @@ sockinfo::sockinfo(int fd)
     m_socketxtreme.completion = NULL;
     m_socketxtreme.last_buff_lst = NULL;
 
-    m_connected.set_in_addr(INADDR_ANY);
-    m_connected.set_in_port(INPORT_ANY);
-    m_connected.set_sa_family(AF_INET);
-
-    m_bound.set_in_addr(INADDR_ANY);
-    m_bound.set_in_port(INPORT_ANY);
-    m_bound.set_sa_family(AF_INET);
+    m_connected.set_any(AF_INET);
+    m_bound.set_any(AF_INET);
 }
 
 sockinfo::~sockinfo()
@@ -597,7 +592,7 @@ int sockinfo::get_sock_by_L3_L4(in_protocol_t protocol, in_addr_t ip, in_port_t 
             continue;
         }
         sockinfo *s = (sockinfo *)p_sock_i;
-        if (protocol == s->m_protocol && ip == s->m_bound.get_in_addr() &&
+        if (protocol == s->m_protocol && ip == s->m_bound.get_ip_addr().get_in_addr() &&
             port == s->m_bound.get_in_port()) {
             return i;
         }
@@ -1140,8 +1135,8 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
     socket_fd_api::statistics_print(log_level);
 
-    vlog_printf(log_level, "Bind info : %s\n", m_bound.to_str());
-    vlog_printf(log_level, "Connection info : %s\n", m_connected.to_str());
+    vlog_printf(log_level, "Bind info : %s\n", m_bound.to_str_ip_port(true));
+    vlog_printf(log_level, "Connection info : %s\n", m_connected.to_str_ip_port(true));
     vlog_printf(log_level, "Protocol : %s\n", in_protocol_str[m_protocol]);
     vlog_printf(log_level, "Is closed : %s\n", m_state_str[m_state]);
     vlog_printf(log_level, "Is blocking : %s\n", m_b_blocking ? "true" : "false");
@@ -1524,7 +1519,7 @@ void sockinfo::reuse_descs(descq_t *reuseq, ring *p_ring)
 
 bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
 {
-    sock_addr addr(m_bound.get_p_sa());
+    sock_addr addr(m_bound);
     in_addr_t local_if;
     bool ret = true;
 
@@ -1535,13 +1530,13 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
                                     // SO_BINDTODEVICE is used
         si_logdbg("Attaching using bind to device rule");
     } else {
-        local_if = m_bound.get_in_addr();
+        local_if = m_bound.get_ip_addr().get_in_addr();
         si_logdbg("Attaching using bind to ip rule");
     }
 
     if (local_if != INADDR_ANY) {
         si_logdbg("Attached to specific local if: (%d.%d.%d.%d) addr: %s", NIPQUAD(local_if),
-                  addr.to_str());
+                  addr.to_str_ip_port());
 
         transport_t target_family = TRANS_VMA;
         if (!skip_rules) {
@@ -1552,7 +1547,7 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
             ret = ret && attach_receiver(flow_key);
         }
     } else {
-        si_logdbg("Attaching to all offload if addr: %s", addr.to_str());
+        si_logdbg("Attaching to all offload if addr: %s", addr.to_str_ip_port());
 
         local_ip_list_t::iterator lip_iter;
         local_ip_list_t lip_offloaded_list = g_p_net_device_table_mgr->get_ip_list();
@@ -1575,8 +1570,8 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
     return ret;
 }
 
-transport_t sockinfo::find_target_family(role_t role, struct sockaddr *sock_addr_first,
-                                         struct sockaddr *sock_addr_second /* = NULL */)
+transport_t sockinfo::find_target_family(role_t role, const struct sockaddr *sock_addr_first,
+                                         const struct sockaddr *sock_addr_second /* = NULL */)
 {
     transport_t target_family = TRANS_DEFAULT;
     switch (role) {

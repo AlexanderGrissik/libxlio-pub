@@ -59,8 +59,7 @@ template <> class hash<sock_addr> {
 public:
     size_t operator()(const sock_addr &key) const
     {
-        sock_addr *tmp_key = (sock_addr *)&key;
-        return tmp_key->hash();
+        return key.hash();
     }
 };
 } // namespace std

@@ -30,7 +30,7 @@
  * SOFTWARE.
  */
 
-#include "vma/proto/ip_address.h"
+#include "vma/util/ip_address.h"
 #include "route_entry.h"
 #include "route_table_mgr.h"
 #include "vma/infra/cache_subject_observer.h"

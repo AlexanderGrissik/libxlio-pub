@@ -35,7 +35,7 @@
 
 #include "net_device_val.h"
 #include "vma/infra/cache_subject_observer.h"
-#include "vma/proto/ip_address.h"
+#include "vma/util/ip_address.h"
 #include "vma/event/timer_handler.h"
 
 #define MAX_CMA_ID_BIND_TRIAL_COUNT   10
