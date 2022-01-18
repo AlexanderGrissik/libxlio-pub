@@ -30,6 +30,8 @@
  * SOFTWARE.
  */
 
+#include <cassert>
+
 #include "route_info.h"
 #include "config.h"
 #include "vma/util/if.h"
@@ -86,6 +88,11 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
         m_route_val->set_protocol(protocol);
     }
 
+    int family = rtnl_route_get_family(nl_route_obj);
+    if (family > 0) {
+        m_route_val->set_family(family);
+    }
+
     int type = rtnl_route_get_type(nl_route_obj);
     if (type > 0) {
         m_route_val->set_type(type);
@@ -93,15 +100,26 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
 
     struct nl_addr *addr = rtnl_route_get_dst(nl_route_obj);
     if (addr) {
+        // TODO: improve error handling
+        assert(family == nl_addr_get_family(addr));
         unsigned int dst_prefixlen = nl_addr_get_prefixlen(addr);
-        m_route_val->set_dst_mask(htonl(VMA_NETMASK(dst_prefixlen)));
         m_route_val->set_dst_pref_len(dst_prefixlen);
-        m_route_val->set_dst_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
+        if (family == AF_INET) {
+            m_route_val->set_dst_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
+        } else {
+            m_route_val->set_dst_addr_v6(*(in6_addr *)nl_addr_get_binary_addr(addr));
+        }
     }
 
     addr = rtnl_route_get_pref_src(nl_route_obj);
     if (addr) {
-        m_route_val->set_src_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
+        // TODO: improve error handling
+        assert(family == nl_addr_get_family(addr));
+        if (family == AF_INET) {
+            m_route_val->set_src_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
+        } else {
+            m_route_val->set_src_addr_v6(*(in6_addr *)nl_addr_get_binary_addr(addr));
+        }
     }
 
     rtnl_nexthop *nh = rtnl_route_nexthop_n(nl_route_obj, 0);
@@ -116,7 +134,13 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
 
         addr = rtnl_route_nh_get_gateway(nh);
         if (addr) {
-            m_route_val->set_gw(*(in_addr_t *)addr);
+            // TODO: improve error handling
+            assert(family == nl_addr_get_family(addr));
+            if (family == AF_INET) {
+                m_route_val->set_gw(*(in_addr_t *)addr);
+            } else {
+                m_route_val->set_gw_v6(*(in6_addr *)addr);
+            }
         }
     }
 }

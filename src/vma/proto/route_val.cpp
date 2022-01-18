@@ -45,13 +45,24 @@
 #define rt_val_logdbg  __log_info_dbg
 #define rt_val_logfunc __log_info_func
 
+#define snprintf_append(buf, ...)                                                                  \
+    snprintf((buf) + strlen(buf), sizeof(buf) - strlen(buf), __VA_ARGS__)
+
+static void addr_to_str(int af, const void *src, char *dst, socklen_t size)
+{
+    const char *r = inet_ntop(af, src, dst, size);
+    if (r == NULL && size > 0) {
+        *dst = '\0';
+    }
+}
+
 route_val::route_val()
 {
-    m_dst_addr = 0;
-    m_dst_mask = 0;
     m_dst_pref_len = 0;
-    m_src_addr = 0;
-    m_gw = 0;
+    memset(&m_dst_addr, 0, sizeof(m_dst_addr));
+    memset(&m_src_addr, 0, sizeof(m_src_addr));
+    memset(&m_gw_addr, 0, sizeof(m_gw_addr));
+    m_family = 0;
     m_protocol = 0;
     m_scope = 0;
     m_type = 0;
@@ -67,67 +78,52 @@ route_val::route_val()
 
 void route_val::set_str()
 {
-    char str_addr[INET_ADDRSTRLEN];
-    char str_x[100] = {0};
+    // TODO: improve/streamline conversion to string
 
-    strcpy(m_str, "dst:");
+    char str_addr[INET6_ADDRSTRLEN + 4] = {};
+    const int addr_width = (m_family == AF_INET) ? 15 : 45;
+    const int prefix_width = (m_family == AF_INET) ? 2 : 3;
 
-    str_x[0] = '\0';
-    if (m_dst_addr != 0) {
-        inet_ntop(AF_INET, &m_dst_addr_in_addr, str_addr, sizeof(str_addr));
-        sprintf(str_x, " %-15s", str_addr);
+    m_str[0] = '\0';
+
+    snprintf_append(m_str, "dst: ");
+    if (!IN6_IS_ADDR_UNSPECIFIED(&m_dst_addr.v6)) {
+        addr_to_str(m_family, &m_dst_addr, str_addr, sizeof(str_addr));
+        snprintf_append(str_addr, "/%-*d", prefix_width, m_dst_pref_len);
+        snprintf_append(m_str, "%-*s", addr_width + prefix_width + 1, str_addr);
     } else {
-        sprintf(str_x, " %-15s", "default");
+        snprintf_append(m_str, "%-*s", addr_width + prefix_width + 1, "default");
     }
-    strcat(m_str, str_x);
 
-    str_x[0] = '\0';
-    if (m_dst_mask != 0) {
-        inet_ntop(AF_INET, &m_dst_mask_in_addr, str_addr, sizeof(str_addr));
-        sprintf(str_x, " netmask: %-15s", str_addr);
+    if (!IN6_IS_ADDR_UNSPECIFIED(&m_gw_addr.v6)) {
+        addr_to_str(m_family, &m_gw_addr, str_addr, sizeof(str_addr));
+        snprintf_append(m_str, " gw: %-*s", addr_width, str_addr);
     }
-    strcat(m_str, str_x);
 
-    str_x[0] = '\0';
-    if (m_gw != 0) {
-        inet_ntop(AF_INET, &m_gw_in_addr, str_addr, sizeof(str_addr));
-        sprintf(str_x, " gw:      %-15s", str_addr);
-    }
-    strcat(m_str, str_x);
+    snprintf_append(m_str, " dev: %-5s", m_if_name);
 
-    str_x[0] = '\0';
-    sprintf(str_x, " dev: %-5s", m_if_name);
-    strcat(m_str, str_x);
-
-    str_x[0] = '\0';
-    if (m_src_addr != 0) {
-        inet_ntop(AF_INET, &m_src_addr_in_addr, str_addr, sizeof(str_addr));
-        sprintf(str_x, " src: %-15s", str_addr);
+    if (!IN6_IS_ADDR_UNSPECIFIED(&m_src_addr.v6)) {
+        addr_to_str(m_family, &m_src_addr, str_addr, sizeof(str_addr));
+        snprintf_append(m_str, " src: %-*s", addr_width, str_addr);
     } else {
-        sprintf(str_x, "                     ");
+        snprintf_append(m_str, "                     ");
     }
-    strcat(m_str, str_x);
 
-    str_x[0] = '\0';
     if (m_table_id != RT_TABLE_MAIN) {
-        sprintf(str_x, " table :%-10u", m_table_id);
+        snprintf_append(m_str, " table: %-10u", m_table_id);
     } else {
-        sprintf(str_x, " table :%-10s", "main");
+        snprintf_append(m_str, " table: %-10s", "main");
     }
-    strcat(m_str, str_x);
 
-    str_x[0] = '\0';
-    sprintf(str_x, " scope %3d type %2d index %2d", m_scope, m_type, m_if_index);
-    strcat(m_str, str_x);
+    snprintf_append(m_str, " scope %3d type %2d index %2d", m_scope, m_type, m_if_index);
+
     // add route metrics
     if (m_mtu) {
-        sprintf(str_x, " mtu %d", m_mtu);
-        strcat(m_str, str_x);
+        snprintf_append(m_str, " mtu %d", m_mtu);
     }
     if (m_b_deleted) {
-        sprintf(str_x, " ---> DELETED");
+        snprintf_append(m_str, " ---> DELETED");
     }
-    strcat(m_str, str_x);
 }
 
 void route_val::print_val()
@@ -143,4 +139,25 @@ void route_val::set_mtu(uint32_t mtu)
     } else {
         m_mtu = mtu;
     }
+}
+
+const char *route_val::get_dst_addr_str()
+{
+    thread_local char buf[INET6_ADDRSTRLEN];
+    addr_to_str(m_family, &m_dst_addr, buf, sizeof(buf));
+    return buf;
+}
+
+const char *route_val::get_src_addr_str()
+{
+    thread_local char buf[INET6_ADDRSTRLEN];
+    addr_to_str(m_family, &m_src_addr, buf, sizeof(buf));
+    return buf;
+}
+
+const char *route_val::get_gw_addr_str()
+{
+    thread_local char buf[INET6_ADDRSTRLEN];
+    addr_to_str(m_family, &m_gw_addr, buf, sizeof(buf));
+    return buf;
 }

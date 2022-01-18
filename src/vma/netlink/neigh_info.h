@@ -43,6 +43,7 @@ public:
         : dst_addr_str("")
         , dst_addr(NULL)
         , dst_addr_len(0)
+        , addr_family(0)
         , flags(0)
         , ifindex(0)
         , lladdr_str("")
@@ -68,8 +69,8 @@ public:
     // neigh's destination address length
     uint32_t dst_addr_len;
 
-    //	// neigh addr family
-    //	int neigh_addr_family; //rtnl_neigh_get_family();
+    // neigh addr family
+    int addr_family;
 
     /* return neigh flags:
      * 		NTF_USE

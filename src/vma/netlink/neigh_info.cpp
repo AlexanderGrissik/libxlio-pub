@@ -72,7 +72,7 @@ void netlink_neigh_info::fill(struct rtnl_neigh *neigh)
         lladdr = (unsigned char *)nl_addr_get_binary_addr(addr);
         lladdr_len = nl_addr_get_len(addr);
     }
-    // addr_family = rtnl_neigh_get_family(neigh);
+    addr_family = rtnl_neigh_get_family(neigh);
     flags = rtnl_neigh_get_flags(neigh);
     ifindex = rtnl_neigh_get_ifindex(neigh);
     state = rtnl_neigh_get_state(neigh);

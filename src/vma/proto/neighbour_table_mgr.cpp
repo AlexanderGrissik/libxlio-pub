@@ -130,6 +130,7 @@ void neigh_table_mgr::notify_cb(event *ev)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
+    // TODO: support ipv6
     const netlink_neigh_info *nl_info = nl_ev->get_neigh_info();
     struct in_addr in;
     if (1 != inet_pton(AF_INET, (const char *)(nl_info->dst_addr_str.c_str()), &in)) {

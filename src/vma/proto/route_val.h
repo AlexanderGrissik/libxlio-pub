@@ -36,6 +36,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "utils/bullseye.h"
+#include "vma/util/libvma.h"
 
 #define BUFF_SIZE 255
 
@@ -44,11 +45,14 @@ public:
     route_val();
     virtual ~route_val() {};
 
-    inline void set_dst_addr(in_addr_t const &dst_addr) { m_dst_addr = dst_addr; };
-    inline void set_dst_mask(in_addr_t const &dst_mask) { m_dst_mask = dst_mask; };
     inline void set_dst_pref_len(uint8_t dst_pref_len) { m_dst_pref_len = dst_pref_len; };
-    inline void set_src_addr(in_addr_t const &src_addr) { m_src_addr = src_addr; };
-    inline void set_gw(in_addr_t const &gw) { m_gw = gw; };
+    inline void set_dst_addr(in_addr_t const &dst_addr) { m_dst_addr.v4.s_addr = dst_addr; };
+    inline void set_dst_addr_v6(in6_addr const &dst_addr) { m_dst_addr.v6 = dst_addr; };
+    inline void set_src_addr(in_addr_t const &src_addr) { m_src_addr.v4.s_addr = src_addr; };
+    inline void set_src_addr_v6(in6_addr const &src_addr) { m_src_addr.v6 = src_addr; };
+    inline void set_gw(in_addr_t const &gw) { m_gw_addr.v4.s_addr = gw; };
+    inline void set_gw_v6(in6_addr const &gw) { m_gw_addr.v6 = gw; };
+    inline void set_family(unsigned char family) { m_family = family; };
     inline void set_protocol(unsigned char protocol) { m_protocol = protocol; };
     inline void set_scope(unsigned char scope) { m_scope = scope; };
     inline void set_type(unsigned char type) { m_type = type; };
@@ -58,11 +62,15 @@ public:
     inline void set_if_name(char *if_name) { memcpy(m_if_name, if_name, IFNAMSIZ); };
     void set_str();
 
-    inline in_addr_t get_dst_addr() const { return m_dst_addr; };
-    inline in_addr_t get_dst_mask() const { return m_dst_mask; };
+    inline in_addr_t get_dst_mask() const { return htonl(VMA_NETMASK(m_dst_pref_len)); };
     inline uint8_t get_dst_pref_len() const { return m_dst_pref_len; };
-    inline in_addr_t get_src_addr() const { return m_src_addr; };
-    inline in_addr_t get_gw_addr() const { return m_gw; };
+    inline in_addr_t get_dst_addr() const { return m_dst_addr.v4.s_addr; };
+    inline in6_addr get_dst_addr_v6() const { return m_dst_addr.v6; };
+    inline in_addr_t get_src_addr() const { return m_src_addr.v4.s_addr; };
+    inline in6_addr get_src_addr_v6() const { return m_src_addr.v6; };
+    inline in_addr_t get_gw_addr() const { return m_gw_addr.v4.s_addr; };
+    inline in6_addr get_gw_addr_v6() const { return m_gw_addr.v6; };
+    inline unsigned char get_family() const { return m_family; };
     inline unsigned char get_protocol() const { return m_protocol; };
     inline unsigned char get_scope() const { return m_scope; };
     inline unsigned char get_type() const { return m_type; };
@@ -81,25 +89,27 @@ public:
     void print_val();
     char *to_str() { return m_str; };
 
+    // TODO: replace with general-purpose API (IPv6 address support)
+    const char *get_dst_addr_str();
+    const char *get_src_addr_str();
+    const char *get_gw_addr_str();
+
 private:
-    union {
-        in_addr_t m_dst_addr;
-        in_addr m_dst_addr_in_addr;
-    };
-    union {
-        in_addr_t m_dst_mask;
-        in_addr m_dst_mask_in_addr;
-    };
     uint8_t m_dst_pref_len;
     union {
-        in_addr_t m_src_addr;
-        in_addr m_src_addr_in_addr;
-    };
+        in_addr v4;
+        in6_addr v6;
+    } m_dst_addr;
     union {
-        in_addr_t m_gw;
-        in_addr m_gw_in_addr;
-    };
+        in_addr v4;
+        in6_addr v6;
+    } m_src_addr;
+    union {
+        in_addr v4;
+        in6_addr v6;
+    } m_gw_addr;
 
+    unsigned char m_family;
     unsigned char m_protocol;
     unsigned char m_scope;
     unsigned char m_type;

@@ -253,17 +253,16 @@ bool route_table_mgr::parse_enrty(nlmsghdr *nl_header, route_val *p_val)
     rt_msg = (struct rtmsg *)NLMSG_DATA(nl_header);
 
     // we are not concerned about the local and default route table
+    // TODO: support ipv6
     if (rt_msg->rtm_family != AF_INET || rt_msg->rtm_table == RT_TABLE_LOCAL) {
         return false;
     }
 
+    p_val->set_family(rt_msg->rtm_family);
     p_val->set_protocol(rt_msg->rtm_protocol);
     p_val->set_scope(rt_msg->rtm_scope);
     p_val->set_type(rt_msg->rtm_type);
     p_val->set_table_id(rt_msg->rtm_table);
-
-    in_addr_t dst_mask = htonl(VMA_NETMASK(rt_msg->rtm_dst_len));
-    p_val->set_dst_mask(dst_mask);
     p_val->set_dst_pref_len(rt_msg->rtm_dst_len);
 
     len = RTM_PAYLOAD(nl_header);
@@ -471,13 +470,19 @@ void route_table_mgr::new_route_event(route_val *netlink_route_val)
         return;
     }
 
+    // TODO: support ipv6
+    if (netlink_route_val->get_family() != AF_INET) {
+        rt_mgr_logdbg("Ignore non-IPv4 route entry");
+        return;
+    }
+
     auto_unlocker lock(m_lock);
     route_val *p_route_val = &m_tab.value[m_tab.entries_num];
     p_route_val->set_dst_addr(netlink_route_val->get_dst_addr());
-    p_route_val->set_dst_mask(netlink_route_val->get_dst_mask());
     p_route_val->set_dst_pref_len(netlink_route_val->get_dst_pref_len());
     p_route_val->set_src_addr(netlink_route_val->get_src_addr());
     p_route_val->set_gw(netlink_route_val->get_gw_addr());
+    p_route_val->set_family(netlink_route_val->get_family());
     p_route_val->set_protocol(netlink_route_val->get_protocol());
     p_route_val->set_scope(netlink_route_val->get_scope());
     p_route_val->set_type(netlink_route_val->get_type());

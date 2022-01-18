@@ -83,6 +83,7 @@ public:
     };
 
 private:
+    // TODO: support ipv6
     in_addr_t m_dst_ip;
     in_addr_t m_src_ip;
     uint8_t m_tos;

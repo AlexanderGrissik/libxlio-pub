@@ -54,8 +54,6 @@
 #define nl_logdbg   __log_dbg
 #define nl_logfine  __log_fine
 
-typedef std::map<e_netlink_event_type, subject *>::iterator subject_map_iter;
-
 netlink_wrapper *g_p_netlink_handler = NULL;
 
 // structure to pass arguments on internal netlink callbacks handling
@@ -149,7 +147,7 @@ void netlink_wrapper::notify_observers(netlink_event *p_new_event, e_netlink_eve
     g_nl_rcv_arg.netlink->m_cache_lock.unlock();
     g_nl_rcv_arg.netlink->m_subj_map_lock.lock();
 
-    subject_map_iter iter = g_nl_rcv_arg.subjects_map->find(type);
+    auto iter = g_nl_rcv_arg.subjects_map->find(type);
     if (iter != g_nl_rcv_arg.subjects_map->end()) {
         iter->second->notify_observers(p_new_event);
     }
@@ -165,6 +163,7 @@ void netlink_wrapper::neigh_cache_callback(nl_object *obj)
     struct rtnl_neigh *neigh = (struct rtnl_neigh *)obj;
     neigh_nl_event new_event(g_nl_rcv_arg.msghdr, neigh, g_nl_rcv_arg.netlink);
 
+    nl_logdbg("notify on neigh event: %s", new_event.to_str().c_str());
     netlink_wrapper::notify_observers(&new_event, nlgrpNEIGH);
 
     g_nl_rcv_arg.msghdr = NULL;
@@ -177,6 +176,7 @@ void netlink_wrapper::link_cache_callback(nl_object *obj)
     struct rtnl_link *link = (struct rtnl_link *)obj;
     link_nl_event new_event(g_nl_rcv_arg.msghdr, link, g_nl_rcv_arg.netlink);
 
+    nl_logdbg("notify on link event: %s", new_event.to_str().c_str());
     netlink_wrapper::notify_observers(&new_event, nlgrpLINK);
 
     g_nl_rcv_arg.msghdr = NULL;
@@ -191,8 +191,9 @@ void netlink_wrapper::route_cache_callback(nl_object *obj)
         int table_id = rtnl_route_get_table(route);
         int family = rtnl_route_get_family(route);
         if ((table_id > (int)RT_TABLE_UNSPEC) && (table_id != RT_TABLE_LOCAL) &&
-            (family == AF_INET)) {
+            (family == AF_INET || family == AF_INET6)) {
             route_nl_event new_event(g_nl_rcv_arg.msghdr, route, g_nl_rcv_arg.netlink);
+            nl_logdbg("notify on route event: %s", new_event.to_str().c_str());
             netlink_wrapper::notify_observers(&new_event, nlgrpROUTE);
         } else {
             nl_logdbg("Received event for not handled route entry: family=%d, table_id=%d", family,
@@ -230,7 +231,7 @@ netlink_wrapper::~netlink_wrapper()
     nl_cache_mngr_free(m_mngr);
     nl_socket_free(m_socket_handle);
 
-    subject_map_iter iter = m_subjects_map.begin();
+    auto iter = m_subjects_map.begin();
     while (iter != m_subjects_map.end()) {
         delete iter->second;
         iter++;
@@ -374,7 +375,7 @@ bool netlink_wrapper::register_event(e_netlink_event_type type, const observer *
 {
     auto_unlocker lock(m_subj_map_lock);
     subject *sub;
-    subject_map_iter iter = m_subjects_map.find(type);
+    auto iter = m_subjects_map.find(type);
     if (iter == m_subjects_map.end()) {
         sub = new subject();
         m_subjects_map[type] = sub;
@@ -392,7 +393,7 @@ bool netlink_wrapper::unregister(e_netlink_event_type type, const observer *obs)
         return false;
     }
 
-    subject_map_iter iter = m_subjects_map.find(type);
+    auto iter = m_subjects_map.find(type);
     if (iter != m_subjects_map.end()) {
         return m_subjects_map[type]->unregister_observer(obs);
     }
