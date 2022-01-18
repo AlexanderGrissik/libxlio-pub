@@ -101,6 +101,7 @@ public:
 
 private:
     inline bool is_tx_tls13(void) { return m_tls_info_tx.tls_version == TLS_1_3_VERSION; }
+    inline bool is_rx_tls13(void) { return m_tls_info_rx.tls_version == TLS_1_3_VERSION; }
 
     int send_alert(uint8_t alert_type);
     void terminate_session_fatal(uint8_t alert_type);
@@ -159,6 +160,9 @@ private:
     /* Crypto info provided by application. */
     struct xlio_tls_info m_tls_info_tx;
     struct xlio_tls_info m_tls_info_rx;
+
+    /* TLS record overhead (header + trailer). Different across versions. */
+    uint32_t m_tls_rec_overhead;
 
     /* TX specific fields */
     xlio_tis *m_p_tis;

@@ -210,7 +210,11 @@ enum {
     TLS_RECORD_IV_LEN = TLS_AES_GCM_IV_LEN,
     TLS_RECORD_TAG_LEN = 16U,
     TLS_RECORD_NONCE_LEN = 12U, /* SALT + IV */
-    TLS_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN + TLS_RECORD_TAG_LEN,
+    /* TLS 1.2 record overhead. */
+    TLS_12_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + TLS_RECORD_IV_LEN + TLS_RECORD_TAG_LEN,
+    /* TLS 1.3 record overhead. */
+    TLS_13_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + 1U + TLS_RECORD_TAG_LEN,
+    /* If possible, we won't produce TLS records smaller that this value. */
     TLS_RECORD_SMALLEST = 256U,
 };
 
@@ -339,6 +343,7 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock)
     m_rx_rule = NULL;
     m_rx_psv_buf = NULL;
     m_rx_resync_recno = 0;
+    m_tls_rec_overhead = 0;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -415,6 +420,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
 
     si_ulp_logdbg("TLS %s offload is requested", __optname == TLS_TX ? "TX" : "RX");
 
+    if (unlikely(base_info->version != TLS_1_2_VERSION && base_info->version != TLS_1_3_VERSION)) {
+        si_ulp_logdbg("Unsupported TLS version.");
+        errno = ENOPROTOOPT;
+        return -1;
+    }
+
     if (__optname == TLS_TX) {
         /* TX offload checks. */
         if (unlikely(!m_p_sock->is_utls_supported(UTLS_MODE_TX))) {
@@ -422,20 +433,10 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
             errno = ENOPROTOOPT;
             return -1;
         }
-        if (base_info->version != TLS_1_2_VERSION && base_info->version != TLS_1_3_VERSION) {
-            si_ulp_logdbg("Unsupported TLS TX version.");
-            errno = ENOPROTOOPT;
-            return -1;
-        }
     } else {
         /* RX offload checks. */
         if (unlikely(!m_p_sock->is_utls_supported(UTLS_MODE_RX))) {
             si_ulp_logdbg("TLS_RX is not supported.");
-            errno = ENOPROTOOPT;
-            return -1;
-        }
-        if (base_info->version != TLS_1_2_VERSION) {
-            si_ulp_logdbg("Unsupported TLS RX version.");
             errno = ENOPROTOOPT;
             return -1;
         }
@@ -515,6 +516,9 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
     memcpy(tls_info->rec_seq, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
     memcpy(&recno_be64, rec_seq, TLS_AES_GCM_REC_SEQ_LEN);
 
+    m_tls_rec_overhead =
+        (base_info->version == TLS_1_2_VERSION) ? TLS_12_RECORD_OVERHEAD : TLS_13_RECORD_OVERHEAD;
+
     if (__optname == TLS_TX) {
         m_expected_seqno = m_p_sock->get_next_tcp_seqno();
         m_next_recno_tx = be64toh(recno_be64);
@@ -577,8 +581,9 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
     m_p_sock->m_p_socket_stats->tls_version = base_info->version;
     m_p_sock->m_p_socket_stats->tls_cipher = base_info->cipher_type;
 
-    si_ulp_logdbg("TLS %s offload is configured, keylen=%u", __optname == TLS_TX ? "TX" : "RX",
-                  keylen);
+    si_ulp_logdbg("TLS%s %s offload is configured, keylen=%u",
+                  base_info->version == TLS_1_2_VERSION ? "1.2" : "1.3",
+                  __optname == TLS_TX ? "TX" : "RX", keylen);
     return 0;
 }
 
@@ -663,7 +668,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
              * since such a socket will always be ready for write
              */
             if (!block_this_run && sndbuf < TLS_RECORD_SMALLEST &&
-                (sndbuf < TLS_RECORD_OVERHEAD || (sndbuf - TLS_RECORD_OVERHEAD) < tosend)) {
+                (sndbuf < m_tls_rec_overhead || (sndbuf - m_tls_rec_overhead) < tosend)) {
                 /*
                  * We don't want to create too small TLS records
                  * when we do partial write.
@@ -712,7 +717,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 
             if (!block_this_run) {
                 /* sndbuf overflow is not possible since we have a check above. */
-                tosend = std::min(tosend, sndbuf - TLS_RECORD_OVERHEAD);
+                tosend = std::min(tosend, sndbuf - m_tls_rec_overhead);
             }
             tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
             /*
@@ -966,8 +971,6 @@ int sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
     uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__((aligned(8)));
     EVP_CIPHER_CTX *tls_ctx;
     struct pbuf *p;
-    uint16_t rec_len =
-        m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
     int len;
     int ret;
 
@@ -978,9 +981,16 @@ int sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
         return TLS_DECRYPT_INTERNAL;
     }
 
-    /* Build nonce. XXX TLS 1.3 nonce is different! */
+    /* Build nonce. */
     memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
-    copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN], m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
+    if (is_rx_tls13()) {
+        uint64_t iv64 = m_tls_info_rx.iv64;
+        iv64 ^= htobe64(m_next_recno_rx);
+        memcpy(&buf[TLS_AES_GCM_SALT_LEN], &iv64, sizeof(iv64));
+    } else {
+        copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN], m_rx_offset + TLS_RECORD_HDR_LEN,
+                       TLS_RECORD_IV_LEN);
+    }
     ret = g_tls_api->EVP_DecryptInit_ex(tls_ctx, (EVP_CIPHER *)m_p_evp_cipher, NULL,
                                         m_tls_info_rx.key, buf);
     if (unlikely(!ret)) {
@@ -995,11 +1005,20 @@ int sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
     }
 
     /* Additional data for AEAD */
-    *((uint64_t *)buf) = htobe64(m_next_recno_rx);
-    copy_by_offset(buf + 8, m_rx_offset, 3);
-    buf[11] = rec_len >> 8U;
-    buf[12] = rec_len & 0xFFU;
-    ret = g_tls_api->EVP_DecryptUpdate(tls_ctx, NULL, &len, buf, 13);
+    if (is_rx_tls13()) {
+        uint16_t rec_len = m_rx_rec_len - TLS_RECORD_HDR_LEN;
+        copy_by_offset(buf, m_rx_offset, 3);
+        buf[3] = rec_len >> 8U;
+        buf[4] = rec_len & 0xFFU;
+        ret = g_tls_api->EVP_DecryptUpdate(tls_ctx, NULL, &len, buf, 5);
+    } else {
+        uint16_t rec_len = m_rx_rec_len - m_tls_rec_overhead;
+        *((uint64_t *)buf) = htobe64(m_next_recno_rx);
+        copy_by_offset(buf + 8, m_rx_offset, 3);
+        buf[11] = rec_len >> 8U;
+        buf[12] = rec_len & 0xFFU;
+        ret = g_tls_api->EVP_DecryptUpdate(tls_ctx, NULL, &len, buf, 13);
+    }
     if (unlikely(!ret)) {
         return TLS_DECRYPT_INTERNAL;
     }
@@ -1034,8 +1053,7 @@ int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
     uint8_t buf[TLS_RECORD_TAG_LEN] __attribute__((aligned(8)));
     EVP_CIPHER_CTX *tls_ctx;
     struct pbuf *p;
-    uint16_t rec_len =
-        m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
+    uint16_t rec_len = m_rx_rec_len - m_tls_rec_overhead;
     int len;
     int ret;
 
@@ -1046,9 +1064,16 @@ int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
         return TLS_DECRYPT_INTERNAL;
     }
 
-    /* Build nonce. XXX TLS 1.3 nonce is different! */
+    /* Build nonce. */
     memcpy(buf, m_tls_info_rx.salt, TLS_AES_GCM_SALT_LEN);
-    copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN], m_rx_offset + TLS_RECORD_HDR_LEN, TLS_RECORD_IV_LEN);
+    if (is_rx_tls13()) {
+        uint64_t iv64 = m_tls_info_rx.iv64;
+        iv64 ^= htobe64(m_next_recno_rx);
+        memcpy(&buf[TLS_AES_GCM_SALT_LEN], &iv64, sizeof(iv64));
+    } else {
+        copy_by_offset(&buf[TLS_AES_GCM_SALT_LEN], m_rx_offset + TLS_RECORD_HDR_LEN,
+                       TLS_RECORD_IV_LEN);
+    }
     ret = g_tls_api->EVP_EncryptInit_ex(tls_ctx, (EVP_CIPHER *)m_p_evp_cipher, NULL,
                                         m_tls_info_rx.key, buf);
     if (unlikely(!ret)) {
@@ -1063,11 +1088,18 @@ int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
     }
 
     /* Additional data for AEAD */
-    *((uint64_t *)buf) = htobe64(m_next_recno_rx);
-    copy_by_offset(buf + 8, m_rx_offset, 3);
-    buf[11] = rec_len >> 8U;
-    buf[12] = rec_len & 0xFFU;
-    ret = g_tls_api->EVP_EncryptUpdate(tls_ctx, NULL, &len, buf, 13);
+    if (is_rx_tls13()) {
+        copy_by_offset(buf, m_rx_offset, 3);
+        buf[3] = rec_len >> 8U;
+        buf[4] = rec_len & 0xFFU;
+        ret = g_tls_api->EVP_EncryptUpdate(tls_ctx, NULL, &len, buf, 5);
+    } else {
+        *((uint64_t *)buf) = htobe64(m_next_recno_rx);
+        copy_by_offset(buf + 8, m_rx_offset, 3);
+        buf[11] = rec_len >> 8U;
+        buf[12] = rec_len & 0xFFU;
+        ret = g_tls_api->EVP_EncryptUpdate(tls_ctx, NULL, &len, buf, 13);
+    }
     if (unlikely(!ret)) {
         return TLS_DECRYPT_INTERNAL;
     }
@@ -1149,8 +1181,11 @@ check_single_record:
     if (m_rx_sm == TLS_RX_SM_HEADER && m_rx_rec_rcvd >= TLS_RECORD_HDR_LEN) {
         m_rx_rec_len = offset_to_host16(m_rx_offset + 3) + TLS_RECORD_HDR_LEN;
         m_rx_sm = TLS_RX_SM_RECORD;
-        assert(offset_to_host16(m_rx_offset + 1) == 0x0303U);
-        if (unlikely(m_rx_rec_len < TLS_RECORD_OVERHEAD)) {
+        if (unlikely(offset_to_host16(m_rx_offset + 1) != 0x0303U)) {
+            terminate_session_fatal(TLS_PROTOCOL_VERSION);
+            return ERR_OK;
+        }
+        if (unlikely(m_rx_rec_len < m_tls_rec_overhead)) {
             terminate_session_fatal(TLS_UNEXPECTED_MESSAGE);
             return ERR_OK;
         }
@@ -1165,24 +1200,24 @@ check_single_record:
     auto iter = m_rx_bufs.begin();
     struct pbuf *pi;
     struct pbuf *pres = NULL;
-    struct pbuf *ptmp;
-    uint32_t offset = m_rx_offset + TLS_RECORD_HDR_LEN +
-        TLS_RECORD_IV_LEN; // XXX For TLS 1.3 this is different value!
-    uint32_t remain =
-        m_rx_rec_len - TLS_RECORD_OVERHEAD; // XXX for TLS 1.3 this is different value!
+    struct pbuf *ptmp = NULL;
+    uint32_t offset = m_rx_offset + TLS_RECORD_HDR_LEN + (is_rx_tls13() ? 0 : TLS_RECORD_IV_LEN);
+    uint32_t remain = m_rx_rec_len - m_tls_rec_overhead;
     unsigned bufs_nr = 0;
     unsigned decrypted_nr = 0;
     uint8_t tls_type;
     uint8_t tls_decrypted = 0;
 
     mem_buf_desc_t *pdesc = *iter;
-    /* TODO For TLS 1.3 the type field is in the last or 1 but last buffer.
-     * We can find it going from the tail. This will work for the case
-     * if the buffer is decrypted. Otherwise, we will need to find
-     * the type after SW decryption.
-     */
-    tls_type = ((uint8_t *)pdesc->lwip_pbuf.pbuf
-                    .payload)[m_rx_offset]; // XXX for TLS 1.3 this is different value!
+    tls_type = ((uint8_t *)pdesc->lwip_pbuf.pbuf.payload)[m_rx_offset];
+    if (is_rx_tls13()) {
+        /* TLS 1.3 sends record type as the last byte of the payload. */
+        ++remain;
+        if (unlikely(tls_type != 0x17)) {
+            terminate_session_fatal(TLS_UNEXPECTED_MESSAGE);
+            return ERR_OK;
+        }
+    }
     while (remain > 0) {
         if (unlikely(pdesc == NULL)) {
             /* TODO Handle this situation, buffers chain is broken. */
@@ -1202,8 +1237,7 @@ check_single_record:
         ((mem_buf_desc_t *)ptmp)->p_next_desc = NULL;
         ((mem_buf_desc_t *)ptmp)->p_prev_desc = NULL;
         ((mem_buf_desc_t *)ptmp)->m_flags = 0;
-        ((mem_buf_desc_t *)ptmp)->rx.tls_type =
-            tls_type; // XXX For TLS 1.3 type is obtained only after full decryption!
+        ((mem_buf_desc_t *)ptmp)->rx.tls_type = tls_type;
         tls_decrypted = ((mem_buf_desc_t *)pi)->rx.tls_decrypted;
         ((mem_buf_desc_t *)ptmp)->rx.tls_decrypted = tls_decrypted;
 
@@ -1279,18 +1313,37 @@ check_single_record:
         return ERR_OK;
     }
 
-    assert(pres->tot_len == (m_rx_rec_len - TLS_RECORD_OVERHEAD));
+    if (is_rx_tls13() && likely(ptmp != NULL)) {
+        /* ptmp is the last buffer in 'pres' list at this point. */
+        tls_type = ((uint8_t *)ptmp->payload)[ptmp->len - 1];
+        --ptmp->len;
+        if (unlikely(ptmp->len == 0)) {
+            ptmp = pres;
+            while (ptmp != NULL && ptmp->next != NULL) {
+                if (ptmp->next->len == 0) {
+                    m_p_sock->tcp_rx_mem_buf_free(reinterpret_cast<mem_buf_desc_t *>(ptmp->next));
+                    ptmp->next = NULL;
+                }
+                ptmp = ptmp->next;
+            }
+        }
+        for (ptmp = pres; ptmp != NULL; ptmp = ptmp->next) {
+            --ptmp->tot_len;
+            ((mem_buf_desc_t *)ptmp)->rx.tls_type = tls_type;
+        }
+    }
+
+    assert(pres->tot_len == (m_rx_rec_len - m_tls_rec_overhead));
 
     /* Statistics */
     m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_records += 1U;
     m_p_sock->m_p_socket_stats->tls_counters.n_tls_rx_bytes += pres->tot_len;
     /* Adjust TCP counters with received TLS header/trailer. */
-    m_p_sock->m_p_socket_stats->counters.n_rx_bytes +=
-        TLS_RECORD_OVERHEAD; // XXX TLS 1.3 has different overhead
+    m_p_sock->m_p_socket_stats->counters.n_rx_bytes += m_tls_rec_overhead;
 
     ++m_next_recno_rx;
 
-    tcp_recved(m_p_sock->get_pcb(), TLS_RECORD_OVERHEAD); // XXX TLS 1.3 has different overhead
+    tcp_recved(m_p_sock->get_pcb(), m_tls_rec_overhead);
     err = sockinfo_tcp::rx_lwip_cb((void *)m_p_sock, m_p_sock->get_pcb(), pres, ERR_OK);
     if (err != ERR_OK) {
         /* Underlying buffers are held by 'pres', we can free them below. */
@@ -1347,7 +1400,7 @@ uint64_t sockinfo_tcp_ops_tls::find_recno(uint32_t seqno)
     /*
      * TODO Find proper record number for specific seqno.
      * Current implementation is a speculation. We need to track TCP seqno
-     * of TLS records to provide correct record number and verify the the
+     * of TLS records to provide correct record number and verify that the
      * seqno points to a TLS header.
      */
     NOT_IN_USE(seqno);
