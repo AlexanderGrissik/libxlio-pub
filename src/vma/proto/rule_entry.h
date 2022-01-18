@@ -57,7 +57,7 @@ public:
         return !m_val->empty();
     }
 
-    inline const string to_str() const { return get_key().to_str(); };
+    inline const std::string to_str() const { return get_key().to_str(); };
 
 private:
     std::deque<rule_val *> values;

@@ -39,6 +39,7 @@
 #include <linux/netlink.h>
 #include <linux/if_tun.h>
 #include <sys/epoll.h>
+#include <netlink/route/link/vlan.h>
 
 #include "utils/bullseye.h"
 #include "vma/util/if.h"
@@ -56,10 +57,6 @@
 #include "vma/sock/sock-redirect.h"
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/proto/neighbour_table_mgr.h"
-
-#ifdef HAVE_LIBNL3
-#include <netlink/route/link/vlan.h>
-#endif
 
 #define MODULE_NAME "ndv"
 
@@ -1319,24 +1316,23 @@ int net_device_val::get_priority_by_tc_class(uint32_t tc_class)
 
 void net_device_val_eth::parse_prio_egress_map()
 {
-#ifdef HAVE_LIBNL3
     int len, ret;
     nl_cache *cache = NULL;
     rtnl_link *link;
     vlan_map *map;
 
-    nl_socket_handle *nl_socket = nl_socket_handle_alloc();
-    if (!nl_socket) {
+    nl_sock *socket = nl_socket_alloc();
+    if (!socket) {
         nd_logdbg("unable to allocate socket socket %s", strerror(errno));
         goto out;
     }
-    nl_socket_set_local_port(nl_socket, 0);
-    ret = nl_connect(nl_socket, NETLINK_ROUTE);
+    nl_socket_set_local_port(socket, 0);
+    ret = nl_connect(socket, NETLINK_ROUTE);
     if (ret < 0) {
         nd_logdbg("unable to connect to libnl socket %d %s", ret, strerror(errno));
         goto out;
     }
-    ret = rtnl_link_alloc_cache(nl_socket, AF_UNSPEC, &cache);
+    ret = rtnl_link_alloc_cache(socket, AF_UNSPEC, &cache);
     if (!cache) {
         nd_logdbg("unable to create libnl cache %d %s", ret, strerror(errno));
         goto out;
@@ -1358,13 +1354,9 @@ out:
     if (cache) {
         nl_cache_free(cache);
     }
-    if (nl_socket) {
-        nl_socket_handle_free(nl_socket);
+    if (socket) {
+        nl_socket_free(socket);
     }
-#else
-    nd_logdbg("libnl3 not found, cannot read engress map, "
-              "SO_PRIORITY will not work properly");
-#endif
 }
 
 ring *net_device_val_eth::create_ring(resource_allocation_key *key)

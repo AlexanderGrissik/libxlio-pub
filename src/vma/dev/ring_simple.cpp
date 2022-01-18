@@ -45,7 +45,7 @@
 #undef MODULE_HDR
 #define MODULE_HDR MODULE_NAME "%d:%s() "
 
-#define ALIGN_WR_DOWN(_num_wr_) (max(32, ((_num_wr_) & ~(0xf))))
+#define ALIGN_WR_DOWN(_num_wr_) (std::max(32, ((_num_wr_) & ~(0xf))))
 #define RING_TX_BUFS_COMPENSATE 256
 
 #define RING_LOCK_AND_RUN(__lock__, __func_and_params__)                                           \
@@ -322,9 +322,9 @@ void ring_simple::create_resources()
              */
             uint32_t actual_buf_size =
                 (!safe_mce_sys().rx_buf_size && safe_mce_sys().enable_striding_rq
-                     ? min(65280U,
-                           safe_mce_sys().strq_stride_num_per_rwqe *
-                               safe_mce_sys().strq_stride_size_bytes)
+                     ? std::min(65280U,
+                                safe_mce_sys().strq_stride_num_per_rwqe *
+                                    safe_mce_sys().strq_stride_size_bytes)
                      : safe_mce_sys().rx_buf_size);
             m_lro.max_payload_sz =
                 std::min(actual_buf_size, VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256U * 256U;

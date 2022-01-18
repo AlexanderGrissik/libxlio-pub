@@ -256,7 +256,7 @@ success:
 
     write_version_details_to_shmem(&g_sh_mem->ver_info);
     memcpy(g_sh_mem->stats_protocol_ver, STATS_PROTOCOL_VER,
-           min(sizeof(g_sh_mem->stats_protocol_ver), sizeof(STATS_PROTOCOL_VER)));
+           std::min(sizeof(g_sh_mem->stats_protocol_ver), sizeof(STATS_PROTOCOL_VER)));
     g_sh_mem->max_skt_inst_num = safe_mce_sys().stats_fd_num_max;
     g_sh_mem->reader_counter = 0;
     __log_dbg("file '%s' fd %d shared memory at %p with %d max blocks\n",

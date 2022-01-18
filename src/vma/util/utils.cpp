@@ -49,9 +49,7 @@
 #endif
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#ifdef HAVE_LIBNL3
 #include <netlink/route/link.h>
-#endif
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
@@ -766,7 +764,6 @@ size_t get_local_ll_addr(IN const char *ifname, OUT unsigned char *addr, IN int 
 
 bool check_bond_device_exist(const char *ifname)
 {
-#ifdef HAVE_LIBNL3
     int ret = 0;
     struct nl_cache *cache = NULL;
     struct rtnl_link *link = NULL;
@@ -805,9 +802,6 @@ out:
     }
 
     return ((bool)link_type);
-#else
-    return check_device_exist(ifname, BOND_DEVICE_FILE);
-#endif
 }
 
 bool get_bond_name(IN const char *ifname, OUT char *bond_name, IN int sz)

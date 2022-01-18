@@ -33,15 +33,24 @@
 #ifndef NETLINKROUTELISTENER_H_
 #define NETLINKROUTELISTENER_H_
 
+#include <map>
 #include <netlink/netlink.h>
 #include <netlink/cache.h>
+#include <netlink/socket.h>
+#include <netlink/object-api.h>
+#include <netlink/route/rtnl.h>
+#include <netlink/route/route.h>
 #include <netlink/route/neighbour.h>
 #include "utils/lock_wrapper.h"
 #include "neigh_info.h"
 #include "vma/event/netlink_event.h"
-#include "netlink_compatibility.h"
+#include "vma/infra/subject_observer.h"
 
-#define subject_map_iter map<e_netlink_event_type, subject *>::iterator
+enum e_netlink_event_type {
+    nlgrpNEIGH = 0,
+    nlgrpLINK = 1,
+    nlgrpROUTE = 2,
+};
 
 /*
  * the class provide simple API for registering observers to NETLINK ROUTE_FAMILY events from
@@ -118,14 +127,14 @@ public:
     void neigh_timer_expired();
 
 private:
-    nl_socket_handle *m_socket_handle;
+    nl_sock *m_socket_handle;
 
     struct nl_cache_mngr *m_mngr;
     struct nl_cache *m_cache_link;
     struct nl_cache *m_cache_neigh;
     struct nl_cache *m_cache_route;
 
-    map<e_netlink_event_type, subject *> m_subjects_map;
+    std::map<e_netlink_event_type, subject *> m_subjects_map;
     lock_mutex_recursive m_cache_lock;
     lock_mutex_recursive m_subj_map_lock;
 

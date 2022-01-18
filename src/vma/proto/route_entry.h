@@ -64,7 +64,7 @@ public:
     virtual void notify_cb();
 
     void set_str();
-    const string to_str() const { return m_str; };
+    const std::string to_str() const { return m_str; };
 
     inline rule_entry *get_rule_entry() const { return m_p_rr_entry; };
 
@@ -73,7 +73,7 @@ private:
     net_device_val *m_p_net_dev_val;
     bool m_b_offloaded_net_dev;
     bool m_is_valid;
-    string m_str;
+    std::string m_str;
     rule_entry *m_p_rr_entry;
 
     void register_to_net_device();

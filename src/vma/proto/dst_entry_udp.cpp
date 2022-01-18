@@ -133,7 +133,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
 
         if (m_n_sysvar_tx_prefetch_bytes) {
             prefetch_range(p_mem_buf_desc->p_buffer + m_header.m_transport_header_tx_offset,
-                           min(sz_udp_payload, (size_t)m_n_sysvar_tx_prefetch_bytes));
+                           std::min(sz_udp_payload, (size_t)m_n_sysvar_tx_prefetch_bytes));
         }
 
         m_header.copy_l2_ip_udp_hdr(p_pkt);
@@ -228,14 +228,15 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
 
     while (n_num_frags--) {
         // Calc this ip datagram fragment size (include any udp header)
-        size_t sz_ip_frag = min((size_t)m_max_ip_payload_size, (sz_udp_payload - n_ip_frag_offset));
+        size_t sz_ip_frag =
+            std::min((size_t)m_max_ip_payload_size, (sz_udp_payload - n_ip_frag_offset));
         size_t sz_user_data_to_copy = sz_ip_frag;
         size_t hdr_len = m_header.m_transport_header_len +
             m_header.m_ip_header_len; // Add count of L2 (ipoib or mac) header length
 
         if (m_n_sysvar_tx_prefetch_bytes) {
             prefetch_range(p_mem_buf_desc->p_buffer + m_header.m_transport_header_tx_offset,
-                           min(sz_ip_frag, (size_t)m_n_sysvar_tx_prefetch_bytes));
+                           std::min(sz_ip_frag, (size_t)m_n_sysvar_tx_prefetch_bytes));
         }
 
         p_pkt = (tx_packet_template_t *)p_mem_buf_desc->p_buffer;

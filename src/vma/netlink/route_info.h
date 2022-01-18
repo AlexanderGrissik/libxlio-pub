@@ -35,7 +35,6 @@
 
 #include <netlink/route/rtnl.h>
 #include <netlink/route/route.h>
-#include <iostream>
 
 #include "vma/proto/route_val.h"
 

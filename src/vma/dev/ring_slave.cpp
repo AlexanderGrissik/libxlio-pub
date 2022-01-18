@@ -744,7 +744,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                      p_rx_wc_buf_desc->sz_data, ntohs(p_ip_h->id));
         vlog_print_buffer(VLOG_INFO, "rx packet data: ", "\n",
                           (const char *)p_rx_wc_buf_desc->p_buffer,
-                          min(112, (int)p_rx_wc_buf_desc->sz_data));
+                          std::min(112, (int)p_rx_wc_buf_desc->sz_data));
         return false;
     } else if (sz_data > ip_tot_len) {
         p_rx_wc_buf_desc->sz_data -= (sz_data - ip_tot_len);

@@ -35,7 +35,6 @@
 #include "vma/util/if.h"
 #include "vma/util/libvma.h"
 #include "vlogger/vlogger.h"
-#include "netlink_compatibility.h"
 
 #define MODULE_NAME      "route_info:"
 #define ADDR_MAX_STR_LEN (128)
@@ -73,10 +72,15 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
     if (scope > 0) {
         m_route_val->set_scope(scope);
     }
-    int mtu = nl_object_get_compatible_metric(nl_route_obj, RTAX_MTU);
-    if (mtu > 0) {
+
+    uint32_t mtu = 0;
+    int rc = rtnl_route_get_metric(nl_route_obj, RTAX_MTU, &mtu);
+    if (rc == 0) {
         m_route_val->set_mtu(mtu);
+    } else {
+        __log_dbg("Failed to parse route metric MTU error=%d\n", rc);
     }
+
     int protocol = rtnl_route_get_protocol(nl_route_obj);
     if (protocol > 0) {
         m_route_val->set_protocol(protocol);
@@ -100,16 +104,19 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
         m_route_val->set_src_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
     }
 
-    int oif = nl_object_get_compatible_oif(nl_route_obj);
-    if (oif > 0) {
-        m_route_val->set_if_index(oif);
-        char if_name[IFNAMSIZ];
-        if_indextoname(oif, if_name);
-        m_route_val->set_if_name(if_name);
-    }
+    rtnl_nexthop *nh = rtnl_route_nexthop_n(nl_route_obj, 0);
+    if (nh) {
+        int oif = rtnl_route_nh_get_ifindex(nh);
+        if (oif > 0) {
+            m_route_val->set_if_index(oif);
+            char if_name[IFNAMSIZ];
+            if_indextoname(oif, if_name);
+            m_route_val->set_if_name(if_name);
+        }
 
-    in_addr_t gateway = nl_object_get_compatible_gateway(nl_route_obj);
-    if (gateway != INADDR_ANY) {
-        m_route_val->set_gw(gateway);
+        addr = rtnl_route_nh_get_gateway(nh);
+        if (addr) {
+            m_route_val->set_gw(*(in_addr_t *)addr);
+        }
     }
 }

@@ -176,7 +176,7 @@ void select_call::prepare_to_poll()
 void select_call::prepare_to_block()
 {
     m_cqepfd = g_p_net_device_table_mgr->global_ring_epfd_get();
-    m_nfds_with_cq = max(m_cqepfd + 1, m_nfds);
+    m_nfds_with_cq = std::max(m_cqepfd + 1, m_nfds);
 }
 
 bool select_call::wait_os(bool zero_timeout)

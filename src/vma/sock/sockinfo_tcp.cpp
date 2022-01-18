@@ -1895,11 +1895,11 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
                 conn->m_p_socket_stats->n_rx_ready_byte_count += p->tot_len;
                 conn->m_p_socket_stats->n_rx_ready_pkt_count++;
                 conn->m_p_socket_stats->counters.n_rx_ready_pkt_max =
-                    max((uint32_t)conn->m_p_socket_stats->n_rx_ready_pkt_count,
-                        conn->m_p_socket_stats->counters.n_rx_ready_pkt_max);
+                    std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_pkt_count,
+                             conn->m_p_socket_stats->counters.n_rx_ready_pkt_max);
                 conn->m_p_socket_stats->counters.n_rx_ready_byte_max =
-                    max((uint32_t)conn->m_p_socket_stats->n_rx_ready_byte_count,
-                        conn->m_p_socket_stats->counters.n_rx_ready_byte_max);
+                    std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_byte_count,
+                             conn->m_p_socket_stats->counters.n_rx_ready_byte_max);
             }
             // notify io_mux
             NOTIFY_ON_EVENTS(conn, EPOLLIN);
@@ -1918,12 +1918,12 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
      * RCVBUFF Accounting: tcp_recved here(stream into the 'internal' buffer) only if the user
      * buffer is not 'filled'
      */
-    rcv_buffer_space = max(
+    rcv_buffer_space = std::max(
         0, conn->m_rcvbuff_max - conn->m_rcvbuff_current - (int)conn->m_pcb.rcv_wnd_max_desired);
     if (callback_retval == XLIO_PACKET_DROP) {
         bytes_to_tcp_recved = (int)p->tot_len;
     } else {
-        bytes_to_tcp_recved = min(rcv_buffer_space, (int)p->tot_len);
+        bytes_to_tcp_recved = std::min(rcv_buffer_space, (int)p->tot_len);
         conn->m_rcvbuff_current += p->tot_len;
     }
 
@@ -2142,7 +2142,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
 
         // data that was not tcp_recved should do it now.
         if (m_rcvbuff_non_tcp_recved > 0) {
-            bytes_to_tcp_recved = min(m_rcvbuff_non_tcp_recved, total_rx);
+            bytes_to_tcp_recved = std::min(m_rcvbuff_non_tcp_recved, total_rx);
             tcp_recved(&m_pcb, bytes_to_tcp_recved);
             m_rcvbuff_non_tcp_recved -= bytes_to_tcp_recved;
         }
@@ -4970,7 +4970,7 @@ int sockinfo_tcp::recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_
         m_rcvbuff_current -= total_rx;
         // data that was not tcp_recved should do it now.
         if (m_rcvbuff_non_tcp_recved > 0) {
-            bytes_to_tcp_recved = min(m_rcvbuff_non_tcp_recved, total_rx);
+            bytes_to_tcp_recved = std::min(m_rcvbuff_non_tcp_recved, total_rx);
             tcp_recved(&m_pcb, bytes_to_tcp_recved);
             m_rcvbuff_non_tcp_recved -= bytes_to_tcp_recved;
         }

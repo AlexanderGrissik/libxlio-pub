@@ -673,11 +673,11 @@ void ring_bond::update_cap(ring_slave *slave)
 
     m_max_inline_data = (m_max_inline_data == (uint32_t)(-1)
                              ? slave->get_max_inline_data()
-                             : min(m_max_inline_data, slave->get_max_inline_data()));
+                             : std::min(m_max_inline_data, slave->get_max_inline_data()));
 
     m_max_send_sge =
         (m_max_send_sge == (uint32_t)(-1) ? slave->get_max_send_sge()
-                                          : min(m_max_send_sge, slave->get_max_send_sge()));
+                                          : std::min(m_max_send_sge, slave->get_max_send_sge()));
 }
 
 void ring_bond::devide_buffers_helper(descq_t *rx_reuse, descq_t *buffer_per_ring)

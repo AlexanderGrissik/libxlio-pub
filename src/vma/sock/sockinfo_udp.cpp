@@ -1952,11 +1952,11 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
         m_p_socket_stats->n_rx_ready_pkt_count++;
         m_p_socket_stats->n_rx_ready_byte_count += p_desc->rx.sz_payload;
         m_p_socket_stats->counters.n_rx_ready_pkt_max =
-            max((uint32_t)m_p_socket_stats->n_rx_ready_pkt_count,
-                m_p_socket_stats->counters.n_rx_ready_pkt_max);
+            std::max((uint32_t)m_p_socket_stats->n_rx_ready_pkt_count,
+                     m_p_socket_stats->counters.n_rx_ready_pkt_max);
         m_p_socket_stats->counters.n_rx_ready_byte_max =
-            max((uint32_t)m_p_socket_stats->n_rx_ready_byte_count,
-                m_p_socket_stats->counters.n_rx_ready_byte_max);
+            std::max((uint32_t)m_p_socket_stats->n_rx_ready_byte_count,
+                     m_p_socket_stats->counters.n_rx_ready_byte_max);
         do_wakeup();
         m_lock_rcv.unlock();
     } else {

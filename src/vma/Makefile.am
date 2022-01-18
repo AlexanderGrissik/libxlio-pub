@@ -236,7 +236,6 @@ libxlio_la_SOURCES := \
 	\
 	netlink/link_info.h \
 	netlink/neigh_info.h \
-	netlink/netlink_compatibility.h \
 	netlink/netlink_wrapper.h \
 	netlink/route_info.h \
 	\

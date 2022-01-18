@@ -63,7 +63,7 @@ public:
         }
     }
 
-    const std::string to_str() const { return (string("command_netlink")); }
+    const std::string to_str() const { return (std::string("command_netlink")); }
 
     virtual void handle_timer_expired(void *a)
     {

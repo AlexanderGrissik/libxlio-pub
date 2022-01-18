@@ -35,7 +35,6 @@
 #include <netlink/route/neighbour.h>
 #include <netlink/route/link.h>
 #include "stdio.h"
-#include "vma/netlink/netlink_compatibility.h"
 
 #define TOSTR_MAX_SIZE 4096
 

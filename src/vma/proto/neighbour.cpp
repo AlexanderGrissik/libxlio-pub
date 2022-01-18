@@ -437,7 +437,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
     while (n_num_frags--) {
         // Calc this ip datagram fragment size (include any udp header)
-        size_t sz_ip_frag = min(max_ip_payload_size, (sz_udp_payload - n_ip_frag_offset));
+        size_t sz_ip_frag = std::min(max_ip_payload_size, (sz_udp_payload - n_ip_frag_offset));
         size_t sz_user_data_to_copy = sz_ip_frag;
         size_t hdr_len = h->m_transport_header_len +
             h->m_ip_header_len; // Add count of L2 (ipoib or mac) header length
