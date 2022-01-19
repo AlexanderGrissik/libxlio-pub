@@ -34,6 +34,7 @@
 #define IP_ADDRESS_H
 
 #include <arpa/inet.h>
+#include <string.h>
 #include <string>
 #include "vma/util/vtypes.h"
 
@@ -94,6 +95,7 @@ public:
     const in6_addr &get_in6_addr() const { return m_ip6; };
 
     bool is_mc() const { return (IN_MULTICAST_N(m_ip)); }; // [TODO IPV6] Implement for IPv6
+    bool is_anyaddr() const { return (unlikely(m_ip6_64[0] == 0) && likely(m_ip6_64[1] == 0)); };
 
     bool operator==(const ip_address &ip) const
     {

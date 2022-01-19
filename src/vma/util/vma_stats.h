@@ -42,6 +42,8 @@
 #include <sys/stat.h>
 #include <vlogger/vlogger.h>
 #include <vma/xlio_extra.h>
+#include <vma/util/sock_addr.h>
+#include <assert.h>
 
 #define NUM_OF_SUPPORTED_CQS         16
 #define NUM_OF_SUPPORTED_RINGS       16
@@ -174,28 +176,29 @@ typedef struct {
     uint32_t n_strq_max_strides_per_packet;
 } socket_strq_counters_t;
 
-typedef struct {
+typedef struct socket_stats_t {
     int fd;
     uint32_t inode;
     uint32_t tcp_state; // enum tcp_state
     uint8_t socket_type; // SOCK_STREAM, SOCK_DGRAM, ...
-    uint8_t padding1[3];
+    bool padding1;
+    sa_family_t sa_family;
     bool b_is_offloaded;
     bool b_blocking;
     bool b_mc_loop;
     bool padding2;
-    in_addr_t bound_if;
-    in_addr_t connected_ip;
-    in_addr_t mc_tx_if;
     in_port_t bound_port;
     in_port_t connected_port;
+    ip_address bound_if;
+    ip_address connected_ip;
+    ip_address mc_tx_if;
     pid_t threadid_last_rx;
     pid_t threadid_last_tx;
     uint32_t n_rx_ready_pkt_count;
-    uint64_t n_rx_ready_byte_count;
     uint32_t n_rx_ready_byte_limit;
-    uint32_t n_rx_zcopy_pkt_count;
+    uint64_t n_rx_ready_byte_count;
     uint64_t n_tx_ready_byte_count;
+    uint32_t n_rx_zcopy_pkt_count;
     socket_counters_t counters;
 #ifdef DEFINED_UTLS
     bool tls_tx_offload;
@@ -216,8 +219,9 @@ typedef struct {
         fd = 0;
         inode = tcp_state = 0;
         socket_type = 0;
+        sa_family = 0;
         b_is_offloaded = b_blocking = b_mc_loop = false;
-        bound_if = connected_ip = mc_tx_if = (in_addr_t)0;
+        bound_if = connected_ip = mc_tx_if = ip_address(in6addr_any);
         bound_port = connected_port = (in_port_t)0;
         threadid_last_rx = threadid_last_tx = pid_t(0);
         n_rx_ready_pkt_count = n_rx_ready_byte_count = n_rx_ready_byte_limit =
@@ -232,6 +236,40 @@ typedef struct {
         mc_grp_map.reset();
         ring_user_id_rx = ring_user_id_tx = 0;
         ring_alloc_logic_rx = ring_alloc_logic_tx = RING_LOGIC_PER_INTERFACE;
+        padding1 = padding2 = 0;
+    };
+
+    void set_bound_if(sock_addr &sock)
+    {
+        sa_family = sock.get_sa_family();
+        bound_if = sock.get_ip_addr();
+    }
+
+    void set_connected_ip(sock_addr &sock)
+    {
+        sa_family = sock.get_sa_family();
+        connected_ip = sock.get_ip_addr();
+    }
+
+    void set_mc_tx_if(sock_addr &sock)
+    {
+        sa_family = sock.get_sa_family();
+        mc_tx_if = sock.get_ip_addr();
+    }
+
+    // [TODO IPV6] Temporary - until sockinfo_tcp will support IPv6
+    void set_bound_if(in_addr_t ipv4)
+    {
+        sa_family = AF_INET;
+        bound_if = ipv4;
+    }
+
+    socket_stats_t()
+        : bound_if(in6addr_any)
+        , connected_ip(in6addr_any)
+        , mc_tx_if(in6addr_any)
+    {
+        reset();
     };
 } socket_stats_t;
 

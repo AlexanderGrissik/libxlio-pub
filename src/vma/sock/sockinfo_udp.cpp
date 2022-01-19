@@ -549,7 +549,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 
         m_connected = connect_to;
 
-        m_p_socket_stats->connected_ip = dst_ipaddr.get_in_addr();
+        m_p_socket_stats->set_connected_ip(connect_to);
         m_p_socket_stats->connected_port = dst_port;
 
         // Connect can change the OS bound address,
@@ -602,7 +602,9 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
             si_udp_logerr("Failed to create dst_entry(dst_ip:%s, dst_port:%d, src_port:%d)",
                           dst_ipaddr.to_str().c_str(), ntohs(dst_port), ntohs(src_port));
             m_connected.set_any(AF_INET);
-            m_p_socket_stats->connected_ip = INADDR_ANY;
+            m_p_socket_stats->connected_ip =
+                ip_address(in6addr_any); // Special assignment - it should have been done by
+                                         // m_p_socket_stats->set_connected_ip()
             m_p_socket_stats->connected_port = INPORT_ANY;
             m_is_connected = false; // will skip inspection for SRC
             return 0;
@@ -671,7 +673,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
     if (m_bound.get_ip_addr().get_in_addr() != bound_if) {
         si_udp_logdbg("bound if changed (%s -> %s)", m_bound.to_str_ip_port().c_str(),
                       bindname.to_str_ip_port().c_str());
-        m_p_socket_stats->bound_if = bound_if;
+        m_p_socket_stats->set_bound_if(bindname);
     }
 
     m_bound = bindname;

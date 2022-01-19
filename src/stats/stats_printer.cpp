@@ -62,13 +62,13 @@ const char *to_str_socket_type(int type)
     return "???";
 }
 
-const char *to_str_socket_type_netstat_like(int type)
+const char *to_str_socket_type_netstat_like(int type, sa_family_t family)
 {
     switch (type) {
     case SOCK_STREAM:
-        return "tcp";
+        return (family == AF_INET6) ? "tcp6" : "tcp";
     case SOCK_DGRAM:
-        return "udp";
+        return (family == AF_INET6) ? "udp6" : "udp";
     case SOCK_RAW:
         return "raw";
     default:
@@ -105,9 +105,10 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     //
     if (p_si_stats->socket_type == SOCK_DGRAM) {
         fprintf(filename, ", MC Loop %s", p_si_stats->b_mc_loop ? "Enabled " : "Disabled");
-        if (p_si_stats->mc_tx_if) {
+        if (!p_si_stats->mc_tx_if.is_anyaddr()) {
             /* cppcheck-suppress wrongPrintfScanfArgNum */
-            fprintf(filename, ", MC IF = [%d.%d.%d.%d]", NIPQUAD(p_si_stats->mc_tx_if));
+            fprintf(filename, ", MC IF = [%s]",
+                    p_si_stats->mc_tx_if.to_str(p_si_stats->sa_family).c_str());
         }
     }
     fprintf(filename, "\n");
@@ -115,15 +116,17 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     //
     // Bounded + Connected information
     //
-    if (p_si_stats->bound_if || p_si_stats->bound_port) {
+    if (!p_si_stats->bound_if.is_anyaddr() || p_si_stats->bound_port) {
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        fprintf(filename, "- Local Address   = [%d.%d.%d.%d:%d]\n", NIPQUAD(p_si_stats->bound_if),
+        fprintf(filename, "- Local Address   = [%s:%d]\n",
+                p_si_stats->bound_if.to_str(p_si_stats->sa_family).c_str(),
                 ntohs(p_si_stats->bound_port));
     }
-    if (p_si_stats->connected_ip || p_si_stats->connected_port) {
+    if (!p_si_stats->connected_ip.is_anyaddr() || p_si_stats->connected_port) {
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        fprintf(filename, "- Foreign Address = [%d.%d.%d.%d:%d]\n",
-                NIPQUAD(p_si_stats->connected_ip), ntohs(p_si_stats->connected_port));
+        fprintf(filename, "- Foreign Address = [%s:%d]\n",
+                p_si_stats->connected_ip.to_str(p_si_stats->sa_family).c_str(),
+                ntohs(p_si_stats->connected_port));
     }
     if (p_mc_grp_info) {
         for (int grp_idx = 0; grp_idx < p_mc_grp_info->max_grp_num; grp_idx++) {
@@ -279,7 +282,7 @@ void print_netstat_like_headers(FILE *file)
 {
     static bool already_printed = false;
     if (!already_printed) {
-        fprintf(file, "%-5s %-9s %-20s %-20s %-22s %-21s %-11s %-10s %s", "Proto", "Offloaded",
+        fprintf(file, "%-5s %-9s %-14s %-14s %-47s %-47s %-11s %-10s %s", "Proto", "Offloaded",
                 "Recv-Q", "Send-Q", "Local Address", "Foreign Address", "State", "Inode",
                 "PID/Program name\n");
     }
@@ -290,47 +293,55 @@ void print_netstat_like_headers(FILE *file)
 void print_netstat_like(socket_stats_t *p_si_stats, mc_grp_info_t *, FILE *file, int pid)
 {
     static const int MAX_ADDR_LEN =
-        strlen("123.123.123.123:12345"); // for max len of ip address and port together
+        strlen("[1234:1234:1234:1234:1234:1234:1234:1234]:12345"); // for max len of ip address and
+                                                                   // port together
     char process[PATH_MAX + 1];
 
     if (!p_si_stats->inode) {
         return; // shmem is not updated yet
     }
 
-    fprintf(file, "%-5s %-9s ", to_str_socket_type_netstat_like(p_si_stats->socket_type),
+    fprintf(file, "%-5s %-9s ",
+            to_str_socket_type_netstat_like(p_si_stats->socket_type, p_si_stats->sa_family),
             p_si_stats->b_is_offloaded ? "Yes" : "No");
-    fprintf(file, "%-20lu %-20lu ", p_si_stats->n_rx_ready_byte_count,
+    fprintf(file, "%-14lu %-14lu ", p_si_stats->n_rx_ready_byte_count,
             p_si_stats->n_tx_ready_byte_count);
 
     //
     // Bounded + Connected information
     //
     int len = 0;
-    if (p_si_stats->bound_if || p_si_stats->bound_port) {
+    if (!p_si_stats->bound_if.is_anyaddr() || p_si_stats->bound_port) {
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        len = fprintf(file, "%d.%d.%d.%d:%-5d", NIPQUAD(p_si_stats->bound_if),
+        len = fprintf(file, "%s:%-5d", p_si_stats->bound_if.to_str(p_si_stats->sa_family).c_str(),
                       ntohs(p_si_stats->bound_port));
+
         if (len < 0) {
             len = 0; // error
         }
     }
-    if (len < MAX_ADDR_LEN) {
-        fprintf(file, "%*s ", MAX_ADDR_LEN - len, ""); // pad and delimiter
+    if (len <= MAX_ADDR_LEN) {
+        fprintf(file, "%*s", MAX_ADDR_LEN - len, ""); // pad and delimiter
     }
 
     fprintf(file, " ");
 
-    if (p_si_stats->connected_ip || p_si_stats->connected_port) {
+    if (!p_si_stats->connected_ip.is_anyaddr() || p_si_stats->connected_port) {
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        len = fprintf(file, "%d.%d.%d.%d:%-5d", NIPQUAD(p_si_stats->connected_ip),
-                      ntohs(p_si_stats->connected_port));
+        len =
+            fprintf(file, "%s:%-5d", p_si_stats->connected_ip.to_str(p_si_stats->sa_family).c_str(),
+                    ntohs(p_si_stats->connected_port));
     } else {
-        len = fprintf(file, "0.0.0.0:*");
+        if (p_si_stats->sa_family == AF_INET6) {
+            len = fprintf(file, "[::]:*");
+        } else {
+            len = fprintf(file, "0.0.0.0:*");
+        }
     }
     if (len < 0) {
         len = 0; // error
     }
-    if (len < MAX_ADDR_LEN) {
+    if (len <= MAX_ADDR_LEN) {
         fprintf(file, "%*s ", MAX_ADDR_LEN - len, ""); // pad and delimiter
     }
 

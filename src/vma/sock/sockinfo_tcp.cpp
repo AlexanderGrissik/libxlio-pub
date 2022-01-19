@@ -2396,7 +2396,8 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     prepare_dst_to_send(false);
 
     // update it after route was resolved and device was updated
-    m_p_socket_stats->bound_if = m_p_connected_dst_entry->get_src_addr();
+    // [TODO IPV6] Temporary
+    m_p_socket_stats->set_bound_if(m_p_connected_dst_entry->get_src_addr());
 
     sockaddr_in remote_addr;
     remote_addr.sin_family = AF_INET;
@@ -2586,7 +2587,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 
     si_tcp_logdbg("socket bound");
 
-    m_p_socket_stats->bound_if = m_bound.get_ip_addr().get_in_addr();
+    m_p_socket_stats->set_bound_if(m_bound);
     m_p_socket_stats->bound_port = m_bound.get_in_port();
 
     unlock_tcp_con();
@@ -2908,10 +2909,10 @@ int sockinfo_tcp::accept_helper(struct sockaddr *__addr, socklen_t *__addrlen,
         }
     }
 
-    ns->m_p_socket_stats->connected_ip = ns->m_connected.get_ip_addr().get_in_addr();
+    ns->m_p_socket_stats->set_connected_ip(ns->m_connected);
     ns->m_p_socket_stats->connected_port = ns->m_connected.get_in_port();
 
-    ns->m_p_socket_stats->bound_if = ns->m_bound.get_ip_addr().get_in_addr();
+    ns->m_p_socket_stats->set_bound_if(ns->m_bound);
     ns->m_p_socket_stats->bound_port = ns->m_bound.get_in_port();
 
     if (__flags & SOCK_NONBLOCK) {
@@ -3001,9 +3002,9 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
     parent->unlock_tcp_con();
     child->lock_tcp_con();
 
-    child->m_p_socket_stats->connected_ip = child->m_connected.get_ip_addr().get_in_addr();
+    child->m_p_socket_stats->set_connected_ip(child->m_connected);
     child->m_p_socket_stats->connected_port = child->m_connected.get_in_port();
-    child->m_p_socket_stats->bound_if = child->m_bound.get_ip_addr().get_in_addr();
+    child->m_p_socket_stats->set_bound_if(child->m_bound);
     child->m_p_socket_stats->bound_port = child->m_bound.get_in_port();
 
     xlio_socketxtreme_completion_t &parent_compl =
@@ -3467,7 +3468,7 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
     // OLG: Now we should wakeup all threads that are sleeping on this socket.
     conn->do_wakeup();
 
-    conn->m_p_socket_stats->connected_ip = conn->m_connected.get_ip_addr().get_in_addr();
+    conn->m_p_socket_stats->set_connected_ip(conn->m_connected);
     conn->m_p_socket_stats->connected_port = conn->m_connected.get_in_port();
 
     conn->unlock_tcp_con();
