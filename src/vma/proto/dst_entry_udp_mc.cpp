@@ -42,8 +42,9 @@
 #define dst_udp_mc_logfunc    __log_info_func
 #define dst_udp_mc_logfuncall __log_info_funcall
 
-dst_entry_udp_mc::dst_entry_udp_mc(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port,
-                                   in_addr_t tx_if_ip, bool mc_b_loopback, socket_data &sock_data,
+dst_entry_udp_mc::dst_entry_udp_mc(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
+                                   const ip_address &tx_if_ip, bool mc_b_loopback,
+                                   socket_data &sock_data,
                                    resource_allocation_key &ring_alloc_logic)
     : dst_entry_udp(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic)
     , m_mc_tx_if_ip(tx_if_ip)
@@ -81,8 +82,7 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
 
     if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc()) {
         if (m_p_net_dev_entry == NULL &&
-            g_p_net_device_table_mgr->register_observer(m_mc_tx_if_ip.get_in_addr(), this,
-                                                        &p_ces)) {
+            g_p_net_device_table_mgr->register_observer(m_mc_tx_if_ip, this, &p_ces)) {
             m_p_net_dev_entry = dynamic_cast<net_device_entry *>(p_ces);
         }
         if (m_p_net_dev_entry) {

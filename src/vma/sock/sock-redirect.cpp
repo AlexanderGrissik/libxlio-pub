@@ -293,8 +293,8 @@ void dbg_send_mcpkt()
     const char msgbuf[256] = "Hello Alex";
 
     vlog_printf(VLOG_WARNING,
-                "send_mc_packet_test:%d: Sending MC test packet to address: %s [%s]\n",
-                __LINE__, sockaddr2str(p_addr).c_str(), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
+                "send_mc_packet_test:%d: Sending MC test packet to address: %s [%s]\n", __LINE__,
+                sockaddr2str(p_addr).c_str(), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
     if (sendto(fd, msgbuf, strlen(msgbuf), 0, p_addr, sizeof(struct sockaddr)) < 0) {
         vlog_printf(VLOG_ERROR, "sendto mc_packet failed! errno %d %s\n", errno, strerror(errno));
     }

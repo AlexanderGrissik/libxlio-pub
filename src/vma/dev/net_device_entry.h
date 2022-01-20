@@ -47,7 +47,7 @@ class net_device_entry : public cache_entry_subject<ip_address, net_device_val *
 public:
     friend class net_device_table_mgr;
 
-    net_device_entry(in_addr_t local_ip, net_device_val *ndv);
+    net_device_entry(const ip_address &local_ip, net_device_val *ndv);
     virtual ~net_device_entry();
 
     bool get_val(INOUT net_device_val *&val);

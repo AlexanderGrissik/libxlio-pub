@@ -138,16 +138,13 @@ void neigh_table_mgr::notify_cb(event *ev)
         return;
     }
 
-    in_addr_t neigh_ip = in.s_addr;
-
     // Search for this neigh ip in cache_table
     m_lock.lock();
     net_device_val *p_ndev = g_p_net_device_table_mgr->get_net_device_val(nl_info->ifindex);
 
     // find all neigh entries with an appropriate peer_ip and net_device
     if (p_ndev) {
-        neigh_entry *p_ne =
-            dynamic_cast<neigh_entry *>(get_entry(neigh_key(ip_address(neigh_ip), p_ndev)));
+        neigh_entry *p_ne = dynamic_cast<neigh_entry *>(get_entry(neigh_key(in, p_ndev)));
         if (p_ne) {
             // Call the relevant neigh_entry to handle the event
             p_ne->handle_neigh_event(nl_ev);

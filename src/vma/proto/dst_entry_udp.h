@@ -37,8 +37,8 @@
 
 class dst_entry_udp : public dst_entry {
 public:
-    dst_entry_udp(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &sock_data,
-                  resource_allocation_key &ring_alloc_logic);
+    dst_entry_udp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
+                  socket_data &sock_data, resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_udp();
 
     ssize_t fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr);

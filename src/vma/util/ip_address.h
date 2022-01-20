@@ -33,39 +33,99 @@
 #ifndef IP_ADDRESS_H
 #define IP_ADDRESS_H
 
-#include <stdio.h>
-#include "vma/util/to_str.h"
+#include <arpa/inet.h>
+#include <string>
 #include "vma/util/vtypes.h"
 
-// This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member except IPv4/IPv6 union.
-// If any other memeber is needed, this class should be split into two classes ip_addr and ip_address.
-/* coverity[missing_move_assignment] */
+// This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member
+// except IPv4/IPv6 union. If any other memeber is needed, this class should be split into two
+// classes ip_addr and ip_address.
 class ip_address {
 public:
-    ip_address(in_addr_t ip)
-        : m_ip(ip) {};
+    ip_address(in_addr_t ip4)
+        : m_ip6 {}
+    { // [TODO IPV6] Temporary
+        m_ip = ip4;
+    };
 
-    ip_address(const ip_address& addr) { *this = addr; }
-
-    ~ip_address() {};
-
-    const std::string to_str() const
+    ip_address(in_addr ip4)
+        : m_ip6 {}
     {
-        char s[20];
-        /* cppcheck-suppress wrongPrintfScanfArgNum */
-        sprintf(s, "%d.%d.%d.%d", NIPQUAD(m_ip));
-        return (std::string(s));
+        m_ip4 = ip4;
+    };
+
+    ip_address(in6_addr ip6)
+        : m_ip6(ip6)
+    {
     }
 
-    in_addr_t get_in_addr() const { return m_ip; };
-    bool is_mc() { return (IN_MULTICAST_N(m_ip)); };
+    ip_address(const ip_address &addr) { *this = addr; }
 
-    bool operator==(const ip_address &ip) const { return (m_ip == ip.get_in_addr()); };
+    ip_address(ip_address &&addr) { *this = addr; }
 
-    ip_address& operator=(const ip_address& ip) { m_ip = ip.m_ip;  return *this; }
+    const std::string to_str() const { return to_str(AF_INET); } // [TODO IPV6] Temporary
+
+    const std::string to_str(sa_family_t family) const
+    {
+        char buffer[INET6_ADDRSTRLEN];
+        std::string rc;
+
+        if (family == AF_INET) {
+            rc.reserve(32);
+            if (inet_ntop(AF_INET, &m_ip4, buffer, sizeof(buffer))) {
+                rc = buffer;
+            }
+        } else {
+            rc.reserve(64);
+            rc = '[';
+            if (inet_ntop(AF_INET6, &m_ip6, buffer, sizeof(buffer))) {
+                rc += buffer;
+            }
+            rc += ']';
+        }
+
+        return rc;
+    }
+
+    in_addr_t get_in_addr() const { return m_ip; }; // [TODO IPV6] Temporary
+
+    const in_addr &get_in4_addr() const { return m_ip4; };
+
+    const in6_addr &get_in6_addr() const { return m_ip6; };
+
+    bool is_mc() const { return (IN_MULTICAST_N(m_ip)); }; // [TODO IPV6] Implement for IPv6
+
+    bool operator==(const ip_address &ip) const
+    {
+        return (m_ip6_64[0] == ip.m_ip6_64[0] && m_ip6_64[1] == ip.m_ip6_64[1]);
+    };
+
+    bool operator!=(const ip_address &ip) const
+    {
+        return (m_ip6_64[0] != ip.m_ip6_64[0] || m_ip6_64[1] != ip.m_ip6_64[1]);
+    };
+
+    ip_address &operator=(const ip_address &ip)
+    {
+        m_ip6 = ip.m_ip6;
+        return *this;
+    }
+
+    ip_address &operator=(ip_address &&ip)
+    {
+        m_ip6 = ip.m_ip6;
+        return *this;
+    }
+
+    friend std::hash<ip_address>;
 
 private:
-    in_addr_t m_ip;
+    union {
+        in6_addr m_ip6;
+        uint64_t m_ip6_64[2];
+        in_addr m_ip4;
+        in_addr_t m_ip;
+    };
 };
 
 namespace std {
@@ -73,8 +133,8 @@ template <> class hash<ip_address> {
 public:
     size_t operator()(const ip_address &key) const
     {
-        hash<int> _hash;
-        return _hash(key.get_in_addr());
+        hash<uint64_t> _hash;
+        return _hash(key.m_ip6_64[0] ^ key.m_ip6_64[1]);
     }
 };
 } // namespace std

@@ -766,7 +766,7 @@ bool sockinfo::detach_receiver(flow_tuple_with_local_if &flow_key)
     return destroy_nd_resources((const ip_address)flow_key.get_local_if());
 }
 
-net_device_resources_t *sockinfo::create_nd_resources(const ip_address ip_local)
+net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
 
@@ -844,7 +844,7 @@ err:
     return NULL;
 }
 
-bool sockinfo::destroy_nd_resources(const ip_address ip_local)
+bool sockinfo::destroy_nd_resources(const ip_address &ip_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
     rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
@@ -1135,8 +1135,8 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
     socket_fd_api::statistics_print(log_level);
 
-    vlog_printf(log_level, "Bind info : %s\n", m_bound.to_str_ip_port(true));
-    vlog_printf(log_level, "Connection info : %s\n", m_connected.to_str_ip_port(true));
+    vlog_printf(log_level, "Bind info : %s\n", m_bound.to_str_ip_port(true).c_str());
+    vlog_printf(log_level, "Connection info : %s\n", m_connected.to_str_ip_port(true).c_str());
     vlog_printf(log_level, "Protocol : %s\n", in_protocol_str[m_protocol]);
     vlog_printf(log_level, "Is closed : %s\n", m_state_str[m_state]);
     vlog_printf(log_level, "Is blocking : %s\n", m_b_blocking ? "true" : "false");
@@ -1536,7 +1536,7 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
 
     if (local_if != INADDR_ANY) {
         si_logdbg("Attached to specific local if: (%d.%d.%d.%d) addr: %s", NIPQUAD(local_if),
-                  addr.to_str_ip_port());
+                  addr.to_str_ip_port().c_str());
 
         transport_t target_family = TRANS_VMA;
         if (!skip_rules) {
@@ -1547,7 +1547,7 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
             ret = ret && attach_receiver(flow_key);
         }
     } else {
-        si_logdbg("Attaching to all offload if addr: %s", addr.to_str_ip_port());
+        si_logdbg("Attaching to all offload if addr: %s", addr.to_str_ip_port().c_str());
 
         local_ip_list_t::iterator lip_iter;
         local_ip_list_t lip_offloaded_list = g_p_net_device_table_mgr->get_ip_list();

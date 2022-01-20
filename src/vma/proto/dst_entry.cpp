@@ -46,8 +46,8 @@
 #define dst_logfunc    __log_info_func
 #define dst_logfuncall __log_info_funcall
 
-dst_entry::dst_entry(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &sock_data,
-                     resource_allocation_key &ring_alloc_logic)
+dst_entry::dst_entry(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
+                     socket_data &sock_data, resource_allocation_key &ring_alloc_logic)
     : m_dst_ip(dst_ip)
     , m_dst_port(dst_port)
     , m_src_port(src_port)

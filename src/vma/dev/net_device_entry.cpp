@@ -44,8 +44,8 @@
 #define SLAVE_CHECK_FAST_TIMER_PERIOD_MSEC 10
 #define SLAVE_CHECK_FAST_NUM_TIMES         10
 
-net_device_entry::net_device_entry(in_addr_t local_ip, net_device_val *ndv)
-    : cache_entry_subject<ip_address, net_device_val *>(ip_address(local_ip))
+net_device_entry::net_device_entry(const ip_address &local_ip, net_device_val *ndv)
+    : cache_entry_subject<ip_address, net_device_val *>(local_ip)
 {
     nde_logdbg("");
     m_val = ndv;

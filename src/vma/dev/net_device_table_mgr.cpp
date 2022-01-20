@@ -381,7 +381,7 @@ net_device_entry *net_device_table_mgr::create_new_entry(ip_address local_ip, co
     net_device_val *p_ndv = get_net_device_val(local_ip.get_in_addr());
 
     if (p_ndv) {
-        return new net_device_entry(local_ip.get_in_addr(), p_ndv);
+        return new net_device_entry(local_ip, p_ndv);
     }
     return NULL;
 }

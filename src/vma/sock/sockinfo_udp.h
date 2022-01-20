@@ -57,10 +57,7 @@
 namespace std {
 template <> class hash<sock_addr> {
 public:
-    size_t operator()(const sock_addr &key) const
-    {
-        return key.hash();
-    }
+    size_t operator()(const sock_addr &key) const { return key.hash(); }
 };
 } // namespace std
 typedef std::unordered_map<sock_addr, dst_entry *> dst_entry_map_t;

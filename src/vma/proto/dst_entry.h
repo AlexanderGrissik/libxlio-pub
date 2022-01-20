@@ -73,8 +73,8 @@ typedef struct {
 class dst_entry : public cache_observer, public tostr, public neigh_observer {
 
 public:
-    dst_entry(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &sock_data,
-              resource_allocation_key &ring_alloc_logic);
+    dst_entry(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
+              socket_data &sock_data, resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry();
 
     virtual void notify_cb();

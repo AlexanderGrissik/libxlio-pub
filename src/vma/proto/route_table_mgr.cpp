@@ -328,8 +328,7 @@ void route_table_mgr::parse_attr(struct rtattr *rt_attribute, route_val *p_val)
 
 bool route_table_mgr::find_route_val(in_addr_t &dst, unsigned char table_id, route_val *&p_val)
 {
-    ip_address dst_addr = dst;
-    rt_mgr_logfunc("dst addr '%s'", dst_addr.to_str().c_str());
+    rt_mgr_logfunc("dst addr '%s'", ip_address(dst).to_str().c_str());
 
     route_val *correct_route_val = NULL;
     int longest_prefix = -1;
@@ -350,7 +349,6 @@ bool route_table_mgr::find_route_val(in_addr_t &dst, unsigned char table_id, rou
         }
     }
     if (correct_route_val) {
-        ip_address dst_gw = correct_route_val->get_dst_addr();
         p_val = correct_route_val;
         rt_mgr_logdbg("found route val[%p]: %s", p_val, p_val->to_str());
         return true;

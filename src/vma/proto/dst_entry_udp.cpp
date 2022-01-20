@@ -44,7 +44,7 @@
 #define dst_udp_logfunc    __log_info_func
 #define dst_udp_logfuncall __log_info_funcall
 
-dst_entry_udp::dst_entry_udp(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port,
+dst_entry_udp::dst_entry_udp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
                              socket_data &sock_data, resource_allocation_key &ring_alloc_logic)
     : dst_entry(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic)
     , m_n_sysvar_tx_bufs_batch_udp(safe_mce_sys().tx_bufs_batch_udp)

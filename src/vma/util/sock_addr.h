@@ -41,38 +41,41 @@
 #include "vma/util/vtypes.h"
 #include "vma/util/ip_address.h"
 
-static inline sa_family_t get_sa_family(const struct sockaddr* addr)
+static inline sa_family_t get_sa_family(const struct sockaddr *addr)
 {
     return addr->sa_family;
 }
 
-static inline in_port_t get_sa_port(const struct sockaddr* addr)
+static inline in_port_t get_sa_port(const struct sockaddr *addr)
 {
-    return (get_sa_family(addr) == AF_INET ? 
-        reinterpret_cast<const struct sockaddr_in*>(addr)->sin_port : 
-        reinterpret_cast<const struct sockaddr_in6*>(addr)->sin6_port);
+    return (get_sa_family(addr) == AF_INET
+                ? reinterpret_cast<const struct sockaddr_in *>(addr)->sin_port
+                : reinterpret_cast<const struct sockaddr_in6 *>(addr)->sin6_port);
 }
 
-static inline std::string sockport2str(const struct sockaddr* addr)
+static inline std::string sockport2str(const struct sockaddr *addr)
 {
     return std::to_string(ntohs(get_sa_port(addr)));
 }
 
-static inline std::string sockaddr2str(const struct sockaddr* addr, bool port = false) {
+static inline std::string sockaddr2str(const struct sockaddr *addr, bool port = false)
+{
     char buffer[INET6_ADDRSTRLEN];
     std::string rc;
 
     if (get_sa_family(addr) == AF_INET) {
         rc.reserve(32);
-        if (inet_ntop(AF_INET, &reinterpret_cast<const struct sockaddr_in*>(addr)->sin_addr,
-                buffer, sizeof(buffer)))
+        if (inet_ntop(AF_INET, &reinterpret_cast<const struct sockaddr_in *>(addr)->sin_addr,
+                      buffer, sizeof(buffer))) {
             rc = buffer;
+        }
     } else {
         rc.reserve(64);
         rc = '[';
-        if (inet_ntop(AF_INET6, &reinterpret_cast<const struct sockaddr_in6*>(addr)->sin6_addr,
-                buffer, sizeof(buffer)))
+        if (inet_ntop(AF_INET6, &reinterpret_cast<const struct sockaddr_in6 *>(addr)->sin6_addr,
+                      buffer, sizeof(buffer))) {
             rc += buffer;
+        }
         rc += ']';
     }
 
@@ -87,105 +90,111 @@ class sock_addr {
 public:
     sock_addr() { clear_sa(); };
 
-    sock_addr(const struct sockaddr *other, socklen_t size) {
-        set_sockaddr(other, size);
-    }
+    sock_addr(const struct sockaddr *other, socklen_t size) { set_sockaddr(other, size); }
 
-    sock_addr(const sock_addr &other) {
-        *this = other;
-    }
+    sock_addr(const sock_addr &other) { *this = other; }
 
     // @param in_addr Should point either to in_addr or in6_addr according the family.
-    sock_addr(sa_family_t f, void* ip_addr, in_port_t p) {
-        set_ip_port(f, ip_addr, p);
-    };
+    sock_addr(sa_family_t f, void *ip_addr, in_port_t p) { set_ip_port(f, ip_addr, p); };
 
     ~sock_addr() {};
 
-    const struct sockaddr *get_p_sa() const { return &m_sa; }
+    const struct sockaddr *get_p_sa() const { return &u_sa.m_sa; }
 
-    void get_sa(struct sockaddr *sa, socklen_t size) const {
-        memcpy(sa, &m_sa, std::min<size_t>(get_socklen(), size));
-    }
-
-    sa_family_t get_sa_family() const { return m_sa.sa_family; }
-
-    const ip_address& get_ip_addr() const
+    void get_sa(struct sockaddr *sa, socklen_t size) const
     {
-        return *(get_sa_family() == AF_INET ?
-            reinterpret_cast<const ip_address*>(&m_sa_in.sin_addr) :
-            reinterpret_cast<const ip_address*>(&m_sa_in6.sin6_addr));
+        memcpy(sa, &u_sa.m_sa, std::min<size_t>(get_socklen(), size));
     }
 
-    in_port_t get_in_port() const { return (get_sa_family() == AF_INET ? m_sa_in.sin_port : m_sa_in6.sin6_port); }
+    sa_family_t get_sa_family() const { return u_sa.m_sa.sa_family; }
 
-    socklen_t get_socklen() const {
-        return static_cast<socklen_t>(get_sa_family() == AF_INET ?
-            sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+    const ip_address &get_ip_addr() const
+    {
+        return *(get_sa_family() == AF_INET
+                     ? reinterpret_cast<const ip_address *>(&u_sa.m_sa_in.sin_addr)
+                     : reinterpret_cast<const ip_address *>(&u_sa.m_sa_in6.sin6_addr));
     }
 
-    bool is_anyaddr() const {
-        if (get_sa_family() == AF_INET)
-            return m_sa_in.sin_addr.s_addr == INADDR_ANY;
+    in_port_t get_in_port() const
+    {
+        return (get_sa_family() == AF_INET ? u_sa.m_sa_in.sin_port : u_sa.m_sa_in6.sin6_port);
+    }
 
-        return (0 == memcmp(&m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any)));
+    socklen_t get_socklen() const
+    {
+        return static_cast<socklen_t>(get_sa_family() == AF_INET ? sizeof(struct sockaddr_in)
+                                                                 : sizeof(struct sockaddr_in6));
+    }
+
+    bool is_anyaddr() const
+    {
+        if (get_sa_family() == AF_INET) {
+            return u_sa.m_sa_in.sin_addr.s_addr == INADDR_ANY;
+        }
+
+        return (0 == memcmp(&u_sa.m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any)));
     };
 
-    bool is_mc() const {
-        if (get_sa_family() == AF_INET)
-            return IN_MULTICAST_N(m_sa_in.sin_addr.s_addr);
+    bool is_mc() const { return get_ip_addr().is_mc(); };
 
-        return false; // [TODO IPV6] Implement for IPv6
-    };
-
-    void set_sockaddr(const struct sockaddr *sa, socklen_t size) {
+    void set_sockaddr(const struct sockaddr *sa, socklen_t size)
+    {
         clear_sa();
-        memcpy(&m_sa, sa, std::min<size_t>(get_socklen_max(), size));
+        memcpy(&u_sa.m_sa, sa, std::min<size_t>(get_socklen_max(), size));
     }
 
-    void set_any(sa_family_t f) {
+    void set_any(sa_family_t f)
+    {
         clear_sa();
-        m_sa.sa_family = f;
+        u_sa.m_sa.sa_family = f;
 
         if (AF_INET == f) {
-            m_sa_in.sin_addr.s_addr = INADDR_ANY;
-            m_sa_in.sin_port = INPORT_ANY;
+            u_sa.m_sa_in.sin_addr.s_addr = INADDR_ANY;
+            u_sa.m_sa_in.sin_port = INPORT_ANY;
         } else {
-            memcpy(&m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-            m_sa_in6.sin6_port = INPORT_ANY;
+            memcpy(&u_sa.m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any));
+            u_sa.m_sa_in6.sin6_port = INPORT_ANY;
         }
     }
 
-    void set_ip_port(sa_family_t f, const void* ip_addr, in_port_t p) {
+    void set_ip_port(sa_family_t f, const void *ip_addr, in_port_t p)
+    {
         clear_sa();
-        m_sa.sa_family = f;
+        u_sa.m_sa.sa_family = f;
 
         if (AF_INET == f) {
-            m_sa_in.sin_addr = *reinterpret_cast<const struct in_addr*>(ip_addr);
-            m_sa_in.sin_port = p;
+            u_sa.m_sa_in.sin_addr = *reinterpret_cast<const struct in_addr *>(ip_addr);
+            u_sa.m_sa_in.sin_port = p;
         } else {
-            m_sa_in6.sin6_addr = *reinterpret_cast<const struct in6_addr*>(ip_addr);
-            m_sa_in6.sin6_port = p;
+            u_sa.m_sa_in6.sin6_addr = *reinterpret_cast<const struct in6_addr *>(ip_addr);
+            u_sa.m_sa_in6.sin6_port = p;
         }
     }
 
-    void set_in_addr(const ip_address& ip) { 
-        if (get_sa_family() == AF_INET)
-            m_sa_in.sin_addr = reinterpret_cast<const in_addr&>(ip);
-        else
-            m_sa_in6.sin6_addr = reinterpret_cast<const in6_addr&>(ip);
+    void set_in_addr(const ip_address &ip)
+    {
+        if (get_sa_family() == AF_INET) {
+            u_sa.m_sa_in.sin_addr = reinterpret_cast<const in_addr &>(ip);
+        } else {
+            u_sa.m_sa_in6.sin6_addr = reinterpret_cast<const in6_addr &>(ip);
+        }
     }
 
-    sock_addr &operator=(const sock_addr &other) { m_sa_in6 = other.m_sa_in6; return *this; }
+    sock_addr &operator=(const sock_addr &other)
+    {
+        u_sa.m_sa_in6 = other.u_sa.m_sa_in6;
+        return *this;
+    }
 
-    bool operator==(const sock_addr &other) const {
-        return (0 == memcmp(&m_sa_in6, &other.m_sa_in6, get_socklen_max()));
+    bool operator==(const sock_addr &other) const
+    {
+        return (0 == memcmp(&u_sa, &other.u_sa, get_socklen_max()));
     }
 
     size_t hash(void) const
     {
         uint8_t csum = 0;
-        const uint8_t *pval = reinterpret_cast<const uint8_t*>(this);
+        const uint8_t *pval = reinterpret_cast<const uint8_t *>(this);
         socklen_t sockaddr_size = get_socklen();
         for (socklen_t i = 0; i < sockaddr_size; ++i, ++pval) {
             csum ^= *pval;
@@ -193,21 +202,20 @@ public:
         return csum;
     }
 
-    std::string to_str_port() const { return sockport2str(&m_sa); }
+    std::string to_str_port() const { return sockport2str(&u_sa.m_sa); }
 
-    std::string to_str_ip_port(bool port = false) const { return sockaddr2str(&m_sa, port); }
+    std::string to_str_ip_port(bool port = false) const { return sockaddr2str(&u_sa.m_sa, port); }
 
 private:
-
-    void clear_sa() { memset(&m_sa_in6, 0, get_socklen_max()); }
+    void clear_sa() { memset(&u_sa, 0, get_socklen_max()); }
 
     size_t get_socklen_max() const { return sizeof(struct sockaddr_in6); };
-    
+
     union {
-        struct sockaddr     m_sa;
-        struct sockaddr_in  m_sa_in;
+        struct sockaddr m_sa;
+        struct sockaddr_in m_sa_in;
         struct sockaddr_in6 m_sa_in6;
-    };
+    } u_sa;
 };
 
 #endif /*SOCK_ADDR_H*/

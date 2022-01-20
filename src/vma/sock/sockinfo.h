@@ -357,8 +357,8 @@ protected:
 
     bool attach_receiver(flow_tuple_with_local_if &flow_key);
     bool detach_receiver(flow_tuple_with_local_if &flow_key);
-    net_device_resources_t *create_nd_resources(const ip_address ip_local);
-    bool destroy_nd_resources(const ip_address ip_local);
+    net_device_resources_t *create_nd_resources(const ip_address &ip_local);
+    bool destroy_nd_resources(const ip_address &ip_local);
     void do_rings_migration(resource_allocation_key &old_key);
     int set_ring_attr(xlio_ring_alloc_logic_attr *attr);
     int set_ring_attr_helper(ring_alloc_logic_attr *sock_attr, xlio_ring_alloc_logic_attr *attr);

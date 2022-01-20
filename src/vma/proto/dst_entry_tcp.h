@@ -44,7 +44,7 @@ typedef struct tcp_iovec {
 
 class dst_entry_tcp : public dst_entry {
 public:
-    dst_entry_tcp(in_addr_t dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &data,
+    dst_entry_tcp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &data,
                   resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_tcp();
 

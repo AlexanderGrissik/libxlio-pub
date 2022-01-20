@@ -117,7 +117,8 @@ public:
     virtual ~cache_table_mgr();
 
     /* Returns pointer to the subject */
-    bool register_observer(IN Key, IN const cache_observer *, OUT cache_entry_subject<Key, Val> **);
+    bool register_observer(IN const Key &, IN const cache_observer *,
+                           OUT cache_entry_subject<Key, Val> **);
     bool unregister_observer(IN Key, IN const cache_observer *);
     void print_tbl();
     cache_entry_subject<Key, Val> *get_entry(IN Key);
@@ -237,7 +238,8 @@ void cache_table_mgr<Key, Val>::handle_timer_expired(void *user_data)
 }
 
 template <typename Key, typename Val>
-bool cache_table_mgr<Key, Val>::register_observer(IN Key key, IN const cache_observer *new_observer,
+bool cache_table_mgr<Key, Val>::register_observer(IN const Key &key,
+                                                  IN const cache_observer *new_observer,
                                                   OUT cache_entry_subject<Key, Val> **cache_entry)
 {
     if (new_observer == NULL) {

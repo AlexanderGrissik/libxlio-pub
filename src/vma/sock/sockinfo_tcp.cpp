@@ -626,7 +626,7 @@ void sockinfo_tcp::create_dst_entry()
     if (!m_p_connected_dst_entry) {
         socket_data data = {m_fd, m_n_uc_ttl, m_pcb.tos, m_pcp};
         m_p_connected_dst_entry =
-            new dst_entry_tcp(m_connected.get_ip_addr().get_in_addr(), m_connected.get_in_port(),
+            new dst_entry_tcp(m_connected.get_ip_addr(), m_connected.get_in_port(),
                               m_bound.get_in_port(), data, m_ring_alloc_log_tx);
 
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -1791,8 +1791,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
     mem_buf_desc_t *p_curr_desc = p_first_desc;
 
     pbuf *p_curr_buff = p;
-    conn->m_connected.get_sa(
-        reinterpret_cast<sockaddr*>(&p_first_desc->rx.src), static_cast<socklen_t>(sizeof(p_first_desc->rx.src)));
+    conn->m_connected.get_sa(reinterpret_cast<sockaddr *>(&p_first_desc->rx.src),
+                             static_cast<socklen_t>(sizeof(p_first_desc->rx.src)));
 
     // We go over the p_first_desc again, so decrement what we did in rx_input_cb.
     conn->m_socket_stats.strq_counters.n_strq_total_strides -=
@@ -3004,10 +3004,12 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
     child->m_p_socket_stats->bound_if = child->m_bound.get_ip_addr().get_in_addr();
     child->m_p_socket_stats->bound_port = child->m_bound.get_in_port();
 
-    xlio_socketxtreme_completion_t& parent_compl =
-        (child->m_socketxtreme.completion ? *parent->m_socketxtreme.completion : parent->m_socketxtreme.ec.completion);
+    xlio_socketxtreme_completion_t &parent_compl =
+        (child->m_socketxtreme.completion ? *parent->m_socketxtreme.completion
+                                          : parent->m_socketxtreme.ec.completion);
 
-    child->m_connected.get_sa(reinterpret_cast<sockaddr*>(&parent_compl.src), static_cast<socklen_t>(sizeof(parent_compl.src)));
+    child->m_connected.get_sa(reinterpret_cast<sockaddr *>(&parent_compl.src),
+                              static_cast<socklen_t>(sizeof(parent_compl.src)));
 
     /* Update vma_completion with
      * XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED related data
@@ -4109,15 +4111,16 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                      * Note:
                      * This inconsistency should be resolved.
                      */
-                    ip_address local_ip(m_so_bindtodevice_ip);
+                    sock_addr local_ip(reinterpret_cast<const struct sockaddr *>(&sockaddr),
+                                       static_cast<socklen_t>(sizeof(sockaddr)));
 
                     lock_tcp_con();
                     /* We need to destroy this if attach/detach receiver is not called
                      * just reference counter for p_nd_resources is updated on attach/detach
                      */
-                    if (NULL == create_nd_resources((const ip_address)local_ip)) {
+                    if (NULL == create_nd_resources(local_ip.get_ip_addr())) {
                         si_tcp_logdbg("Failed to get net device resources on ip %s",
-                                      local_ip.to_str().c_str());
+                                      local_ip.to_str_ip_port().c_str());
                     }
                     unlock_tcp_con();
                 }

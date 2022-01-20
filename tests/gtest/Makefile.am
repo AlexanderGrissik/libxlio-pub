@@ -92,6 +92,7 @@ gtest_SOURCES = \
 	mix/mix_base.cc \
 	mix/sg_array.cc \
 	mix/sock_addr.cc \
+	mix/ip_address.cc \
 	mix/mix_list.cc \
 	\
 	tcp/tcp_base.cc \
