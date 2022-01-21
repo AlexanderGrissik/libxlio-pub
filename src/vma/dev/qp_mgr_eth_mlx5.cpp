@@ -557,36 +557,6 @@ inline int qp_mgr_eth_mlx5::fill_inl_segment(sg_array &sga, uint8_t *cur_seg, ui
     return wqe_inline_size;
 }
 
-inline int qp_mgr_eth_mlx5::fill_ptr_segment(sg_array &sga, struct mlx5_wqe_data_seg *dp_seg,
-                                             uint8_t *data_addr, int data_len,
-                                             mem_buf_desc_t *buffer)
-{
-    int wqe_seg_size = 0;
-    int len = data_len;
-
-    // Currently, a maximum of 2 data pointer segments are utilized by
-    // VMA. This is enforced by the dst layer during l2 header
-    // configuration.
-    while ((data_addr != NULL) && data_len) {
-        wqe_seg_size += sizeof(struct mlx5_wqe_data_seg);
-        data_addr = sga.get_data(&len);
-        dp_seg->byte_count = htonl(len);
-
-        // Try to copy data to On Device Memory
-        if (!(m_dm_enabled && m_dm_mgr.copy_data(dp_seg, data_addr, data_len, buffer))) {
-            // Use the registered buffer if copying did not succeed
-            dp_seg->lkey = htonl(sga.get_current_lkey());
-            dp_seg->addr = htonll((uint64_t)data_addr);
-        }
-
-        data_len -= len;
-        qp_logfunc("data_addr:%llx data_len: %d len: %d lkey: %x", data_addr, data_len, len,
-                   dp_seg->lkey);
-        dp_seg++;
-    }
-    return wqe_seg_size;
-}
-
 //! Fill WQE dynamically, based on amount of free WQEBB in SQ
 inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
 {
@@ -776,8 +746,14 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr *pswr)
         }
         if (likely(pswr->sg_list[i].length)) {
             dseg->byte_count = htonl(pswr->sg_list[i].length - sg_copy_ptr_offset);
-            dseg->lkey = htonl(pswr->sg_list[i].lkey);
-            dseg->addr = htonll((uintptr_t)pswr->sg_list[i].addr + sg_copy_ptr_offset);
+            /* Try to copy data to On Device Memory in first */
+            if (!(m_dm_enabled &&
+                  m_dm_mgr.copy_data(
+                      dseg, (uint8_t *)((uintptr_t)pswr->sg_list[i].addr + sg_copy_ptr_offset),
+                      pswr->sg_list[i].length, (mem_buf_desc_t *)pswr->wr_id))) {
+                dseg->lkey = htonl(pswr->sg_list[i].lkey);
+                dseg->addr = htonll((uintptr_t)pswr->sg_list[i].addr + sg_copy_ptr_offset);
+            }
             sg_copy_ptr_offset = 0;
             ++dseg;
             wqe_size += sizeof(struct mlx5_wqe_data_seg) / OCTOWORD;
@@ -785,7 +761,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr *pswr)
     }
 
     m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | wqe_size);
-    ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, align_to_WQEBB_up(wqe_size) / 4);
+    ring_doorbell((uint64_t *)m_sq_wqe_hot, m_db_method, align_to_WQEBB_up(wqe_size) / 4);
 
     return wqe_size;
 }
