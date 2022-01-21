@@ -150,4 +150,15 @@ public:
     transport_type_t m_transport_type;
 };
 
+enum ip_version {
+    IPV4 = 4,
+    IPV6 = 6,
+};
+
+inline static enum ip_version ip_header_version(const void *p_ip_h)
+{
+    // IPv4 and IPv6 headers share the version field.
+    return static_cast<enum ip_version>(reinterpret_cast<const struct iphdr*>(p_ip_h)->version);
+}
+
 #endif /* HEADER_H */
