@@ -88,7 +88,7 @@ x++;
 y++;
 if (condition) {
     do();
-    }
+}
 ```
 **Wrong:**
 ```
@@ -154,7 +154,7 @@ for (int i = 0; i < 10; ++i)
 ```
 if (condition) {
     do();
-    }
+}
 ```
 **Wrong:**
 ```
