@@ -1492,15 +1492,19 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
     struct in_pktinfo in_pktinfo;
     mem_buf_desc_t *p_desc = m_rx_pkt_ready_list.front();
 
-    rx_net_device_map_t::iterator iter = m_rx_nd_map.find(p_desc->rx.udp.local_if);
-    if (iter == m_rx_nd_map.end()) {
-        si_udp_logerr("could not find net device for ip %d.%d.%d.%d",
-                      NIPQUAD(p_desc->rx.udp.local_if));
-        return;
-    }
-    in_pktinfo.ipi_ifindex = iter->second.p_ndv->get_if_idx();
+    in_pktinfo.ipi_ifindex = p_desc->rx.udp.ifindex;
     in_pktinfo.ipi_addr = p_desc->rx.dst.sin_addr;
-    in_pktinfo.ipi_spec_dst.s_addr = p_desc->rx.udp.local_if;
+    if (!(IN_MULTICAST_N(p_desc->rx.dst.sin_addr.s_addr))) {
+        in_pktinfo.ipi_spec_dst = in_pktinfo.ipi_addr;
+    } else {
+        in_pktinfo.ipi_spec_dst.s_addr = 0;
+        for (auto iter = m_rx_nd_map.begin(); iter != m_rx_nd_map.end(); ++iter) {
+            if (iter->second.p_ndv->get_if_idx() == in_pktinfo.ipi_ifindex) {
+                in_pktinfo.ipi_spec_dst.s_addr = iter->first;
+                break;
+            }
+        }
+    }
     insert_cmsg(cm_state, IPPROTO_IP, IP_PKTINFO, &in_pktinfo, sizeof(struct in_pktinfo));
 }
 
@@ -1965,6 +1969,14 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
                    m_p_socket_stats->n_rx_ready_byte_count);
 }
 
+bool sockinfo_udp::packet_is_loopback(mem_buf_desc_t *p_desc)
+{
+    // TODO Add IPv6 support.
+    auto iter = m_rx_nd_map.find(p_desc->rx.src.sin_addr.s_addr);
+    return (iter != m_rx_nd_map.end()) &&
+           (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
+}
+
 bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
 {
     if (unlikely((m_state == SOCKINFO_DESTROYING) || g_b_exit)) {
@@ -2019,8 +2031,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
          * in linux, loopback control (set by setsockopt) is done in TX flow.
          * since we currently can't control it in TX, we behave like windows, which filter on RX
          */
-        if (unlikely(!m_b_mc_tx_loop &&
-                     p_desc->rx.udp.local_if == p_desc->rx.src.sin_addr.s_addr)) {
+        if (unlikely(!m_b_mc_tx_loop && packet_is_loopback(p_desc))) {
             si_udp_logfunc(
                 "rx packet discarded - loopback is disabled (pkt: [%d:%d:%d:%d], sock:%s)",
                 NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_bound.to_str_ip_port().c_str());

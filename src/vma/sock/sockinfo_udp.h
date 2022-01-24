@@ -213,6 +213,8 @@ private:
     bool m_is_connected; // to inspect for in_addr.src
     bool m_multicast; // true when socket set MC rule
 
+    bool packet_is_loopback(mem_buf_desc_t *p_desc);
+
     int mc_change_membership(const mc_pending_pram *p_mc_pram);
     int mc_change_membership_start_helper(in_addr_t mc_grp, int optname);
     int mc_change_membership_end_helper(in_addr_t mc_grp, int optname, in_addr_t mc_src = 0);

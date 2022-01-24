@@ -117,7 +117,7 @@ public:
                     size_t n_transport_header_len;
                 } tcp;
                 struct {
-                    in_addr_t local_if; // L3 info
+                    int ifindex; // Incoming interface index
                 } udp;
             };
 

@@ -70,7 +70,6 @@ ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
 
     /* Configure ring_slave() fields */
     m_transport_type = p_ndev->get_transport_type();
-    m_local_if = p_ndev->get_local_addr();
 
     /* Set the same ring active status as related slave has for all ring types
      * excluding ring with type RING_TAP that does not have related slave device.
@@ -649,7 +648,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - ip_hdr_len - sizeof(struct udphdr);
                 p_rx_wc_buf_desc->rx.sz_payload = ntohs(p_udp_h->len) - sizeof(struct udphdr);
 
-                p_rx_wc_buf_desc->rx.udp.local_if = m_local_if;
+                p_rx_wc_buf_desc->rx.udp.ifindex = m_parent->get_if_index();
                 p_rx_wc_buf_desc->rx.n_frags = 1;
 
                 ring_logfunc("FAST PATH Rx UDP datagram info: src_port=%d, dst_port=%d, "
@@ -825,14 +824,6 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         return false; // false ip checksum
     }
 
-// We want to enable loopback between processes for IB
-#if 0
-	//AlexV: We don't support Tx MC Loopback today!
-	if (p_ip_h->saddr == m_local_if) {
-		ring_logfunc("Rx udp datagram discarded - mc loop disabled");
-		return false;
-	}
-#endif
     rfs *p_rfs = NULL;
 
     // Update the L3 info
@@ -865,7 +856,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         p_rx_wc_buf_desc->rx.sz_payload = sz_payload;
 
         // Update the protocol info
-        p_rx_wc_buf_desc->rx.udp.local_if = m_local_if;
+        p_rx_wc_buf_desc->rx.udp.ifindex = m_parent->get_if_index();
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
         if (!(IN_MULTICAST_N(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr))) { // This is UDP UC packet
