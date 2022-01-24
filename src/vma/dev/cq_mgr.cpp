@@ -635,10 +635,10 @@ void cq_mgr::reclaim_recv_buffer_helper(mem_buf_desc_t *buff)
                 temp = buff;
                 assert(temp->lwip_pbuf.pbuf.type != PBUF_ZEROCOPY);
                 buff = temp->p_next_desc;
+                temp->clear_transport_data();
                 temp->p_next_desc = NULL;
                 temp->p_prev_desc = NULL;
                 temp->reset_ref_count();
-                memset(&temp->rx, 0, sizeof(temp->rx));
                 free_lwip_pbuf(&temp->lwip_pbuf);
                 m_rx_pool.push_back(temp);
             }

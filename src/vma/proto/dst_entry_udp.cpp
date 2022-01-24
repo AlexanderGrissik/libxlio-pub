@@ -116,7 +116,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
         m_header.m_header.hdr.m_udp_hdr.len = htons((uint16_t)sz_udp_payload);
         m_header.m_header.hdr.m_ip_hdr.tot_len = htons(m_header.m_ip_header_len + sz_udp_payload);
 
-        p_mem_buf_desc->tx.p_ip_h = &m_header.m_header.hdr.m_ip_hdr;
+        p_mem_buf_desc->tx.p_ip4_h = &m_header.m_header.hdr.m_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = &m_header.m_header.hdr.m_udp_hdr;
 
         // m_sge[0].addr  already points to the header
@@ -144,7 +144,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
         p_pkt->hdr.m_ip_hdr.id = 0;
         p_pkt->hdr.m_ip_hdr.tot_len = htons(m_header.m_ip_header_len + sz_udp_payload);
 
-        p_mem_buf_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = &p_pkt->hdr.m_udp_hdr;
 
         // Update the payload addr + len
@@ -283,7 +283,7 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
         BULLSEYE_EXCLUDE_BLOCK_END
 
         attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_SW_CSUM);
-        p_mem_buf_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = &p_pkt->hdr.m_udp_hdr;
 
         m_sge[1].addr =

@@ -315,10 +315,10 @@ bool ring_tap::reclaim_recv_buffers(mem_buf_desc_t *buff)
             if (buff->lwip_pbuf_dec_ref_count() <= 0) {
                 temp = buff;
                 buff = temp->p_next_desc;
+                temp->clear_transport_data();
                 temp->p_next_desc = NULL;
                 temp->p_prev_desc = NULL;
                 temp->reset_ref_count();
-                memset(&temp->rx, 0, sizeof(temp->rx));
                 free_lwip_pbuf(&temp->lwip_pbuf);
                 m_rx_pool.push_back(temp);
             } else {

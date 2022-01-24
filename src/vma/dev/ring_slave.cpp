@@ -43,6 +43,9 @@
 #undef MODULE_HDR
 #define MODULE_HDR MODULE_NAME "%d:%s() "
 
+// AF_INET address 0.0.0.0:0, used for 3T flow spec keys.
+static const sock_addr s_sock_addrany;
+
 ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     : ring()
     , m_lock_ring_rx("ring_slave:lock_rx")
@@ -602,20 +605,15 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + ip_hdr_len);
 
                 // Update the L3 and L4 info
-                p_rx_wc_buf_desc->rx.src.sin_family = AF_INET;
-                p_rx_wc_buf_desc->rx.src.sin_port = p_tcp_h->source;
-                p_rx_wc_buf_desc->rx.src.sin_addr.s_addr = p_ip_h->saddr;
-
-                p_rx_wc_buf_desc->rx.dst.sin_family = AF_INET;
-                p_rx_wc_buf_desc->rx.dst.sin_port = p_tcp_h->dest;
-                p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr = p_ip_h->daddr;
+                p_rx_wc_buf_desc->rx.src.set_ip_port(AF_INET, &p_ip_h->saddr, p_tcp_h->source);
+                p_rx_wc_buf_desc->rx.dst.set_ip_port(AF_INET, &p_ip_h->daddr, p_tcp_h->dest);
 
                 // Update packet descriptor with datagram base address and length
                 p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_tcp_h + sizeof(struct tcphdr);
                 p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - ip_hdr_len - sizeof(struct tcphdr);
                 p_rx_wc_buf_desc->rx.sz_payload = ip_tot_len - ip_hdr_len - p_tcp_h->doff * 4;
 
-                p_rx_wc_buf_desc->rx.tcp.p_ip_h = p_ip_h;
+                p_rx_wc_buf_desc->rx.tcp.p_ip4_h = p_ip_h;
                 p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
                 p_rx_wc_buf_desc->rx.tcp.n_transport_header_len = transport_header_len;
                 p_rx_wc_buf_desc->rx.n_frags = 1;
@@ -635,13 +633,8 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_udp_h = (struct udphdr *)((uint8_t *)p_ip_h + ip_hdr_len);
 
                 // Update the L3 and L4 info
-                p_rx_wc_buf_desc->rx.src.sin_family = AF_INET;
-                p_rx_wc_buf_desc->rx.src.sin_port = p_udp_h->source;
-                p_rx_wc_buf_desc->rx.src.sin_addr.s_addr = p_ip_h->saddr;
-
-                p_rx_wc_buf_desc->rx.dst.sin_family = AF_INET;
-                p_rx_wc_buf_desc->rx.dst.sin_port = p_udp_h->dest;
-                p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr = p_ip_h->daddr;
+                p_rx_wc_buf_desc->rx.src.set_ip_port(AF_INET, &p_ip_h->saddr, p_udp_h->source);
+                p_rx_wc_buf_desc->rx.dst.set_ip_port(AF_INET, &p_ip_h->daddr, p_udp_h->dest);
 
                 // Update packet descriptor with datagram base address and length
                 p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_udp_h + sizeof(struct udphdr);
@@ -762,11 +755,10 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     n_frag_offset = (ip_frag_off & FRAGMENT_OFFSET) * 8;
 
     ring_logfunc("Rx ip packet info: dst=%d.%d.%d.%d, src=%d.%d.%d.%d, packet_sz=%d, offset=%d, "
-                 "id=%d, proto=%s[%d] (local if: %d.%d.%d.%d)",
+                 "id=%d, proto=%s[%d]",
                  NIPQUAD(p_ip_h->daddr), NIPQUAD(p_ip_h->saddr),
                  (sz_data > ip_tot_len ? ip_tot_len : sz_data), n_frag_offset, ntohs(p_ip_h->id),
-                 iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol,
-                 NIPQUAD(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr));
+                 iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol);
 
     // Check that the ip datagram has at least the udp header size for the first ip fragment
     // (besides the ip header)
@@ -826,11 +818,9 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
 
     rfs *p_rfs = NULL;
 
-    // Update the L3 info
-    p_rx_wc_buf_desc->rx.src.sin_family = AF_INET;
-    p_rx_wc_buf_desc->rx.src.sin_addr.s_addr = p_ip_h->saddr;
-    p_rx_wc_buf_desc->rx.dst.sin_family = AF_INET;
-    p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr = p_ip_h->daddr;
+    // L3 info
+    const struct in_addr *saddr = reinterpret_cast<const struct in_addr *>(&p_ip_h->saddr);
+    const struct in_addr *daddr = reinterpret_cast<const struct in_addr *>(&p_ip_h->daddr);
 
     switch (p_ip_h->protocol) {
     case IPPROTO_UDP: {
@@ -850,35 +840,26 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         ring_logfunc("Rx udp datagram info: src_port=%d, dst_port=%d, payload_sz=%d, csum=%#x",
                      ntohs(p_udp_h->source), ntohs(p_udp_h->dest), sz_payload, p_udp_h->check);
 
-        // Update the L4 info
-        p_rx_wc_buf_desc->rx.src.sin_port = p_udp_h->source;
-        p_rx_wc_buf_desc->rx.dst.sin_port = p_udp_h->dest;
+        // Update the L3/L4 info
+        p_rx_wc_buf_desc->rx.src.set_ip_port(AF_INET, saddr, p_udp_h->source);
+        p_rx_wc_buf_desc->rx.dst.set_ip_port(AF_INET, daddr, p_udp_h->dest);
         p_rx_wc_buf_desc->rx.sz_payload = sz_payload;
 
         // Update the protocol info
         p_rx_wc_buf_desc->rx.udp.ifindex = m_parent->get_if_index();
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
-        if (!(IN_MULTICAST_N(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr))) { // This is UDP UC packet
-            p_rfs =
-                m_flow_udp_uc_map.get(flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr,
-                                                         p_rx_wc_buf_desc->rx.src.sin_addr.s_addr,
-                                                         p_rx_wc_buf_desc->rx.dst.sin_port,
-                                                         p_rx_wc_buf_desc->rx.src.sin_port),
-                                      NULL);
+        if (!p_rx_wc_buf_desc->rx.dst.is_mc()) { // This is UDP UC packet
+            p_rfs = m_flow_udp_uc_map.get(
+                flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src), NULL);
 
             // If we didn't find a match for 5T, look for a match with 3T
             if (unlikely(p_rfs == NULL)) {
                 p_rfs = m_flow_udp_uc_map.get(
-                    flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr, 0,
-                                       p_rx_wc_buf_desc->rx.dst.sin_port, 0),
-                    NULL);
+                    flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst, s_sock_addrany), NULL);
             }
         } else { // This is UDP MC packet
-            p_rfs =
-                m_flow_udp_mc_map.get(flow_spec_2t_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr,
-                                                         p_rx_wc_buf_desc->rx.dst.sin_port),
-                                      NULL);
+            p_rfs = m_flow_udp_mc_map.get(flow_spec_2t_key_t(p_rx_wc_buf_desc->rx.dst), NULL);
         }
     } break;
 
@@ -903,27 +884,23 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_tcp_h + sizeof(struct tcphdr);
         p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - ip_hdr_len - sizeof(struct tcphdr);
 
-        // Update the L4 info
-        p_rx_wc_buf_desc->rx.src.sin_port = p_tcp_h->source;
-        p_rx_wc_buf_desc->rx.dst.sin_port = p_tcp_h->dest;
+        // Update the L3/L4 info
+        p_rx_wc_buf_desc->rx.src.set_ip_port(AF_INET, saddr, p_tcp_h->source);
+        p_rx_wc_buf_desc->rx.dst.set_ip_port(AF_INET, daddr, p_tcp_h->dest);
         p_rx_wc_buf_desc->rx.sz_payload = sz_payload;
 
         // Update the protocol info
         p_rx_wc_buf_desc->rx.tcp.n_transport_header_len = transport_header_len;
-        p_rx_wc_buf_desc->rx.tcp.p_ip_h = p_ip_h;
+        p_rx_wc_buf_desc->rx.tcp.p_ip4_h = p_ip_h;
         p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
-        p_rfs = m_flow_tcp_map.get(flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr,
-                                                      p_rx_wc_buf_desc->rx.src.sin_addr.s_addr,
-                                                      p_rx_wc_buf_desc->rx.dst.sin_port,
-                                                      p_rx_wc_buf_desc->rx.src.sin_port),
-                                   NULL);
+        p_rfs = m_flow_tcp_map.get(
+            flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src), NULL);
 
         // If we didn't find a match for 5T, look for a match with 3T
         if (unlikely(p_rfs == NULL)) {
-            p_rfs = m_flow_tcp_map.get(flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr,
-                                                          0, p_rx_wc_buf_desc->rx.dst.sin_port, 0),
+            p_rfs = m_flow_tcp_map.get(flow_spec_4t_key_t(p_rx_wc_buf_desc->rx.dst, s_sock_addrany),
                                        NULL);
         }
     } break;
@@ -933,12 +910,9 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
         return false;
     }
     if (unlikely(p_rfs == NULL)) {
-        ring_logdbg("Rx packet dropped - rfs object not found: dst:%d.%d.%d.%d:%d, "
-                    "src%d.%d.%d.%d:%d, proto=%s[%d]",
-                    NIPQUAD(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr),
-                    ntohs(p_rx_wc_buf_desc->rx.dst.sin_port),
-                    NIPQUAD(p_rx_wc_buf_desc->rx.src.sin_addr.s_addr),
-                    ntohs(p_rx_wc_buf_desc->rx.src.sin_port),
+        ring_logdbg("Rx packet dropped - rfs object not found: dst=%s, src=%s, proto=%s[%d]",
+                    p_rx_wc_buf_desc->rx.dst.to_str_ip_port().c_str(),
+                    p_rx_wc_buf_desc->rx.src.to_str_ip_port().c_str(),
                     iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol);
 
         return false;

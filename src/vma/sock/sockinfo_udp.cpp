@@ -1400,8 +1400,7 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
             if (__msg) {
                 handle_cmsg(__msg, in_flags);
             }
-            ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags,
-                                 &out_flags);
+            ret = dequeue_packet(p_iov, sz_iov, __from, __fromlen, in_flags, &out_flags);
             goto out;
         }
         /* coverity[double_unlock] TODO: RM#1049980 */
@@ -1423,8 +1422,7 @@ wait:
             if (__msg) {
                 handle_cmsg(__msg, in_flags);
             }
-            ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags,
-                                 &out_flags);
+            ret = dequeue_packet(p_iov, sz_iov, __from, __fromlen, in_flags, &out_flags);
             goto out;
         } else {
             m_lock_rcv.unlock();
@@ -1492,9 +1490,14 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
     struct in_pktinfo in_pktinfo;
     mem_buf_desc_t *p_desc = m_rx_pkt_ready_list.front();
 
+    // ip_pktinfo is IPv4 only. See IPV6_RECVPKTINFO option and in6_pktinfo structure for IPv6.
+    if (!p_desc || p_desc->rx.dst.get_sa_family() != AF_INET) {
+        return;
+    }
+
     in_pktinfo.ipi_ifindex = p_desc->rx.udp.ifindex;
-    in_pktinfo.ipi_addr = p_desc->rx.dst.sin_addr;
-    if (!(IN_MULTICAST_N(p_desc->rx.dst.sin_addr.s_addr))) {
+    in_pktinfo.ipi_addr.s_addr = p_desc->rx.dst.get_ip_addr().get_in_addr();
+    if (!p_desc->rx.dst.is_mc()) {
         in_pktinfo.ipi_spec_dst = in_pktinfo.ipi_addr;
     } else {
         in_pktinfo.ipi_spec_dst.s_addr = 0;
@@ -1865,8 +1868,8 @@ inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc
 
     pkt_info.struct_sz = sizeof(pkt_info);
     pkt_info.packet_id = (void *)p_desc;
-    pkt_info.src = &p_desc->rx.src;
-    pkt_info.dst = &p_desc->rx.dst;
+    pkt_info.src = p_desc->rx.src.get_p_sa();
+    pkt_info.dst = p_desc->rx.dst.get_p_sa();
     pkt_info.socket_ready_queue_pkt_count = m_p_socket_stats->n_rx_ready_pkt_count;
     pkt_info.socket_ready_queue_byte_count = m_p_socket_stats->n_rx_ready_byte_count;
 
@@ -1896,6 +1899,9 @@ inline void sockinfo_udp::fill_completion(mem_buf_desc_t *p_desc)
 {
     struct xlio_socketxtreme_completion_t *completion;
 
+    // xlio_socketxtreme_completion_t is IPv4 only.
+    assert(p_desc->rx.src.get_sa_family() == AF_INET);
+
     /* Try to process socketxtreme_poll() completion directly */
     m_socketxtreme.completion = m_p_rx_ring->get_comp();
 
@@ -1907,7 +1913,8 @@ inline void sockinfo_udp::fill_completion(mem_buf_desc_t *p_desc)
 
     completion->packet.num_bufs = p_desc->rx.n_frags;
     completion->packet.total_len = 0;
-    completion->src = p_desc->rx.src;
+    p_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
+                          sizeof(completion->src));
 
     if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
         completion->packet.hw_timestamp = p_desc->rx.timestamps.hw;
@@ -1972,9 +1979,9 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
 bool sockinfo_udp::packet_is_loopback(mem_buf_desc_t *p_desc)
 {
     // TODO Add IPv6 support.
-    auto iter = m_rx_nd_map.find(p_desc->rx.src.sin_addr.s_addr);
+    auto iter = m_rx_nd_map.find(p_desc->rx.src.get_ip_addr().get_in_addr());
     return (iter != m_rx_nd_map.end()) &&
-           (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
+        (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
 }
 
 bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
@@ -2003,24 +2010,24 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
      * If the user requests to bind the new socket to the same port number as the old one it will be
      * impossible to identify packets designated for the old socket in this way.
      */
-    if (unlikely(p_desc->rx.dst.sin_port != m_bound.get_in_port())) {
-        si_udp_logfunc("rx packet discarded - not socket's bound port (pkt: %d, sock:%s)",
-                       ntohs(p_desc->rx.dst.sin_port), m_bound.to_str_port().c_str());
+    if (unlikely(p_desc->rx.dst.get_in_port() != m_bound.get_in_port())) {
+        si_udp_logfunc("rx packet discarded - not socket's bound port (pkt: %s, sock: %s)",
+                       p_desc->rx.dst.to_str_port().c_str(), m_bound.to_str_port().c_str());
         return false;
     }
 
     /* Inspects UDP packets in case socket was connected */
     if (m_is_connected && (m_connected.get_in_port() != INPORT_ANY) && !m_connected.is_anyaddr()) {
-        if (unlikely(m_connected.get_in_port() != p_desc->rx.src.sin_port)) {
-            si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %d, sock:%s)",
-                           ntohs(p_desc->rx.src.sin_port), m_connected.to_str_port().c_str());
+        if (unlikely(m_connected.get_in_port() != p_desc->rx.src.get_in_port())) {
+            si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %s, sock: %s)",
+                           p_desc->rx.src.to_str_port().c_str(), m_connected.to_str_port().c_str());
             return false;
         }
 
-        if (unlikely(m_connected.get_ip_addr().get_in_addr() != p_desc->rx.src.sin_addr.s_addr)) {
+        if (unlikely(m_connected.get_ip_addr() != p_desc->rx.src.get_ip_addr())) {
             si_udp_logfunc(
-                "rx packet discarded - not socket's connected port (pkt: [%d:%d:%d:%d], sock:[%s])",
-                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_connected.to_str_ip_port().c_str());
+                "rx packet discarded - not socket's connected addr (pkt: [%s], sock: [%s])",
+                p_desc->rx.src.to_str_ip_port().c_str(), m_connected.to_str_ip_port().c_str());
             return false;
         }
     }
@@ -2032,15 +2039,15 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
          * since we currently can't control it in TX, we behave like windows, which filter on RX
          */
         if (unlikely(!m_b_mc_tx_loop && packet_is_loopback(p_desc))) {
-            si_udp_logfunc(
-                "rx packet discarded - loopback is disabled (pkt: [%d:%d:%d:%d], sock:%s)",
-                NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_bound.to_str_ip_port().c_str());
+            si_udp_logfunc("rx packet discarded - loopback is disabled (pkt: [%s], sock: [%s])",
+                           p_desc->rx.src.to_str_ip_port().c_str(),
+                           m_bound.to_str_ip_port().c_str());
             return false;
         }
         if (m_mc_num_grp_with_src_filter) {
-            in_addr_t mc_grp = p_desc->rx.dst.sin_addr.s_addr;
+            in_addr_t mc_grp = p_desc->rx.dst.get_ip_addr().get_in_addr();
             if (IN_MULTICAST_N(mc_grp)) {
-                in_addr_t mc_src = p_desc->rx.src.sin_addr.s_addr;
+                in_addr_t mc_src = p_desc->rx.src.get_ip_addr().get_in_addr();
 
                 if ((m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) ||
                     ((0 < m_mc_memberships_map[mc_grp].size()) &&
@@ -2077,7 +2084,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
                 continue;
             }
             m_port_map_lock.unlock();
-            p_desc->rx.dst.sin_port = new_port;
+            p_desc->rx.dst.set_in_port(new_port);
             return ((sockinfo_udp *)sock_api)->rx_input_cb(p_desc, pv_fd_ready_array);
         }
     }

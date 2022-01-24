@@ -64,7 +64,7 @@ rfs_uc_tcp_gro::rfs_uc_tcp_gro(flow_tuple *flow_spec_5t, ring_slave *p_ring,
 bool rfs_uc_tcp_gro::rx_dispatch_packet(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info,
                                         void *pv_fd_ready_array /* = NULL */)
 {
-    struct iphdr *p_ip_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_ip_h;
+    struct iphdr *p_ip_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_ip4_h;
     struct tcphdr *p_tcp_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_tcp_h;
 
     if (!m_b_active) {

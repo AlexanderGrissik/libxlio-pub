@@ -158,7 +158,7 @@ enum ip_version {
 inline static enum ip_version ip_header_version(const void *p_ip_h)
 {
     // IPv4 and IPv6 headers share the version field.
-    return static_cast<enum ip_version>(reinterpret_cast<const struct iphdr*>(p_ip_h)->version);
+    return static_cast<enum ip_version>(reinterpret_cast<const struct iphdr *>(p_ip_h)->version);
 }
 
 #endif /* HEADER_H */

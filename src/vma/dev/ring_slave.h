@@ -36,6 +36,7 @@
 #include "ring.h"
 
 #include "vma/dev/net_device_table_mgr.h"
+#include "vma/util/sock_addr.h"
 
 class rfs;
 
@@ -43,11 +44,14 @@ typedef struct __attribute__((packed)) flow_spec_2t_key_t {
     in_addr_t dst_ip;
     in_port_t dst_port;
 
-    flow_spec_2t_key_t() { flow_spec_2t_key_helper(INADDR_ANY, INPORT_ANY); } // Default constructor
-    flow_spec_2t_key_t(in_addr_t d_ip, in_addr_t d_port)
+    flow_spec_2t_key_t() { flow_spec_2t_key_helper(INADDR_ANY, INPORT_ANY); }
+    flow_spec_2t_key_t(in_addr_t d_ip, in_addr_t d_port) { flow_spec_2t_key_helper(d_ip, d_port); }
+
+    flow_spec_2t_key_t(const sock_addr &dst)
     {
-        flow_spec_2t_key_helper(d_ip, d_port);
-    } // Constructor
+        flow_spec_2t_key_helper(dst.get_ip_addr().get_in_addr(), dst.get_in_port());
+    }
+
     void flow_spec_2t_key_helper(in_addr_t d_ip, in_addr_t d_port)
     {
         memset(this, 0, sizeof(*this)); // Silencing coverity
@@ -65,11 +69,19 @@ typedef struct __attribute__((packed)) flow_spec_4t_key_t {
     flow_spec_4t_key_t()
     {
         flow_spec_4t_key_helper(INADDR_ANY, INADDR_ANY, INPORT_ANY, INPORT_ANY);
-    } // Default constructor
+    }
+
     flow_spec_4t_key_t(in_addr_t d_ip, in_addr_t s_ip, in_addr_t d_port, in_addr_t s_port)
     {
         flow_spec_4t_key_helper(d_ip, s_ip, d_port, s_port);
-    } // Constructor
+    }
+
+    flow_spec_4t_key_t(const sock_addr &dst, const sock_addr &src)
+    {
+        flow_spec_4t_key_helper(dst.get_ip_addr().get_in_addr(), src.get_ip_addr().get_in_addr(),
+                                dst.get_in_port(), src.get_in_port());
+    }
+
     void flow_spec_4t_key_helper(in_addr_t d_ip, in_addr_t s_ip, in_addr_t d_port, in_addr_t s_port)
     {
         memset(this, 0, sizeof(*this)); // Silencing coverity

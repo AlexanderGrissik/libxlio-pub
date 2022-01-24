@@ -180,6 +180,15 @@ public:
         }
     }
 
+    void set_in_port(in_port_t p)
+    {
+        if (AF_INET == get_sa_family()) {
+            u_sa.m_sa_in.sin_port = p;
+        } else {
+            u_sa.m_sa_in6.sin6_port = p;
+        }
+    }
+
     sock_addr &operator=(const sock_addr &other)
     {
         u_sa.m_sa_in6 = other.u_sa.m_sa_in6;

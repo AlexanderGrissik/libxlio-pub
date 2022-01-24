@@ -204,7 +204,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
         }
 
         /* save pointers to ip and tcp headers for software checksum calculation */
-        p_tcp_iov[0].p_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+        p_tcp_iov[0].p_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
         p_tcp_iov[0].p_desc->tx.p_tcp_h =
             (struct tcphdr *)((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr));
 
@@ -277,7 +277,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
         p_pkt = (tx_packet_template_t *)((uint8_t *)p_mem_buf_desc->p_buffer);
         p_pkt->hdr.m_ip_hdr.tot_len = (htons)(m_sge[0].length - m_header.m_transport_header_len);
 
-        p_mem_buf_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
         p_mem_buf_desc->tx.p_tcp_h =
             (struct tcphdr *)((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr));
 

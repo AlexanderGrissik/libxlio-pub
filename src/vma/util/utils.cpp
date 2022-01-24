@@ -204,7 +204,7 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
 {
     // L3
     if (l3_csum) {
-        struct iphdr *ip_hdr = p_mem_buf_desc->tx.p_ip_h;
+        struct iphdr *ip_hdr = p_mem_buf_desc->tx.p_ip4_h;
         ip_hdr->check = 0; // use 0 at csum calculation time
         ip_hdr->check = compute_ip_checksum((unsigned short *)ip_hdr, ip_hdr->ihl * 2);
 

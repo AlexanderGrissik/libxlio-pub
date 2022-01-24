@@ -433,12 +433,6 @@ protected:
         socket_fd_api::notify_epoll_context((uint32_t)events);
     }
 
-    inline void fetch_peer_info(sockaddr_in *p_peer_addr, sockaddr_in *__from, socklen_t *__fromlen)
-    {
-        *__from = *p_peer_addr;
-        *__fromlen = sizeof(sockaddr_in);
-    }
-
     inline void save_strq_stats(uint32_t packet_strides)
     {
         m_socket_stats.strq_counters.n_strq_total_strides += static_cast<uint64_t>(packet_strides);
@@ -446,8 +440,8 @@ protected:
             std::max(m_socket_stats.strq_counters.n_strq_max_strides_per_packet, packet_strides);
     }
 
-    inline int dequeue_packet(iovec *p_iov, ssize_t sz_iov, sockaddr_in *__from,
-                              socklen_t *__fromlen, int in_flags, int *p_out_flags)
+    inline int dequeue_packet(iovec *p_iov, ssize_t sz_iov, sockaddr *__from, socklen_t *__fromlen,
+                              int in_flags, int *p_out_flags)
     {
         mem_buf_desc_t *pdesc;
         int total_rx = 0;
@@ -464,7 +458,8 @@ protected:
         size_t payload_size = pdesc->rx.sz_payload;
 
         if (__from && __fromlen) {
-            fetch_peer_info(&pdesc->rx.src, __from, __fromlen);
+            pdesc->rx.src.get_sa(__from, *__fromlen);
+            *__fromlen = pdesc->rx.src.get_socklen();
         }
 
         if (in_flags & MSG_XLIO_ZCOPY) {

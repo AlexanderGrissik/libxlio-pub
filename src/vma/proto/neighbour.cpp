@@ -494,7 +494,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
             wqe_sh.enable_hw_csum(m_send_wqe);
         }
 
-        p_mem_buf_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = &p_pkt->hdr.m_udp_hdr;
 
         m_sge.addr =
@@ -583,7 +583,7 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
     vma_wr_tx_packet_attr attr =
         (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
-    p_mem_buf_desc->tx.p_ip_h = &p_pkt->hdr.m_ip_hdr;
+    p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
     p_mem_buf_desc->tx.p_tcp_h =
         (struct tcphdr *)(((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr)));
 

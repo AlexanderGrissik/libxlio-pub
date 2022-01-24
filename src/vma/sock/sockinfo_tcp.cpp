@@ -1400,9 +1400,7 @@ bool sockinfo_tcp::process_peer_ctl_packets(vma_desc_list_t &peer_packets)
             return false;
         }
 
-        struct tcp_pcb *pcb =
-            get_syn_received_pcb(desc->rx.src.sin_addr.s_addr, desc->rx.src.sin_port,
-                                 desc->rx.dst.sin_addr.s_addr, desc->rx.dst.sin_port);
+        struct tcp_pcb *pcb = get_syn_received_pcb(desc->rx.src, desc->rx.dst);
 
         // 2.1.2 get the pcb and sockinfo
         if (!pcb) {
@@ -1477,7 +1475,7 @@ void sockinfo_tcp::process_my_ctl_packets()
     // skipped)
     while (!temp_list.empty()) {
         mem_buf_desc_t *desc = temp_list.get_and_pop_front();
-        peer_key pk(desc->rx.src.sin_addr.s_addr, desc->rx.src.sin_port);
+        peer_key pk(desc->rx.src.get_ip_addr().get_in_addr(), desc->rx.src.get_in_port());
 
         static const unsigned int MAX_SYN_RCVD = m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE
             ? safe_mce_sys().sysctl_reader.get_tcp_max_syn_backlog()
@@ -1819,8 +1817,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
 
         pkt_info.struct_sz = sizeof(pkt_info);
         pkt_info.packet_id = (void *)p_first_desc;
-        pkt_info.src = &p_first_desc->rx.src;
-        pkt_info.dst = &p_first_desc->rx.dst;
+        pkt_info.src = p_first_desc->rx.src.get_p_sa();
+        pkt_info.dst = p_first_desc->rx.dst.get_p_sa();
         pkt_info.socket_ready_queue_pkt_count = conn->m_p_socket_stats->n_rx_ready_pkt_count;
         pkt_info.socket_ready_queue_byte_count = conn->m_p_socket_stats->n_rx_ready_byte_count;
 
@@ -1855,6 +1853,9 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
             struct xlio_socketxtreme_completion_t *completion;
             struct xlio_buff_t *buf_lst;
 
+            // xlio_socketxtreme_completion_t is IPv4 only.
+            assert(p_first_desc->rx.src.get_sa_family() == AF_INET);
+
             if (conn->m_socketxtreme.completion) {
                 completion = conn->m_socketxtreme.completion;
                 buf_lst = conn->m_socketxtreme.last_buff_lst;
@@ -1866,7 +1867,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
             if (!buf_lst) {
                 completion->packet.buff_lst = (struct xlio_buff_t *)p_first_desc;
                 completion->packet.total_len = p->tot_len;
-                completion->src = p_first_desc->rx.src;
+                p_first_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
+                                            sizeof(completion->src));
                 completion->packet.num_bufs = p_first_desc->rx.n_frags;
 
                 if (conn->m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
@@ -2119,8 +2121,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
         }
 #endif /* DEFINED_UTLS */
 
-        total_rx =
-            dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
+        total_rx = dequeue_packet(p_iov, sz_iov, __from, __fromlen, in_flags, &out_flags);
         if (total_rx < 0) {
             unlock_tcp_con();
             return total_rx;
@@ -2217,10 +2218,8 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
     }
 
     if (unlikely(get_tcp_state(&m_pcb) == LISTEN)) {
-        pcb = get_syn_received_pcb(p_rx_pkt_mem_buf_desc_info->rx.src.sin_addr.s_addr,
-                                   p_rx_pkt_mem_buf_desc_info->rx.src.sin_port,
-                                   p_rx_pkt_mem_buf_desc_info->rx.dst.sin_addr.s_addr,
-                                   p_rx_pkt_mem_buf_desc_info->rx.dst.sin_port);
+        pcb = get_syn_received_pcb(p_rx_pkt_mem_buf_desc_info->rx.src,
+                                   p_rx_pkt_mem_buf_desc_info->rx.dst);
         bool established_backlog_full = false;
         if (!pcb) {
             pcb = &m_pcb;
@@ -3196,6 +3195,13 @@ struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(in_addr_t peer_ip, in_port_t 
                                                    in_addr_t local_ip, in_port_t local_port)
 {
     flow_tuple key(local_ip, local_port, peer_ip, peer_port, PROTO_TCP);
+    return get_syn_received_pcb(key);
+}
+
+struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(const sock_addr &src, const sock_addr &dst)
+{
+    // Pay attention at the mixed dst and src order.
+    flow_tuple key(dst, src, PROTO_TCP);
     return get_syn_received_pcb(key);
 }
 

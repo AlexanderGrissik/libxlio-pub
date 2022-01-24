@@ -33,14 +33,17 @@
 #ifndef MEM_BUF_DESC_H
 #define MEM_BUF_DESC_H
 
-#include <netinet/in.h>
 #include <linux/errqueue.h>
 
 #include "utils/atomic.h"
+#include "vma/util/sock_addr.h"
 #include "vma/util/vma_list.h"
 #include "vma/lwip/pbuf.h"
 
+// Forward declarations
 class ring_slave;
+struct iphdr;
+struct ipv6hdr;
 
 struct timestamps_t {
     struct timespec sw;
@@ -76,8 +79,7 @@ public:
     {
 
         memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
-        memset(&rx, 0, sizeof(rx));
-        memset(&tx, 0, sizeof(tx));
+        clear_transport_data();
         memset(&ee, 0, sizeof(ee));
         reset_ref_count();
 
@@ -85,7 +87,17 @@ public:
         lwip_pbuf.custom_free_function = custom_free_function;
     }
 
-    /* This filed should be first in this class
+    // Copy constructor for the clone() method.
+    mem_buf_desc_t(const mem_buf_desc_t &ref)
+    {
+        // mem_buf_desc_t contains only list_node and sock_addr as class fields.
+        memcpy((void *)this, &ref, sizeof(mem_buf_desc_t));
+    }
+
+    // Destructor specifically for cloned buffers.
+    ~mem_buf_desc_t() {}
+
+    /* This field must be first in this class
      * It encapsulates pbuf structure from lwip
      * and extra fields to proceed customer specific requirements
      */
@@ -101,8 +113,8 @@ public:
     union {
         struct {
             iovec frag; // Datagram part base address and length
-            sockaddr_in src; // L3 info
-            sockaddr_in dst; // L3 info
+            sock_addr src;
+            sock_addr dst;
 
             size_t sz_payload; // This is the total amount of data of the packet, if
                                // (sz_payload>sz_data) means fragmented packet.
@@ -112,7 +124,11 @@ public:
 
             union {
                 struct {
-                    struct iphdr *p_ip_h;
+                    union {
+                        struct iphdr *p_ip4_h;
+                        struct ipv6hdr *p_ip6_h;
+                        void *p_ip_h;
+                    };
                     struct tcphdr *p_tcp_h;
                     size_t n_transport_header_len;
                 } tcp;
@@ -134,7 +150,11 @@ public:
         } rx;
         struct {
             size_t dev_mem_length; // Total data aligned to 4 bytes.
-            struct iphdr *p_ip_h;
+            union {
+                struct iphdr *p_ip4_h;
+                struct ipv6hdr *p_ip6_h;
+                void *p_ip_h;
+            };
             union {
                 struct udphdr *p_udp_h;
                 struct tcphdr *p_tcp_h;
@@ -175,6 +195,12 @@ private:
 
 public:
     uint16_t strides_num;
+
+    inline void clear_transport_data(void)
+    {
+        // rx field is the largest in the union, this clears tx as well.
+        memset((void *)&rx, 0, sizeof(rx));
+    }
 
     inline mem_buf_desc_t *clone()
     {

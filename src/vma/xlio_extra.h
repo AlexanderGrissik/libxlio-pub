@@ -196,8 +196,8 @@ struct __attribute__((packed)) xlio_info_t {
     void *packet_id; /* Handle to received packet buffer to be return if zero copy logic is used */
 
     /* Packet addressing information (in network byte order) */
-    struct sockaddr_in *src;
-    struct sockaddr_in *dst;
+    const struct sockaddr *src;
+    const struct sockaddr *dst;
 
     /* Packet information */
     size_t payload_sz;
