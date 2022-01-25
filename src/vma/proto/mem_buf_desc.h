@@ -78,7 +78,6 @@ public:
         , sz_buffer(size)
         , sz_data(0)
         , p_desc_owner(0)
-        , strides_num(0U)
     {
 
         memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
@@ -149,6 +148,7 @@ public:
             uint8_t tls_decrypted;
             uint8_t tls_type;
 #endif /* DEFINED_UTLS */
+            uint16_t strides_num;
         } rx;
         struct {
             size_t dev_mem_length; // Total data aligned to 4 bytes.
@@ -196,8 +196,6 @@ private:
                           // cq_mgr context]
 
 public:
-    uint16_t strides_num;
-
     inline void clear_transport_data(void)
     {
         // rx field is the largest in the union, this clears tx as well.

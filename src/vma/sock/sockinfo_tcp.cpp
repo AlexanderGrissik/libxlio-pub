@@ -1794,10 +1794,10 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
 
     // We go over the p_first_desc again, so decrement what we did in rx_input_cb.
     conn->m_socket_stats.strq_counters.n_strq_total_strides -=
-        static_cast<uint64_t>(p_first_desc->strides_num);
+        static_cast<uint64_t>(p_first_desc->rx.strides_num);
 
     while (p_curr_buff) {
-        conn->save_strq_stats(p_curr_desc->strides_num);
+        conn->save_strq_stats(p_curr_desc->rx.strides_num);
         p_curr_desc->rx.context = conn;
         p_first_desc->rx.n_frags++;
         p_curr_desc->rx.frag.iov_base = p_curr_buff->payload;
@@ -2208,7 +2208,7 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
 
     lock_tcp_con();
 
-    save_strq_stats(p_rx_pkt_mem_buf_desc_info->strides_num);
+    save_strq_stats(p_rx_pkt_mem_buf_desc_info->rx.strides_num);
     m_iomux_ready_fd_array = (fd_array_t *)pv_fd_ready_array;
 
     /* Try to process socketxtreme_poll() completion directly */

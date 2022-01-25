@@ -292,9 +292,9 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
 
         if (likely(!is_filler)) {
             ++m_p_cq_stat->n_rx_packet_count;
-            m_p_cq_stat->n_rx_stride_count += _hot_buffer_stride->strides_num;
-            m_p_cq_stat->n_rx_max_stirde_per_packet =
-                std::max(m_p_cq_stat->n_rx_max_stirde_per_packet, _hot_buffer_stride->strides_num);
+            m_p_cq_stat->n_rx_stride_count += _hot_buffer_stride->rx.strides_num;
+            m_p_cq_stat->n_rx_max_stirde_per_packet = std::max(
+                m_p_cq_stat->n_rx_max_stirde_per_packet, _hot_buffer_stride->rx.strides_num);
             buff_stride = _hot_buffer_stride;
             _hot_buffer_stride = nullptr;
         } else if (status != BS_CQE_INVALID) {
@@ -344,7 +344,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
     case MLX5_CQE_RESP_SEND_IMM:
     case MLX5_CQE_RESP_SEND_INV: {
         status = BS_OK;
-        _hot_buffer_stride->strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+        _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
 
@@ -353,7 +353,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
             host_byte_cnt & 0x0000FFFFU; // In case of a Filler/Error this size is invalid.
         _hot_buffer_stride->p_buffer = m_rx_hot_buffer->p_buffer +
             _current_wqe_consumed_bytes; //(_stride_size_bytes * ntohs(cqe->wqe_counter))
-        _hot_buffer_stride->sz_buffer = _hot_buffer_stride->strides_num * _stride_size_bytes;
+        _hot_buffer_stride->sz_buffer = _hot_buffer_stride->rx.strides_num * _stride_size_bytes;
         _current_wqe_consumed_bytes += _hot_buffer_stride->sz_buffer;
 
         _hot_buffer_stride->rx.timestamps.hw_raw = ntohll(cqe->timestamp);
@@ -381,7 +381,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
     case MLX5_CQE_REQ_ERR:
     case MLX5_CQE_RESP_ERR:
     default: {
-        _hot_buffer_stride->strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+        _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
         is_filler = true;
@@ -390,8 +390,8 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
         _hot_buffer_stride->p_buffer = nullptr;
         _hot_buffer_stride->sz_buffer = 0U;
 
-        if (_hot_buffer_stride->strides_num == 0U) {
-            _hot_buffer_stride->strides_num = _strides_num;
+        if (_hot_buffer_stride->rx.strides_num == 0U) {
+            _hot_buffer_stride->rx.strides_num = _strides_num;
         }
 
         if (MLX5_CQE_SYNDROME_WR_FLUSH_ERR == ecqe->syndrome) {
@@ -424,7 +424,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
                ", Data-Size: %" PRIu32 ", Strides: %hu, Consumed-Bytes: %" PRIu32
                ", RX-HB: %p, RX-HB-SZ: %zu\n",
                static_cast<int>(status), cqe->wqe_id, (host_byte_cnt >> 31), cqe->byte_cnt,
-               (host_byte_cnt & 0x0000FFFFU), _hot_buffer_stride->strides_num,
+               (host_byte_cnt & 0x0000FFFFU), _hot_buffer_stride->rx.strides_num,
                _current_wqe_consumed_bytes, m_rx_hot_buffer, m_rx_hot_buffer->sz_buffer);
     // vlog_print_buffer(VLOG_FINE, "STRQ CQE. Data: ", "\n",
     //	reinterpret_cast<const char*>(_hot_buffer_stride->p_buffer), min(112,
@@ -699,8 +699,8 @@ void cq_mgr_mlx5_strq::reclaim_recv_buffer_helper(mem_buf_desc_t *buff)
 
                 mem_buf_desc_t *rwqe =
                     reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.pbuf.desc.mdesc);
-                if (buff->strides_num ==
-                    rwqe->add_ref_count(-buff->strides_num)) { // Is last stride.
+                if (buff->rx.strides_num == rwqe->add_ref_count(-buff->rx.strides_num)) {
+                    // Is last stride.
                     cq_mgr::reclaim_recv_buffer_helper(rwqe);
                 }
 

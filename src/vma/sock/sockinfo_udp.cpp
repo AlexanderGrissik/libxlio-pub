@@ -2100,7 +2100,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
     // And we must increment ref_counter before pushing this packet into the ready queue
     //  to prevent race condition with the 'if( (--ref_count) <= 0)' in ib_comm_mgr
     p_desc->inc_ref_count();
-    save_strq_stats(p_desc->strides_num);
+    save_strq_stats(p_desc->rx.strides_num);
 
     if (p_desc->rx.socketxtreme_polled) {
         fill_completion(p_desc);

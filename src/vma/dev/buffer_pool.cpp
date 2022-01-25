@@ -89,7 +89,7 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 
     if (buff->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_STRIDE) {
         mem_buf_desc_t *rwqe = reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.pbuf.desc.mdesc);
-        if (buff->strides_num == rwqe->add_ref_count(-buff->strides_num)) { // Is last stride.
+        if (buff->rx.strides_num == rwqe->add_ref_count(-buff->rx.strides_num)) { // Is last stride.
             g_buffer_pool_rx_rwqe->put_buffers_thread_safe(rwqe);
         }
     }
