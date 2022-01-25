@@ -47,7 +47,10 @@ struct ipv6hdr;
 
 struct timestamps_t {
     struct timespec sw;
-    struct timespec hw;
+    union {
+        struct timespec hw;
+        uint64_t hw_raw;
+    };
 };
 
 /**
@@ -118,7 +121,6 @@ public:
 
             size_t sz_payload; // This is the total amount of data of the packet, if
                                // (sz_payload>sz_data) means fragmented packet.
-            uint64_t hw_raw_timestamp;
             timestamps_t timestamps;
             void *context;
 

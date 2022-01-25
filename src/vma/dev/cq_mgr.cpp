@@ -577,7 +577,7 @@ mem_buf_desc_t *cq_mgr::process_cq_element_rx(vma_ibv_wc *p_wce)
         // this is not a deadcode if timestamping is defined in verbs API
         // coverity[dead_error_condition]
         if (vma_wc_flags(*p_wce) & VMA_IBV_WC_WITH_TIMESTAMP) {
-            p_mem_buf_desc->rx.hw_raw_timestamp = vma_wc_timestamp(*p_wce);
+            p_mem_buf_desc->rx.timestamps.hw_raw = vma_wc_timestamp(*p_wce);
         }
 
         VALGRIND_MAKE_MEM_DEFINED(p_mem_buf_desc->p_buffer, p_mem_buf_desc->sz_data);

@@ -202,7 +202,7 @@ void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t 
 #ifdef DEFINED_UTLS
         p_rx_wc_buf_desc->rx.tls_decrypted = (cqe->pkt_info >> 3) & 0x3;
 #endif /* DEFINED_UTLS */
-        p_rx_wc_buf_desc->rx.hw_raw_timestamp = ntohll(cqe->timestamp);
+        p_rx_wc_buf_desc->rx.timestamps.hw_raw = ntohll(cqe->timestamp);
         p_rx_wc_buf_desc->rx.flow_tag_id = vma_get_flow_tag(cqe);
         p_rx_wc_buf_desc->rx.is_sw_csum_need =
             !(m_b_is_rx_hw_csum_on && (cqe->hds_ip_ext & MLX5_CQE_L4_OK) &&

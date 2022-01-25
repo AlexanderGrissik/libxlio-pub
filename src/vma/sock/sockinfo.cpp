@@ -1784,7 +1784,7 @@ void sockinfo::process_timestamps(mem_buf_desc_t *p_desc)
     if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
         ring_simple *owner_ring = (ring_simple *)p_desc->p_desc_owner;
         if (owner_ring) {
-            owner_ring->convert_hw_time_to_system_time(p_desc->rx.hw_raw_timestamp,
+            owner_ring->convert_hw_time_to_system_time(p_desc->rx.timestamps.hw_raw,
                                                        &p_desc->rx.timestamps.hw);
         }
     }
