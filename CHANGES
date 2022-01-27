@@ -1,3 +1,13 @@
+Version 1.2.2-1:
+Date + Time 2022-01-27
+=============================================================
+Added:
+        - RM #2563722 Removed unsupported code as non-tso and ipoib
+        - RM #928148 Export symbols from socket api only
+        - RM #2329439 Update gtest to support IPV6
+        - RM #2933472 Update License date to 2022
+        - RM #22943262 Optimize fill_wqe_send() function
+
 Version 1.2.1-1:
 Date + Time 2022-01-10
 =============================================================
