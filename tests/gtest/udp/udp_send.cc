@@ -68,7 +68,7 @@ TEST_F(udp_send, ti_1)
     errno = EOK;
     rc = send(fd, (void *)buf, sizeof(buf), 0);
     EXPECT_EQ(EOK, errno);
-    EXPECT_EQ(sizeof(buf), rc);
+    EXPECT_EQ(sizeof(buf), static_cast<size_t>(rc));
 
     close(fd);
 }
@@ -244,7 +244,7 @@ TEST_F(udp_send, ti_6)
     errno = EOK;
     rc = send(fd, (void *)buf, sizeof(buf), 0);
     EXPECT_EQ(EOK, errno);
-    EXPECT_EQ(sizeof(buf), rc);
+    EXPECT_EQ(sizeof(buf), static_cast<size_t>(rc));
 
     close(fd);
 }

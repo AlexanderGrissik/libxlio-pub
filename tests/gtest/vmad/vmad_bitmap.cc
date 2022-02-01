@@ -45,7 +45,7 @@ class vmad_bitmap : public ::testing::Test {
 
 TEST_F(vmad_bitmap, ti_1)
 {
-    ASSERT_EQ(4, sizeof(bitmap_item_t));
+    ASSERT_EQ(4U, sizeof(bitmap_item_t));
 }
 
 TEST_F(vmad_bitmap, ti_2)
@@ -54,7 +54,7 @@ TEST_F(vmad_bitmap, ti_2)
 
     bitmap_create(&bm, 10);
     ASSERT_TRUE(bm);
-    ASSERT_EQ(10, bitmap_size(bm));
+    ASSERT_EQ(10U, bitmap_size(bm));
 
     bitmap_destroy(bm);
 }
@@ -66,14 +66,14 @@ TEST_F(vmad_bitmap, ti_3)
     bitmap_create(&bm, 0x7ff);
     ASSERT_TRUE(bm);
 
-    ASSERT_EQ(0x7ff, bitmap_size(bm));
+    ASSERT_EQ(0x7ffU, bitmap_size(bm));
 
-    EXPECT_EQ(0, elem_idx(0));
-    EXPECT_EQ(0, elem_idx(31));
-    EXPECT_EQ(1, elem_idx(32));
-    EXPECT_EQ(2, elem_idx(64));
-    EXPECT_EQ(32, elem_idx(0x400));
-    EXPECT_EQ(63, elem_idx(0x7ff));
+    EXPECT_EQ(0U, elem_idx(0));
+    EXPECT_EQ(0U, elem_idx(31));
+    EXPECT_EQ(1U, elem_idx(32));
+    EXPECT_EQ(2U, elem_idx(64));
+    EXPECT_EQ(32U, elem_idx(0x400));
+    EXPECT_EQ(63U, elem_idx(0x7ff));
 
     bitmap_destroy(bm);
 }
@@ -147,7 +147,7 @@ TEST_F(vmad_bitmap, ti_7)
     bitmap_create(&bm, 64);
     ASSERT_TRUE(bm);
 
-    ASSERT_EQ(64, bitmap_size(bm));
+    ASSERT_EQ(64U, bitmap_size(bm));
 
     EXPECT_EQ(0, bitmap_test_group(bm, 0, 7));
     EXPECT_EQ(0, bitmap_test_group(bm, 0, 64));
@@ -169,7 +169,7 @@ TEST_F(vmad_bitmap, ti_8)
     bitmap_create(&bm, 64);
     ASSERT_TRUE(bm);
 
-    ASSERT_EQ(64, bitmap_size(bm));
+    ASSERT_EQ(64U, bitmap_size(bm));
 
     EXPECT_EQ(0, bitmap_find_group(bm, 0, 2, 0));
     EXPECT_EQ(32, bitmap_find_group(bm, 32, 7, 0));
@@ -192,7 +192,7 @@ TEST_F(vmad_bitmap, ti_9)
     bitmap_create(&bm, 64);
     ASSERT_TRUE(bm);
 
-    ASSERT_EQ(64, bitmap_size(bm));
+    ASSERT_EQ(64U, bitmap_size(bm));
 
     EXPECT_EQ(0, bitmap_find_first_zero(bm));
 

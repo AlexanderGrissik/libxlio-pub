@@ -255,7 +255,7 @@ TEST_F(tcp_send_zc, ti_1_send_once)
         ASSERT_EQ(0, rc);
 
         rc = send(m_fd, (void *)m_test_buf, sizeof(test_msg), MSG_DONTWAIT | MSG_ZEROCOPY);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         event.events = EPOLLOUT;
         event.data.fd = m_fd;
@@ -265,8 +265,8 @@ TEST_F(tcp_send_zc, ti_1_send_once)
 
         rc = do_recv_expected_completion(m_fd, lo, hi, 1);
         EXPECT_EQ(1, rc);
-        EXPECT_EQ(0, lo);
-        EXPECT_EQ(0, hi);
+        EXPECT_EQ(0U, lo);
+        EXPECT_EQ(0U, hi);
 
         peer_wait(m_fd);
 
@@ -302,7 +302,7 @@ TEST_F(tcp_send_zc, ti_1_send_once)
                   sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = recv(m_fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -385,8 +385,8 @@ TEST_F(tcp_send_zc, ti_2_few_send)
 
         rc = do_recv_expected_completion(m_fd, lo, hi, test_iter);
         EXPECT_EQ(test_iter, rc);
-        EXPECT_EQ(0, lo);
-        EXPECT_EQ((test_iter - 1), hi);
+        EXPECT_EQ(0U, lo);
+        EXPECT_EQ(static_cast<uint32_t>(test_iter - 1), hi);
 
         peer_wait(m_fd);
 
@@ -510,8 +510,8 @@ TEST_F(tcp_send_zc, ti_3_large_send)
 
         rc = do_recv_expected_completion(m_fd, lo, hi, 1);
         EXPECT_EQ(1, rc);
-        EXPECT_EQ(0, lo);
-        EXPECT_EQ(0, hi);
+        EXPECT_EQ(0U, lo);
+        EXPECT_EQ(0U, hi);
 
         peer_wait(m_fd);
 
@@ -650,8 +650,8 @@ TEST_F(tcp_send_zc, ti_4_mass_send_check_every_call)
 
                 rc = do_recv_expected_completion(m_fd, lo, hi, 1);
                 EXPECT_EQ(1, rc);
-                EXPECT_EQ(i, lo);
-                EXPECT_EQ(i, hi);
+                EXPECT_EQ(static_cast<uint32_t>(i), lo);
+                EXPECT_EQ(static_cast<uint32_t>(i), hi);
             }
 
             peer_wait(m_fd);
@@ -779,7 +779,7 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call)
                 msg.msg_iov = vec;
                 msg.msg_iovlen = sizeof(vec) / sizeof(vec[0]);
                 rc = sendmsg(m_fd, &msg, MSG_DONTWAIT | MSG_ZEROCOPY);
-                EXPECT_EQ(vec[0].iov_len, rc);
+                EXPECT_EQ(vec[0].iov_len, static_cast<size_t>(rc));
             }
 
             event.events = EPOLLOUT;
@@ -790,8 +790,8 @@ TEST_F(tcp_send_zc, ti_5_mass_send_check_last_call)
 
             rc = do_recv_expected_completion(m_fd, lo, hi, test_call);
             EXPECT_EQ(test_call, rc);
-            EXPECT_EQ(0, lo);
-            EXPECT_EQ((test_call - 1), hi);
+            EXPECT_EQ(0U, lo);
+            EXPECT_EQ(static_cast<uint32_t>(test_call - 1), hi);
 
             peer_wait(m_fd);
 
@@ -889,7 +889,7 @@ TEST_F(tcp_send_zc, ti_6_epoll_notification)
         ASSERT_EQ(0, rc);
 
         rc = send(m_fd, (void *)m_test_buf, sizeof(test_msg), MSG_DONTWAIT | MSG_ZEROCOPY);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         /* Let TCP/IP stack receive ACK to the segment and insert
          * message into error queue.
@@ -908,8 +908,8 @@ TEST_F(tcp_send_zc, ti_6_epoll_notification)
 
         rc = do_recv_expected_completion(m_fd, lo, hi, 1);
         EXPECT_EQ(1, rc);
-        EXPECT_EQ(0, lo);
-        EXPECT_EQ(0, hi);
+        EXPECT_EQ(0U, lo);
+        EXPECT_EQ(0U, hi);
 
         peer_wait(m_fd);
 
@@ -945,7 +945,7 @@ TEST_F(tcp_send_zc, ti_6_epoll_notification)
                   sys_addr2str((struct sockaddr *)&peer_addr));
 
         rc = recv(m_fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 

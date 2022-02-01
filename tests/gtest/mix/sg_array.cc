@@ -120,7 +120,7 @@ TEST_F(sg_array_test, sga_max_bound)
     EXPECT_EQ((uint64_t)p, sge1.addr);
 
     p = sa1.get_data(&len);
-    EXPECT_EQ((uint64_t)p, NULL);
+    EXPECT_EQ(NULL, p);
 }
 
 //! Tests for in_bound

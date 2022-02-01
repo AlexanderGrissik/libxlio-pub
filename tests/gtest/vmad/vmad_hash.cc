@@ -238,7 +238,7 @@ TEST_F(vmad_hash, ti_9)
         e = (struct element *)hash_get(ht, element[1].key);
         ASSERT_TRUE(e);
         ASSERT_EQ(((uintptr_t)&element[1]), ((uintptr_t)e));
-        ASSERT_EQ(i, e->value);
+        ASSERT_EQ(i, static_cast<size_t>(e->value));
     }
 
     hash_destroy(ht);

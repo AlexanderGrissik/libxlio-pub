@@ -64,7 +64,7 @@ TEST_F(udp_sendto, ti_1)
     rc = sendto(fd, (void *)buf, sizeof(buf), 0, (struct sockaddr *)&server_addr,
                 sizeof(server_addr));
     EXPECT_EQ(EOK, errno);
-    EXPECT_EQ(sizeof(buf), rc);
+    EXPECT_EQ(sizeof(buf), static_cast<size_t>(rc));
 
     close(fd);
 }

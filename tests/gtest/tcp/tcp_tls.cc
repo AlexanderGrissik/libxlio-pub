@@ -161,7 +161,7 @@ TEST_F(tcp_tls, DISABLED_ti_2)
         SKIP_TRUE((0 == rc), "TLS is not supported");
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -200,7 +200,7 @@ TEST_F(tcp_tls, DISABLED_ti_2)
         SKIP_TRUE((0 == rc), "TLS is not supported");
 
         rc = recv(fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -255,7 +255,7 @@ TEST_F(tcp_tls, DISABLED_ti_3_12_gcm_send_small)
         EXPECT_EQ(0, rc);
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -297,7 +297,7 @@ TEST_F(tcp_tls, DISABLED_ti_3_12_gcm_send_small)
         EXPECT_EQ(0, rc);
 
         rc = recv(fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -352,7 +352,7 @@ TEST_F(tcp_tls, DISABLED_ti_4_12_gcm_send_max)
         EXPECT_EQ(0, rc);
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -394,7 +394,7 @@ TEST_F(tcp_tls, DISABLED_ti_4_12_gcm_send_max)
         EXPECT_EQ(0, rc);
 
         rc = recv(fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -449,10 +449,10 @@ TEST_F(tcp_tls, DISABLED_ti_5_12_gcm_send_more)
         EXPECT_EQ(0, rc);
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), MSG_MORE);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -494,7 +494,7 @@ TEST_F(tcp_tls, DISABLED_ti_5_12_gcm_send_more)
         EXPECT_EQ(0, rc);
 
         rc = recv(fd, (void *)buf, sizeof(buf), MSG_WAITALL);
-        EXPECT_EQ(2 * sizeof(test_msg), rc);
+        EXPECT_EQ(2 * sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -906,10 +906,10 @@ TEST_F(tcp_tls, DISABLED_ti_9_12_gcm_send_bidirect)
         EXPECT_EQ(0, rc);
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         rc = recv(fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
@@ -956,14 +956,14 @@ TEST_F(tcp_tls, DISABLED_ti_9_12_gcm_send_bidirect)
         EXPECT_EQ(0, rc);
 
         rc = recv(fd, (void *)buf, sizeof(buf), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", test_msg, buf);
 
         EXPECT_EQ(memcmp(buf, test_msg, rc), 0);
 
         rc = send(fd, (void *)test_msg, sizeof(test_msg), 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -1038,7 +1038,7 @@ TEST_F(tcp_tls, DISABLED_ti_10_12_gcm_control_msg)
         EXPECT_EQ(0, rc);
 
         rc = sendmsg(fd, &msg, 0);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
 
         peer_wait(fd);
 
@@ -1091,7 +1091,7 @@ TEST_F(tcp_tls, DISABLED_ti_10_12_gcm_control_msg)
         msg.msg_iovlen = 1;
 
         rc = recvmsg(fd, &msg, MSG_WAITALL);
-        EXPECT_EQ(sizeof(test_msg), rc);
+        EXPECT_EQ(sizeof(test_msg), static_cast<size_t>(rc));
         cmsg = CMSG_FIRSTHDR(&msg);
         ASSERT_TRUE(cmsg);
         EXPECT_EQ(cmsg->cmsg_level, SOL_TLS);
