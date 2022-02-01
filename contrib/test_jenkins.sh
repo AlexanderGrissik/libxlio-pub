@@ -54,13 +54,20 @@ echo "# BUILD_NUMBER ------------->  ${BUILD_NUMBER} "
 echo "# TARGET ------------------->  ${TARGET}       "
 echo
 
+# When create artifact
 # Values: none, fail, always
 #
 jenkins_opt_artifacts=${jenkins_opt_artifacts:="always"}
 
+# Stop verification after number of erros
 # Values: 0..N test (max 100)
 #
 jenkins_opt_exit=${jenkins_opt_exit:="6"}
+
+# Style format behaivour (check, fix)
+# Values: no, yes
+#
+jenkins_opt_style_force=${jenkins_opt_style_force:="no"}
 
 # Test scenario list
 #

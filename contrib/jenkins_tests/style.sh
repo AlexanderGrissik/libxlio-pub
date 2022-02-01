@@ -34,10 +34,14 @@ nerrors=0
 for file in $check_files; do
     set +eE
     style_diff="${style_dir}/$(basename ${file}).diff"
-    eval "env $test_app -style=file \
-        ${file} \
-        | diff -u ${file} - | sed -e '1s|-- |--- a/|' -e '2s|+++ -|+++ b/$file|' \
-        > ${style_diff} 2>&1"
+    if [ "$jenkins_opt_style_force" = "yes" ]; then
+        eval "env $test_app -i -style=file ${file}"
+    else
+        eval "env $test_app $test_app_opt -style=file \
+            ${file} \
+            | diff -u ${file} - | sed -e '1s|-- |--- a/|' -e '2s|+++ -|+++ b/$file|' \
+            > ${style_diff} 2>&1"
+    fi
     [ -s ${style_diff} ]
     ret=$((1-$?))
     nerrors=$((nerrors+ret))
