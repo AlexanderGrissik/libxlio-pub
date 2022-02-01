@@ -101,11 +101,6 @@ int memcpy_fromiovec(u_int8_t *p_dst, const struct iovec *p_iov, size_t sz_iov,
 int get_base_interface_name(const char *if_name, char *base_ifname, size_t sz_base_ifname);
 
 /**
- * Count bitmark set bits
- */
-int netmask_bitcount(uint32_t netmask);
-
-/**
  * Set the fd blocking mode
  * @param fd the file descriptor on which to operate
  * @param block 'true' to set to block
@@ -322,18 +317,6 @@ static inline int get_procname(int pid, char *proc, size_t size)
     }
 
     return -1;
-}
-
-static inline in_addr_t prefix_to_netmask(int prefix_length)
-{
-    in_addr_t mask = 0;
-
-    if (prefix_length <= 0 || prefix_length > 32) {
-        return 0;
-    }
-    mask = ~mask << (32 - prefix_length);
-    mask = htonl(mask);
-    return mask;
 }
 
 // Creates multicast MAC from multicast IP

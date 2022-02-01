@@ -374,18 +374,6 @@ int memcpy_fromiovec(u_int8_t *p_dst, const struct iovec *p_iov, size_t sz_iov,
     return n_total;
 }
 
-int netmask_bitcount(uint32_t netmask)
-{
-    // Sparse Ones runs in time proportional to the number of 1 bits.
-    // The mystical line n &= (n - 1) simply sets the rightmost 1 bit in n to 0.
-    int cnt = 0;
-    while (netmask) {
-        cnt++;
-        netmask &= (netmask - 1);
-    }
-    return cnt;
-}
-
 void set_fd_block_mode(int fd, bool b_block)
 {
     __log_dbg("fd[%d]: setting to %sblocking mode (%d)", fd, b_block ? "" : "non-", b_block);

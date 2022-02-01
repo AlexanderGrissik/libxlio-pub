@@ -401,8 +401,7 @@ void net_device_val::set_ip_array()
 
                 p_val = new ip_data_t;
                 p_val->flags = nl_msgdata->ifa_flags;
-                memset(&p_val->netmask, 0, sizeof(in_addr_t));
-                p_val->netmask = prefix_to_netmask(nl_msgdata->ifa_prefixlen);
+                p_val->prefixlen = nl_msgdata->ifa_prefixlen;
                 while (RTA_OK(nl_attr, nl_attrlen)) {
                     char *nl_attrdata = (char *)RTA_DATA(nl_attr);
 
@@ -505,8 +504,8 @@ void net_device_val::print_val()
 
     nd_logdbg("  ip list: %s", (m_ip.empty() ? "empty " : ""));
     for (i = 0; i < m_ip.size(); i++) {
-        nd_logdbg("    inet: %d.%d.%d.%d netmask: %d.%d.%d.%d flags: 0x%X",
-                  NIPQUAD(m_ip[i]->local_addr), NIPQUAD(m_ip[i]->netmask), m_ip[i]->flags);
+        nd_logdbg("    inet: %d.%d.%d.%d/%d flags: 0x%X",
+                  NIPQUAD(m_ip[i]->local_addr), m_ip[i]->prefixlen, m_ip[i]->flags);
     }
 
     nd_logdbg("  slave list: %s", (m_slaves.empty() ? "empty " : ""));

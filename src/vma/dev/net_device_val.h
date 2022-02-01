@@ -155,18 +155,18 @@ typedef std::vector<slave_data_t *> slave_data_vector_t;
 typedef struct ip_data {
     int flags;
     in_addr_t local_addr;
-    in_addr_t netmask;
+    uint8_t prefixlen;
     ip_data()
     {
         flags = 0;
         local_addr = 0;
-        netmask = 0;
+        prefixlen = 0;
     }
     ~ip_data()
     {
         flags = 0;
         local_addr = 0;
-        netmask = 0;
+        prefixlen = 0;
     }
 } ip_data_t;
 
