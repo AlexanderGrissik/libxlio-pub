@@ -154,8 +154,8 @@ void dst_entry::set_src_addr()
         m_pkt_src_ip = m_route_src_ip;
     } else if (m_p_rt_val && m_p_rt_val->get_src_addr()) {
         m_pkt_src_ip = m_p_rt_val->get_src_addr();
-    } else if (m_p_net_dev_val && m_p_net_dev_val->get_local_addr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
+    } else if (m_p_net_dev_val && m_p_net_dev_val->get_local_addr().get_in_addr()) {
+        m_pkt_src_ip = m_p_net_dev_val->get_local_addr().get_in_addr();
     }
 }
 
@@ -165,7 +165,7 @@ bool dst_entry::update_net_dev_val()
 
     net_device_val *new_nd_val = m_p_net_dev_val;
     if (m_so_bindtodevice_ip && g_p_net_device_table_mgr) {
-        new_nd_val = g_p_net_device_table_mgr->get_net_device_val(m_so_bindtodevice_ip);
+        new_nd_val = g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_so_bindtodevice_ip));
         // TODO should we register to g_p_net_device_table_mgr  with m_p_net_dev_entry?
         // what should we do with an old one?
         dst_logdbg("getting net_dev_val by bindtodevice ip");

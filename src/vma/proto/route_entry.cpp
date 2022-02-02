@@ -95,7 +95,7 @@ void route_entry::register_to_net_device()
         rt_entry_logdbg("No matched net device for %s interface", m_val->get_if_name());
         m_b_offloaded_net_dev = false;
     } else {
-        ip_address src_addr(lip_offloaded_list.front().local_addr);
+        ip_addr src_addr(lip_offloaded_list.front().local_addr);
         rt_entry_logdbg("register to net device with src_addr %s", src_addr.to_str().c_str());
 
         cache_entry_subject<ip_address, net_device_val *> *net_dev_entry =
@@ -122,7 +122,7 @@ void route_entry::unregister_to_net_device()
     }
 
     if (m_p_net_dev_val) {
-        ip_address src_addr(m_p_net_dev_val->get_local_addr());
+        ip_addr src_addr(m_p_net_dev_val->get_local_addr());
         rt_entry_logdbg("unregister from net device with src_addr %s", src_addr.to_str().c_str());
         if (!g_p_net_device_table_mgr->unregister_observer(src_addr, this)) {
             rt_entry_logdbg("ERROR: failed to unregister from net_device_entry");

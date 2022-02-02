@@ -183,7 +183,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     }
 
     ring_alloc_logic_attr ring_attr(safe_mce_sys().ring_allocation_logic_tx);
-    m_ring_allocation_logic = ring_allocation_logic_tx(m_p_dev->get_local_addr(), ring_attr, this);
+    m_ring_allocation_logic = ring_allocation_logic_tx(m_p_dev->get_local_addr().get_in_addr(), ring_attr, this);
 
     if (is_init_resources) {
         m_p_ring = m_p_dev->reserve_ring(m_ring_allocation_logic.get_key());
@@ -199,7 +199,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     m_dst_addr.sin_addr.s_addr = get_key().get_in_addr(); /*(peer_ip)*/
     m_dst_addr.sin_family = AF_INET;
 
-    m_src_addr.sin_addr.s_addr = m_p_dev->get_local_addr();
+    m_src_addr.sin_addr.s_addr = m_p_dev->get_local_addr().get_in_addr();
     m_src_addr.sin_family = AF_INET;
 
     memset(&m_send_wqe, 0, sizeof(m_send_wqe));
@@ -211,7 +211,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     {
         const ip_data_vector_t &ip = m_p_dev->get_ip_array();
         for (size_t i = 0; i < ip.size(); i++) {
-            if (ip[i]->local_addr == m_dst_addr.sin_addr.s_addr) {
+            if (ip[i]->local_addr.get_in_addr() == m_dst_addr.sin_addr.s_addr) {
                 neigh_logdbg("This is loopback neigh");
                 m_is_loopback = true;
                 break;
@@ -1479,7 +1479,7 @@ bool neigh_eth::post_send_arp(bool is_broadcast)
 
     eth_arp_hdr *p_arphdr = (eth_arp_hdr *)(p_mem_buf_desc->p_buffer +
                                             h.m_transport_header_tx_offset + h.m_total_hdr_len);
-    set_eth_arp_hdr(p_arphdr, m_p_dev->get_local_addr(), get_key().get_in_addr(),
+    set_eth_arp_hdr(p_arphdr, m_p_dev->get_local_addr().get_in_addr(), get_key().get_in_addr(),
                     m_p_dev->get_l2_address()->get_address(), peer_mac);
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h.m_transport_header_tx_offset);

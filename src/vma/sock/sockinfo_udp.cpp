@@ -686,7 +686,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
         // 2. Verify not binding to MC address in the UC case
         // 3. if not offloaded then set a PassThrough
         if ((m_bound.is_anyaddr() ||
-             g_p_net_device_table_mgr->get_net_device_val(m_bound.get_ip_addr().get_in_addr()))) {
+             g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_bound.get_ip_addr(), m_bound.get_sa_family())))) {
             attach_as_uc_receiver(ROLE_UDP_RECEIVER); // if failed, we will get RX from OS
         } else if (m_bound.is_mc()) {
             // MC address binding will happen later as part of the ADD_MEMBERSHIP in
@@ -906,7 +906,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 local_ip_list_t lip_offloaded_list =
                     g_p_net_device_table_mgr->get_ip_list(mreqn.imr_ifindex);
                 if (!lip_offloaded_list.empty()) {
-                    mreqn.imr_address.s_addr = lip_offloaded_list.front().local_addr;
+                    mreqn.imr_address.s_addr = lip_offloaded_list.front().local_addr.get_in_addr();
                 } else {
                     struct sockaddr_in src_addr;
                     if (get_ipv4_from_ifindex(mreqn.imr_ifindex, &src_addr) == 0) {
@@ -1017,7 +1017,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                         local_ip_list_t lip_offloaded_list =
                             g_p_net_device_table_mgr->get_ip_list(p_mreqn->imr_ifindex);
                         if (!lip_offloaded_list.empty()) {
-                            mreqprm.imr_interface.s_addr = lip_offloaded_list.front().local_addr;
+                            mreqprm.imr_interface.s_addr = lip_offloaded_list.front().local_addr.get_in_addr();
                         } else {
                             struct sockaddr_in src_addr;
                             if (get_ipv4_from_ifindex(p_mreqn->imr_ifindex, &src_addr) == 0) {
@@ -1094,7 +1094,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 goto_os = true;
             }
             // Check if local_if is not offloadable
-            else if (!g_p_net_device_table_mgr->get_net_device_val(mc_if)) {
+            else if (!g_p_net_device_table_mgr->get_net_device_val(ip_addr(mc_if))) {
                 // call orig setsockopt() and don't try to offlaod
                 si_udp_logdbg("setsockopt(%s) will be passed to OS for handling - not offload "
                               "interface (%d.%d.%d.%d)",
@@ -2337,7 +2337,7 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
     }*/
 
     // Check if local_if is offloadable
-    if (!g_p_net_device_table_mgr->get_net_device_val(mc_if)) {
+    if (!g_p_net_device_table_mgr->get_net_device_val(ip_addr(mc_if))) {
         // Break so we call orig setsockopt() and try to offlaod
         si_udp_logdbg("setsockopt(%s) will be passed to OS for handling - not offload interface "
                       "(%d.%d.%d.%d)",

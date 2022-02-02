@@ -240,8 +240,8 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
 
     set_str();
 
-    nd_logdbg("Check interface '%s' (index=%d addr=%d.%d.%d.%d flags=%X)", get_ifname(),
-              get_if_idx(), NIPQUAD(get_local_addr()), get_flags());
+    nd_logdbg("Check interface '%s' (index=%d addr=%s flags=%X)", get_ifname(),
+              get_if_idx(), get_local_addr().to_str().c_str(), get_flags());
 
     valid = false;
     ib_ctx = g_p_ib_ctx_handler_collection->get_ib_ctx(get_ifname_link());
@@ -407,8 +407,11 @@ void net_device_val::set_ip_array()
 
                     switch (nl_attr->rta_type) {
                     case IFA_ADDRESS:
-                        memset(&p_val->local_addr, 0, sizeof(in_addr_t));
-                        memcpy(&p_val->local_addr, (in_addr_t *)nl_attrdata, sizeof(in_addr_t));
+                        if (nl_msgdata->ifa_family == AF_INET) {
+                            p_val->local_addr = ip_addr(*reinterpret_cast<in_addr *>(nl_attrdata));
+                        } else {
+                            p_val->local_addr = ip_addr(*reinterpret_cast<in6_addr *>(nl_attrdata));
+                        }
                         break;
                     default:
                         break;
@@ -504,8 +507,8 @@ void net_device_val::print_val()
 
     nd_logdbg("  ip list: %s", (m_ip.empty() ? "empty " : ""));
     for (i = 0; i < m_ip.size(); i++) {
-        nd_logdbg("    inet: %d.%d.%d.%d/%d flags: 0x%X",
-                  NIPQUAD(m_ip[i]->local_addr), m_ip[i]->prefixlen, m_ip[i]->flags);
+        nd_logdbg("    inet: %s/%d flags: 0x%X",
+                  m_ip[i]->local_addr.to_str().c_str(), m_ip[i]->prefixlen, m_ip[i]->flags);
     }
 
     nd_logdbg("  slave list: %s", (m_slaves.empty() ? "empty " : ""));

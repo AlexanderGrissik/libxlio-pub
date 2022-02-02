@@ -153,10 +153,10 @@ void route_table_mgr::rt_mgr_update_source_ip()
                     ip_data_t ip = *lip_iter;
                     in_addr_t netmask = htonl(VMA_NETMASK(ip.prefixlen));
                     if ((p_val->get_dst_addr() & netmask) ==
-                        (ip.local_addr & netmask)) { // found a match in routing table
+                        (ip.local_addr.get_in_addr() & netmask)) { // found a match in routing table
                         if ((netmask | longest_prefix) != longest_prefix) {
                             longest_prefix = netmask; // this is the longest prefix match
-                            correct_src = ip.local_addr;
+                            correct_src = ip.local_addr.get_in_addr();
                         }
                     }
                 }
@@ -199,9 +199,9 @@ void route_table_mgr::rt_mgr_update_source_ip()
                         for (lip_iter = lip_offloaded_list.begin();
                              lip_offloaded_list.end() != lip_iter; lip_iter++) {
                             ip_data_t ip = *lip_iter;
-                            if (p_val->get_gw_addr() == ip.local_addr) {
+                            if (p_val->get_gw_addr() == ip.local_addr.get_in_addr()) {
                                 p_val->set_gw(0);
-                                p_val->set_src_addr(ip.local_addr);
+                                p_val->set_src_addr(ip.local_addr.get_in_addr());
                                 break;
                             }
                         }

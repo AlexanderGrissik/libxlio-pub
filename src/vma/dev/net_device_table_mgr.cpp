@@ -299,22 +299,22 @@ void net_device_table_mgr::print_val_tbl()
     }
 }
 
-net_device_val *net_device_table_mgr::get_net_device_val(in_addr_t local_addr)
+net_device_val *net_device_table_mgr::get_net_device_val(const ip_addr &if_addr)
 {
     auto_unlocker lock(m_lock);
 
-    net_device_map_addr_t::iterator iter = m_net_device_map_addr.find(local_addr);
+    net_device_map_addr_t::iterator iter = m_net_device_map_addr.find(if_addr);
     if (iter != m_net_device_map_addr.end()) {
         net_device_val *net_dev = iter->second;
-        ndtm_logdbg("Found %s for addr: %d.%d.%d.%d", net_dev->to_str().c_str(),
-                    NIPQUAD(local_addr));
+        ndtm_logdbg("Found %s for addr: %s", net_dev->to_str().c_str(),
+                    if_addr.to_str().c_str());
         if (net_dev->get_state() == net_device_val::INVALID) {
             ndtm_logdbg("invalid net_device %s", net_dev->to_str().c_str());
             return NULL;
         }
         return iter->second;
     }
-    ndtm_logdbg("Can't find net_device for addr: %d.%d.%d.%d", NIPQUAD(local_addr));
+    ndtm_logdbg("Can't find net_device for addr: %s", if_addr.to_str().c_str());
     return NULL;
 }
 
@@ -373,15 +373,15 @@ out:
     return net_dev;
 }
 
-net_device_entry *net_device_table_mgr::create_new_entry(ip_address local_ip, const observer *obs)
+net_device_entry *net_device_table_mgr::create_new_entry(ip_address if_addr, const observer *obs)
 {
     ndtm_logdbg("");
     NOT_IN_USE(obs);
 
-    net_device_val *p_ndv = get_net_device_val(local_ip.get_in_addr());
+    net_device_val *p_ndv = get_net_device_val(ip_addr(if_addr, AF_INET));
 
     if (p_ndv) {
-        return new net_device_entry(local_ip, p_ndv);
+        return new net_device_entry(if_addr, p_ndv);
     }
     return NULL;
 }

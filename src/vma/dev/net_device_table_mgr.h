@@ -39,14 +39,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "vma/event/timer_handler.h"
 #include "vma/util/sys_vars.h"
 #include "vma/util/ip_address.h"
+#include "vma/event/timer_handler.h"
 #include "vma/infra/cache_subject_observer.h"
 #include "net_device_val.h"
 #include "net_device_entry.h"
 
-typedef std::unordered_map<in_addr_t, net_device_val *> net_device_map_addr_t;
+typedef std::unordered_map<ip_addr, net_device_val *> net_device_map_addr_t;
 typedef std::unordered_map<int, net_device_val *> net_device_map_index_t;
 typedef std::list<ip_data_t> local_ip_list_t;
 
@@ -59,9 +59,9 @@ public:
     void print_val_tbl();
 
     virtual void notify_cb(event *ev);
-    net_device_entry *create_new_entry(ip_address local_ip, const observer *dst);
+    net_device_entry *create_new_entry(ip_address if_addr, const observer *dst);
 
-    net_device_val *get_net_device_val(const in_addr_t local_ip);
+    net_device_val *get_net_device_val(const ip_addr &if_addr);
     net_device_val *get_net_device_val(int if_index);
 
     local_ip_list_t get_ip_list(int if_index = 0); // return list of the table_mgr managed ips

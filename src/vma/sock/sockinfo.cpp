@@ -1520,30 +1520,29 @@ void sockinfo::reuse_descs(descq_t *reuseq, ring *p_ring)
 bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
 {
     sock_addr addr(m_bound);
-    in_addr_t local_if;
+    ip_addr if_addr(m_bound.get_ip_addr(), m_bound.get_sa_family());
     bool ret = true;
 
     /* m_so_bindtodevice_ip has high priority */
     if (m_so_bindtodevice_ip != INADDR_ANY) {
-        local_if = m_so_bindtodevice_ip;
-        addr.set_in_addr(local_if); // we should pass correct ip-address information in case
-                                    // SO_BINDTODEVICE is used
+        if_addr = ip_addr(m_so_bindtodevice_ip);
+        addr.set_in_addr(if_addr); // we should pass correct ip-address information in case
+                                   // SO_BINDTODEVICE is used
         si_logdbg("Attaching using bind to device rule");
     } else {
-        local_if = m_bound.get_ip_addr().get_in_addr();
         si_logdbg("Attaching using bind to ip rule");
     }
 
-    if (local_if != INADDR_ANY) {
-        si_logdbg("Attached to specific local if: (%d.%d.%d.%d) addr: %s", NIPQUAD(local_if),
-                  addr.to_str_ip_port().c_str());
+    if (!if_addr.is_anyaddr()) {
+        si_logdbg("Attached to specific local if: %s addr: %s", if_addr.to_str().c_str(),
+                  addr.to_str_ip_port(true).c_str());
 
         transport_t target_family = TRANS_VMA;
         if (!skip_rules) {
             target_family = find_target_family(role, addr.get_p_sa());
         }
         if (target_family == TRANS_VMA) {
-            flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, local_if);
+            flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, if_addr.get_in_addr());
             ret = ret && attach_receiver(flow_key);
         }
     } else {
@@ -1554,15 +1553,17 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
         for (lip_iter = lip_offloaded_list.begin(); ret && lip_offloaded_list.end() != lip_iter;
              lip_iter++) {
             ip_data_t ip = *lip_iter;
-            local_if = ip.local_addr;
-            addr.set_in_addr(local_if);
-            transport_t target_family = TRANS_VMA;
-            if (!skip_rules) {
-                target_family = find_target_family(role, addr.get_p_sa());
-            }
-            if (target_family == TRANS_VMA) {
-                flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, local_if);
-                ret = ret && attach_receiver(flow_key);
+            if_addr = ip.local_addr;
+            if (if_addr.get_family() == addr.get_sa_family()) {
+                addr.set_in_addr(if_addr);
+                transport_t target_family = TRANS_VMA;
+                if (!skip_rules) {
+                    target_family = find_target_family(role, addr.get_p_sa());
+                }
+                if (target_family == TRANS_VMA) {
+                    flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, if_addr.get_in_addr());
+                    ret = ret && attach_receiver(flow_key);
+                }
             }
         }
     }

@@ -42,6 +42,7 @@
 
 #include "utils/lock_wrapper.h"
 #include "vma/util/sys_vars.h"
+#include "vma/util/ip_address.h"
 #include "vma/event/event_handler_ibverbs.h"
 #include "vma/event/event_handler_rdma_cm.h"
 #include "vma/dev/ib_ctx_handler.h"
@@ -154,20 +155,12 @@ typedef std::vector<slave_data_t *> slave_data_vector_t;
 
 typedef struct ip_data {
     int flags;
-    in_addr_t local_addr;
+    ip_addr local_addr;
     uint8_t prefixlen;
     ip_data()
-    {
-        flags = 0;
-        local_addr = 0;
-        prefixlen = 0;
-    }
-    ~ip_data()
-    {
-        flags = 0;
-        local_addr = 0;
-        prefixlen = 0;
-    }
+        : flags(0)
+        , local_addr(INADDR_ANY)
+        , prefixlen(0) {}
 } ip_data_t;
 
 typedef std::vector<ip_data_t *> ip_data_vector_t;
@@ -242,7 +235,7 @@ public:
     inline void set_transport_type(transport_type_t value) { m_transport_type = value; }
     transport_type_t get_transport_type() const { return m_transport_type; }
     bool update_active_backup_slaves();
-    in_addr_t get_local_addr()
+    ip_addr get_local_addr()
     {
         return m_ip[0]->local_addr;
     } // Valid object must have at least one address

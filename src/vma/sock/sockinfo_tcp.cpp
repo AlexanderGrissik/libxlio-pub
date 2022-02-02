@@ -1291,7 +1291,8 @@ uint16_t sockinfo_tcp::get_route_mtu(struct tcp_pcb *pcb)
         vlog_printf(VLOG_DEBUG, "Using route mtu %u\n", res.mtu);
         return res.mtu;
     }
-    net_device_val *ndv = g_p_net_device_table_mgr->get_net_device_val(res.p_src);
+
+    net_device_val *ndv = g_p_net_device_table_mgr->get_net_device_val(ip_addr(res.p_src));
     if (ndv && ndv->get_mtu() > 0) {
         return ndv->get_mtu();
     }
@@ -2564,9 +2565,9 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
     }
     m_pcb.is_ipv6 = false;
     m_bound.set_sockaddr(&tmp_sin, tmp_sin_len);
-    in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
 
-    if (!m_bound.is_anyaddr() && !g_p_net_device_table_mgr->get_net_device_val(ip)) {
+    if (!m_bound.is_anyaddr() &&
+        !g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_bound.get_ip_addr(), m_bound.get_sa_family()))) {
         // if socket is not bound to INADDR_ANY and not offloaded socket- only bind OS
         setPassthrough();
         m_sock_state = TCP_SOCK_BOUND;
@@ -2575,6 +2576,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         return 0;
     }
 
+    in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
     if (ERR_OK !=
         tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6)) {
