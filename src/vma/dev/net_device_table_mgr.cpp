@@ -204,7 +204,8 @@ void net_device_table_mgr::update_tbl()
     nl_req.hdr.nlmsg_type = RTM_GETLINK;
     nl_req.hdr.nlmsg_seq = _seq++;
     nl_req.hdr.nlmsg_pid = getpid();
-    nl_req.infomsg.ifi_family = AF_INET;
+    nl_req.infomsg.ifi_family = AF_UNSPEC;
+    nl_req.infomsg.ifi_change = 0xffffffff;
 
     /* Send the netlink request */
     rc = orig_os_api.send(fd, &nl_req, nl_req.hdr.nlmsg_len, 0);

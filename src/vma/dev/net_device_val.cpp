@@ -366,7 +366,7 @@ void net_device_val::set_ip_array()
     nl_req.hdr.nlmsg_type = RTM_GETADDR;
     nl_req.hdr.nlmsg_seq = _seq++;
     nl_req.hdr.nlmsg_pid = getpid();
-    nl_req.addrmsg.ifa_family = AF_INET;
+    nl_req.addrmsg.ifa_family = AF_UNSPEC;
     nl_req.addrmsg.ifa_index = m_if_idx;
 
     /* Send the netlink request */
@@ -395,7 +395,8 @@ void net_device_val::set_ip_array()
             nl_msgdata = (struct ifaddrmsg *)NLMSG_DATA(nl_msg);
 
             /* Process just specific if index */
-            if ((int)nl_msgdata->ifa_index == m_if_idx) {
+            if ((int)nl_msgdata->ifa_index == m_if_idx &&
+                (nl_msgdata->ifa_family == AF_INET || nl_msgdata->ifa_family == AF_INET6)) {
                 nl_attr = (struct rtattr *)IFA_RTA(nl_msgdata);
                 nl_attrlen = IFA_PAYLOAD(nl_msg);
 
