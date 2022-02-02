@@ -44,12 +44,8 @@ extern "C" {
 
 /* RFC879 Section 1. Introduction */
 #define IPV4_MIN_MTU 576U
-/* RFC6691 Section 2. The Short Statement */
-#define IP_HLEN 20U
 /* RFC8200 Section 5. Packet Size Issues */
 #define IPV6_MIN_MTU  1280U
-/* RFC2460 Section 8.3 Maximum Upper-Layer Payload Size */
-#define IPV6_HLEN 40U
 
 /** This is the aligned version of ip6_addr_t,
     used as local variable, on the stack, etc. */

@@ -106,7 +106,6 @@ static inline void fill_parsed_ip_hdr(const void *payload,
     const u8_t *view_8byte = (const u8_t *)payload;
     const u16_t *view_16byte = (const u16_t *)payload;
 
-#define IPV6_VERSION 6U
     iphdr->is_ipv6 = (view_8byte[0] >> 4U) == IPV6_VERSION;
     if (iphdr->is_ipv6) {
         iphdr->src = (void *)&view_8byte[8];

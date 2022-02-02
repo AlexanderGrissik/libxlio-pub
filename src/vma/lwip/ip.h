@@ -72,6 +72,11 @@ extern "C" {
 /* These flags are inherited (e.g. from a listen-pcb to a connection-pcb): */
 #define SOF_INHERITED   (SOF_REUSEADDR|SOF_KEEPALIVE|SOF_LINGER/*|SOF_DEBUG|SOF_DONTROUTE|SOF_OOBINLINE*/)
 
+#define IPV6_VERSION 6U
+
+#define IP_HLEN 20U
+#define IPV6_HLEN 40U
+
 #ifdef __cplusplus
 }
 #endif

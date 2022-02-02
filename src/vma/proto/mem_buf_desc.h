@@ -43,7 +43,7 @@
 // Forward declarations
 class ring_slave;
 struct iphdr;
-struct ipv6hdr;
+struct ip6_hdr;
 
 struct timestamps_t {
     struct timespec sw;
@@ -127,7 +127,7 @@ public:
                 struct {
                     union {
                         struct iphdr *p_ip4_h;
-                        struct ipv6hdr *p_ip6_h;
+                        struct ip6_hdr *p_ip6_h;
                         void *p_ip_h;
                     };
                     struct tcphdr *p_tcp_h;
@@ -154,7 +154,7 @@ public:
             size_t dev_mem_length; // Total data aligned to 4 bytes.
             union {
                 struct iphdr *p_ip4_h;
-                struct ipv6hdr *p_ip6_h;
+                struct ip6_hdr *p_ip6_h;
                 void *p_ip_h;
             };
             union {
