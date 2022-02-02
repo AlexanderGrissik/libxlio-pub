@@ -150,6 +150,10 @@ public:
     transport_type_t m_transport_type;
 };
 
+#ifndef IPV6_HLEN
+#define IPV6_HLEN 40U
+#endif
+
 enum ip_version {
     IPV4 = 4,
     IPV6 = 6,

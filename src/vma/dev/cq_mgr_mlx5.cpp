@@ -41,6 +41,8 @@
 #include "qp_mgr_eth_mlx5.h"
 #include "ring_simple.h"
 
+#include <netinet/ip6.h>
+
 #define MODULE_NAME "cqm_mlx5"
 
 #define cq_logfunc    __log_info_func
@@ -820,23 +822,44 @@ int cq_mgr_mlx5::poll_and_process_error_element_rx(struct vma_mlx5_cqe *cqe,
 void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t *p_rx_wc_buf_desc)
 {
     struct ethhdr *p_eth_h = (struct ethhdr *)(p_rx_wc_buf_desc->p_buffer);
-    struct iphdr *p_ip_h = NULL;
-    struct tcphdr *p_tcp_h = NULL;
+    struct tcphdr *p_tcp_h;
     size_t transport_header_len = ETH_HDR_LEN;
 
     if (p_eth_h->h_proto == htons(ETH_P_8021Q)) {
         transport_header_len = ETH_VLAN_HDR_LEN;
     }
 
-    p_ip_h = (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
-    p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + (int)(p_ip_h->ihl) * 4);
+    if (0x02 == ((cqe->l4_hdr_type_etc >> 2) & 0x3)) {
+        // CQE indicates IPv4 in the l3_hdr_type field
+        struct iphdr *p_ip_h = (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
 
-    assert(p_ip_h->protocol == IPPROTO_TCP);
-    assert(p_ip_h->version == IPV4_VERSION);
+        assert(p_ip_h->version == IPV4_VERSION);
+        assert(p_ip_h->protocol == IPPROTO_TCP);
 
-    if ((cqe->lro_tcppsh_abort_dupack >> 6) & 1) {
-        p_tcp_h->psh = 1;
+        p_ip_h->ttl = cqe->lro_min_ttl;
+        p_ip_h->tot_len = htons(ntohl(cqe->byte_cnt) - transport_header_len);
+        p_ip_h->check = 0; // Ignore.
+
+        p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + (int)(p_ip_h->ihl) * 4);
+    } else {
+        // Assume LRO can happen for either IPv4 or IPv6 L3 protocol. Skip checking l3_hdr_type.
+        struct ip6_hdr *p_ip6_h =
+            (struct ip6_hdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
+
+        assert(0x01 == ((cqe->l4_hdr_type_etc >> 2) & 0x3)); // IPv6 L3 header.
+        assert(ip_header_version(p_ip6_h) == IPV6);
+        assert(p_ip6_h->ip6_nxt == IPPROTO_TCP);
+        assert(ntohl(cqe->byte_cnt) >= transport_header_len + IPV6_HLEN);
+
+        p_ip6_h->ip6_hlim = cqe->lro_min_ttl;
+        // Payload length doesn't include main header.
+        p_ip6_h->ip6_plen = htons(ntohl(cqe->byte_cnt) - transport_header_len - IPV6_HLEN);
+
+        // LRO doesn't create a session for packets with extension headers, so IPv6 header is 40b.
+        p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip6_h + IPV6_HLEN);
     }
+
+    p_tcp_h->psh = !!(cqe->lro_tcppsh_abort_dupack & MLX5_CQE_LRO_TCP_PUSH_MASK);
 
     /* TCP packet <ACK> flag is set, and packet carries no data or
      * TCP packet <ACK> flag is set, and packet carries data
@@ -846,16 +869,8 @@ void cq_mgr_mlx5::lro_update_hdr(struct vma_mlx5_cqe *cqe, mem_buf_desc_t *p_rx_
         p_tcp_h->ack = 1;
         p_tcp_h->ack_seq = cqe->lro_ack_seq_num;
         p_tcp_h->window = cqe->lro_tcp_win;
-
-        /* ignore */
-        p_tcp_h->check = 0;
+        p_tcp_h->check = 0; // Ignore.
     }
-
-    p_ip_h->ttl = cqe->lro_min_ttl;
-    p_ip_h->tot_len = htons(ntohl(cqe->byte_cnt) - transport_header_len);
-
-    /* ignore */
-    p_ip_h->check = 0;
 }
 
 #endif /* DEFINED_DIRECT_VERBS */

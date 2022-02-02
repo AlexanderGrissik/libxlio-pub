@@ -155,6 +155,9 @@ struct mlx5_ifc_tls_progress_params_bits {
     uint8_t hw_offset_record_number[0x18];
 };
 
+/* Bit mask for TCP PUSH flag in lro_tcppsh_abort_dupack field. */
+#define MLX5_CQE_LRO_TCP_PUSH_MASK 0x40
+
 typedef struct vma_mlx5_cqe {
     uint8_t pkt_info;
     uint8_t rsvd0;
