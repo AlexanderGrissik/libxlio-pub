@@ -62,35 +62,34 @@ bool rfs_uc::prepare_flow_spec()
         rfs_logpanic("Incompatible ring type");
     }
 
-    transport_type_t type = p_ring->get_transport_type();
     /*
      * todo note that ring is not locked here.
      * we touch members that should not change during the ring life.
      * the ring will not be deleted as we increased refcnt.
      * if one of these assumptions change, we must lock.
      */
-    attach_flow_data_t *p_attach_flow_data = NULL;
-    vma_ibv_flow_spec_ipv4 *p_ipv4 = NULL;
-    vma_ibv_flow_spec_tcp_udp *p_tcp_udp = NULL;
-    vma_ibv_flow_spec_action_tag *p_flow_tag = NULL;
+    attach_flow_data_t *p_attach_flow_data = nullptr;
+    vma_ibv_flow_spec_eth *p_eth = nullptr;
+    vma_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
 
-    attach_flow_data_eth_ipv4_tcp_udp_t *attach_flow_data_eth = NULL;
-
-    switch (type) {
+    switch (p_ring->get_transport_type()) {
     case VMA_TRANSPORT_ETH: {
-        attach_flow_data_eth =
-            new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
-        if (!attach_flow_data_eth) {
+        bool is_ipv4 = (m_flow_tuple.get_family() == AF_INET);
+        if (is_ipv4) {
+            prepare_flow_spec_by_ip<attach_flow_data_eth_ipv4_tcp_udp_t>(
+                p_ring->m_p_qp_mgr, p_attach_flow_data, p_eth, p_tcp_udp);
+        } else {
+            prepare_flow_spec_by_ip<attach_flow_data_eth_ipv6_tcp_udp_t>(
+                p_ring->m_p_qp_mgr, p_attach_flow_data, p_eth, p_tcp_udp);
+        }
+
+        if (!p_attach_flow_data) {
             return false;
         }
 
-        ibv_flow_spec_eth_set(&(attach_flow_data_eth->ibv_flow_attr.eth),
-                              p_ring->m_p_l2_addr->get_address(),
-                              htons(p_ring->m_p_qp_mgr->get_partiton()));
-        p_ipv4 = &(attach_flow_data_eth->ibv_flow_attr.ipv4);
-        p_tcp_udp = &(attach_flow_data_eth->ibv_flow_attr.tcp_udp);
-        p_flow_tag = &(attach_flow_data_eth->ibv_flow_attr.flow_tag);
-        p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_eth;
+        ibv_flow_spec_eth_set(p_eth, p_ring->m_p_l2_addr->get_address(),
+                              htons(p_ring->m_p_qp_mgr->get_partiton()), is_ipv4);
+
         break;
     }
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -100,12 +99,10 @@ bool rfs_uc::prepare_flow_spec()
         BULLSEYE_EXCLUDE_BLOCK_END
     }
 
-    ibv_flow_spec_ipv4_set(p_ipv4, m_flow_tuple.get_dst_ip(), m_flow_tuple.get_src_ip());
-
     ibv_flow_spec_tcp_udp_set(p_tcp_udp, (m_flow_tuple.get_protocol() == PROTO_TCP),
                               m_flow_tuple.get_dst_port(), m_flow_tuple.get_src_port());
 
-    if (m_flow_tuple.get_src_port() || m_flow_tuple.get_src_ip()) {
+    if (m_flow_tuple.get_src_port() || !m_flow_tuple.get_src_ip().is_anyaddr()) {
         // set priority of 5-tuple to be higher than 3-tuple
         // to make sure 5-tuple have higher priority on ConnectX-4
         p_attach_flow_data->ibv_flow_attr.priority = 1;
@@ -129,19 +126,14 @@ bool rfs_uc::prepare_flow_spec()
                        safe_mce_sys().src_port_stride, safe_mce_sys().actual_nginx_workers_num);
             rfs_logdbg("sp_tcp_udp->val.src_port: %d p_tcp_udp->mask.src_port %d \n",
                        ntohs(p_tcp_udp->val.src_port), ntohs(p_tcp_udp->mask.src_port));
-            m_flow_tuple.m_src_port = p_tcp_udp->val.src_port;
-            m_flow_tuple.set_str();
+            m_flow_tuple.set_src_port(p_tcp_udp->val.src_port);
         }
     }
 #endif
-    if (m_flow_tag_id) { // Will not attach flow_tag spec to rule for tag_id==0
-        ibv_flow_spec_flow_tag_set(p_flow_tag, m_flow_tag_id);
-        attach_flow_data_eth->ibv_flow_attr.add_flow_tag_spec();
-        rfs_logdbg("Adding flow_tag spec to rule, num_of_specs: %d flow_tag_id: %d",
-                   attach_flow_data_eth->ibv_flow_attr.attr.num_of_specs, m_flow_tag_id);
-    }
-    rfs_logfunc("transport type: %d, num_of_specs: %d flow_tag_id: %d", type,
-                attach_flow_data_eth->ibv_flow_attr.attr.num_of_specs, m_flow_tag_id);
+
+    rfs_logfunc("transport type: %d, num_of_specs: %d flow_tag_id: %d",
+                p_ring->get_transport_type(), p_attach_flow_data->ibv_flow_attr.num_of_specs,
+                m_flow_tag_id);
 
     m_attach_flow_data_vector.push_back(p_attach_flow_data);
     return true;

@@ -261,7 +261,7 @@ typedef struct socket_stats_t {
     void set_bound_if(in_addr_t ipv4)
     {
         sa_family = AF_INET;
-        bound_if = ipv4;
+        bound_if = ip_address(ipv4);
     }
 
     socket_stats_t()

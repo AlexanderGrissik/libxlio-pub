@@ -162,7 +162,7 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
     }
     ring_logdbg("flow: %s, with sink (%p), flow tag id %d "
                 "m_flow_tag_enabled: %d",
-                flow_spec_5t.to_str(), si, flow_tag_id, m_flow_tag_enabled);
+                flow_spec_5t.to_str().c_str(), si, flow_tag_id, m_flow_tag_enabled);
 
     auto_unlocker lock(m_lock_ring_rx);
 
@@ -170,9 +170,10 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
      * TODO: Consider unification of following code.
      */
     if (flow_spec_5t.is_udp_uc()) {
-        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
+        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                   flow_spec_5t.get_src_ip().get_in_addr(),
                                    flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
-        rule_key_t rule_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        rule_key_t rule_key(flow_spec_5t.get_dst_ip().get_in_addr(), flow_spec_5t.get_dst_port());
         rfs_rule_filter *dst_port_filter = NULL;
         if (safe_mce_sys().udp_3t_rules) {
             rule_filter_map_t::iterator dst_port_iter =
@@ -196,8 +197,9 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
         if (p_rfs == NULL) {
             // No rfs object exists so a new one must be created and inserted in the flow map
             if (safe_mce_sys().udp_3t_rules) {
-                flow_tuple udp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(), 0, 0,
-                                       flow_spec_5t.get_protocol());
+                flow_tuple udp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(),
+                                       ip_address::any_addr(), 0, flow_spec_5t.get_protocol(),
+                                       flow_spec_5t.get_family());
                 dst_port_filter =
                     new rfs_rule_filter(m_udp_uc_dst_port_attach_map, rule_key.key, udp_3t_only);
             }
@@ -228,7 +230,8 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
             }
         }
     } else if (flow_spec_5t.is_udp_mc()) {
-        flow_spec_2t_key_t key_udp_mc(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        flow_spec_2t_key_t key_udp_mc(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                      flow_spec_5t.get_dst_port());
 
         if (flow_tag_id) {
             if (m_b_sysvar_mc_force_flowtag || !si->flow_in_reuse()) {
@@ -285,9 +288,10 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
             }
         }
     } else if (flow_spec_5t.is_tcp()) {
-        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
+        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                   flow_spec_5t.get_src_ip().get_in_addr(),
                                    flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
-        rule_key_t rule_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        rule_key_t rule_key(flow_spec_5t.get_dst_ip().get_in_addr(), flow_spec_5t.get_dst_port());
         rfs_rule_filter *dst_port_filter = NULL;
         if (safe_mce_sys().tcp_3t_rules) {
             rule_filter_map_t::iterator dst_port_iter =
@@ -312,8 +316,9 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
         if (p_rfs == NULL) { // It means that no rfs object exists so I need to create a new one and
                              // insert it to the flow map
             if (safe_mce_sys().tcp_3t_rules) {
-                flow_tuple tcp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(), 0, 0,
-                                       flow_spec_5t.get_protocol());
+                flow_tuple tcp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(),
+                                       ip_address::any_addr(), 0, flow_spec_5t.get_protocol(),
+                                       flow_spec_5t.get_family());
                 dst_port_filter =
                     new rfs_rule_filter(m_tcp_dst_port_attach_map, rule_key.key, tcp_3t_only);
             }
@@ -382,7 +387,7 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
     rfs *p_rfs = NULL;
 
-    ring_logdbg("flow: %s, with sink (%p)", flow_spec_5t.to_str(), sink);
+    ring_logdbg("flow: %s, with sink (%p)", flow_spec_5t.to_str().c_str(), sink);
 
     auto_unlocker lock(m_lock_ring_rx);
 
@@ -391,9 +396,10 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
      */
     if (flow_spec_5t.is_udp_uc()) {
         int keep_in_map = 1;
-        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
+        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                   flow_spec_5t.get_src_ip().get_in_addr(),
                                    flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
-        rule_key_t rule_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        rule_key_t rule_key(flow_spec_5t.get_dst_ip().get_in_addr(), flow_spec_5t.get_dst_port());
         if (safe_mce_sys().udp_3t_rules) {
             rule_filter_map_t::iterator dst_port_iter =
                 m_udp_uc_dst_port_attach_map.find(rule_key.key);
@@ -426,7 +432,8 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
         }
     } else if (flow_spec_5t.is_udp_mc()) {
         int keep_in_map = 1;
-        flow_spec_2t_key_t key_udp_mc(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        flow_spec_2t_key_t key_udp_mc(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                      flow_spec_5t.get_dst_port());
         if (m_b_sysvar_eth_mc_l2_only_rules) {
             rule_filter_map_t::iterator l2_mc_iter = m_l2_mc_ip_attach_map.find(key_udp_mc.dst_ip);
             BULLSEYE_EXCLUDE_BLOCK_START
@@ -459,9 +466,10 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
         }
     } else if (flow_spec_5t.is_tcp()) {
         int keep_in_map = 1;
-        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
+        flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
+                                   flow_spec_5t.get_src_ip().get_in_addr(),
                                    flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
-        rule_key_t rule_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
+        rule_key_t rule_key(flow_spec_5t.get_dst_ip().get_in_addr(), flow_spec_5t.get_dst_port());
         if (safe_mce_sys().tcp_3t_rules) {
             rule_filter_map_t::iterator dst_port_iter =
                 m_tcp_dst_port_attach_map.find(rule_key.key);
@@ -507,8 +515,9 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 #ifdef DEFINED_UTLS
 rfs_rule *ring_slave::tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir)
 {
-    flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
-                               flow_spec_5t.get_dst_port(), flow_spec_5t.get_src_port());
+    flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
+                               flow_spec_5t.get_src_ip().get_in_addr(), flow_spec_5t.get_dst_port(),
+                               flow_spec_5t.get_src_port());
     rfs *p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
     return p_rfs->create_rule(tir, flow_spec_5t);
 }

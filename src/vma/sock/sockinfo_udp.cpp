@@ -367,7 +367,7 @@ sockinfo_udp::sockinfo_udp(int fd)
     m_p_socket_stats->b_is_offloaded = m_sock_offload;
 
     // Update MC related stats (default values)
-    m_p_socket_stats->mc_tx_if = m_mc_tx_if;
+    m_p_socket_stats->mc_tx_if = ip_address(m_mc_tx_if);
     m_p_socket_stats->b_mc_loop = m_b_mc_tx_loop;
 
     int n_so_rcvbuf_bytes = 0;
@@ -586,11 +586,12 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
             m_p_connected_dst_entry = NULL;
         }
 
-        if (dst_ipaddr.is_mc()) {
+        if (dst_ipaddr.is_mc(AF_INET)) {
             socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
-            m_p_connected_dst_entry = new dst_entry_udp_mc(
-                dst_ipaddr, dst_port, src_port, m_mc_tx_if ? m_mc_tx_if : m_bound.get_ip_addr(),
-                m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
+            m_p_connected_dst_entry =
+                new dst_entry_udp_mc(dst_ipaddr, dst_port, src_port,
+                                     m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
+                                     m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
         } else {
             socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
             m_p_connected_dst_entry =
@@ -925,7 +926,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
             si_udp_logdbg("IPPROTO_IP, %s=%d.%d.%d.%d", setsockopt_ip_opt_to_str(__optname),
                           NIPQUAD(m_mc_tx_if));
-            m_p_socket_stats->mc_tx_if = m_mc_tx_if;
+            m_p_socket_stats->mc_tx_if = ip_address(m_mc_tx_if);
         } break;
 
         case IP_MULTICAST_TTL: {
@@ -1725,10 +1726,10 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 // Create the new dst_entry
                 if (dst.is_mc()) {
                     socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
-                    p_dst_entry =
-                        new dst_entry_udp_mc(dst.get_ip_addr(), dst.get_in_port(), src_port,
-                                             m_mc_tx_if ? m_mc_tx_if : m_bound.get_ip_addr(),
-                                             m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
+                    p_dst_entry = new dst_entry_udp_mc(
+                        dst.get_ip_addr(), dst.get_in_port(), src_port,
+                        m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(), m_b_mc_tx_loop,
+                        data, m_ring_alloc_log_tx);
                 } else {
                     socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp(dst.get_ip_addr(), dst.get_in_port(), src_port,
@@ -2369,9 +2370,9 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
             }
         }
 
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(),
-                                          m_connected.get_ip_addr().get_in_addr(),
-                                          m_connected.get_in_port(), PROTO_UDP, mc_if);
+        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
+                                          m_connected.get_ip_addr(), m_connected.get_in_port(),
+                                          PROTO_UDP, AF_INET, ip_address(mc_if));
         if (!attach_receiver(flow_key)) {
             // we will get RX from OS
             return -1;
@@ -2382,7 +2383,9 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         break;
     }
     case IP_ADD_SOURCE_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), 0, 0, PROTO_UDP, mc_if);
+        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
+                                          ip_address::any_addr(), 0, PROTO_UDP, AF_INET,
+                                          ip_address(mc_if));
         if (!attach_receiver(flow_key)) {
             // we will get RX from OS
             return -1;
@@ -2394,9 +2397,9 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         break;
     }
     case IP_DROP_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(),
-                                          m_connected.get_ip_addr().get_in_addr(),
-                                          m_connected.get_in_port(), PROTO_UDP, mc_if);
+        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
+                                          m_connected.get_ip_addr(), m_connected.get_in_port(),
+                                          PROTO_UDP, AF_INET, ip_address(mc_if));
         original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
         if (!detach_receiver(flow_key)) {
             return -1;
@@ -2406,7 +2409,9 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         break;
     }
     case IP_DROP_SOURCE_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), 0, 0, PROTO_UDP, mc_if);
+        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
+                                          ip_address::any_addr(), 0, PROTO_UDP, AF_INET,
+                                          ip_address(mc_if));
         pram_size = sizeof(ip_mreq_source);
         original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
         if (1 == m_mc_memberships_map[mc_grp].size()) { // Last source in the group

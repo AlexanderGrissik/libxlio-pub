@@ -43,19 +43,21 @@
 // Class ip_addr is an extention to this class (see below) which allows more members and vtable.
 class ip_address {
 public:
-    ip_address(in_addr_t ip4)
+    ip_address() { m_ip6_64[0] = m_ip6_64[1] = 0U; };
+
+    explicit ip_address(in_addr_t ip4)
     {
-        memset(&m_ip6, 0, sizeof(m_ip6));
+        m_ip6_64[0] = m_ip6_64[1] = 0U;
         m_ip = ip4;
     };
 
     ip_address(in_addr ip4)
     {
-        memset(&m_ip6, 0, sizeof(m_ip6));
+        m_ip6_64[0] = m_ip6_64[1] = 0U;
         m_ip4 = ip4;
     };
 
-    ip_address(in6_addr ip6)
+    ip_address(const in6_addr &ip6)
         : m_ip6(ip6)
     {
     }
@@ -94,8 +96,18 @@ public:
 
     const in6_addr &get_in6_addr() const { return m_ip6; };
 
-    bool is_mc() const { return (IN_MULTICAST_N(m_ip)); }; // [TODO IPV6] Implement for IPv6
-    bool is_anyaddr() const { return (unlikely(m_ip6_64[0] == 0) && likely(m_ip6_64[1] == 0)); };
+    // [TODO IPV6] Implement for IPv6
+    bool is_mc(sa_family_t family) const
+    {
+        return (family == AF_INET ? IN_MULTICAST_N(m_ip) : false);
+    };
+
+    bool is_anyaddr() const { return *this == any_addr(); };
+
+    bool is_loopback_class(sa_family_t family) const
+    {
+        return (family == AF_INET ? LOOPBACK_N(m_ip) : *this == loopback6_addr());
+    }
 
     bool operator==(const ip_address &ip) const
     {
@@ -117,6 +129,39 @@ public:
     {
         m_ip6 = ip.m_ip6;
         return *this;
+    }
+
+    // The ip_address is assumed to store Big-Endian. However performing ntohll frequently
+    // may impact performance in some flows. For cases like map/hash where
+    // the real order is insignificant, this methods performs comparision without ntohll.
+    bool less_than_raw(const ip_address &other) const
+    {
+        return (likely(m_ip6_64[0] != other.m_ip6_64[0]) ? (m_ip6_64[0] < other.m_ip6_64[0])
+                                                         : (m_ip6_64[1] < other.m_ip6_64[1]));
+    }
+
+    uint64_t hash() const
+    {
+        std::hash<uint64_t> _hash;
+        return _hash(m_ip6_64[0] ^ m_ip6_64[1]);
+    }
+
+    static const ip_address &any_addr()
+    {
+        static ip_address s_any_addr(in6addr_any);
+        return s_any_addr;
+    }
+
+    static const ip_address &loopback4_addr()
+    {
+        static ip_address s_loopback4_addr(INADDR_LOOPBACK);
+        return s_loopback4_addr;
+    }
+
+    static const ip_address &loopback6_addr()
+    {
+        static ip_address s_loopback6_addr(in6addr_loopback);
+        return s_loopback6_addr;
     }
 
     friend std::hash<ip_address>;
@@ -147,7 +192,7 @@ public:
     {
     }
 
-    ip_addr(in6_addr ip6)
+    ip_addr(const in6_addr &ip6)
         : ip_address(ip6)
         , m_family(AF_INET6)
     {
@@ -160,7 +205,7 @@ public:
     }
 
     ip_addr(ip_address &&ip, sa_family_t family)
-        : ip_address(ip)
+        : ip_address(std::forward<ip_address>(ip))
         , m_family(family)
     {
     }
@@ -171,8 +216,8 @@ public:
     {
     }
 
-    ip_addr(ip_addr &addr)
-        : ip_address(addr)
+    ip_addr(ip_addr &&addr)
+        : ip_address(std::forward<ip_address>(addr))
         , m_family(addr.m_family)
     {
     }
@@ -202,7 +247,12 @@ public:
         return *this;
     }
 
-    ip_addr &operator=(ip_addr &&ip) { return *this = ip; }
+    ip_addr &operator=(ip_addr &&ip)
+    {
+        m_family = ip.m_family;
+        ip_address::operator=(std::forward<ip_address>(ip));
+        return *this;
+    }
 
     friend std::hash<ip_addr>;
 
@@ -213,11 +263,7 @@ private:
 namespace std {
 template <> class hash<ip_address> {
 public:
-    size_t operator()(const ip_address &key) const
-    {
-        hash<uint64_t> _hash;
-        return _hash(key.m_ip6_64[0] ^ key.m_ip6_64[1]);
-    }
+    size_t operator()(const ip_address &key) const { return key.hash(); }
 };
 template <> class hash<ip_addr> {
 public:

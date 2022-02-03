@@ -261,7 +261,7 @@ int priv_ibv_query_burst_supported(struct ibv_qp *qp, uint8_t port_num)
     return -1;
 }
 
-int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num)
+int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num, sa_family_t family)
 {
     NOT_IN_USE(qp);
     NOT_IN_USE(port_num);
@@ -276,66 +276,58 @@ int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num)
         vma_ibv_flow_spec_ipv4 ipv4;
         vma_ibv_flow_spec_tcp_udp tcp_udp;
         vma_ibv_flow_spec_action_tag flow_tag;
-    } ft_attr;
+    } ft_attr_ipv4;
+
+    struct {
+        vma_ibv_flow_attr attr;
+        vma_ibv_flow_spec_eth eth;
+        vma_ibv_flow_spec_ipv6 ipv6;
+        vma_ibv_flow_spec_tcp_udp tcp_udp;
+        vma_ibv_flow_spec_action_tag flow_tag;
+    } ft_attr_ipv6;
+
+    vma_ibv_flow_attr *p_attr = (family == AF_INET ? &ft_attr_ipv4.attr : &ft_attr_ipv6.attr);
+    vma_ibv_flow_spec_eth *p_eth = (family == AF_INET ? &ft_attr_ipv4.eth : &ft_attr_ipv6.eth);
+    vma_ibv_flow_spec_tcp_udp *p_tcp_udp =
+        (family == AF_INET ? &ft_attr_ipv4.tcp_udp : &ft_attr_ipv6.tcp_udp);
+    vma_ibv_flow_spec_action_tag *p_flow_tag =
+        (family == AF_INET ? &ft_attr_ipv4.flow_tag : &ft_attr_ipv6.flow_tag);
 
     // Initialize
-    memset(&ft_attr, 0, sizeof(ft_attr));
-    ft_attr.attr.size = sizeof(ft_attr);
-    ft_attr.attr.num_of_specs = 4;
-    ft_attr.attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-    ft_attr.attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
-    ft_attr.attr.port = port_num;
+    memset(p_attr, 0, sizeof(*p_attr));
+    p_attr->size = sizeof(*p_attr);
+    p_attr->num_of_specs = 4;
+    p_attr->type = VMA_IBV_FLOW_ATTR_NORMAL;
+    p_attr->priority = 2; // almost highest priority, 1 is used for 5-tuple later
+    p_attr->port = port_num;
 
     // Set filters
     uint8_t mac_0[ETH_ALEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t mac_f[ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-    ibv_flow_spec_eth_set(&ft_attr.eth, mac_0, 0); // L2 filter
-    memcpy(ft_attr.eth.val.src_mac, mac_f, ETH_ALEN);
-    memset(ft_attr.eth.mask.src_mac, FS_MASK_ON_8, ETH_ALEN);
+    bool is_ipv4 = (family == AF_INET);
+    ibv_flow_spec_eth_set(p_eth, mac_0, 0, is_ipv4); // L2 filter
+    memcpy(p_eth->val.src_mac, mac_f, ETH_ALEN);
+    memset(p_eth->mask.src_mac, FS_MASK_ON_8, ETH_ALEN);
 
-    ibv_flow_spec_ipv4_set(&ft_attr.ipv4, INADDR_LOOPBACK, INADDR_LOOPBACK); // L3 filter
-    ibv_flow_spec_tcp_udp_set(&ft_attr.tcp_udp, true, 0, 0); // L4 filter
-    ibv_flow_spec_flow_tag_set(&ft_attr.flow_tag, FLOW_TAG_MASK - 1); // enable flow tag
+    if (is_ipv4) {
+        ibv_flow_spec_ip_set(&ft_attr_ipv4.ipv4, ip_address::loopback4_addr(),
+                             ip_address::loopback4_addr()); // L3 filter
+    } else {
+        ibv_flow_spec_ip_set(&ft_attr_ipv6.ipv6, ip_address::loopback6_addr(),
+                             ip_address::loopback6_addr()); // L3 filter
+    }
+
+    ibv_flow_spec_tcp_udp_set(p_tcp_udp, true, 0, 0); // L4 filter
+    ibv_flow_spec_flow_tag_set(p_flow_tag, FLOW_TAG_MASK - 1); // enable flow tag
 
     // Create flow
-    vma_ibv_flow *ibv_flow = vma_ibv_create_flow(qp, &ft_attr.attr);
+    vma_ibv_flow *ibv_flow = vma_ibv_create_flow(qp, p_attr);
     if (ibv_flow) {
         res = 0;
         vma_ibv_destroy_flow(ibv_flow);
     }
 #endif // DEFINED_IBV_FLOW_TAG
-
-    return res;
-}
-
-int priv_ibv_create_flow_supported(struct ibv_qp *qp, uint8_t port_num)
-{
-    int res = -1;
-
-    struct {
-        vma_ibv_flow_attr attr;
-        vma_ibv_flow_spec_ipv4 ipv4;
-        vma_ibv_flow_spec_tcp_udp tcp_udp;
-    } cf_attr;
-
-    // Initialize
-    memset(&cf_attr, 0, sizeof(cf_attr));
-    cf_attr.attr.size = sizeof(cf_attr);
-    cf_attr.attr.num_of_specs = 2;
-    cf_attr.attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
-    cf_attr.attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
-    cf_attr.attr.port = port_num;
-
-    ibv_flow_spec_ipv4_set(&cf_attr.ipv4, INADDR_LOOPBACK, INADDR_LOOPBACK); // L3 filter
-    ibv_flow_spec_tcp_udp_set(&cf_attr.tcp_udp, true, 0, 0); // L4 filter
-
-    // Create flow
-    vma_ibv_flow *ibv_flow = vma_ibv_create_flow(qp, &cf_attr.attr);
-    if (ibv_flow) {
-        res = 0;
-        vma_ibv_destroy_flow(ibv_flow);
-    }
 
     return res;
 }
@@ -422,3 +414,20 @@ void priv_ibv_modify_cq_moderation(struct ibv_cq *cq, uint32_t period, uint32_t 
     NOT_IN_USE(period);
 #endif
 }
+/*
+template <>
+inline void ibv_flow_spec_set_ip(spec_ipv4_type& spec_ip_val, spec_ipv4_type& spec_ip_mask, const
+ip_address& in_ip)
+{
+    memcpy(&spec_ip_val, &in_ip.get_in4_addr(), sizeof(spec_ipv4_type));
+    spec_ip_mask = (!in_ip.is_anyaddr() ? FS_MASK_ON_64 : 0U);
+}
+
+template <>
+inline void ibv_flow_spec_set_ip(spec_ipv6_type& spec_ip_val, spec_ipv6_type& spec_ip_mask, const
+ip_address& in_ip)
+{
+    memcpy(&spec_ip_val, &in_ip.get_in6_addr(), sizeof(spec_ipv6_type));
+    uint64_t* p_src_msk = reinterpret_cast<uint64_t*>(spec_ip_mask);
+    p_src_msk[0] = p_src_msk[1] = (!in_ip.is_anyaddr() ? FS_MASK_ON_64 : 0U);
+}*/

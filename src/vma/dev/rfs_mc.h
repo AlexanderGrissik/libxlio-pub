@@ -35,6 +35,8 @@
 
 #include "vma/dev/rfs.h"
 
+#define MODULE_NAME "rfs_mc"
+
 /**
  * @class rfs_mc
  *
@@ -52,6 +54,41 @@ public:
 
 protected:
     virtual bool prepare_flow_spec();
+
+    template <typename T>
+    void prepare_flow_spec_by_ip(qp_mgr *qp_mgr, attach_flow_data_t *&p_attach_flow_data,
+                                 vma_ibv_flow_spec_eth *&p_eth,
+                                 vma_ibv_flow_spec_tcp_udp *&p_tcp_udp);
 };
+
+template <typename T>
+void rfs_mc::prepare_flow_spec_by_ip(qp_mgr *qp_mgr, attach_flow_data_t *&p_attach_flow_data,
+                                     vma_ibv_flow_spec_eth *&p_eth,
+                                     vma_ibv_flow_spec_tcp_udp *&p_tcp_udp)
+{
+    T *attach_flow_data_eth = new (std::nothrow) T(qp_mgr);
+    if (!attach_flow_data_eth) {
+        return;
+    }
+
+    decltype(T::ibv_flow_attr_eth_ip_tcp_udp::ip) *p_ip = &(attach_flow_data_eth->ibv_flow_attr.ip);
+    p_eth = &(attach_flow_data_eth->ibv_flow_attr.eth);
+    p_tcp_udp = &(attach_flow_data_eth->ibv_flow_attr.tcp_udp);
+    p_attach_flow_data = reinterpret_cast<attach_flow_data_t *>(attach_flow_data_eth);
+
+    const ip_address &dst_ip =
+        (safe_mce_sys().eth_mc_l2_only_rules ? ip_address::any_addr() : m_flow_tuple.get_dst_ip());
+
+    ibv_flow_spec_ip_set(p_ip, dst_ip, ip_address::any_addr());
+
+    if (m_flow_tag_id) { // Will not attach flow_tag spec to rule for tag_id==0
+        ibv_flow_spec_flow_tag_set(&(attach_flow_data_eth->ibv_flow_attr.flow_tag), m_flow_tag_id);
+        attach_flow_data_eth->ibv_flow_attr.add_flow_tag_spec();
+        rfs_logdbg("Adding flow_tag spec to MC rule, num_of_specs: %d flow_tag_id: %d",
+                   attach_flow_data_eth->ibv_flow_attr.attr.num_of_specs, m_flow_tag_id);
+    }
+}
+
+#undef MODULE_NAME
 
 #endif /* RFS_MC_H */

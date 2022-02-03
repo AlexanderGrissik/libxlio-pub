@@ -64,7 +64,7 @@ void dst_entry_udp_mc::set_src_addr()
 
     if (m_bound_ip) {
         m_pkt_src_ip = m_bound_ip;
-    } else if (m_mc_tx_if_ip.get_in_addr() && !m_mc_tx_if_ip.is_mc()) {
+    } else if (m_mc_tx_if_ip.get_in_addr() && !m_mc_tx_if_ip.is_mc(AF_INET)) {
         m_pkt_src_ip = m_mc_tx_if_ip.get_in_addr();
     } else if (m_p_rt_val && m_p_rt_val->get_src_addr()) {
         m_pkt_src_ip = m_p_rt_val->get_src_addr();
@@ -80,7 +80,7 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
     bool ret_val = false;
     cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
 
-    if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc()) {
+    if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc(AF_INET)) {
         if (m_p_net_dev_entry == NULL &&
             g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()), this,
                                                         &net_dev_entry)) {

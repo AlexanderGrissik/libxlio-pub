@@ -68,46 +68,36 @@ bool rfs_mc::prepare_flow_spec()
      * the ring will not be deleted as we increased refcnt.
      * if one of these assumptions change, we must lock.
      */
-    attach_flow_data_t *p_attach_flow_data = NULL;
+    attach_flow_data_t *p_attach_flow_data = nullptr;
+    vma_ibv_flow_spec_eth *p_eth = nullptr;
+    vma_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
 
     switch (type) {
     case VMA_TRANSPORT_ETH: {
-        attach_flow_data_eth_ipv4_tcp_udp_t *attach_flow_data_eth = NULL;
+        bool is_ipv4 = (m_flow_tuple.get_family() == AF_INET);
+        if (is_ipv4) {
+            prepare_flow_spec_by_ip<attach_flow_data_eth_ipv4_tcp_udp_t>(
+                p_ring->m_p_qp_mgr, p_attach_flow_data, p_eth, p_tcp_udp);
+        } else {
+            prepare_flow_spec_by_ip<attach_flow_data_eth_ipv6_tcp_udp_t>(
+                p_ring->m_p_qp_mgr, p_attach_flow_data, p_eth, p_tcp_udp);
+        }
 
-        attach_flow_data_eth =
-            new (std::nothrow) attach_flow_data_eth_ipv4_tcp_udp_t(p_ring->m_p_qp_mgr);
-        if (!attach_flow_data_eth) {
+        if (!p_attach_flow_data) {
             return false;
         }
 
         uint8_t dst_mac[6];
-        create_multicast_mac_from_ip(dst_mac, m_flow_tuple.get_dst_ip());
-        ibv_flow_spec_eth_set(&(attach_flow_data_eth->ibv_flow_attr.eth), dst_mac,
-                              htons(p_ring->m_p_qp_mgr->get_partiton()));
+        create_multicast_mac_from_ip(dst_mac, m_flow_tuple.get_dst_ip(), m_flow_tuple.get_family());
+        ibv_flow_spec_eth_set(p_eth, dst_mac, htons(p_ring->m_p_qp_mgr->get_partiton()), is_ipv4);
 
         if (safe_mce_sys().eth_mc_l2_only_rules) {
-            ibv_flow_spec_ipv4_set(&(attach_flow_data_eth->ibv_flow_attr.ipv4), 0, 0);
-            ibv_flow_spec_tcp_udp_set(&(attach_flow_data_eth->ibv_flow_attr.tcp_udp), 0, 0, 0);
-            p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_eth;
-            break;
+            ibv_flow_spec_tcp_udp_set(p_tcp_udp, 0, 0, 0);
+        } else {
+            ibv_flow_spec_tcp_udp_set(p_tcp_udp, (m_flow_tuple.get_protocol() == PROTO_TCP),
+                                      m_flow_tuple.get_dst_port(), m_flow_tuple.get_src_port());
         }
 
-        ibv_flow_spec_ipv4_set(&(attach_flow_data_eth->ibv_flow_attr.ipv4),
-                               m_flow_tuple.get_dst_ip(), 0);
-
-        ibv_flow_spec_tcp_udp_set(&(attach_flow_data_eth->ibv_flow_attr.tcp_udp),
-                                  (m_flow_tuple.get_protocol() == PROTO_TCP),
-                                  m_flow_tuple.get_dst_port(), m_flow_tuple.get_src_port());
-
-        if (m_flow_tag_id) { // Will not attach flow_tag spec to rule for tag_id==0
-            ibv_flow_spec_flow_tag_set(&attach_flow_data_eth->ibv_flow_attr.flow_tag,
-                                       m_flow_tag_id);
-            attach_flow_data_eth->ibv_flow_attr.add_flow_tag_spec();
-            rfs_logdbg("Adding flow_tag spec to MC rule, num_of_specs: %d flow_tag_id: %d",
-                       attach_flow_data_eth->ibv_flow_attr.attr.num_of_specs, m_flow_tag_id);
-        }
-
-        p_attach_flow_data = (attach_flow_data_t *)attach_flow_data_eth;
         break;
     }
         BULLSEYE_EXCLUDE_BLOCK_START

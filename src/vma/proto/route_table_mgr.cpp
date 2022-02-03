@@ -326,7 +326,8 @@ void route_table_mgr::parse_attr(struct rtattr *rt_attribute, route_val *p_val)
     }
 }
 
-bool route_table_mgr::find_route_val(in_addr_t &dst, unsigned char table_id, route_val *&p_val)
+bool route_table_mgr::find_route_val(const in_addr_t &dst, unsigned char table_id,
+                                     route_val *&p_val)
 {
     rt_mgr_logfunc("dst addr '%s'", ip_address(dst).to_str().c_str());
 
@@ -360,8 +361,7 @@ bool route_table_mgr::find_route_val(in_addr_t &dst, unsigned char table_id, rou
 
 bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_result &res)
 {
-    in_addr_t dst = key.get_dst_ip();
-    ip_address dst_addr = dst;
+    ip_address dst_addr = ip_address(key.get_dst_ip());
     rt_mgr_logdbg("dst addr '%s'", dst_addr.to_str().c_str());
 
     route_val *p_val = NULL;
@@ -372,7 +372,7 @@ bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_resul
     auto_unlocker lock(m_lock);
     std::deque<unsigned char>::iterator table_id_iter = table_id_list.begin();
     for (; table_id_iter != table_id_list.end(); table_id_iter++) {
-        if (find_route_val(dst, *table_id_iter, p_val)) {
+        if (find_route_val(dst_addr.get_in_addr(), *table_id_iter, p_val)) {
             res.p_src = p_val->get_src_addr();
             rt_mgr_logdbg("dst ip '%s' resolved to src addr "
                           "'%d.%d.%d.%d'",

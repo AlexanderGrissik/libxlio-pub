@@ -2406,7 +2406,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     remote_addr.sin_port = m_p_connected_dst_entry->get_dst_port();
     sock_addr local_addr(m_bound);
     if (local_addr.is_anyaddr()) {
-        local_addr.set_in_addr(m_p_connected_dst_entry->get_src_addr());
+        local_addr.set_in_addr(ip_address(m_p_connected_dst_entry->get_src_addr()));
     }
 
     if (!m_p_connected_dst_entry->is_offloaded() ||
@@ -2422,7 +2422,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     if (m_bound.is_anyaddr()) {
         auto ip = m_p_connected_dst_entry->get_src_addr();
-        m_bound.set_in_addr(ip);
+        m_bound.set_in_addr(ip_address(ip));
         tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6);
     }
@@ -3162,8 +3162,9 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 
 void sockinfo_tcp::create_flow_tuple_key_from_pcb(flow_tuple &key, struct tcp_pcb *pcb)
 {
-    key = flow_tuple(pcb->local_ip.ip4.addr, htons(pcb->local_port), pcb->remote_ip.ip4.addr,
-                     htons(pcb->remote_port), PROTO_TCP);
+    key = flow_tuple(ip_address(pcb->local_ip.ip4.addr), htons(pcb->local_port),
+                     ip_address(pcb->remote_ip.ip4.addr), htons(pcb->remote_port), PROTO_TCP,
+                     AF_INET);
 }
 
 mem_buf_desc_t *sockinfo_tcp::get_front_m_rx_pkt_ready_list()
@@ -3201,14 +3202,16 @@ struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(const flow_tuple &key) const
 struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(in_addr_t peer_ip, in_port_t peer_port,
                                                    in_addr_t local_ip, in_port_t local_port)
 {
-    flow_tuple key(local_ip, local_port, peer_ip, peer_port, PROTO_TCP);
+    flow_tuple key(ip_address(local_ip), local_port, ip_address(peer_ip), peer_port, PROTO_TCP,
+                   AF_INET);
     return get_syn_received_pcb(key);
 }
 
 struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(const sock_addr &src, const sock_addr &dst)
 {
     // Pay attention at the mixed dst and src order.
-    flow_tuple key(dst, src, PROTO_TCP);
+    flow_tuple key(dst.get_ip_addr(), dst.get_in_port(), src.get_ip_addr(), src.get_in_port(),
+                   PROTO_TCP, dst.get_sa_family());
     return get_syn_received_pcb(key);
 }
 

@@ -37,6 +37,7 @@
 #include <config.h>
 #include <infiniband/verbs.h>
 #include "vma/util/vtypes.h"
+#include "vma/util/ip_address.h"
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
 #include <infiniband/verbs_exp.h>
 #endif
@@ -104,10 +105,10 @@ void priv_ibv_modify_cq_moderation(struct ibv_cq *cq, uint32_t period, uint32_t 
 #define FS_MASK_ON_8  (0xff)
 #define FS_MASK_ON_16 (0xffff)
 #define FS_MASK_ON_32 (0xffffffff)
+#define FS_MASK_ON_64 (0xffffffffffffffff)
 
 #define FLOW_TAG_MASK ((1 << 20) - 1)
-int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num);
-int priv_ibv_create_flow_supported(struct ibv_qp *qp, uint8_t port_num);
+int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num, sa_family_t family);
 int priv_ibv_query_burst_supported(struct ibv_qp *qp, uint8_t port_num);
 
 /* DEFINED_VERBS_VERSION:
@@ -231,6 +232,7 @@ typedef struct ibv_send_wr vma_ibv_send_wr;
 #define VMA_IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK
 #define VMA_IBV_FLOW_SPEC_ETH                   IBV_FLOW_SPEC_ETH
 #define VMA_IBV_FLOW_SPEC_IPV4                  IBV_FLOW_SPEC_IPV4
+#define VMA_IBV_FLOW_SPEC_IPV6                  IBV_FLOW_SPEC_IPV6
 #define VMA_IBV_FLOW_SPEC_TCP                   IBV_FLOW_SPEC_TCP
 #define VMA_IBV_FLOW_SPEC_UDP                   IBV_FLOW_SPEC_UDP
 #define vma_ibv_create_flow(qp, flow)           ibv_create_flow(qp, flow)
@@ -240,6 +242,7 @@ typedef struct ibv_flow_attr vma_ibv_flow_attr;
 typedef struct ibv_flow_spec_ib vma_ibv_flow_spec_ib;
 typedef struct ibv_flow_spec_eth vma_ibv_flow_spec_eth;
 typedef struct ibv_flow_spec_ipv4 vma_ibv_flow_spec_ipv4;
+typedef struct ibv_flow_spec_ipv6 vma_ibv_flow_spec_ipv6;
 typedef struct ibv_flow_spec_tcp_udp vma_ibv_flow_spec_tcp_udp;
 
 // Flow tag
@@ -483,6 +486,7 @@ typedef struct ibv_exp_send_wr vma_ibv_send_wr;
 #define VMA_IBV_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK IBV_EXP_FLOW_ATTR_FLAGS_ALLOW_LOOP_BACK
 #define VMA_IBV_FLOW_SPEC_ETH                   IBV_EXP_FLOW_SPEC_ETH
 #define VMA_IBV_FLOW_SPEC_IPV4                  IBV_EXP_FLOW_SPEC_IPV4
+#define VMA_IBV_FLOW_SPEC_IPV6                  IBV_EXP_FLOW_SPEC_IPV6
 #define VMA_IBV_FLOW_SPEC_TCP                   IBV_EXP_FLOW_SPEC_TCP
 #define VMA_IBV_FLOW_SPEC_UDP                   IBV_EXP_FLOW_SPEC_UDP
 #define vma_ibv_create_flow(qp, flow)           ibv_exp_create_flow(qp, flow)
@@ -492,6 +496,7 @@ typedef struct ibv_exp_flow_attr vma_ibv_flow_attr;
 typedef struct ibv_exp_flow_spec_ib vma_ibv_flow_spec_ib;
 typedef struct ibv_exp_flow_spec_eth vma_ibv_flow_spec_eth;
 typedef struct ibv_exp_flow_spec_ipv4 vma_ibv_flow_spec_ipv4;
+typedef struct ibv_exp_flow_spec_ipv6 vma_ibv_flow_spec_ipv6;
 typedef struct ibv_exp_flow_spec_tcp_udp vma_ibv_flow_spec_tcp_udp;
 
 // Flow tag
@@ -584,11 +589,11 @@ typedef enum {
 int vma_rdma_lib_reset();
 
 static inline void ibv_flow_spec_eth_set(vma_ibv_flow_spec_eth *eth, uint8_t *dst_mac,
-                                         uint16_t vlan_tag)
+                                         uint16_t vlan_tag, bool is_ipv4)
 {
     eth->type = VMA_IBV_FLOW_SPEC_ETH;
     eth->size = sizeof(vma_ibv_flow_spec_eth);
-    eth->val.ether_type = ntohs(ETH_P_IP);
+    eth->val.ether_type = ntohs(is_ipv4 ? ETH_P_IP : ETH_P_IPV6);
     eth->mask.ether_type = FS_MASK_ON_16;
     memcpy(eth->val.dst_mac, dst_mac, ETH_ALEN);
     memset(eth->mask.dst_mac, FS_MASK_ON_8, ETH_ALEN);
@@ -597,19 +602,51 @@ static inline void ibv_flow_spec_eth_set(vma_ibv_flow_spec_eth *eth, uint8_t *ds
         eth->val.vlan_tag ? htons(VLAN_VID_MASK) : 0; // we do not support vlan options
 }
 
-static inline void ibv_flow_spec_ipv4_set(vma_ibv_flow_spec_ipv4 *ipv4, uint32_t dst_ip,
-                                          uint32_t src_ip)
+template <typename T>
+static inline void ibv_flow_spec_set_single_ip(T &spec_ip_val, T &spec_ip_mask,
+                                               const ip_address &src_ip)
+{
+}
+
+typedef decltype(ibv_flow_ipv4_filter::src_ip) spec_ipv4_type;
+template <>
+inline void ibv_flow_spec_set_single_ip(spec_ipv4_type &spec_ip_val, spec_ipv4_type &spec_ip_mask,
+                                        const ip_address &in_ip)
+{
+    memcpy(&spec_ip_val, &in_ip.get_in4_addr(), sizeof(spec_ipv4_type));
+    spec_ip_mask = (!in_ip.is_anyaddr() ? FS_MASK_ON_32 : 0U);
+}
+
+typedef decltype(ibv_flow_ipv6_filter::src_ip) spec_ipv6_type;
+template <>
+inline void ibv_flow_spec_set_single_ip(spec_ipv6_type &spec_ip_val, spec_ipv6_type &spec_ip_mask,
+                                        const ip_address &in_ip)
+{
+    memcpy(&spec_ip_val, &in_ip.get_in6_addr(), sizeof(spec_ipv6_type));
+    uint64_t *p_src_msk = reinterpret_cast<uint64_t *>(spec_ip_mask);
+    p_src_msk[0] = p_src_msk[1] = (!in_ip.is_anyaddr() ? FS_MASK_ON_64 : 0U);
+}
+
+static inline void ibv_flow_spec_ip_set(vma_ibv_flow_spec_ipv4 *ipv4, const ip_address &dst_ip,
+                                        const ip_address &src_ip)
 {
     ipv4->type = VMA_IBV_FLOW_SPEC_IPV4;
     ipv4->size = sizeof(vma_ibv_flow_spec_ipv4);
-    ipv4->val.src_ip = src_ip;
-    if (ipv4->val.src_ip) {
-        ipv4->mask.src_ip = FS_MASK_ON_32;
-    }
-    ipv4->val.dst_ip = dst_ip;
-    if (ipv4->val.dst_ip) {
-        ipv4->mask.dst_ip = FS_MASK_ON_32;
-    }
+    ibv_flow_spec_set_single_ip(ipv4->val.src_ip, ipv4->mask.src_ip, src_ip);
+    ibv_flow_spec_set_single_ip(ipv4->val.dst_ip, ipv4->mask.dst_ip, dst_ip);
+}
+
+static inline void ibv_flow_spec_ip_set(vma_ibv_flow_spec_ipv6 *ipv6, const ip_address &dst_ip,
+                                        const ip_address &src_ip)
+{
+    ipv6->type = VMA_IBV_FLOW_SPEC_IPV6;
+    ipv6->size = sizeof(vma_ibv_flow_spec_ipv6);
+    ibv_flow_spec_set_single_ip(ipv6->val.src_ip, ipv6->mask.src_ip, src_ip);
+    ibv_flow_spec_set_single_ip(ipv6->val.dst_ip, ipv6->mask.dst_ip, dst_ip);
+    ipv6->val.flow_label = ipv6->mask.flow_label = 0U;
+    ipv6->val.next_hdr = ipv6->mask.next_hdr = 0U;
+    ipv6->val.traffic_class = ipv6->mask.traffic_class = 0U;
+    ipv6->val.hop_limit = ipv6->mask.hop_limit = 0U;
 }
 
 static inline void ibv_flow_spec_tcp_udp_set(vma_ibv_flow_spec_tcp_udp *tcp_udp, bool is_tcp,

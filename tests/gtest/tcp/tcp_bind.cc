@@ -135,7 +135,7 @@ TEST_F(tcp_bind, ti_4)
 
     errno = EOK;
     memcpy(&addr, &client_addr, sizeof(addr));
-    sys_set_port((struct sockaddr *)&addr, 17001);
+    sys_set_port((struct sockaddr *)&addr, 17003);
     rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
     EXPECT_EQ(EOK, errno);
     EXPECT_EQ(0, rc);

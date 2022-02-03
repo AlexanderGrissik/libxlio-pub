@@ -115,6 +115,19 @@ static inline const char *__vma_get_protocol_str(in_protocol_t protocol)
     return ("unknown-protocol");
 }
 
+static inline const char *__vma_get_family_str(sa_family_t family)
+{
+    switch (family) {
+    case AF_INET:
+        return "INET";
+    case AF_INET6:
+        return "INET6";
+    default:
+        break;
+    }
+    return ("unknown-family");
+}
+
 static inline const char *__vma_get_role_str(int role)
 {
     switch (role) {

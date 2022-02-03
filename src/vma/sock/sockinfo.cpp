@@ -649,7 +649,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 {
     // This function should be called from within mutex protected context of the sockinfo!!!
 
-    si_logdbg("Attaching to %s", flow_key.to_str());
+    si_logdbg("Attaching to %s", flow_key.to_str().c_str());
 
     // Protect against local loopback used as local_if & peer_ip
     // rdma_cm will accept it but we don't want to offload it
@@ -659,7 +659,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
     }
 
     if (m_rx_flow_map.find(flow_key) != m_rx_flow_map.end()) {
-        si_logdbg("already attached %s", flow_key.to_str());
+        si_logdbg("already attached %s", flow_key.to_str().c_str());
         return false;
     }
 
@@ -680,7 +680,8 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
     unlock_rx_q();
     if (!p_nd_resources->p_ring->attach_flow(flow_key, this)) {
         lock_rx_q();
-        si_logdbg("Failed to attach %s to ring %p", flow_key.to_str(), p_nd_resources->p_ring);
+        si_logdbg("Failed to attach %s to ring %p", flow_key.to_str().c_str(),
+                  p_nd_resources->p_ring);
         return false;
     }
 #if defined(DEFINED_NGINX)
@@ -694,18 +695,18 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
                 if (g_worker_index < (safe_mce_sys().power_2_nginx_workers_num %
                                       safe_mce_sys().actual_nginx_workers_num)) {
                     g_b_add_second_4t_rule = true;
-                    flow_tuple_with_local_if new_key(flow_key.get_dst_ip(), flow_key.get_dst_port(),
-                                                     0, 1, flow_key.get_protocol(),
-                                                     flow_key.get_local_if());
+                    flow_tuple_with_local_if new_key(
+                        flow_key.get_dst_ip(), flow_key.get_dst_port(), ip_address::any_addr(), 1,
+                        flow_key.get_protocol(), flow_key.get_family(), flow_key.get_local_if());
                     if (!p_nd_resources->p_ring->attach_flow(new_key, this)) {
                         lock_rx_q();
-                        si_logerr("Failed to attach %s to ring %p", new_key.to_str(),
+                        si_logerr("Failed to attach %s to ring %p", new_key.to_str().c_str(),
                                   p_nd_resources->p_ring);
                         g_b_add_second_4t_rule = false;
                         return false;
                     }
-                    si_logdbg("Added second rule %s for index %d to ring %p", new_key.to_str(),
-                              g_worker_index, p_nd_resources->p_ring);
+                    si_logdbg("Added second rule %s for index %d to ring %p",
+                              new_key.to_str().c_str(), g_worker_index, p_nd_resources->p_ring);
                 }
             }
             g_b_add_second_4t_rule = false;
@@ -716,16 +717,16 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // Registered as receiver successfully
-    si_logdbg("Attached %s to ring %p", flow_key.to_str(), p_nd_resources->p_ring);
+    si_logdbg("Attached %s to ring %p", flow_key.to_str().c_str(), p_nd_resources->p_ring);
 
     /* Verify 5 tuple over 3 tuple
      * and replace flow rule with the strongest
      */
     if (flow_key.is_5_tuple()) {
         // Check and remove lesser 3 tuple
-        flow_tuple_with_local_if flow_key_3t(flow_key.get_dst_ip(), flow_key.get_dst_port(),
-                                             INADDR_ANY, INPORT_ANY, flow_key.get_protocol(),
-                                             flow_key.get_local_if());
+        flow_tuple_with_local_if flow_key_3t(
+            flow_key.get_dst_ip(), flow_key.get_dst_port(), ip_address::any_addr(), INPORT_ANY,
+            flow_key.get_protocol(), flow_key.get_family(), flow_key.get_local_if());
         rx_flow_map_t::iterator rx_flow_iter = m_rx_flow_map.find(flow_key_3t);
         if (rx_flow_iter != m_rx_flow_map.end()) {
             si_logdbg("Removing (and detaching) 3 tuple now that we added a stronger 5 tuple");
@@ -738,7 +739,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 
 bool sockinfo::detach_receiver(flow_tuple_with_local_if &flow_key)
 {
-    si_logdbg("Unregistering receiver: %s", flow_key.to_str());
+    si_logdbg("Unregistering receiver: %s", flow_key.to_str().c_str());
 
     // TODO ALEXR: DO we need to return a 3 tuple instead of a 5 tuple being removed?
     // if (peer_ip != INADDR_ANY && peer_port != INPORT_ANY);
@@ -747,13 +748,13 @@ bool sockinfo::detach_receiver(flow_tuple_with_local_if &flow_key)
     rx_flow_map_t::iterator rx_flow_iter = m_rx_flow_map.find(flow_key);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (rx_flow_iter == m_rx_flow_map.end()) {
-        si_logdbg("Failed to find ring associated with: %s", flow_key.to_str());
+        si_logdbg("Failed to find ring associated with: %s", flow_key.to_str().c_str());
         return false;
     }
     BULLSEYE_EXCLUDE_BLOCK_END
     ring *p_ring = rx_flow_iter->second;
 
-    si_logdbg("Detaching %s from ring %p", flow_key.to_str(), p_ring);
+    si_logdbg("Detaching %s from ring %p", flow_key.to_str().c_str(), p_ring);
 
     // Detach tuple
     unlock_rx_q();
@@ -836,8 +837,9 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_addre
 
     // Save the new CQ from ring (dummy_flow_key is not used)
     {
-        flow_tuple_with_local_if dummy_flow_key(m_bound, m_connected, m_protocol,
-                                                ip_local.get_in_addr());
+        flow_tuple_with_local_if dummy_flow_key(
+            m_bound.get_ip_addr(), m_bound.get_in_port(), m_connected.get_ip_addr(),
+            m_connected.get_in_port(), m_protocol, m_bound.get_sa_family(), ip_local);
         rx_add_ring_cb(dummy_flow_key, p_nd_resources->p_ring);
     }
 
@@ -865,8 +867,9 @@ bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
 
     // Release the new CQ from ring (dummy_flow_key is not used)
     {
-        flow_tuple_with_local_if dummy_flow_key(m_bound, m_connected, m_protocol,
-                                                ip_local.get_in_addr());
+        flow_tuple_with_local_if dummy_flow_key(
+            m_bound.get_ip_addr(), m_bound.get_in_port(), m_connected.get_ip_addr(),
+            m_connected.get_in_port(), m_protocol, m_bound.get_sa_family(), ip_local);
         rx_del_ring_cb(dummy_flow_key, p_nd_resources->p_ring);
     }
 
@@ -969,7 +972,7 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
             BULLSEYE_EXCLUDE_BLOCK_START
             unlock_rx_q();
             if (!new_ring->attach_flow(flow_key, this)) {
-                si_logerr("Failed to attach %s to ring %p", flow_key.to_str(), new_ring);
+                si_logerr("Failed to attach %s to ring %p", flow_key.to_str().c_str(), new_ring);
                 rx_del_ring_cb(flow_key, new_ring);
                 rc = p_nd_resources->p_ndv->release_ring(new_key);
                 if (rc < 0) {
@@ -984,9 +987,9 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
             rx_flow_iter->second = new_ring;
 
             // Registered as receiver successfully
-            si_logdbg("Attached %s to ring %p", flow_key.to_str(), new_ring);
+            si_logdbg("Attached %s to ring %p", flow_key.to_str().c_str(), new_ring);
 
-            si_logdbg("Detaching %s from ring %p", flow_key.to_str(), p_old_ring);
+            si_logdbg("Detaching %s from ring %p", flow_key.to_str().c_str(), p_old_ring);
             // Detach tuple
             unlock_rx_q();
             p_old_ring->detach_flow(flow_key, this);
@@ -1546,7 +1549,9 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
             target_family = find_target_family(role, addr.get_p_sa());
         }
         if (target_family == TRANS_VMA) {
-            flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, if_addr.get_in_addr());
+            flow_tuple_with_local_if flow_key(addr.get_ip_addr(), addr.get_in_port(),
+                                              m_connected.get_ip_addr(), m_connected.get_in_port(),
+                                              m_protocol, m_connected.get_sa_family(), if_addr);
             ret = ret && attach_receiver(flow_key);
         }
     } else {
@@ -1565,8 +1570,10 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
                     target_family = find_target_family(role, addr.get_p_sa());
                 }
                 if (target_family == TRANS_VMA) {
-                    flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol,
-                                                      if_addr.get_in_addr());
+                    flow_tuple_with_local_if flow_key(addr.get_ip_addr(), addr.get_in_port(),
+                                                      m_connected.get_ip_addr(),
+                                                      m_connected.get_in_port(), m_protocol,
+                                                      m_connected.get_sa_family(), if_addr);
                     ret = ret && attach_receiver(flow_key);
                 }
             }
@@ -1623,7 +1630,7 @@ void sockinfo::shutdown_rx()
 
     /* Destroy resources in case they are allocated using SO_BINDTODEVICE call */
     if (m_rx_nd_map.size()) {
-        destroy_nd_resources(m_so_bindtodevice_ip);
+        destroy_nd_resources(ip_address(m_so_bindtodevice_ip));
     }
     si_logdbg("shutdown RX");
 }

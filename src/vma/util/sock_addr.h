@@ -126,16 +126,9 @@ public:
                                                                  : sizeof(struct sockaddr_in6));
     }
 
-    bool is_anyaddr() const
-    {
-        if (get_sa_family() == AF_INET) {
-            return u_sa.m_sa_in.sin_addr.s_addr == INADDR_ANY;
-        }
+    bool is_anyaddr() const { return get_ip_addr().is_anyaddr(); }
 
-        return (0 == memcmp(&u_sa.m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any)));
-    };
-
-    bool is_mc() const { return get_ip_addr().is_mc(); };
+    bool is_mc() const { return get_ip_addr().is_mc(get_sa_family()); };
 
     void set_sockaddr(const struct sockaddr *sa, socklen_t size)
     {

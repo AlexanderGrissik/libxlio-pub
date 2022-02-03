@@ -233,6 +233,24 @@ void ib_ctx_handler::print_val()
 }
 
 #ifdef DEFINED_DPCP
+
+int parse_dpcp_version(const char *dpcp_ver)
+{
+    static const std::string s_delimiter(".");
+    static const std::array<int, 3> s_multiplier = {1, 100, 10000};
+    std::string str_ver(dpcp_ver);
+    str_ver += '.'; // For generic loop parsing.
+
+    int ver = 0;
+    size_t loops = s_multiplier.size();
+    for (size_t pos = str_ver.find(s_delimiter); (pos != std::string::npos) && (loops-- > 0U);
+         str_ver.erase(0, pos + s_delimiter.length()), pos = str_ver.find(s_delimiter)) {
+        ver += std::stoi(str_ver.substr(0, pos)) * s_multiplier[loops];
+    }
+
+    return (loops == 0U ? ver : 0);
+}
+
 dpcp::adapter *ib_ctx_handler::set_dpcp_adapter()
 {
     dpcp::status status = dpcp::DPCP_ERR_NO_SUPPORT;
@@ -249,6 +267,13 @@ dpcp::adapter *ib_ctx_handler::set_dpcp_adapter()
     status = dpcp::provider::get_instance(p_provider);
     if (dpcp::DPCP_OK != status) {
         ibch_logerr("failed getting provider status = %d", status);
+        goto err;
+    }
+
+    dpcp_ver = parse_dpcp_version(p_provider->get_version());
+    if (dpcp_ver < DEFINED_DPCP_MIN) {
+        ibch_logerr("Incompatible dpcp vesrion %d. Min supported version %d", dpcp_ver,
+                    DEFINED_DPCP_MIN);
         goto err;
     }
 

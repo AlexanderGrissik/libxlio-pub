@@ -83,7 +83,7 @@ private:
     // other route_entrys
     in_addr_route_entry_map_t m_rte_list_for_each_net_dev;
 
-    bool find_route_val(in_addr_t &dst_addr, unsigned char table_id, route_val *&p_val);
+    bool find_route_val(const in_addr_t &dst_addr, unsigned char table_id, route_val *&p_val);
 
     // save current main rt table
     void update_tbl();

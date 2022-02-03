@@ -35,12 +35,29 @@
 #include "vma/dev/gro_mgr.h"
 #include "vma/dev/ring_simple.h"
 #include "vma/proto/route_rule_table_key.h"
+#include <netinet/ip6.h>
 
 #define MODULE_NAME "rfs_uc_tcp_gro"
 
-#define IP_H_LEN_NO_OPTIONS  5
 #define TCP_H_LEN_NO_OPTIONS 5
 #define TCP_H_LEN_TIMESTAMP  8
+
+inline uint32_t ipv6_get_flowid(const struct ip6_hdr &p_ip6_h)
+{
+    const uint32_t *raw = reinterpret_cast<const uint32_t *>(p_ip6_h.ip6_flow);
+    return ((static_cast<uint32_t>(raw[1] & 0xf) << 16) | (static_cast<uint32_t>(raw[2]) << 8) |
+            static_cast<uint32_t>(raw[3]));
+}
+
+inline bool ipv4_check(const struct iphdr &p_ip_h)
+{
+    return (p_ip_h.ihl == IP_H_LEN_NO_OPTIONS);
+}
+
+inline bool ipv6_check(const struct ip6_hdr &p_ip6_h)
+{
+    return (likely(0U == ipv6_get_flowid(p_ip6_h)) && likely(p_ip6_h.ip6_nxt == IPPROTO_TCP));
+}
 
 rfs_uc_tcp_gro::rfs_uc_tcp_gro(flow_tuple *flow_spec_5t, ring_slave *p_ring,
                                rfs_rule_filter *rule_filter, uint32_t flow_tag_id)
@@ -65,7 +82,10 @@ bool rfs_uc_tcp_gro::rx_dispatch_packet(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_in
                                         void *pv_fd_ready_array /* = NULL */)
 {
     struct iphdr *p_ip_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_ip4_h;
+    struct ip6_hdr *p_ip6_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_ip6_h;
     struct tcphdr *p_tcp_h = p_rx_pkt_mem_buf_desc_info->rx.tcp.p_tcp_h;
+    uint16_t explicit_hdr_len; // L3 header size is not included in IPv6 payload field.
+    uint16_t tot_len;
 
     if (!m_b_active) {
         if (!m_b_reserved && m_p_gro_mgr->is_stream_max()) {
@@ -73,32 +93,48 @@ bool rfs_uc_tcp_gro::rx_dispatch_packet(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_in
         }
     }
 
-    if (!tcp_ip_check(p_rx_pkt_mem_buf_desc_info, p_ip_h, p_tcp_h)) {
-        if (m_b_active) {
-            flush_gro_desc(pv_fd_ready_array);
+    if (p_ip_h->version == 4) {
+        if (unlikely(!ipv4_check(*p_ip_h))) {
+            goto out;
         }
+
+        // For IPv4 the header len is included in the tot_len.
+        explicit_hdr_len = 0U;
+
+        // For IPv4 we keep tracking in GRO the tot-len including the header size.
+        tot_len = ntohs(p_ip_h->tot_len);
+    } else {
+        if (unlikely(!ipv6_check(*p_ip6_h))) {
+            goto out;
+        }
+
+        // For IPv6 the header len is NOT included in the ip6_plen.
+        explicit_hdr_len = IP6_H_LEN_BYTES_NO_EXT;
+
+        // For IPv6 we keep tracking in GRO the tot-len without the header size.
+        tot_len = ntohs(p_ip6_h->ip6_plen);
+    }
+
+    if (unlikely(!tcp_check(p_rx_pkt_mem_buf_desc_info, p_tcp_h))) {
         goto out;
     }
 
-    if (!m_b_active) {
+    if (unlikely(!m_b_active)) {
         if (!m_b_reserved) {
             m_b_reserved = m_p_gro_mgr->reserve_stream(this);
         }
-        init_gro_desc(p_rx_pkt_mem_buf_desc_info, p_ip_h, p_tcp_h);
+        init_gro_desc(p_rx_pkt_mem_buf_desc_info, tot_len, p_tcp_h);
         m_b_active = true;
     } else {
-        if (ntohl(p_tcp_h->seq) != m_gro_desc.next_seq) {
-            flush_gro_desc(pv_fd_ready_array);
+        if ((ntohl(p_tcp_h->seq) != m_gro_desc.next_seq) || !timestamp_check(p_tcp_h)) {
             goto out;
         }
 
-        if (!timestamp_check(p_tcp_h)) {
-            flush_gro_desc(pv_fd_ready_array);
-            goto out;
-        }
+        void *payload_ptr = reinterpret_cast<u8_t *>(p_rx_pkt_mem_buf_desc_info->p_buffer) +
+            p_rx_pkt_mem_buf_desc_info->rx.tcp.n_transport_header_len + explicit_hdr_len + tot_len -
+            p_rx_pkt_mem_buf_desc_info->rx.sz_payload;
 
-        if (!add_packet(p_rx_pkt_mem_buf_desc_info, p_ip_h, p_tcp_h)) {
-            flush_gro_desc(pv_fd_ready_array);
+        if (!add_packet(p_rx_pkt_mem_buf_desc_info, payload_ptr, p_tcp_h)) {
             goto out;
         }
 
@@ -113,10 +149,14 @@ bool rfs_uc_tcp_gro::rx_dispatch_packet(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_in
     return true;
 
 out:
+    if (likely(m_b_active)) {
+        flush_gro_desc(pv_fd_ready_array);
+    }
+
     return rfs_uc::rx_dispatch_packet(p_rx_pkt_mem_buf_desc_info, pv_fd_ready_array);
 }
 
-bool rfs_uc_tcp_gro::add_packet(mem_buf_desc_t *mem_buf_desc, struct iphdr *p_ip_h, tcphdr *p_tcp_h)
+bool rfs_uc_tcp_gro::add_packet(mem_buf_desc_t *mem_buf_desc, void *payload_ptr, tcphdr *p_tcp_h)
 {
     uint32_t ip_tot_len = m_gro_desc.ip_tot_len + mem_buf_desc->rx.sz_payload;
 
@@ -145,9 +185,7 @@ bool rfs_uc_tcp_gro::add_packet(mem_buf_desc_t *mem_buf_desc, struct iphdr *p_ip
     mem_buf_desc->lwip_pbuf.pbuf.ref = 1;
     mem_buf_desc->lwip_pbuf.pbuf.type = PBUF_REF;
     mem_buf_desc->lwip_pbuf.pbuf.next = NULL;
-    mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)mem_buf_desc->p_buffer +
-        mem_buf_desc->rx.tcp.n_transport_header_len + ntohs(p_ip_h->tot_len) -
-        mem_buf_desc->rx.sz_payload;
+    mem_buf_desc->lwip_pbuf.pbuf.payload = payload_ptr;
 
     m_gro_desc.p_last->lwip_pbuf.pbuf.next = &(mem_buf_desc->lwip_pbuf.pbuf);
     m_gro_desc.p_last->p_next_desc = NULL;
@@ -181,7 +219,11 @@ void rfs_uc_tcp_gro::flush_gro_desc(void *pv_fd_ready_array)
     }
 
     if (m_gro_desc.buf_count > 1) {
-        m_gro_desc.p_ip_h->tot_len = htons(m_gro_desc.ip_tot_len);
+        if (m_gro_desc.p_first->rx.tcp.p_ip4_h->version == 4) {
+            m_gro_desc.p_first->rx.tcp.p_ip4_h->tot_len = htons(m_gro_desc.ip_tot_len);
+        } else {
+            m_gro_desc.p_first->rx.tcp.p_ip6_h->ip6_plen = htons(m_gro_desc.ip_tot_len);
+        }
         m_gro_desc.p_tcp_h->ack_seq = m_gro_desc.ack;
         m_gro_desc.p_tcp_h->window = m_gro_desc.wnd;
 
@@ -209,13 +251,13 @@ void rfs_uc_tcp_gro::flush_gro_desc(void *pv_fd_ready_array)
     }
 
     __log_func("Rx LRO TCP segment info: src_port=%d, dst_port=%d, flags='%s%s%s%s%s%s' seq=%u, "
-               "ack=%u, win=%u, payload_sz=%u, num_bufs=%u",
+               "ack=%u, win=%u, ip_tot_len=%u, num_bufs=%u",
                ntohs(m_gro_desc.p_tcp_h->source), ntohs(m_gro_desc.p_tcp_h->dest),
                m_gro_desc.p_tcp_h->urg ? "U" : "", m_gro_desc.p_tcp_h->ack ? "A" : "",
                m_gro_desc.p_tcp_h->psh ? "P" : "", m_gro_desc.p_tcp_h->rst ? "R" : "",
                m_gro_desc.p_tcp_h->syn ? "S" : "", m_gro_desc.p_tcp_h->fin ? "F" : "",
                ntohl(m_gro_desc.p_tcp_h->seq), ntohl(m_gro_desc.p_tcp_h->ack_seq),
-               ntohs(m_gro_desc.p_tcp_h->window), m_gro_desc.ip_tot_len - 40, m_gro_desc.buf_count);
+               ntohs(m_gro_desc.p_tcp_h->window), m_gro_desc.ip_tot_len, m_gro_desc.buf_count);
 
     if (!rfs_uc::rx_dispatch_packet(m_gro_desc.p_first, pv_fd_ready_array)) {
         p_ring->reclaim_recv_buffers_no_lock(m_gro_desc.p_first);
@@ -224,13 +266,13 @@ void rfs_uc_tcp_gro::flush_gro_desc(void *pv_fd_ready_array)
     m_b_active = false;
 }
 
-void rfs_uc_tcp_gro::init_gro_desc(mem_buf_desc_t *mem_buf_desc, iphdr *p_ip_h, tcphdr *p_tcp_h)
+void rfs_uc_tcp_gro::init_gro_desc(mem_buf_desc_t *mem_buf_desc, uint16_t ip_tot_len_pkt,
+                                   tcphdr *p_tcp_h)
 {
     m_gro_desc.p_first = m_gro_desc.p_last = mem_buf_desc;
     m_gro_desc.buf_count = 1;
-    m_gro_desc.p_ip_h = p_ip_h;
     m_gro_desc.p_tcp_h = p_tcp_h;
-    m_gro_desc.ip_tot_len = ntohs(p_ip_h->tot_len);
+    m_gro_desc.ip_tot_len = ip_tot_len_pkt;
     m_gro_desc.ack = p_tcp_h->ack_seq;
     m_gro_desc.next_seq = ntohl(p_tcp_h->seq) + mem_buf_desc->rx.sz_payload;
     m_gro_desc.wnd = p_tcp_h->window;
@@ -243,14 +285,9 @@ void rfs_uc_tcp_gro::init_gro_desc(mem_buf_desc_t *mem_buf_desc, iphdr *p_ip_h, 
     }
 }
 
-bool rfs_uc_tcp_gro::tcp_ip_check(mem_buf_desc_t *mem_buf_desc, iphdr *p_ip_h, tcphdr *p_tcp_h)
+bool rfs_uc_tcp_gro::tcp_check(mem_buf_desc_t *mem_buf_desc, tcphdr *p_tcp_h)
 {
-
     if (mem_buf_desc->rx.sz_payload == 0) {
-        return false;
-    }
-
-    if (p_ip_h->ihl != IP_H_LEN_NO_OPTIONS) {
         return false;
     }
 

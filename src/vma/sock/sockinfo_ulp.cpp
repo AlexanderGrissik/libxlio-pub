@@ -1378,7 +1378,7 @@ void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
         flow_tuple_with_local_if tuple = utls->m_p_sock->get_flow_tuple();
         utls->m_rx_rule = utls->m_p_rx_ring->tls_rx_create_rule(tuple, utls->m_p_tir);
         if (utls->m_rx_rule == NULL) {
-            vlog_printf(VLOG_ERROR, "TLS rule failed for %s\n", tuple.to_str());
+            vlog_printf(VLOG_ERROR, "TLS rule failed for %s\n", tuple.to_str().c_str());
         }
     }
 }

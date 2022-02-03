@@ -320,19 +320,24 @@ static inline int get_procname(int pid, char *proc, size_t size)
 }
 
 // Creates multicast MAC from multicast IP
-// inline void create_multicast_mac_from_ip(uint8_t (& mc_mac) [6], in_addr_t ip)
-inline void create_multicast_mac_from_ip(unsigned char *mc_mac, in_addr_t ip)
+inline void create_multicast_mac_from_ip(unsigned char *mc_mac, const ip_address &addr,
+                                         sa_family_t family)
 {
     if (mc_mac == NULL) {
         return;
     }
 
-    mc_mac[0] = 0x01;
-    mc_mac[1] = 0x00;
-    mc_mac[2] = 0x5e;
-    mc_mac[3] = (uint8_t)((ip >> 8) & 0x7f);
-    mc_mac[4] = (uint8_t)((ip >> 16) & 0xff);
-    mc_mac[5] = (uint8_t)((ip >> 24) & 0xff);
+    if (family == AF_INET) {
+        in_addr_t ip = addr.get_in_addr();
+        mc_mac[0] = 0x01;
+        mc_mac[1] = 0x00;
+        mc_mac[2] = 0x5e;
+        mc_mac[3] = (uint8_t)((ip >> 8) & 0x7f);
+        mc_mac[4] = (uint8_t)((ip >> 16) & 0xff);
+        mc_mac[5] = (uint8_t)((ip >> 24) & 0xff);
+    } else {
+        // [IPv6 TODO] Implement for IPv6
+    }
 }
 
 static inline void create_mgid_from_ipv4_mc_ip(uint8_t *mgid, uint16_t pkey, uint32_t ip)

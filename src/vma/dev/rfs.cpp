@@ -72,8 +72,8 @@ inline void rfs::filter_keep_attached(rule_filter_map_t::iterator &filter_iter)
         filter_iter->second.rfs_rule_vec.push_back(m_attach_flow_data_vector[i]->rfs_flow);
         rfs_logdbg("filter_keep_attached copying rfs_flow, Tag: %" PRIu32
                    ", Flow: %s, Index: %zu, Ptr: %p, Counter: %" PRIu64,
-                   m_flow_tag_id, m_flow_tuple.to_str(), i, m_attach_flow_data_vector[i]->rfs_flow,
-                   filter_iter->first);
+                   m_flow_tag_id, m_flow_tuple.to_str().c_str(), i,
+                   m_attach_flow_data_vector[i]->rfs_flow, filter_iter->first);
     }
 }
 
@@ -96,7 +96,7 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
             filter_iter->second.counter > 0 ? filter_iter->second.counter - 1 : 0;
         rfs_logdbg("prepare_filter_detach decrement counter, Tag: %" PRIu32
                    ", Flow: %s, Counter: %" PRIu64,
-                   m_flow_tag_id, m_flow_tuple.to_str(), filter_iter->first);
+                   m_flow_tag_id, m_flow_tuple.to_str().c_str(), filter_iter->first);
     }
 
     filter_counter = filter_iter->second.counter;
@@ -123,7 +123,7 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
             m_attach_flow_data_vector[i]->rfs_flow = filter_iter->second.rfs_rule_vec[i];
             rfs_logdbg("prepare_filter_detach copying rfs_flow, Tag: %" PRIu32
                        ", Flow: %s, Index: %zu, Ptr: %p, Counter: %" PRIu64,
-                       m_flow_tag_id, m_flow_tuple.to_str(), i,
+                       m_flow_tag_id, m_flow_tuple.to_str().c_str(), i,
                        m_attach_flow_data_vector[i]->rfs_flow, filter_iter->first);
         }
         BULLSEYE_EXCLUDE_BLOCK_END
@@ -322,35 +322,47 @@ bool rfs::detach_flow(pkt_rcvr_sink *sink)
 }
 
 #ifdef DEFINED_UTLS
-rfs_rule *rfs::create_rule(xlio_tir *tir, flow_tuple &flow_spec)
+
+template <typename T>
+rfs_rule *create_rule_T(xlio_tir *tir, const flow_tuple &flow_spec, attach_flow_data_t *iter,
+                        bool is5T)
 {
-    rfs_rule *rule = NULL;
+    typename T::ibv_flow_attr_eth_ip_tcp_udp *p_attr =
+        reinterpret_cast<typename T::ibv_flow_attr_eth_ip_tcp_udp *>(&iter->ibv_flow_attr);
 
-    if (m_attach_flow_data_vector.size() == 1) {
-        attach_flow_data_t *iter = m_attach_flow_data_vector[0];
-        attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp *p_attr =
-            reinterpret_cast<attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp *>(
-                &iter->ibv_flow_attr);
-
-        if (unlikely(p_attr->eth.type != VMA_IBV_FLOW_SPEC_ETH)) {
-            // We support only ETH rules for now
-            return NULL;
-        }
-
-        attach_flow_data_eth_ipv4_tcp_udp_t::ibv_flow_attr_eth_ipv4_tcp_udp flow_attr(*p_attr);
-        if (!m_flow_tuple.is_5_tuple()) {
-            // We need the most specific 5T rule
-            flow_attr.ipv4.val.src_ip = flow_spec.get_src_ip();
-            flow_attr.ipv4.mask.src_ip = FS_MASK_ON_32;
-            flow_attr.tcp_udp.val.src_port = flow_spec.get_src_port();
-            flow_attr.tcp_udp.mask.src_port = FS_MASK_ON_16;
-        }
-        // The highest priority to override TCP rule
-        flow_attr.attr.priority = 0;
-        rule = iter->p_qp_mgr->create_rfs_rule(flow_attr.attr, tir);
+    if (unlikely(p_attr->eth.type != VMA_IBV_FLOW_SPEC_ETH)) {
+        // We support only ETH rules for now
+        return NULL;
     }
-    return rule;
+
+    typename T::ibv_flow_attr_eth_ip_tcp_udp flow_attr(*p_attr);
+    if (!is5T) {
+        // For UTLS, We need the most specific 5T rule (in case the current rule is 3T).
+        ibv_flow_spec_set_single_ip(flow_attr.ip.val.src_ip, flow_attr.ip.mask.src_ip,
+                                    flow_spec.get_src_ip());
+        flow_attr.tcp_udp.val.src_port = flow_spec.get_src_port();
+        flow_attr.tcp_udp.mask.src_port = FS_MASK_ON_16;
+    }
+    // The highest priority to override TCP rule
+    flow_attr.attr.priority = 0;
+    return iter->p_qp_mgr->create_rfs_rule(flow_attr.attr, tir);
 }
+
+rfs_rule *rfs::create_rule(xlio_tir *tir, const flow_tuple &flow_spec)
+{
+    if (m_attach_flow_data_vector.size() == 1) {
+        if (m_flow_tuple.get_family() == AF_INET) {
+            return create_rule_T<attach_flow_data_eth_ipv4_tcp_udp_t>(
+                tir, flow_spec, m_attach_flow_data_vector[0], m_flow_tuple.is_5_tuple());
+        }
+
+        return create_rule_T<attach_flow_data_eth_ipv6_tcp_udp_t>(
+            tir, flow_spec, m_attach_flow_data_vector[0], m_flow_tuple.is_5_tuple());
+    }
+
+    return nullptr;
+}
+
 #endif /* DEFINED_UTLS */
 
 bool rfs::create_flow()
@@ -361,7 +373,7 @@ bool rfs::create_flow()
         if (!iter->rfs_flow) {
             rfs_logerr("Create RFS flow failed, Tag: %" PRIu32 ", Flow: %s, Priority: %" PRIu16
                        ", errno: %d - %m",
-                       m_flow_tag_id, m_flow_tuple.to_str(), iter->ibv_flow_attr.priority,
+                       m_flow_tag_id, m_flow_tuple.to_str().c_str(), iter->ibv_flow_attr.priority,
                        errno); // TODO ALEXR - Add info about QP, spec into log msg
             return false;
         }
@@ -369,7 +381,7 @@ bool rfs::create_flow()
 
     m_b_tmp_is_attached = true;
     rfs_logdbg("Create RFS flow succeeded, Tag: %" PRIu32 ", Flow: %s", m_flow_tag_id,
-               m_flow_tuple.to_str());
+               m_flow_tuple.to_str().c_str());
 
     return true;
 }
@@ -383,7 +395,7 @@ bool rfs::destroy_flow()
                 "Destroy RFS flow failed, RFS flow was not created. "
                 "This is OK for MC same ip diff port scenario. Tag: %" PRIu32
                 ", Flow: %s, Priority: %" PRIu16,
-                m_flow_tag_id, m_flow_tuple.to_str(),
+                m_flow_tag_id, m_flow_tuple.to_str().c_str(),
                 iter->ibv_flow_attr.priority); // TODO ALEXR - Add info about QP, spec into log msg
         } else {
             delete iter->rfs_flow;
@@ -393,7 +405,7 @@ bool rfs::destroy_flow()
 
     m_b_tmp_is_attached = false;
     rfs_logdbg("Destroy RFS flow succeeded, Tag: %" PRIu32 ", Flow: %s", m_flow_tag_id,
-               m_flow_tuple.to_str());
+               m_flow_tuple.to_str().c_str());
 
     return true;
 }

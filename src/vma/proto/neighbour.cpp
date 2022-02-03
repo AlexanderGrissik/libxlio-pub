@@ -98,7 +98,7 @@ inline int neigh_eth::build_mc_neigh_val()
     BULLSEYE_EXCLUDE_BLOCK_END
 
     address_t address = new unsigned char[ETH_ALEN];
-    create_multicast_mac_from_ip(address, get_key().get_in_addr());
+    create_multicast_mac_from_ip(address, ip_address(get_key().get_in_addr()), AF_INET);
     m_val->m_l2_address = new ETH_addr(address);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_val->m_l2_address == NULL) {
