@@ -50,7 +50,7 @@ typedef std::unordered_map<ip_addr, net_device_val *> net_device_map_addr_t;
 typedef std::unordered_map<int, net_device_val *> net_device_map_index_t;
 typedef std::list<ip_data_t> local_ip_list_t;
 
-class net_device_table_mgr : public cache_table_mgr<ip_address, net_device_val *>, public observer {
+class net_device_table_mgr : public cache_table_mgr<ip_addr, net_device_val *>, public observer {
 public:
     net_device_table_mgr();
     virtual ~net_device_table_mgr();
@@ -59,7 +59,7 @@ public:
     void print_val_tbl();
 
     virtual void notify_cb(event *ev);
-    net_device_entry *create_new_entry(ip_address if_addr, const observer *dst);
+    net_device_entry *create_new_entry(ip_addr if_addr, const observer *dst);
 
     net_device_val *get_net_device_val(const ip_addr &if_addr);
     net_device_val *get_net_device_val(int if_index);

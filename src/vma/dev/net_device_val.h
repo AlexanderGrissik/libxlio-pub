@@ -160,7 +160,9 @@ typedef struct ip_data {
     ip_data()
         : flags(0)
         , local_addr(INADDR_ANY)
-        , prefixlen(0) {}
+        , prefixlen(0)
+    {
+    }
 } ip_data_t;
 
 typedef std::vector<ip_data_t *> ip_data_vector_t;

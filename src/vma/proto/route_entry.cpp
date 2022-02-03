@@ -98,8 +98,8 @@ void route_entry::register_to_net_device()
         ip_addr src_addr(lip_offloaded_list.front().local_addr);
         rt_entry_logdbg("register to net device with src_addr %s", src_addr.to_str().c_str());
 
-        cache_entry_subject<ip_address, net_device_val *> *net_dev_entry =
-            (cache_entry_subject<ip_address, net_device_val *> *)m_p_net_dev_entry;
+        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry =
+            (cache_entry_subject<ip_addr, net_device_val *> *)m_p_net_dev_entry;
         if (g_p_net_device_table_mgr->register_observer(src_addr, this, &net_dev_entry)) {
             rt_entry_logdbg("route_entry [%p] is registered to an offloaded device", this);
             m_p_net_dev_entry = (net_device_entry *)net_dev_entry;

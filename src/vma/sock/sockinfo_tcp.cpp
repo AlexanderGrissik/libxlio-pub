@@ -2567,7 +2567,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
     m_bound.set_sockaddr(&tmp_sin, tmp_sin_len);
 
     if (!m_bound.is_anyaddr() &&
-        !g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_bound.get_ip_addr(), m_bound.get_sa_family()))) {
+        !g_p_net_device_table_mgr->get_net_device_val(
+            ip_addr(m_bound.get_ip_addr(), m_bound.get_sa_family()))) {
         // if socket is not bound to INADDR_ANY and not offloaded socket- only bind OS
         setPassthrough();
         m_sock_state = TCP_SOCK_BOUND;

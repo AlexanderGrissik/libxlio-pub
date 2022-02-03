@@ -78,12 +78,13 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
 {
     NOT_IN_USE(is_connect);
     bool ret_val = false;
-    cache_entry_subject<ip_address, net_device_val *> *p_ces = NULL;
+    cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
 
     if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc()) {
         if (m_p_net_dev_entry == NULL &&
-            g_p_net_device_table_mgr->register_observer(m_mc_tx_if_ip, this, &p_ces)) {
-            m_p_net_dev_entry = dynamic_cast<net_device_entry *>(p_ces);
+            g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()), this,
+                                                        &net_dev_entry)) {
+            m_p_net_dev_entry = dynamic_cast<net_device_entry *>(net_dev_entry);
         }
         if (m_p_net_dev_entry) {
             m_p_net_dev_entry->get_val(m_p_net_dev_val);

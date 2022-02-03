@@ -65,7 +65,7 @@ net_device_table_mgr *g_p_net_device_table_mgr = NULL;
 enum net_device_table_mgr_timers { RING_PROGRESS_ENGINE_TIMER, RING_ADAPT_CQ_MODERATION_TIMER };
 
 net_device_table_mgr::net_device_table_mgr()
-    : cache_table_mgr<ip_address, net_device_val *>("net_device_table_mgr")
+    : cache_table_mgr<ip_addr, net_device_val *>("net_device_table_mgr")
     , m_lock("net_device_table_mgr")
     , m_time_conversion_mode(TS_CONVERSION_MODE_DISABLE)
 {
@@ -306,8 +306,7 @@ net_device_val *net_device_table_mgr::get_net_device_val(const ip_addr &if_addr)
     net_device_map_addr_t::iterator iter = m_net_device_map_addr.find(if_addr);
     if (iter != m_net_device_map_addr.end()) {
         net_device_val *net_dev = iter->second;
-        ndtm_logdbg("Found %s for addr: %s", net_dev->to_str().c_str(),
-                    if_addr.to_str().c_str());
+        ndtm_logdbg("Found %s for addr: %s", net_dev->to_str().c_str(), if_addr.to_str().c_str());
         if (net_dev->get_state() == net_device_val::INVALID) {
             ndtm_logdbg("invalid net_device %s", net_dev->to_str().c_str());
             return NULL;
@@ -373,12 +372,12 @@ out:
     return net_dev;
 }
 
-net_device_entry *net_device_table_mgr::create_new_entry(ip_address if_addr, const observer *obs)
+net_device_entry *net_device_table_mgr::create_new_entry(ip_addr if_addr, const observer *obs)
 {
     ndtm_logdbg("");
     NOT_IN_USE(obs);
 
-    net_device_val *p_ndv = get_net_device_val(ip_addr(if_addr, AF_INET));
+    net_device_val *p_ndv = get_net_device_val(if_addr);
 
     if (p_ndv) {
         return new net_device_entry(if_addr, p_ndv);

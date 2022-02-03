@@ -183,7 +183,8 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     }
 
     ring_alloc_logic_attr ring_attr(safe_mce_sys().ring_allocation_logic_tx);
-    m_ring_allocation_logic = ring_allocation_logic_tx(m_p_dev->get_local_addr().get_in_addr(), ring_attr, this);
+    m_ring_allocation_logic =
+        ring_allocation_logic_tx(m_p_dev->get_local_addr().get_in_addr(), ring_attr, this);
 
     if (is_init_resources) {
         m_p_ring = m_p_dev->reserve_ring(m_ring_allocation_logic.get_key());

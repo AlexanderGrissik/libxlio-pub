@@ -766,9 +766,10 @@ bool sockinfo::detach_receiver(flow_tuple_with_local_if &flow_key)
     return destroy_nd_resources((const ip_address)flow_key.get_local_if());
 }
 
-net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_local)
+net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_address_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
+    ip_addr ip_local(ip_address_local.get_in_addr());
 
     // Check if we are already registered to net_device with the local ip as observers
     rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
@@ -782,12 +783,13 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_local
         nd_resources.p_ring = NULL;
 
         BULLSEYE_EXCLUDE_BLOCK_START
-        cache_entry_subject<ip_address, net_device_val *> *p_ces = NULL;
-        if (!g_p_net_device_table_mgr->register_observer(ip_local, &m_rx_nd_observer, &p_ces)) {
+        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
+        if (!g_p_net_device_table_mgr->register_observer(ip_local, &m_rx_nd_observer,
+                                                         &net_dev_entry)) {
             si_logdbg("Failed registering as observer for local ip %s", ip_local.to_str().c_str());
             goto err;
         }
-        nd_resources.p_nde = (net_device_entry *)p_ces;
+        nd_resources.p_nde = (net_device_entry *)net_dev_entry;
         if (!nd_resources.p_nde) {
             si_logerr("Got NULL net_devide_entry for local ip %s", ip_local.to_str().c_str());
             goto err;
@@ -844,10 +846,12 @@ err:
     return NULL;
 }
 
-bool sockinfo::destroy_nd_resources(const ip_address &ip_local)
+bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
+    ip_addr ip_local(ip_address_local.get_in_addr());
     rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
+
     BULLSEYE_EXCLUDE_BLOCK_START
     if (rx_nd_iter == m_rx_nd_map.end()) {
         si_logerr("Failed to net_device associated with: %s", ip_local.to_str().c_str());
@@ -1561,7 +1565,8 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
                     target_family = find_target_family(role, addr.get_p_sa());
                 }
                 if (target_family == TRANS_VMA) {
-                    flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol, if_addr.get_in_addr());
+                    flow_tuple_with_local_if flow_key(addr, m_connected, m_protocol,
+                                                      if_addr.get_in_addr());
                     ret = ret && attach_receiver(flow_key);
                 }
             }
