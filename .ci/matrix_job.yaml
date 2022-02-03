@@ -37,8 +37,8 @@ runs_on_dockers:
   - {name: 'rhel8.3-inbox-x86_64',  url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'base', arch: 'x86_64'}
   - {name: 'rhel8.3-inbox-aarch64', url: 'harbor.mellanox.com/hpcx/aarch64/rhel8.3/builder:inbox', category: 'base', arch: 'aarch64'}
 # legacy
-#  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', category: 'legacy', arch: 'x86_64'}
-#  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', category: 'legacy', arch: 'x86_64'}
+  - {name: 'rhel7.6-mofed-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:mofed-5.1-0.6.6.0', category: 'base', arch: 'x86_64'}
+  - {name: 'rhel7.6-inbox-x86_64', url: 'harbor.mellanox.com/hpcx/x86_64/rhel7.6/builder:inbox', category: 'base', arch: 'x86_64'}
 # tool
   - {name: 'toolbox', url: 'harbor.mellanox.com/hpcx/x86_64/rhel8.3/builder:inbox', category: 'tool', arch: 'x86_64'}
   - {name: 'blackduck', url: 'harbor.mellanox.com/toolbox/ngci-centos:7.9.2009.2', category: 'tool', arch: 'x86_64'}
@@ -418,7 +418,7 @@ steps:
         cd ./jenkins/ ;
           for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
         cd ..
-        if [ -d jenkins ]; then
+        if [ -d jenkins/${flags} ]; then
           cd ./jenkins/${flags};
             for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
             for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;

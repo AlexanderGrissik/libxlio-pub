@@ -44,14 +44,14 @@
 class ip_address {
 public:
     ip_address(in_addr_t ip4)
-        : m_ip6 {}
     {
+        memset(&m_ip6, 0, sizeof(m_ip6));
         m_ip = ip4;
     };
 
     ip_address(in_addr ip4)
-        : m_ip6 {}
     {
+        memset(&m_ip6, 0, sizeof(m_ip6));
         m_ip4 = ip4;
     };
 
