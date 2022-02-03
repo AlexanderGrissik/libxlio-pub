@@ -39,13 +39,13 @@
 #include "vma/util/vtypes.h"
 
 // This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member
-// except IPv4/IPv6 union. If any other memeber is needed, this class should be split into two
-// classes ip_addr and ip_address.
+// except IPv4/IPv6 union and must now have virtual methods.
+// Class ip_addr is an extention to this class (see below) which allows more members and vtable.
 class ip_address {
 public:
     ip_address(in_addr_t ip4)
         : m_ip6 {}
-    { // [TODO IPV6] Temporary
+    {
         m_ip = ip4;
     };
 
@@ -88,7 +88,7 @@ public:
         return rc;
     }
 
-    in_addr_t get_in_addr() const { return m_ip; }; // [TODO IPV6] Temporary
+    in_addr_t get_in_addr() const { return m_ip; };
 
     const in_addr &get_in4_addr() const { return m_ip4; };
 
@@ -121,13 +121,93 @@ public:
 
     friend std::hash<ip_address>;
 
-private:
+protected:
     union {
         in6_addr m_ip6;
         uint64_t m_ip6_64[2];
         in_addr m_ip4;
         in_addr_t m_ip;
     };
+};
+
+// This class is an extention to the ip_address class. It allows more members and virtual methods.
+// However, new members should be added with caution since this still may be used in hashes and
+// performance oriented pathes.
+class ip_addr : public ip_address {
+public:
+    ip_addr(in_addr_t ip4)
+        : ip_address(ip4)
+        , m_family(AF_INET)
+    {
+    }
+
+    ip_addr(in_addr ip4)
+        : ip_address(ip4)
+        , m_family(AF_INET)
+    {
+    }
+
+    ip_addr(in6_addr ip6)
+        : ip_address(ip6)
+        , m_family(AF_INET6)
+    {
+    }
+
+    ip_addr(const ip_address &ip, sa_family_t family)
+        : ip_address(ip)
+        , m_family(family)
+    {
+    }
+
+    ip_addr(ip_address &&ip, sa_family_t family)
+        : ip_address(ip)
+        , m_family(family)
+    {
+    }
+
+    ip_addr(const ip_addr &addr)
+        : ip_address(addr)
+        , m_family(addr.m_family)
+    {
+    }
+
+    ip_addr(ip_addr &addr)
+        : ip_address(addr)
+        , m_family(addr.m_family)
+    {
+    }
+
+    sa_family_t get_family() const { return m_family; }
+
+    bool is_ipv4() const { return (m_family == AF_INET); }
+
+    bool is_ipv6() const { return (m_family == AF_INET6); }
+
+    const std::string to_str() const { return ip_address::to_str(m_family); }
+
+    bool operator==(const ip_addr &ip) const
+    {
+        return (ip_address::operator==(ip) && m_family == ip.m_family);
+    };
+
+    bool operator!=(const ip_addr &ip) const
+    {
+        return (ip_address::operator!=(ip) || m_family != ip.m_family);
+    };
+
+    ip_addr &operator=(const ip_addr &ip)
+    {
+        m_family = ip.m_family;
+        ip_address::operator=(ip);
+        return *this;
+    }
+
+    ip_addr &operator=(ip_addr &&ip) { return *this = ip; }
+
+    friend std::hash<ip_addr>;
+
+private:
+    sa_family_t m_family;
 };
 
 namespace std {
@@ -137,6 +217,15 @@ public:
     {
         hash<uint64_t> _hash;
         return _hash(key.m_ip6_64[0] ^ key.m_ip6_64[1]);
+    }
+};
+template <> class hash<ip_addr> {
+public:
+    size_t operator()(const ip_addr &key) const
+    {
+        hash<uint64_t> _hash;
+        return _hash(key.m_ip6_64[0] ^ key.m_ip6_64[1] ^
+                     (static_cast<uint64_t>(key.get_family()) << 30U));
     }
 };
 } // namespace std
