@@ -204,6 +204,8 @@ fi
 %{_mandir}/man8/xlio_stats.*
 
 %changelog
+* Fri Feb  4 2022 Igor Ivanov <igori@nvidia.com> 1.2.3-1
+- Bump version to 1.2.3
 * Thu Jan 27 2022 Igor Ivanov <igori@nvidia.com> 1.2.2-1
 - Bump version to 1.2.2
 * Mon Jan 10 2022 Igor Ivanov <igori@nvidia.com> 1.2.1-1
