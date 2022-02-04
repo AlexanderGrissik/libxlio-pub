@@ -34,23 +34,10 @@
 
 #include "vma/lwip/opt.h"
 #include "vma/lwip/ip_addr.h"
-#include "vma/lwip/pbuf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define IP_PROTO_TCP     6
-
-/* This is passed as the destination address to ip_output_if (not
-   to ip_output), meaning that an IP header already is constructed
-   in the pbuf. This is used when TCP retransmits. */
-#ifdef IP_HDRINCL
-#undef IP_HDRINCL
-#endif /* IP_HDRINCL */
-#define IP_HDRINCL  NULL
-
-#define IP_PCB_ADDRHINT
 
 /* This is the common part of all PCB types. It needs to be at the
    beginning of a PCB type definition. It is located here so that
@@ -66,14 +53,7 @@ extern "C" {
    /* Type Of Service */ \
   u8_t tos;              \
   /* Time To Live */     \
-  u8_t ttl               \
-  /* link layer address resolution hint */ \
-  IP_PCB_ADDRHINT
-
-struct ip_pcb {
-/* Common members of all PCB types */
-  IP_PCB;
-};
+  u8_t ttl
 
 /*
  * Option flags per-socket. These are the same like SO_XXX.
@@ -97,5 +77,3 @@ struct ip_pcb {
 #endif
 
 #endif /* __LWIP_IP_H__ */
-
-

@@ -141,8 +141,6 @@ static inline uint64_t ntohll(uint64_t x)
 
 #define MCE_IMM_DATA_MASK_MC_TX_LOOP_DISABLED (1 << 0)
 
-#define BROADCAST_IP "255.255.255.255"
-
 #ifndef ARPHRD_ETHER
 #define ARPHRD_ETHER 1 /* Ethernet 10Mbps                   */
 #endif

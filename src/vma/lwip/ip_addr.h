@@ -70,9 +70,6 @@ typedef union ip_addr_lwip {
     ip4_addr_t ip4;
 } ip_addr_t;
 
-/** 127.0.0.1 */
-#define IPADDR_LOOPBACK     ((u32_t)0x7f000001UL)
-
 /** Copy IP address - faster than ip_addr_set: no NULL check */
 static inline void ip_addr_from_raw(ip_addr_t *dest, const void *src, bool is_ipv6)
 {
