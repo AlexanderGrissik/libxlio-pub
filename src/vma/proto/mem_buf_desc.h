@@ -39,11 +39,11 @@
 #include "vma/util/sock_addr.h"
 #include "vma/util/vma_list.h"
 #include "vma/lwip/pbuf.h"
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 
 // Forward declarations
 class ring_slave;
-struct iphdr;
-struct ip6_hdr;
 
 struct timestamps_t {
     struct timespec sw;

@@ -784,15 +784,15 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
         case SO_BINDTODEVICE:
             if (__optval) {
-                struct sockaddr_in sockaddr;
+                ip_addr addr {0};
                 if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                     m_so_bindtodevice_ip = INADDR_ANY;
-                } else if (get_ipv4_from_ifname((char *)__optval, &sockaddr)) {
+                } else if (get_ip_addr_from_ifname((char *)__optval, addr)) {
                     si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, cannot find if_name",
                                   setsockopt_so_opt_to_str(__optname));
                     break;
                 } else {
-                    m_so_bindtodevice_ip = sockaddr.sin_addr.s_addr;
+                    m_so_bindtodevice_ip = addr.get_in4_addr().s_addr;
                 }
                 si_udp_logdbg("SOL_SOCKET, %s='%s' (%d.%d.%d.%d)",
                               setsockopt_so_opt_to_str(__optname), (char *)__optval,
@@ -909,9 +909,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 if (!lip_offloaded_list.empty()) {
                     mreqn.imr_address.s_addr = lip_offloaded_list.front().local_addr.get_in_addr();
                 } else {
-                    struct sockaddr_in src_addr;
-                    if (get_ipv4_from_ifindex(mreqn.imr_ifindex, &src_addr) == 0) {
-                        mreqn.imr_address.s_addr = src_addr.sin_addr.s_addr;
+                    ip_addr src_addr {0};
+                    if (get_ip_addr_from_ifindex(mreqn.imr_ifindex, src_addr) == 0) {
+                        mreqn.imr_address.s_addr = src_addr.get_in4_addr().s_addr;
                     } else {
                         si_udp_logdbg("setsockopt(%s) will be passed to OS for handling, can't get "
                                       "address of interface index %d ",
@@ -1021,9 +1021,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                             mreqprm.imr_interface.s_addr =
                                 lip_offloaded_list.front().local_addr.get_in_addr();
                         } else {
-                            struct sockaddr_in src_addr;
-                            if (get_ipv4_from_ifindex(p_mreqn->imr_ifindex, &src_addr) == 0) {
-                                mreqprm.imr_interface.s_addr = src_addr.sin_addr.s_addr;
+                            ip_addr src_addr {0};
+                            if (get_ip_addr_from_ifindex(p_mreqn->imr_ifindex, src_addr) == 0) {
+                                mreqprm.imr_interface.s_addr = src_addr.get_in4_addr().s_addr;
                             } else {
                                 si_udp_logdbg("setsockopt(%s) will be passed to OS for handling, "
                                               "can't get address of interface index %d ",

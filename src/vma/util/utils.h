@@ -39,14 +39,11 @@
 #include <ifaddrs.h>
 #include <linux/if_ether.h>
 #include <exception>
-
 #include "vtypes.h"
 #include "utils/rdtsc.h"
 #include "vlogger/vlogger.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/util/vma_stats.h"
-
-struct iphdr; // forward declaration
 
 #define VMA_ALIGN(x, y) ((((x) + (y)-1) / (y)) * (y))
 
@@ -73,6 +70,10 @@ unsigned short compute_ip_checksum(const unsigned short *buf, unsigned int nshor
  */
 unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload);
 
+/**
+ * Get tcp checksum: given IPv6 header and tcp segment
+ */
+unsigned short compute_tcp_checksum(const ip6_hdr *p_iphdr, const uint16_t *p_ip_payload);
 /**
  * get udp checksum: given IP header and UDP datagram (assume checksum field in UDP header contains
  * zero) matches RFC 793
@@ -211,25 +212,26 @@ int get_if_mtu_from_ifname(const char *ifname);
 int get_window_scaling_factor(int tcp_rmem_max, int core_rmem_max);
 
 /**
- * Get Ethernet ipv4 address from interface name
+ * Get Ethernet ip address from interface name
  *
  * @param ifname input interface name of device (e.g. eth1, ib2)
- *  should be of size IFNAMSIZ
- * @param sockaddr_in output interface inet address
+ * @param addr output ip_address
+ * @param family (e.g. AF_INET, AF_INET6)
  *
  * @return -1 on failure
  */
-int get_ipv4_from_ifname(char *ifname, struct sockaddr_in *addr);
+int get_ip_addr_from_ifname(const char *ifname, ip_addr &addr, sa_family_t family = AF_INET);
 
 /**
- * Get Ethernet ipv4 address from interface index
+ * Get Ethernet ip address from interface index
  *
  * @param ifindex input interface index of device
- * @param sockaddr_in output interface inet address
+ * @param addr output ip_address
+ * @param family (e.g. AF_INET, AF_INET6)
  *
  * @return -1 on failure
  */
-int get_ipv4_from_ifindex(int ifindex, struct sockaddr_in *addr);
+int get_ip_addr_from_ifindex(uint32_t ifindex, ip_addr &addr, sa_family_t family = AF_INET);
 
 /**
  * Get vlan id from interface name

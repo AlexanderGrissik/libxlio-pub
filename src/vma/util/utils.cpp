@@ -40,16 +40,21 @@
 #include <sys/stat.h>
 #include <linux/if_ether.h>
 #include <linux/if_vlan.h>
+#include <linux/if_addr.h>
+#include <linux/rtnetlink.h>
 #include <linux/sockios.h>
+#include <linux/netlink.h>
 #include <limits>
 #include <math.h>
-#include <linux/ip.h> //IP  header (struct  iphdr) definition
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 #ifdef HAVE_LINUX_ETHTOOL_H
 #include <linux/ethtool.h> // ioctl(SIOCETHTOOL)
 #endif
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netlink/route/link.h>
+#include <netlink/msg.h>
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
@@ -200,29 +205,38 @@ void print_roce_lag_warnings(char *interface, char *disable_path /* = NULL */,
 
 void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_csum)
 {
-    // L3
     if (l3_csum) {
-        struct iphdr *ip_hdr = p_mem_buf_desc->tx.p_ip4_h;
-        ip_hdr->check = 0; // use 0 at csum calculation time
-        ip_hdr->check = compute_ip_checksum((unsigned short *)ip_hdr, ip_hdr->ihl * 2);
+        unsigned short l3_checksum = -1, l4_checksum = -1;
+        auto protocol = static_cast<uint8_t>(IPPROTO_MAX);
+        auto ipv4 = p_mem_buf_desc->tx.p_ip4_h;
+        auto ipv6 = p_mem_buf_desc->tx.p_ip6_h;
+        auto is_ipv4 = (ipv4->version == 4);
+        if (is_ipv4) {
+            ipv4->check = 0;
+            ipv4->check = l3_checksum =
+                compute_ip_checksum(reinterpret_cast<unsigned short *>(ipv4), ipv4->ihl * 2);
+            protocol = ipv4->protocol;
+        } else {
+            protocol = ipv6->ip6_nxt;
+        }
 
-        // L4
         if (l4_csum) {
-            if (ip_hdr->protocol == IPPROTO_UDP) {
+            if (protocol == IPPROTO_UDP) {
                 struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
-                udp_hdr->check = 0;
-                __log_entry_func(
-                    "using SW checksum calculation: ip_hdr->check=%d, udp_hdr->check=%d",
-                    ip_hdr->check, udp_hdr->check);
-            } else if (ip_hdr->protocol == IPPROTO_TCP) {
+                l4_checksum = udp_hdr->check = 0;
+            } else if (protocol == IPPROTO_TCP) {
                 struct tcphdr *tcp_hdr = p_mem_buf_desc->tx.p_tcp_h;
+                auto tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
                 tcp_hdr->check = 0;
-                tcp_hdr->check = compute_tcp_checksum(ip_hdr, (const uint16_t *)tcp_hdr);
-                __log_entry_func(
-                    "using SW checksum calculation: ip_hdr->check=%d, tcp_hdr->check=%d",
-                    ip_hdr->check, tcp_hdr->check);
+                if (is_ipv4) {
+                    l4_checksum = compute_tcp_checksum(ipv4, tcp_hdr_buf);
+                } else {
+                    l4_checksum = compute_tcp_checksum(ipv6, tcp_hdr_buf);
+                }
+                tcp_hdr->check = l4_checksum;
             }
         }
+        __log_entry_func("SW checksum calculation: L3 = %d, L4 = %d", l3_checksum, l4_checksum);
     }
 }
 
@@ -239,46 +253,64 @@ unsigned short compute_ip_checksum(const unsigned short *buf, unsigned int nshor
     return ~sum;
 }
 
+static uint32_t compute_pseudo_header(const iphdr *ipv4, uint16_t proto, uint16_t proto_len)
+{
+    uint32_t sum = ((ipv4->saddr >> 16) & 0xFFFF) + ((ipv4->saddr) & 0xFFFF) +
+        ((ipv4->daddr >> 16) & 0xFFFF) + ((ipv4->daddr) & 0xFFFF) + htons(proto) + htons(proto_len);
+    return sum;
+}
+
+static uint32_t compute_pseudo_header(const ip6_hdr *ipv6, uint16_t proto, uint16_t proto_len)
+{
+    auto saddr = ipv6->ip6_src.s6_addr16, daddr = ipv6->ip6_dst.s6_addr16;
+
+    uint32_t sum = saddr[0] + saddr[1] + saddr[2] + saddr[3] + saddr[4] + saddr[5] + saddr[6] +
+        saddr[7] + daddr[0] + daddr[1] + daddr[2] + daddr[3] + daddr[4] + daddr[5] + daddr[6] +
+        daddr[7] + htons(proto) + htons(proto_len);
+    return sum;
+}
+
 /*
  * get tcp checksum: given IP header and tcp segment (assume checksum field in TCP header contains
  * zero) matches RFC 793
  *
  * This code borrows from other places and their ideas.
  * */
-unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload)
+static unsigned short compute_tcp_payload_checksum(const uint16_t *payload, uint16_t payload_len,
+                                                   uint32_t sum)
 {
-    unsigned long sum = 0;
-    uint16_t tcpLen = ntohs(p_iphdr->tot_len) -
-        (p_iphdr->ihl << 2); // shift left 2 will multiply by 4 for converting to octets
-
-    // add the pseudo header
-    // the source ip
-    sum += (p_iphdr->saddr >> 16) & 0xFFFF;
-    sum += (p_iphdr->saddr) & 0xFFFF;
-    // the dest ip
-    sum += (p_iphdr->daddr >> 16) & 0xFFFF;
-    sum += (p_iphdr->daddr) & 0xFFFF;
-    // protocol and reserved: 6
-    sum += htons(IPPROTO_TCP);
-    // the length
-    sum += htons(tcpLen);
-
-    // add the IP payload
-    while (tcpLen > 1) {
-        sum += *p_ip_payload++;
-        tcpLen -= 2;
+    while (payload_len > 1) {
+        sum += *payload++;
+        payload_len -= 2;
     }
-    // if any bytes left, pad the bytes and add
-    if (tcpLen > 0) {
-        sum += ((*p_ip_payload) & htons(0xFF00));
+
+    if (payload_len > 0) {
+        sum += ((*payload) & htons(0xFF00));
     }
+    //
     // Fold 32-bit sum to 16 bits: add carrier to result
     while (sum >> 16) {
         sum = (sum & 0xffff) + (sum >> 16);
     }
+
     sum = ~sum;
-    // computation result
-    return (unsigned short)sum;
+    return static_cast<unsigned short>(sum);
+}
+
+unsigned short compute_tcp_checksum(const iphdr *ipv4, const uint16_t *payload)
+{
+    uint32_t sum = 0;
+    uint16_t tcpLen = ntohs(ipv4->tot_len) - (ipv4->ihl << 2);
+    sum = compute_pseudo_header(ipv4, IPPROTO_TCP, tcpLen);
+    return compute_tcp_payload_checksum(payload, tcpLen, sum);
+}
+
+unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload)
+{
+    uint32_t sum = 0;
+    uint16_t tcpLen = ntohs(ipv6->ip6_plen);
+    sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
+    return compute_tcp_payload_checksum(payload, tcpLen, sum);
 }
 
 /* set udp checksum: given IP header and UDP datagram
@@ -288,26 +320,21 @@ unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t 
  * Although according to rfc 768, If the computed checksum is zero, it is transmitted as all ones -
  * this method will return the original value.
  */
-unsigned short compute_udp_checksum_rx(const struct iphdr *p_iphdr, const struct udphdr *udphdrp,
+unsigned short compute_udp_checksum_rx(const struct iphdr *ip_hdr, const struct udphdr *udphdrp,
                                        mem_buf_desc_t *p_rx_wc_buf_desc)
 {
-    unsigned long sum = 0;
-    unsigned short udp_len = htons(udphdrp->len);
+    uint16_t udp_len = ntohs(udphdrp->len);
     const uint16_t *p_ip_payload = (const uint16_t *)udphdrp;
     mem_buf_desc_t *p_ip_frag = p_rx_wc_buf_desc;
     unsigned short ip_frag_len = p_ip_frag->rx.frag.iov_len + sizeof(struct udphdr);
     unsigned short ip_frag_remainder = ip_frag_len;
-
-    // add the pseudo header
-    sum += (p_iphdr->saddr >> 16) & 0xFFFF;
-    sum += (p_iphdr->saddr) & 0xFFFF;
-    // the dest ip
-    sum += (p_iphdr->daddr >> 16) & 0xFFFF;
-    sum += (p_iphdr->daddr) & 0xFFFF;
-    // protocol and reserved: 17
-    sum += htons(IPPROTO_UDP);
-    // the length
-    sum += udphdrp->len;
+    uint32_t sum = 0;
+    if (ip_hdr->version == 4) {
+        sum = compute_pseudo_header(ip_hdr, IPPROTO_UDP, udp_len);
+    } else {
+        auto ip6_hdr = reinterpret_cast<const struct ip6_hdr *>(ip_hdr);
+        sum = compute_pseudo_header(ip6_hdr, IPPROTO_UDP, udp_len);
+    }
 
     // add the IP payload
     while (udp_len > 1) {
@@ -542,57 +569,117 @@ int get_window_scaling_factor(int tcp_rmem_max, int core_rmem_max)
     return scaling_factor;
 }
 
-int get_ipv4_from_ifname(char *ifname, struct sockaddr_in *addr)
-{
-    int ret = -1;
-    __log_func("find ip addr for ifname '%s'", ifname);
+using netlink_buffer = std::array<uint8_t, 4096>;
 
-    int fd = orig_os_api.socket(AF_INET, SOCK_DGRAM, 0);
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (fd < 0) {
-        __log_err("ERROR from socket() (errno=%d %m)", errno);
-        return -1;
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
+class socket_context_manager {
+    int m_fd;
+    netlink_buffer m_buf;
 
-    struct ifreq req;
-    memset(&req, 0, sizeof(req));
-    strncpy(req.ifr_name, ifname, IFNAMSIZ - 1);
-    ret = orig_os_api.ioctl(fd, SIOCGIFADDR, &req);
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (ret < 0) {
-        if (errno != ENODEV) {
-            __log_dbg("Failed getting ipv4 from interface '%s' (errno=%d %m)", ifname, errno);
-        } else {
-            // Log in DEBUG (Maybe there is a better way to catch IPv6 only interfaces and not to
-            // get to this point?)
-            __log_dbg("Failed getting ipv4 from interface '%s' (errno=%d %m)", ifname, errno);
+public:
+    socket_context_manager()
+    {
+        struct timeval tv = {
+            .tv_sec = 0,
+            .tv_usec = 10,
+        };
+
+        m_fd = orig_os_api.socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+        if (m_fd < 0) {
+            throw std::runtime_error("Open netlink socket failed");
         }
-        orig_os_api.close(fd);
-        return -1;
+
+        if (orig_os_api.setsockopt(m_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv)) {
+            close(m_fd);
+            throw std::runtime_error("Setsockopt non-blocking failed");
+        }
     }
 
-    if (req.ifr_addr.sa_family != AF_INET) {
-        __log_err("%s: address family %d is not supported", ifname, req.ifr_addr.sa_family);
-        orig_os_api.close(fd);
+    socket_context_manager(int fd) noexcept
+        : m_fd(fd) {};
+    ~socket_context_manager() { close(m_fd); };
+
+    void send_getaddr_request(uint8_t family)
+    {
+        sockaddr_nl sa = {AF_NETLINK, 0, 0, 0};
+        struct {
+            nlmsghdr nl;
+            ifaddrmsg addrmsg;
+        } msg_buf {
+            {
+                NLMSG_LENGTH(sizeof(ifaddrmsg)),
+                RTM_GETADDR,
+                NLM_F_REQUEST | NLM_F_ROOT,
+                0,
+                0,
+            },
+            {family, 0, 0, 0, 0},
+        };
+
+        iovec iov = {&msg_buf, msg_buf.nl.nlmsg_len};
+        msghdr msg = {&sa, sizeof(sa), &iov, 1, nullptr, 0, 0};
+
+        if (orig_os_api.sendmsg(m_fd, &msg, 0) < 0) {
+            throw std::runtime_error("Send RTM_GETADDR request failed");
+        }
+    }
+
+    int recv_response()
+    {
+        sockaddr_nl sa = {AF_NETLINK, 0, 0, 0};
+        iovec iov = {&m_buf, m_buf.size()};
+        msghdr msg = {&sa, sizeof(sa), &iov, 1, nullptr, 0, 0};
+
+        return orig_os_api.recvmsg(m_fd, &msg, 0);
+    }
+
+    nlmsghdr *get_nlmsghdr() { return reinterpret_cast<nlmsghdr *>(&m_buf); }
+};
+
+int get_ip_addr_from_ifindex(uint32_t ifindex, ip_addr &addr, sa_family_t family)
+{
+    try {
+        auto socket_cm = socket_context_manager();
+        socket_cm.send_getaddr_request(family);
+
+        do {
+            int len = socket_cm.recv_response();
+
+            for (auto nl = socket_cm.get_nlmsghdr(); nlmsg_ok(nl, len); nl = nlmsg_next(nl, &len)) {
+                auto ifa = reinterpret_cast<ifaddrmsg *>(nlmsg_data(nl));
+                if (ifa->ifa_index != ifindex || ifa->ifa_family != family ||
+                    nl->nlmsg_type != RTM_NEWADDR) {
+                    continue;
+                }
+
+                auto rta_len = IFA_PAYLOAD(nl);
+                for (auto rta = IFA_RTA(ifa); RTA_OK(rta, rta_len); rta = RTA_NEXT(rta, rta_len)) {
+                    if (rta->rta_type != IFA_ADDRESS) {
+                        continue;
+                    }
+                    addr = (family == AF_INET)
+                        ? ip_addr(*reinterpret_cast<in_addr *>(RTA_DATA(rta)), AF_INET)
+                        : ip_addr(*reinterpret_cast<in6_addr *>(RTA_DATA(rta)), AF_INET6);
+                    return 0;
+                }
+            }
+        } while (true);
+    } catch (std::runtime_error &e) {
+        __log_dbg("Failed getting ip from interface #%d - %s", ifindex, e.what());
         return -1;
     }
-    BULLSEYE_EXCLUDE_BLOCK_END
-    memcpy(addr, &req.ifr_addr, sizeof(*addr));
-    orig_os_api.close(fd);
     return 0;
 }
 
-int get_ipv4_from_ifindex(int ifindex, struct sockaddr_in *addr)
+int get_ip_addr_from_ifname(const char *ifname, ip_addr &addr, sa_family_t family)
 {
-    char if_name[IFNAMSIZ];
-    // todo should we use get_base_interface after getting the name?
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (if_indextoname(ifindex, if_name) && get_ipv4_from_ifname(if_name, addr) == 0) {
-        return 0;
+    __log_func("find ip addr for ifname '%s'", ifname);
+
+    int ifindex = if_nametoindex(ifname);
+    if (ifindex == 0) {
+        __log_err("ERROR no interface with the %s name (errno=%d)", ifname, errno);
+        return -1;
     }
-    BULLSEYE_EXCLUDE_BLOCK_END
-    return -1;
+    return get_ip_addr_from_ifindex(ifindex, addr, family);
 }
 
 uint16_t get_vlan_id_from_ifname(const char *ifname)

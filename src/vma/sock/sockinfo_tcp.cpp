@@ -4101,18 +4101,18 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             si_tcp_logdbg("SOL_SOCKET: SO_RCVTIMEO=%d", m_loops_timer.get_timeout_msec());
             break;
         }
-        case SO_BINDTODEVICE:
-            struct sockaddr_in sockaddr;
+        case SO_BINDTODEVICE: {
+            ip_addr addr {0};
             allow_privileged_sock_opt = safe_mce_sys().allow_privileged_sock_opt;
             if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                 m_so_bindtodevice_ip = INADDR_ANY;
-            } else if (get_ipv4_from_ifname((char *)__optval, &sockaddr)) {
+            } else if (get_ip_addr_from_ifname((char *)__optval, addr)) {
                 si_tcp_logdbg("SOL_SOCKET, SO_BINDTODEVICE - NOT HANDLED, cannot find if_name");
                 errno = EINVAL;
                 ret = -1;
                 break;
             } else {
-                m_so_bindtodevice_ip = sockaddr.sin_addr.s_addr;
+                m_so_bindtodevice_ip = addr.get_in4_addr().s_addr;
 
                 if (!is_connected()) {
                     /* Current implementation allows to create separate rings for tx and rx.
@@ -4126,8 +4126,7 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                      * Note:
                      * This inconsistency should be resolved.
                      */
-                    sock_addr local_ip(reinterpret_cast<const struct sockaddr *>(&sockaddr),
-                                       static_cast<socklen_t>(sizeof(sockaddr)));
+                    sock_addr local_ip(AF_INET, &m_so_bindtodevice_ip, 0);
 
                     lock_tcp_con();
                     /* We need to destroy this if attach/detach receiver is not called
@@ -4153,6 +4152,7 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             // TODO handle RX side
             si_tcp_logdbg("(SO_BINDTODEVICE) interface=%s", (char *)__optval);
             break;
+        }
         case SO_MAX_PACING_RATE: {
             struct xlio_rate_limit_t rate_limit;
 

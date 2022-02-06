@@ -167,10 +167,10 @@ void route_table_mgr::rt_mgr_update_source_ip()
             }
         }
         // if still no src ip, get it from ioctl
-        struct sockaddr_in src_addr;
+        ip_addr src_addr {0};
         char *if_name = (char *)p_val->get_if_name();
-        if (!get_ipv4_from_ifname(if_name, &src_addr)) {
-            p_val->set_src_addr(src_addr.sin_addr.s_addr);
+        if (!get_ip_addr_from_ifname(if_name, src_addr)) { /* TODO add support for IPv6 */
+            p_val->set_src_addr(src_addr.get_in4_addr().s_addr);
         } else {
             // Failed mapping if_name to IPv4 address
             rt_mgr_logwarn("could not figure out source ip for rtv = %s", p_val->to_str());
@@ -233,10 +233,10 @@ void route_table_mgr::rt_mgr_update_source_ip()
                           p_val->to_str());
         }
         // if still no src ip, get it from ioctl
-        struct sockaddr_in src_addr;
+        ip_addr src_addr {0};
         char *if_name = (char *)p_val->get_if_name();
-        if (!get_ipv4_from_ifname(if_name, &src_addr)) {
-            p_val->set_src_addr(src_addr.sin_addr.s_addr);
+        if (!get_ip_addr_from_ifname(if_name, src_addr)) { /* TODO add support for IPv6 */
+            p_val->set_src_addr(src_addr.get_in4_addr().s_addr);
         } else {
             // Failed mapping if_name to IPv4 address
             rt_mgr_logdbg("could not figure out source ip for rtv = %s", p_val->to_str());
