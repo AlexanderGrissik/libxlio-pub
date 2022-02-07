@@ -50,9 +50,9 @@
 #define TCP_HLEN 20
 #endif
 
-dst_entry_tcp::dst_entry_tcp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-                             socket_data &sock_data, resource_allocation_key &ring_alloc_logic)
-    : dst_entry(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic)
+dst_entry_tcp::dst_entry_tcp(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
+                             resource_allocation_key &ring_alloc_logic)
+    : dst_entry(dst, src_port, sock_data, ring_alloc_logic)
     , m_n_sysvar_tx_bufs_batch_tcp(safe_mce_sys().tx_bufs_batch_tcp)
     , m_n_sysvar_user_huge_page_size(safe_mce_sys().user_huge_page_size)
 {
@@ -63,7 +63,7 @@ dst_entry_tcp::~dst_entry_tcp()
 {
 }
 
-transport_t dst_entry_tcp::get_transport(sockaddr_in to)
+transport_t dst_entry_tcp::get_transport(const sock_addr &to)
 {
     NOT_IN_USE(to);
     return TRANS_VMA;

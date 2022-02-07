@@ -625,8 +625,7 @@ void sockinfo_tcp::create_dst_entry()
     if (!m_p_connected_dst_entry) {
         socket_data data = {m_fd, m_n_uc_ttl, m_pcb.tos, m_pcp};
         m_p_connected_dst_entry =
-            new dst_entry_tcp(m_connected.get_ip_addr(), m_connected.get_in_port(),
-                              m_bound.get_in_port(), data, m_ring_alloc_log_tx);
+            new dst_entry_tcp(m_connected, m_bound.get_in_port(), data, m_ring_alloc_log_tx);
 
         BULLSEYE_EXCLUDE_BLOCK_START
         if (!m_p_connected_dst_entry) {
@@ -635,7 +634,7 @@ void sockinfo_tcp::create_dst_entry()
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         if (!m_bound.is_anyaddr()) {
-            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
+            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr());
         }
         if (m_so_bindtodevice_ip) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
@@ -2398,11 +2397,11 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     // update it after route was resolved and device was updated
     // [TODO IPV6] Temporary
-    m_p_socket_stats->set_bound_if(m_p_connected_dst_entry->get_src_addr());
+    m_p_socket_stats->set_bound_if(m_p_connected_dst_entry->get_src_addr().get_in_addr());
 
     sockaddr_in remote_addr;
     remote_addr.sin_family = AF_INET;
-    remote_addr.sin_addr.s_addr = m_p_connected_dst_entry->get_dst_addr();
+    remote_addr.sin_addr.s_addr = m_p_connected_dst_entry->get_dst_addr().get_in_addr();
     remote_addr.sin_port = m_p_connected_dst_entry->get_dst_port();
     sock_addr local_addr(m_bound);
     if (local_addr.is_anyaddr()) {

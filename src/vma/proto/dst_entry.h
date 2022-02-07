@@ -73,8 +73,8 @@ typedef struct {
 class dst_entry : public cache_observer, public tostr, public neigh_observer {
 
 public:
-    dst_entry(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-              socket_data &sock_data, resource_allocation_key &ring_alloc_logic);
+    dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
+              resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry();
 
     virtual void notify_cb();
@@ -89,11 +89,11 @@ public:
     bool try_migrate_ring(lock_base &socket_lock);
 
     bool is_offloaded() { return m_b_is_offloaded; }
-    void set_bound_addr(in_addr_t addr);
+    void set_bound_addr(const ip_address &addr);
     void set_so_bindtodevice_addr(in_addr_t addr);
-    in_addr_t get_dst_addr();
+    const ip_address &get_dst_addr();
     uint16_t get_dst_port();
-    inline in_addr_t get_src_addr() const { return m_pkt_src_ip; }
+    inline const ip_address &get_src_addr() const { return m_pkt_src_ip; }
     int modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
     bool update_ring_alloc_logic(int fd, lock_base &socket_lock,
                                  resource_allocation_key &ring_alloc_logic);
@@ -111,16 +111,17 @@ public:
     inline header *get_network_header() { return &m_header; }
     inline ring *get_ring() { return m_p_ring; }
     inline ib_ctx_handler *get_ctx() { return m_p_ring->get_ctx(m_id); }
+    inline sa_family_t get_sa_family() { return m_family; }
 
 protected:
     ip_address m_dst_ip;
     uint16_t m_dst_port;
+    sa_family_t m_family;
     uint16_t m_src_port;
-
-    in_addr_t m_bound_ip;
-    in_addr_t m_so_bindtodevice_ip;
-    in_addr_t m_route_src_ip; // source IP used to register in route manager
-    in_addr_t m_pkt_src_ip; // source IP address copied into IP header
+    ip_address m_bound_ip;
+    in_addr_t m_so_bindtodevice_ip; // [TODO IPV6] replace with ip_address
+    ip_address m_route_src_ip; // source IP used to register in route manager
+    ip_address m_pkt_src_ip; // source IP address copied into IP header
     lock_mutex_recursive m_slow_path_lock;
     lock_mutex m_tx_migration_lock;
     vma_ibv_send_wr m_inline_send_wqe;
@@ -154,7 +155,7 @@ protected:
     uint16_t m_max_ip_payload_size;
     uint16_t m_max_udp_payload_size;
 
-    virtual transport_t get_transport(sockaddr_in to) = 0;
+    virtual transport_t get_transport(const sock_addr &to) = 0;
     virtual uint8_t get_protocol_type() const = 0;
     virtual uint32_t get_inline_sge_num() = 0;
     virtual ibv_sge *get_sge_lst_4_inline_send() = 0;

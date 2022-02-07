@@ -37,8 +37,8 @@
 
 class dst_entry_udp_mc : public dst_entry_udp {
 public:
-    dst_entry_udp_mc(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-                     const ip_address &mc_tx_if_ip, bool mc_b_loopback, socket_data &sock_data,
+    dst_entry_udp_mc(const sock_addr &dst, uint16_t src_port, const ip_address &mc_tx_if_ip,
+                     bool mc_b_loopback, socket_data &sock_data,
                      resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_udp_mc();
 

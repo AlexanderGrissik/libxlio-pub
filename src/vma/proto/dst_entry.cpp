@@ -46,15 +46,16 @@
 #define dst_logfunc    __log_info_func
 #define dst_logfuncall __log_info_funcall
 
-dst_entry::dst_entry(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-                     socket_data &sock_data, resource_allocation_key &ring_alloc_logic)
-    : m_dst_ip(dst_ip)
-    , m_dst_port(dst_port)
+dst_entry::dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
+                     resource_allocation_key &ring_alloc_logic)
+    : m_dst_ip(dst.get_ip_addr())
+    , m_dst_port(dst.get_in_port())
+    , m_family(dst.get_sa_family())
     , m_src_port(src_port)
-    , m_bound_ip(0)
+    , m_bound_ip(in6addr_any)
     , m_so_bindtodevice_ip(0)
-    , m_route_src_ip(0)
-    , m_pkt_src_ip(0)
+    , m_route_src_ip(in6addr_any)
+    , m_pkt_src_ip(in6addr_any)
     , m_ring_alloc_logic(sock_data.fd, ring_alloc_logic, this)
     , m_p_tx_mem_buf_desc_list(NULL)
     , m_p_zc_mem_buf_desc_list(NULL)
@@ -83,7 +84,8 @@ dst_entry::~dst_entry()
 
     if (m_p_rt_entry) {
         g_p_route_table_mgr->unregister_observer(
-            route_rule_table_key(m_dst_ip.get_in_addr(), m_route_src_ip, m_tos), this);
+            route_rule_table_key(m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(), m_tos),
+            this);
         m_p_rt_entry = NULL;
     }
 
@@ -149,13 +151,14 @@ void dst_entry::init_members()
 
 void dst_entry::set_src_addr()
 {
-    m_pkt_src_ip = INADDR_ANY;
-    if (m_route_src_ip) {
+    if (!m_route_src_ip.is_anyaddr()) {
         m_pkt_src_ip = m_route_src_ip;
     } else if (m_p_rt_val && m_p_rt_val->get_src_addr()) {
-        m_pkt_src_ip = m_p_rt_val->get_src_addr();
-    } else if (m_p_net_dev_val && m_p_net_dev_val->get_local_addr().get_in_addr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr().get_in_addr();
+        m_pkt_src_ip = ip_address(m_p_rt_val->get_src_addr());
+    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr().is_anyaddr()) {
+        m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
+    } else {
+        m_pkt_src_ip = in6addr_any;
     }
 }
 
@@ -236,12 +239,12 @@ bool dst_entry::resolve_net_dev(bool is_connect)
 
     cache_entry_subject<route_rule_table_key, route_val *> *p_ces = NULL;
 
-    if (ZERONET_N(m_dst_ip.get_in_addr())) {
+    if (m_dst_ip.is_anyaddr()) {
         dst_logdbg(PRODUCT_NAME " does not offload zero net IP address");
         return ret_val;
     }
 
-    if (LOOPBACK_N(m_dst_ip.get_in_addr())) {
+    if (m_dst_ip.is_loopback_class(get_sa_family())) {
         dst_logdbg(PRODUCT_NAME " does not offload local loopback IP address");
         return ret_val;
     }
@@ -250,17 +253,20 @@ bool dst_entry::resolve_net_dev(bool is_connect)
     // Source address changes is not checked since multiple bind is not allowed on the same socket
     if (!m_p_rt_entry) {
         m_route_src_ip = m_bound_ip;
-        route_rule_table_key rtk(m_dst_ip.get_in_addr(), m_route_src_ip, m_tos);
+        route_rule_table_key rtk(m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(),
+                                 m_tos); // [TODO IPV6] should pass ip_address not in_addr_t
         if (g_p_route_table_mgr->register_observer(rtk, this, &p_ces)) {
             // In case this is the first time we trying to resolve route entry,
             // means that register_observer was run
             m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);
-            if (is_connect && !m_route_src_ip) {
+            if (is_connect && m_route_src_ip.is_anyaddr()) {
                 route_val *p_rt_val = NULL;
                 if (m_p_rt_entry && m_p_rt_entry->get_val(p_rt_val) && p_rt_val->get_src_addr()) {
                     g_p_route_table_mgr->unregister_observer(rtk, this);
-                    m_route_src_ip = p_rt_val->get_src_addr();
-                    route_rule_table_key new_rtk(m_dst_ip.get_in_addr(), m_route_src_ip, m_tos);
+                    m_route_src_ip = ip_address(p_rt_val->get_src_addr());
+                    route_rule_table_key new_rtk(
+                        m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(),
+                        m_tos); // [TODO IPV6] should pass ip_address not in_addr_t
                     if (g_p_route_table_mgr->register_observer(new_rtk, this, &p_ces)) {
                         m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);
                     } else {
@@ -316,8 +322,8 @@ bool dst_entry::resolve_ring()
     if (m_p_net_dev_val) {
         if (!m_p_ring) {
             dst_logdbg("getting a ring");
-            m_p_ring =
-                m_p_net_dev_val->reserve_ring(m_ring_alloc_logic.create_new_key(m_pkt_src_ip));
+            m_p_ring = m_p_net_dev_val->reserve_ring(
+                m_ring_alloc_logic.create_new_key(m_pkt_src_ip.get_in_addr()));
         }
         if (m_p_ring) {
             if (m_sge) {
@@ -367,7 +373,9 @@ void dst_entry::notify_cb()
 
 void dst_entry::configure_ip_header(header *h, uint16_t packet_id)
 {
-    h->configure_ip_header(get_protocol_type(), m_pkt_src_ip, m_dst_ip.get_in_addr(), m_ttl, m_tos,
+    h->configure_ip_header(get_protocol_type(), m_pkt_src_ip.get_in_addr(), m_dst_ip.get_in_addr(),
+                           m_ttl,
+                           m_tos, // [TODO IPV6] should pass ip_address not in_addr_t
                            packet_id);
 }
 
@@ -459,12 +467,7 @@ bool dst_entry::offloaded_according_to_rules()
     bool ret_val = true;
     transport_t target_transport;
 
-    sockaddr_in to;
-    memset(&to, 0, sizeof(to));
-    to.sin_family = AF_INET;
-    to.sin_addr.s_addr = m_dst_ip.get_in_addr();
-    to.sin_port = m_dst_port;
-
+    sock_addr to(get_sa_family(), &m_dst_ip, m_dst_port);
     target_transport = get_transport(to);
 
     if (target_transport == TRANS_OS) {
@@ -508,11 +511,12 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
                                    m_p_neigh_val->get_l2_address()->to_str().c_str());
                     }
                     configure_headers();
+                    // [TODO IPV6] gererate_id should accept ip_address
                     m_id = m_p_ring->generate_id(m_p_net_dev_val->get_l2_address()->get_address(),
                                                  m_p_neigh_val->get_l2_address()->get_address(),
-                                                 ((ethhdr *)(m_header.m_actual_hdr_addr))
-                                                     ->h_proto /* if vlan, use vlan proto */,
-                                                 htons(ETH_P_IP), m_pkt_src_ip,
+                                                 /* if vlan, use vlan proto */
+                                                 ((ethhdr *)(m_header.m_actual_hdr_addr))->h_proto,
+                                                 htons(ETH_P_IP), m_pkt_src_ip.get_in_addr(),
                                                  m_dst_ip.get_in_addr(), m_src_port, m_dst_port);
                     if (m_p_tx_mem_buf_desc_list) {
                         m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true);
@@ -642,7 +646,7 @@ void dst_entry::do_ring_migration(lock_base &socket_lock, resource_allocation_ke
     socket_lock.lock();
 }
 
-void dst_entry::set_bound_addr(in_addr_t addr)
+void dst_entry::set_bound_addr(const ip_address &addr)
 {
     dst_logdbg("");
     m_bound_ip = addr;
@@ -656,9 +660,9 @@ void dst_entry::set_so_bindtodevice_addr(in_addr_t addr)
     set_state(false);
 }
 
-in_addr_t dst_entry::get_dst_addr()
+const ip_address &dst_entry::get_dst_addr()
 {
-    return m_dst_ip.get_in_addr();
+    return m_dst_ip;
 }
 
 uint16_t dst_entry::get_dst_port()

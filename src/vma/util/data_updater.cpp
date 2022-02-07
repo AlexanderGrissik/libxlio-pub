@@ -45,8 +45,8 @@ header_ttl_updater::header_ttl_updater(uint8_t ttl, bool is_multicast)
 
 bool header_ttl_updater::update_field(dst_entry &dst)
 {
-    if ((IN_MULTICAST_N(dst.get_dst_addr()) && m_is_multicast) ||
-        (!IN_MULTICAST_N(dst.get_dst_addr()) && !m_is_multicast)) {
+    if ((dst.get_dst_addr().is_mc(AF_INET) && m_is_multicast) ||
+        (!dst.get_dst_addr().is_mc(AF_INET) && !m_is_multicast)) {
         dst.set_ip_ttl(m_ttl);
     }
     return true;

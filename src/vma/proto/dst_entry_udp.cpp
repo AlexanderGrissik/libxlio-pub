@@ -44,9 +44,9 @@
 #define dst_udp_logfunc    __log_info_func
 #define dst_udp_logfuncall __log_info_funcall
 
-dst_entry_udp::dst_entry_udp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-                             socket_data &sock_data, resource_allocation_key &ring_alloc_logic)
-    : dst_entry(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic)
+dst_entry_udp::dst_entry_udp(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
+                             resource_allocation_key &ring_alloc_logic)
+    : dst_entry(dst, src_port, sock_data, ring_alloc_logic)
     , m_n_sysvar_tx_bufs_batch_udp(safe_mce_sys().tx_bufs_batch_udp)
     , m_b_sysvar_tx_nonblocked_eagains(safe_mce_sys().tx_nonblocked_eagains)
     , m_sysvar_thread_mode(safe_mce_sys().thread_mode)
@@ -62,9 +62,9 @@ dst_entry_udp::~dst_entry_udp()
     dst_udp_logdbg("%s", to_str().c_str());
 }
 
-transport_t dst_entry_udp::get_transport(sockaddr_in to)
+transport_t dst_entry_udp::get_transport(const sock_addr &to)
 {
-    return __vma_match_udp_sender(TRANS_VMA, safe_mce_sys().app_id, (sockaddr *)(&to), sizeof to);
+    return __vma_match_udp_sender(TRANS_VMA, safe_mce_sys().app_id, to.get_p_sa(), sizeof to);
 }
 
 // The following function supposed to be called under m_lock
@@ -365,7 +365,8 @@ ssize_t dst_entry_udp::slow_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
     prepare_to_send(rate_limit, false);
 
     if (m_b_force_os || !m_b_is_offloaded) {
-        struct sockaddr_in to_saddr;
+        struct sockaddr_in to_saddr; // [TODO IPV6] once tx_os will support it - should use
+                                     // sock_addr instead of sockaddr_in
         to_saddr.sin_port = m_dst_port;
         to_saddr.sin_addr.s_addr = m_dst_ip.get_in_addr();
         to_saddr.sin_family = AF_INET;

@@ -42,11 +42,11 @@
 #define dst_udp_mc_logfunc    __log_info_func
 #define dst_udp_mc_logfuncall __log_info_funcall
 
-dst_entry_udp_mc::dst_entry_udp_mc(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
+dst_entry_udp_mc::dst_entry_udp_mc(const sock_addr &dst, uint16_t src_port,
                                    const ip_address &tx_if_ip, bool mc_b_loopback,
                                    socket_data &sock_data,
                                    resource_allocation_key &ring_alloc_logic)
-    : dst_entry_udp(dst_ip, dst_port, src_port, sock_data, ring_alloc_logic)
+    : dst_entry_udp(dst, src_port, sock_data, ring_alloc_logic)
     , m_mc_tx_if_ip(tx_if_ip)
     , m_b_mc_loopback_enabled(mc_b_loopback)
 {
@@ -60,16 +60,16 @@ dst_entry_udp_mc::~dst_entry_udp_mc()
 
 void dst_entry_udp_mc::set_src_addr()
 {
-    m_pkt_src_ip = INADDR_ANY;
-
-    if (m_bound_ip) {
+    if (!m_bound_ip.is_anyaddr()) {
         m_pkt_src_ip = m_bound_ip;
     } else if (m_mc_tx_if_ip.get_in_addr() && !m_mc_tx_if_ip.is_mc(AF_INET)) {
-        m_pkt_src_ip = m_mc_tx_if_ip.get_in_addr();
+        m_pkt_src_ip = m_mc_tx_if_ip;
     } else if (m_p_rt_val && m_p_rt_val->get_src_addr()) {
-        m_pkt_src_ip = m_p_rt_val->get_src_addr();
-    } else if (m_p_net_dev_val && m_p_net_dev_val->get_local_addr().get_in_addr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr().get_in_addr();
+        m_pkt_src_ip = ip_address(m_p_rt_val->get_src_addr());
+    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr().is_anyaddr()) {
+        m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
+    } else {
+        m_pkt_src_ip = in6addr_any;
     }
 }
 

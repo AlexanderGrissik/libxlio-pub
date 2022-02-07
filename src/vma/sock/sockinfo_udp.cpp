@@ -467,7 +467,7 @@ int sockinfo_udp::bind_no_os()
     dst_entry_map_t::iterator dst_entry_iter = m_dst_entry_map.begin();
     while (dst_entry_iter != m_dst_entry_map.end()) {
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            dst_entry_iter->second->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
+            dst_entry_iter->second->set_bound_addr(m_bound.get_ip_addr());
         }
         dst_entry_iter++;
     }
@@ -588,14 +588,13 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 
         if (dst_ipaddr.is_mc(AF_INET)) {
             socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
-            m_p_connected_dst_entry =
-                new dst_entry_udp_mc(dst_ipaddr, dst_port, src_port,
-                                     m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
-                                     m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
+            m_p_connected_dst_entry = new dst_entry_udp_mc(
+                m_connected, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
+                m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
         } else {
             socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
             m_p_connected_dst_entry =
-                new dst_entry_udp(dst_ipaddr, dst_port, src_port, data, m_ring_alloc_log_tx);
+                new dst_entry_udp(m_connected, src_port, data, m_ring_alloc_log_tx);
         }
 
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -612,7 +611,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
+            m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr());
         }
         if (m_so_bindtodevice_ip) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
@@ -1727,13 +1726,11 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 if (dst.is_mc()) {
                     socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp_mc(
-                        dst.get_ip_addr(), dst.get_in_port(), src_port,
-                        m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(), m_b_mc_tx_loop,
-                        data, m_ring_alloc_log_tx);
+                        dst, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
+                        m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
                 } else {
                     socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
-                    p_dst_entry = new dst_entry_udp(dst.get_ip_addr(), dst.get_in_port(), src_port,
-                                                    data, m_ring_alloc_log_tx);
+                    p_dst_entry = new dst_entry_udp(dst, src_port, data, m_ring_alloc_log_tx);
                 }
                 BULLSEYE_EXCLUDE_BLOCK_START
                 if (!p_dst_entry) {
@@ -1744,7 +1741,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 }
                 BULLSEYE_EXCLUDE_BLOCK_END
                 if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-                    p_dst_entry->set_bound_addr(m_bound.get_ip_addr().get_in_addr());
+                    p_dst_entry->set_bound_addr(m_bound.get_ip_addr());
                 }
                 if (m_so_bindtodevice_ip) {
                     p_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);

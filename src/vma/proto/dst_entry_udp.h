@@ -37,8 +37,8 @@
 
 class dst_entry_udp : public dst_entry {
 public:
-    dst_entry_udp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port,
-                  socket_data &sock_data, resource_allocation_key &ring_alloc_logic);
+    dst_entry_udp(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
+                  resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_udp();
 
     ssize_t fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr);
@@ -47,7 +47,7 @@ public:
                       tx_call_t call_type = TX_UNDEF);
 
 protected:
-    virtual transport_t get_transport(sockaddr_in to);
+    virtual transport_t get_transport(const sock_addr &to);
     virtual uint8_t get_protocol_type() const { return IPPROTO_UDP; };
     virtual uint32_t get_inline_sge_num() { return 2; };
     virtual ibv_sge *get_sge_lst_4_inline_send() { return m_sge; };

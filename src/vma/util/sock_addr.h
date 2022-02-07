@@ -95,7 +95,7 @@ public:
     sock_addr(const sock_addr &other) { *this = other; }
 
     // @param in_addr Should point either to in_addr or in6_addr according the family.
-    sock_addr(sa_family_t f, void *ip_addr, in_port_t p) { set_ip_port(f, ip_addr, p); };
+    sock_addr(sa_family_t f, const void *ip_addr, in_port_t p) { set_ip_port(f, ip_addr, p); };
 
     ~sock_addr() {};
 

@@ -44,7 +44,7 @@ typedef struct tcp_iovec {
 
 class dst_entry_tcp : public dst_entry {
 public:
-    dst_entry_tcp(const ip_address &dst_ip, uint16_t dst_port, uint16_t src_port, socket_data &data,
+    dst_entry_tcp(const sock_addr &dst, uint16_t src_port, socket_data &data,
                   resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_tcp();
 
@@ -60,7 +60,7 @@ public:
     void put_zc_buffer(mem_buf_desc_t *p_desc);
 
 protected:
-    transport_t get_transport(sockaddr_in to);
+    transport_t get_transport(const sock_addr &to);
     virtual uint8_t get_protocol_type() const { return IPPROTO_TCP; };
     virtual uint32_t get_inline_sge_num() { return 1; };
     virtual ibv_sge *get_sge_lst_4_inline_send() { return m_sge; };
