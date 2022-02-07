@@ -587,12 +587,14 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         }
 
         if (dst_ipaddr.is_mc(AF_INET)) {
-            socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
+            // TODO IPV6 - use hop_limit instead ttl
+            socket_data data = {m_fd, {m_n_mc_ttl}, m_tos, m_pcp};
             m_p_connected_dst_entry = new dst_entry_udp_mc(
                 m_connected, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
                 m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
         } else {
-            socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
+            // TODO IPV6 - use hop_limit instead ttl
+            socket_data data = {m_fd, {m_n_uc_ttl}, m_tos, m_pcp};
             m_p_connected_dst_entry =
                 new dst_entry_udp(m_connected, src_port, data, m_ring_alloc_log_tx);
         }
@@ -942,7 +944,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             }
             if (n_mc_ttl >= 0 && n_mc_ttl <= 255) {
                 m_n_mc_ttl = n_mc_ttl;
-                header_ttl_updater du(m_n_mc_ttl, true);
+                header_ttl_hop_limit_updater du(m_n_mc_ttl, true); // TODO IPV6 hop_limit
                 update_header_field(&du);
                 si_udp_logdbg("IPPROTO_IP, %s=%d", setsockopt_ip_opt_to_str(__optname), m_n_mc_ttl);
             } else {
@@ -1724,12 +1726,14 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 in_port_t src_port = m_bound.get_in_port();
                 // Create the new dst_entry
                 if (dst.is_mc()) {
-                    socket_data data = {m_fd, m_n_mc_ttl, m_tos, m_pcp};
+                    // TODO IPV6 - use hop_limit instead ttl
+                    socket_data data = {m_fd, {m_n_mc_ttl}, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp_mc(
                         dst, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
                         m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
                 } else {
-                    socket_data data = {m_fd, m_n_uc_ttl, m_tos, m_pcp};
+                    // TODO IPV6 - use hop_limit instead ttl
+                    socket_data data = {m_fd, {m_n_uc_ttl}, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp(dst, src_port, data, m_ring_alloc_log_tx);
                 }
                 BULLSEYE_EXCLUDE_BLOCK_START

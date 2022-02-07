@@ -115,7 +115,9 @@ void             set_tmr_resolution(u32_t v);
 #define TCP_FLAGS 0x3fU
 
 /* Length of the TCP header, excluding options. */
+#ifndef TCP_HLEN
 #define TCP_HLEN 20
+#endif
 
 #define TCP_FIN_WAIT_TIMEOUT 20000 /* milliseconds */
 #define TCP_SYN_RCVD_TIMEOUT 20000 /* milliseconds */

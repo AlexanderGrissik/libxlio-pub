@@ -78,7 +78,7 @@ class neigh_send_data : public send_data {
 public:
     neigh_send_data(const neigh_send_info *nsi)
         : send_data((const send_info *)nsi)
-        , m_header(new header(*(nsi->m_p_header)))
+        , m_header(nsi->m_p_header->copy())
         , m_mtu(nsi->m_mtu)
         , m_tos(nsi->m_tos)
         , m_protocol(nsi->m_protocol) {};

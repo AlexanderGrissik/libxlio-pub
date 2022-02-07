@@ -46,10 +46,6 @@
 #define dst_tcp_logfine    __log_info_fine
 #define dst_tcp_logfuncall __log_info_finer
 
-#ifndef TCP_HLEN
-#define TCP_HLEN 20
-#endif
-
 dst_entry_tcp::dst_entry_tcp(const sock_addr &dst, uint16_t src_port, socket_data &sock_data,
                              resource_allocation_key &ring_alloc_logic)
     : dst_entry(dst, src_port, sock_data, ring_alloc_logic)
@@ -72,7 +68,9 @@ transport_t dst_entry_tcp::get_transport(const sock_addr &to)
 ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr)
 {
     int ret = 0;
-    tx_packet_template_t *p_pkt;
+    void *p_pkt;
+    void *p_ip_hdr;
+    void *p_tcp_hdr;
     tcp_iovec *p_tcp_iov = NULL;
     size_t hdr_alignment_diff = 0;
 
@@ -81,7 +79,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
     /* The header is aligned for fast copy but we need to maintain this diff
      * in order to get the real header pointer easily
      */
-    hdr_alignment_diff = m_header.m_aligned_l2_l3_len - m_header.m_total_hdr_len;
+    hdr_alignment_diff = m_header->m_aligned_l2_l3_len - m_header->m_total_hdr_len;
 
     p_tcp_iov = (tcp_iovec *)p_iov;
 
@@ -127,27 +125,30 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
          * so p_pkt should point to L2
          */
         if (is_zerocopy) {
-            p_pkt = (tx_packet_template_t *)((uint8_t *)p_tcp_iov[0].tcphdr -
-                                             m_header.m_aligned_l2_l3_len);
+            p_pkt = (void *)((uint8_t *)p_tcp_iov[0].tcphdr - m_header->m_aligned_l2_l3_len);
         } else {
-            p_pkt = (tx_packet_template_t *)((uint8_t *)p_tcp_iov[0].iovec.iov_base -
-                                             m_header.m_aligned_l2_l3_len);
+            p_pkt =
+                (void *)((uint8_t *)p_tcp_iov[0].iovec.iov_base - m_header->m_aligned_l2_l3_len);
         }
 
         /* attr.length is payload size and L4 header size
          * m_total_hdr_len is a size of L2/L3 header
          */
-        total_packet_len = attr.length + m_header.m_total_hdr_len;
-        tcp_hdr_len = p_pkt->hdr.m_tcp_hdr.doff * 4;
+        total_packet_len = attr.length + m_header->m_total_hdr_len;
 
         /* copy just L2/L3 headers to p_pkt */
-        m_header.copy_l2_ip_hdr(p_pkt);
+        m_header->copy_l2_ip_hdr(p_pkt);
 
-        /* L3(Total Length) field means nothing in case TSO usage and can be set as zero but
-         * setting this field to actual value allows to do valid call for scenario
-         * when payload size less or equal to mss
-         */
-        p_pkt->hdr.m_ip_hdr.tot_len = htons(total_packet_len - m_header.m_transport_header_len);
+        uint16_t payload_length_ipv4 = total_packet_len - m_header->m_transport_header_len;
+        if (get_sa_family() == AF_INET6) {
+            fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+            set_ipv6_len(p_ip_hdr, htons(payload_length_ipv4 - IPV6_HLEN));
+        } else {
+            fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+            set_ipv4_len(p_ip_hdr, htons(payload_length_ipv4));
+        }
+
+        tcp_hdr_len = (static_cast<tcphdr *>(p_tcp_hdr))->doff * 4;
 
         if (!is_zerocopy && (total_packet_len < m_max_inline) && (1 == sz_iov)) {
             m_p_send_wqe = &m_inline_send_wqe;
@@ -156,17 +157,17 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
         } else if (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
             /* update send work request. do not expect noninlined scenario */
             send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
-            if (attr.mss < (attr.length - p_pkt->hdr.m_tcp_hdr.doff * 4)) {
+            if (attr.mss < (attr.length - tcp_hdr_len)) {
                 send_wqe_h.enable_tso(send_wqe, (void *)((uint8_t *)p_pkt + hdr_alignment_diff),
-                                      m_header.m_total_hdr_len + tcp_hdr_len,
+                                      m_header->m_total_hdr_len + tcp_hdr_len,
                                       attr.mss - (tcp_hdr_len - TCP_HLEN));
             } else {
                 send_wqe_h.enable_tso(send_wqe, (void *)((uint8_t *)p_pkt + hdr_alignment_diff),
-                                      m_header.m_total_hdr_len + tcp_hdr_len, 0);
+                                      m_header->m_total_hdr_len + tcp_hdr_len, 0);
             }
             m_p_send_wqe = &send_wqe;
             if (!is_zerocopy) {
-                p_tcp_iov[0].iovec.iov_base = (uint8_t *)&p_pkt->hdr.m_tcp_hdr + tcp_hdr_len;
+                p_tcp_iov[0].iovec.iov_base = (uint8_t *)p_tcp_hdr + tcp_hdr_len;
                 p_tcp_iov[0].iovec.iov_len -= tcp_hdr_len;
             }
         } else {
@@ -204,9 +205,8 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
         }
 
         /* save pointers to ip and tcp headers for software checksum calculation */
-        p_tcp_iov[0].p_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
-        p_tcp_iov[0].p_desc->tx.p_tcp_h =
-            (struct tcphdr *)((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr));
+        p_tcp_iov[0].p_desc->tx.p_ip_h = p_ip_hdr;
+        p_tcp_iov[0].p_desc->tx.p_tcp_h = static_cast<tcphdr *>(p_tcp_hdr);
 
         /* set wr_id as a pointer to memory descriptor */
         m_p_send_wqe->wr_id = (uintptr_t)p_tcp_iov[0].p_desc;
@@ -258,11 +258,11 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
             goto out;
         }
 
-        m_header.copy_l2_ip_hdr((tx_packet_template_t *)p_mem_buf_desc->p_buffer);
+        m_header->copy_l2_ip_hdr(static_cast<void *>(p_mem_buf_desc->p_buffer));
 
         // Actually this is not the real packet len we will subtract the alignment diff at the end
         // of the copy
-        total_packet_len = m_header.m_aligned_l2_l3_len;
+        total_packet_len = m_header->m_aligned_l2_l3_len;
 
         for (int i = 0; i < sz_iov; ++i) {
             memcpy(p_mem_buf_desc->p_buffer + total_packet_len, p_tcp_iov[i].iovec.iov_base,
@@ -274,12 +274,19 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
         m_sge[0].length = total_packet_len - hdr_alignment_diff;
         m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
 
-        p_pkt = (tx_packet_template_t *)((uint8_t *)p_mem_buf_desc->p_buffer);
-        p_pkt->hdr.m_ip_hdr.tot_len = (htons)(m_sge[0].length - m_header.m_transport_header_len);
+        p_pkt = static_cast<void *>(p_mem_buf_desc->p_buffer);
 
-        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
-        p_mem_buf_desc->tx.p_tcp_h =
-            (struct tcphdr *)((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr));
+        uint16_t payload_length_ipv4 = m_sge[0].length - m_header->m_transport_header_len;
+        if (get_sa_family() == AF_INET6) {
+            fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+            set_ipv6_len(p_ip_hdr, htons(payload_length_ipv4 - IPV6_HLEN));
+        } else {
+            fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+            set_ipv4_len(p_ip_hdr, htons(payload_length_ipv4));
+        }
+
+        p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
+        p_mem_buf_desc->tx.p_tcp_h = static_cast<tcphdr *>(p_tcp_hdr);
 
         m_p_send_wqe = &m_not_inline_send_wqe;
         m_p_send_wqe->wr_id = (uintptr_t)p_mem_buf_desc;
@@ -350,15 +357,15 @@ ssize_t dst_entry_tcp::slow_send_neigh(const iovec *p_iov, size_t sz_iov,
 // The following function supposed to be called under m_lock
 void dst_entry_tcp::configure_headers()
 {
-    m_header.init();
+    m_header->init();
     dst_entry::configure_headers();
 }
 
 ssize_t dst_entry_tcp::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_t packet_id)
 {
     NOT_IN_USE(packet_id);
-    m_header_neigh.init();
-    m_header_neigh.configure_tcp_ports(m_dst_port, m_src_port);
+    m_header_neigh->init();
+    m_header_neigh->configure_tcp_ports(m_dst_port, m_src_port);
     return (dst_entry::pass_buff_to_neigh(p_iov, sz_iov));
 }
 
@@ -387,7 +394,7 @@ mem_buf_desc_t *dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc,
         // lwip will send it with payload pointing to the tcp header.
         if (p_mem_buf_desc->p_buffer) {
             p_mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer +
-                m_header.m_aligned_l2_l3_len + sizeof(struct tcphdr);
+                m_header->m_aligned_l2_l3_len + sizeof(struct tcphdr);
         } else {
             p_mem_buf_desc->lwip_pbuf.pbuf.payload = NULL;
         }

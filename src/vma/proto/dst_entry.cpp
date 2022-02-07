@@ -51,19 +51,23 @@ dst_entry::dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_
     : m_dst_ip(dst.get_ip_addr())
     , m_dst_port(dst.get_in_port())
     , m_family(dst.get_sa_family())
-    , m_src_port(src_port)
-    , m_bound_ip(in6addr_any)
     , m_so_bindtodevice_ip(0)
+    , m_header((dst.get_sa_family() == AF_INET6) ? (header *)(new header_ipv6())
+                                                 : (header *)(new header_ipv4()))
+    , m_header_neigh((dst.get_sa_family() == AF_INET6) ? (header *)(new header_ipv6())
+                                                       : (header *)(new header_ipv4()))
+    , m_bound_ip(in6addr_any)
     , m_route_src_ip(in6addr_any)
     , m_pkt_src_ip(in6addr_any)
     , m_ring_alloc_logic(sock_data.fd, ring_alloc_logic, this)
     , m_p_tx_mem_buf_desc_list(NULL)
     , m_p_zc_mem_buf_desc_list(NULL)
     , m_b_tx_mem_buf_desc_list_pending(false)
-    , m_ttl(sock_data.ttl)
+    , m_ttl(sock_data.ttl) // union with hop_limit (IPv6)
     , m_tos(sock_data.tos)
     , m_pcp(sock_data.pcp)
     , m_id(0)
+    , m_src_port(src_port)
 {
     dst_logdbg("dst:%s:%d src: %d", m_dst_ip.to_str().c_str(), ntohs(m_dst_port),
                ntohs(m_src_port));
@@ -120,6 +124,16 @@ dst_entry::~dst_entry()
     if (m_p_neigh_val) {
         delete m_p_neigh_val;
         m_p_neigh_val = NULL;
+    }
+
+    if (m_header) {
+        delete m_header;
+        m_header = NULL;
+    }
+
+    if (m_header_neigh) {
+        delete m_header_neigh;
+        m_header_neigh = NULL;
     }
 
     dst_logdbg("Done %s", to_str().c_str());
@@ -336,7 +350,7 @@ bool dst_entry::resolve_ring()
             }
             m_max_inline = m_p_ring->get_max_inline_data();
             m_max_inline = std::min<uint32_t>(
-                m_max_inline, get_route_mtu() + (uint32_t)m_header.m_transport_header_len);
+                m_max_inline, get_route_mtu() + (uint32_t)m_header->m_transport_header_len);
             ret_val = true;
         }
     }
@@ -373,10 +387,7 @@ void dst_entry::notify_cb()
 
 void dst_entry::configure_ip_header(header *h, uint16_t packet_id)
 {
-    h->configure_ip_header(get_protocol_type(), m_pkt_src_ip.get_in_addr(), m_dst_ip.get_in_addr(),
-                           m_ttl,
-                           m_tos, // [TODO IPV6] should pass ip_address not in_addr_t
-                           packet_id);
+    h->configure_ip_header(get_protocol_type(), m_pkt_src_ip, m_dst_ip, *this, packet_id);
 }
 
 bool dst_entry::conf_l2_hdr_and_snd_wqe_eth()
@@ -413,9 +424,11 @@ bool dst_entry::conf_l2_hdr_and_snd_wqe_eth()
             if (netdevice_eth->get_vlan()) { // vlan interface
                 uint32_t prio = get_priority_by_tc_class(m_pcp);
                 uint16_t vlan_tci = (prio << NET_ETH_VLAN_PCP_OFFSET) | netdevice_eth->get_vlan();
-                m_header.configure_vlan_eth_headers(*src, *dst, vlan_tci);
+                m_header->configure_vlan_eth_headers(
+                    *src, *dst, vlan_tci, (get_sa_family() == AF_INET6) ? ETH_P_IPV6 : ETH_P_IP);
             } else {
-                m_header.configure_eth_headers(*src, *dst);
+                m_header->configure_eth_headers(
+                    *src, *dst, (get_sa_family() == AF_INET6) ? ETH_P_IPV6 : ETH_P_IP);
             }
             init_sge();
             ret_val = true;
@@ -436,7 +449,7 @@ bool dst_entry::conf_hdrs_and_snd_wqe()
 
     dst_logdbg("dst_entry %s configuring the header template", to_str().c_str());
 
-    configure_ip_header(&m_header);
+    configure_ip_header(m_header);
 
     if (m_p_net_dev_val) {
         tranposrt = m_p_net_dev_val->get_transport_type();
@@ -515,7 +528,7 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
                     m_id = m_p_ring->generate_id(m_p_net_dev_val->get_l2_address()->get_address(),
                                                  m_p_neigh_val->get_l2_address()->get_address(),
                                                  /* if vlan, use vlan proto */
-                                                 ((ethhdr *)(m_header.m_actual_hdr_addr))->h_proto,
+                                                 ((ethhdr *)(m_header->m_actual_hdr_addr))->h_proto,
                                                  htons(ETH_P_IP), m_pkt_src_ip.get_in_addr(),
                                                  m_dst_ip.get_in_addr(), m_src_port, m_dst_port);
                     if (m_p_tx_mem_buf_desc_list) {
@@ -624,7 +637,7 @@ void dst_entry::do_ring_migration(lock_base &socket_lock, resource_allocation_ke
     }
     m_max_inline = m_p_ring->get_max_inline_data();
     m_max_inline = std::min<uint32_t>(m_max_inline,
-                                      get_route_mtu() + (uint32_t)m_header.m_transport_header_len);
+                                      get_route_mtu() + (uint32_t)m_header->m_transport_header_len);
 
     mem_buf_desc_t *tmp_list = m_p_tx_mem_buf_desc_list;
     m_p_tx_mem_buf_desc_list = NULL;
@@ -676,10 +689,10 @@ ssize_t dst_entry::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_
 
     dst_logdbg("");
 
-    configure_ip_header(&m_header_neigh, packet_id);
+    configure_ip_header(m_header_neigh, packet_id);
 
     if (m_p_neigh_entry) {
-        neigh_send_info n_send_info(const_cast<iovec *>(p_iov), sz_iov, &m_header_neigh,
+        neigh_send_info n_send_info(const_cast<iovec *>(p_iov), sz_iov, m_header_neigh,
                                     get_protocol_type(), get_route_mtu(), m_tos);
         ret_val = m_p_neigh_entry->send(n_send_info);
     }

@@ -623,7 +623,8 @@ void sockinfo_tcp::handle_socket_linger()
 void sockinfo_tcp::create_dst_entry()
 {
     if (!m_p_connected_dst_entry) {
-        socket_data data = {m_fd, m_n_uc_ttl, m_pcb.tos, m_pcp};
+        // TODO IPV6 - use hop_limit instead ttl
+        socket_data data = {m_fd, {m_n_uc_ttl}, m_pcb.tos, m_pcp};
         m_p_connected_dst_entry =
             new dst_entry_tcp(m_connected, m_bound.get_in_port(), data, m_ring_alloc_log_tx);
 

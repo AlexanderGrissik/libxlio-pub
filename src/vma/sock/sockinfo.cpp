@@ -510,7 +510,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                 } else {
                     m_n_uc_ttl = (val == -1) ? safe_mce_sys().sysctl_reader.get_net_ipv4_ttl()
                                              : (uint8_t)val;
-                    header_ttl_updater du(m_n_uc_ttl, false);
+                    header_ttl_hop_limit_updater du(m_n_uc_ttl, false); // TODO IPV6 hop_limit
                     update_header_field(&du);
                     si_logdbg("IPPROTO_IP, optname=IP_TTL (%d)", m_n_uc_ttl);
                 }

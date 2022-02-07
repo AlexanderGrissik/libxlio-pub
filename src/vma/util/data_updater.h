@@ -42,14 +42,17 @@ public:
     virtual bool update_field(dst_entry &dst) = 0;
 };
 
-class header_ttl_updater : public data_updater {
+class header_ttl_hop_limit_updater : public data_updater {
 public:
-    header_ttl_updater(uint8_t ttl, bool is_unicast);
-    virtual ~header_ttl_updater() {};
+    header_ttl_hop_limit_updater(uint8_t ttl, bool is_unicast);
+    virtual ~header_ttl_hop_limit_updater() {};
     virtual bool update_field(dst_entry &hdr);
 
 private:
-    uint8_t m_ttl;
+    union {
+        uint8_t m_ttl;
+        uint8_t m_hop_limit;
+    };
     bool m_is_multicast;
 };
 

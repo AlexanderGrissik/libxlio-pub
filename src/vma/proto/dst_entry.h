@@ -58,7 +58,10 @@ class xlio_tis;
 
 struct socket_data {
     int fd;
-    uint8_t ttl;
+    union {
+        uint8_t ttl;
+        uint8_t hop_limit;
+    };
     uint8_t tos;
     uint32_t pcp;
 };
@@ -102,24 +105,30 @@ public:
 
     void return_buffers_pool();
     int get_route_mtu();
-    inline void set_ip_ttl(uint8_t ttl) { m_header.set_ip_ttl(ttl); }
-    inline void set_ip_tos(uint8_t tos) { m_header.set_ip_tos(tos); }
+    inline void set_ip_ttl_hop_limit(uint8_t ttl_hop_limit)
+    {
+        m_header->set_ip_ttl_hop_limit(ttl_hop_limit);
+    }
+    inline void set_ip_tos(uint8_t tos) { m_header->set_ip_tos(tos); }
     inline bool set_pcp(uint32_t pcp)
     {
-        return m_header.set_vlan_pcp(get_priority_by_tc_class(pcp));
+        return m_header->set_vlan_pcp(get_priority_by_tc_class(pcp));
     }
-    inline header *get_network_header() { return &m_header; }
     inline ring *get_ring() { return m_p_ring; }
     inline ib_ctx_handler *get_ctx() { return m_p_ring->get_ctx(m_id); }
     inline sa_family_t get_sa_family() { return m_family; }
 
+    uint8_t get_tos() const { return m_tos; }
+    uint8_t get_ttl_hop_limit() const { return m_ttl; }
+
 protected:
     ip_address m_dst_ip;
-    uint16_t m_dst_port;
+    in_port_t m_dst_port;
     sa_family_t m_family;
-    uint16_t m_src_port;
-    ip_address m_bound_ip;
     in_addr_t m_so_bindtodevice_ip; // [TODO IPV6] replace with ip_address
+    header *m_header;
+    header *m_header_neigh;
+    ip_address m_bound_ip;
     ip_address m_route_src_ip; // source IP used to register in route manager
     ip_address m_pkt_src_ip; // source IP address copied into IP header
     lock_mutex_recursive m_slow_path_lock;
@@ -135,16 +144,16 @@ protected:
     net_device_val *m_p_net_dev_val;
     neigh_entry *m_p_neigh_entry;
     neigh_val *m_p_neigh_val;
-    bool m_b_is_offloaded;
-    bool m_b_force_os;
+
     ring *m_p_ring;
     ring_allocation_logic_tx m_ring_alloc_logic;
     mem_buf_desc_t *m_p_tx_mem_buf_desc_list;
     mem_buf_desc_t *m_p_zc_mem_buf_desc_list;
     int m_b_tx_mem_buf_desc_list_pending;
-    header m_header;
-    header m_header_neigh;
-    uint8_t m_ttl;
+    union {
+        uint8_t m_ttl;
+        uint8_t m_hop_limit;
+    };
     uint8_t m_tos;
     uint8_t m_pcp;
     bool m_b_is_initialized;
@@ -154,6 +163,10 @@ protected:
     ring_user_id_t m_id;
     uint16_t m_max_ip_payload_size;
     uint16_t m_max_udp_payload_size;
+
+    uint16_t m_src_port;
+    bool m_b_is_offloaded;
+    bool m_b_force_os;
 
     virtual transport_t get_transport(const sock_addr &to) = 0;
     virtual uint8_t get_protocol_type() const = 0;

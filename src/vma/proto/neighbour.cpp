@@ -400,7 +400,9 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
     b_need_sw_csum = true;
 #endif
     mem_buf_desc_t *p_mem_buf_desc, *tmp = NULL;
-    tx_packet_template_t *p_pkt;
+    void *p_pkt;
+    void *p_ip_hdr;
+    void *p_udp_hdr;
     size_t sz_data_payload = n_send_data->m_iov.iov_len;
     header *h = n_send_data->m_header;
 
@@ -421,8 +423,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
     }
 
     neigh_logdbg("udp info: payload_sz=%zd, frags=%d, scr_port=%d, dst_port=%d", sz_data_payload,
-                 n_num_frags, ntohs(h->m_header.hdr.m_udp_hdr.source),
-                 ntohs(h->m_header.hdr.m_udp_hdr.dest));
+                 n_num_frags, ntohs(h->get_udp_hdr()->source), ntohs(h->get_udp_hdr()->dest));
 
     // Get all needed tx buf descriptor and data buffers
     p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, n_num_frags);
@@ -443,31 +444,45 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
         size_t hdr_len = h->m_transport_header_len +
             h->m_ip_header_len; // Add count of L2 (ipoib or mac) header length
 
-        p_pkt = (tx_packet_template_t *)p_mem_buf_desc->p_buffer;
+        p_pkt = static_cast<void *>(p_mem_buf_desc->p_buffer);
 
-        uint16_t frag_off = 0;
-        if (n_num_frags) {
-            frag_off |= MORE_FRAGMENTS_FLAG;
-        }
-
-        if (n_ip_frag_offset == 0) {
-            h->copy_l2_ip_udp_hdr(p_pkt);
-            // Add count of udp header length
-            hdr_len += sizeof(udphdr);
-
-            // Copy less from user data
-            sz_user_data_to_copy -= sizeof(udphdr);
-
-            // Only for first fragment add the udp header
-            p_pkt->hdr.m_udp_hdr.len = htons((uint16_t)sz_udp_payload);
+        uint32_t id = 0;
+        uint16_t payload_length = htons(h->m_ip_header_len + sz_ip_frag);
+        if (/*get_sa_family() == AF_INET6*/ false) { // TODO: need integration to get IP version
+            fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
+            // TODO: udp fragmented
+            neigh_logerr("IPv6 fragmentation currently not supported");
+            m_p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
+            errno = EINVAL;
+            return false;
         } else {
-            h->copy_l2_ip_hdr(p_pkt);
-            frag_off |= FRAGMENT_OFFSET & (n_ip_frag_offset / 8);
-        }
+            fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
 
-        p_pkt->hdr.m_ip_hdr.frag_off = htons(frag_off);
-        // Update ip header specific values
-        p_pkt->hdr.m_ip_hdr.tot_len = htons(h->m_ip_header_len + sz_ip_frag);
+            uint16_t frag_off = 0;
+            if (n_num_frags) {
+                frag_off |= MORE_FRAGMENTS_FLAG;
+            }
+
+            if (n_ip_frag_offset == 0) {
+                h->copy_l2_ip_udp_hdr(p_pkt);
+                // Add count of udp header length
+                hdr_len += UDP_HLEN;
+
+                // Copy less from user data
+                sz_user_data_to_copy -= UDP_HLEN;
+
+                // Only for first fragment add the udp header
+                reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
+            } else {
+                h->copy_l2_ip_hdr(p_pkt);
+                frag_off |= FRAGMENT_OFFSET & (n_ip_frag_offset / 8);
+            }
+
+            reinterpret_cast<iphdr *>(p_ip_hdr)->frag_off = htons(frag_off);
+            // Update ip header specific values
+            set_ipv4_len(p_ip_hdr, payload_length);
+            id = reinterpret_cast<iphdr *>(p_ip_hdr)->id;
+        }
 
         // Calc payload start point (after the udp header if present else just after ip header)
         uint8_t *p_payload = p_mem_buf_desc->p_buffer + h->m_transport_header_tx_offset + hdr_len;
@@ -495,8 +510,8 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
             wqe_sh.enable_hw_csum(m_send_wqe);
         }
 
-        p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
-        p_mem_buf_desc->tx.p_udp_h = &p_pkt->hdr.m_udp_hdr;
+        p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
+        p_mem_buf_desc->tx.p_udp_h = reinterpret_cast<udphdr *>(p_udp_hdr);
 
         m_sge.addr =
             (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h->m_transport_header_tx_offset);
@@ -506,7 +521,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
         neigh_logdbg("%s packet_sz=%d, payload_sz=%zd, ip_offset=%d id=%d", h->to_str().c_str(),
                      m_sge.length - h->m_transport_header_len, sz_user_data_to_copy,
-                     n_ip_frag_offset, ntohs(p_pkt->hdr.m_ip_hdr.id));
+                     n_ip_frag_offset, ntohs(id));
 
         tmp = p_mem_buf_desc->p_next_desc;
         p_mem_buf_desc->p_next_desc = NULL;
@@ -530,7 +545,9 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
 bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
 {
-    tx_packet_template_t *p_pkt;
+    void *p_pkt;
+    void *p_ip_hdr;
+    void *p_tcp_hdr;
     mem_buf_desc_t *p_mem_buf_desc;
     size_t total_packet_len = 0;
     header *h = p_data->m_header;
@@ -556,13 +573,20 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     memcpy((void *)(p_mem_buf_desc->p_buffer + h->m_aligned_l2_l3_len), p_data->m_iov.iov_base,
            p_data->m_iov.iov_len);
 
-    p_pkt = (tx_packet_template_t *)(p_mem_buf_desc->p_buffer);
+    p_pkt = p_mem_buf_desc->p_buffer;
     total_packet_len = p_data->m_iov.iov_len + h->m_total_hdr_len;
     h->copy_l2_ip_hdr(p_pkt);
+
     // We've copied to aligned address, and now we must update p_pkt to point to real
     // L2 header
-
-    p_pkt->hdr.m_ip_hdr.tot_len = (htons)(p_data->m_iov.iov_len + h->m_ip_header_len);
+    uint16_t payload_length_ipv4 = p_data->m_iov.iov_len + h->m_ip_header_len;
+    if (/*get_sa_family() == AF_INET6*/ false) { // TODO: need integration to get IP version
+        fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+        set_ipv6_len(p_ip_hdr, htons(payload_length_ipv4 - IPV6_HLEN));
+    } else {
+        fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
+        set_ipv4_len(p_ip_hdr, htons(payload_length_ipv4));
+    }
 
     // The header is aligned for fast copy but we need to maintain this diff in order to get the
     // real header pointer easily
@@ -584,14 +608,12 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
     vma_wr_tx_packet_attr attr =
         (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
-    p_mem_buf_desc->tx.p_ip4_h = &p_pkt->hdr.m_ip_hdr;
-    p_mem_buf_desc->tx.p_tcp_h =
-        (struct tcphdr *)(((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr)));
+    p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
+    p_mem_buf_desc->tx.p_tcp_h = reinterpret_cast<tcphdr *>(p_tcp_hdr);
 
     m_p_ring->send_ring_buffer(m_id, &m_send_wqe, attr);
 #ifndef __COVERITY__
-    struct tcphdr *p_tcp_h =
-        (struct tcphdr *)(((uint8_t *)(&(p_pkt->hdr.m_ip_hdr)) + sizeof(p_pkt->hdr.m_ip_hdr)));
+    struct tcphdr *p_tcp_h = reinterpret_cast<tcphdr *>(p_tcp_hdr);
     NOT_IN_USE(p_tcp_h); /* to supress warning in case MAX_DEFINED_LOG_LEVEL */
     neigh_logdbg("Tx TCP segment info: src_port=%d, dst_port=%d, flags='%s%s%s%s%s%s' seq=%u, "
                  "ack=%u, win=%u, payload_sz=%u",
@@ -1429,7 +1451,7 @@ int neigh_eth::priv_enter_ready()
 
 bool neigh_eth::post_send_arp(bool is_broadcast)
 {
-    header h;
+    header_ipv4 h;
     neigh_logdbg("Sending %s ARP", is_broadcast ? "BC" : "UC");
 
     net_device_val_eth *netdevice_eth = dynamic_cast<net_device_val_eth *>(m_p_dev);
@@ -1475,7 +1497,7 @@ bool neigh_eth::post_send_arp(bool is_broadcast)
         h.configure_eth_headers(*src, *dst, ETH_P_ARP);
     }
 
-    tx_packet_template_t *p_pkt = (tx_packet_template_t *)p_mem_buf_desc->p_buffer;
+    void *p_pkt = p_mem_buf_desc->p_buffer;
     h.copy_l2_hdr(p_pkt);
 
     eth_arp_hdr *p_arphdr = (eth_arp_hdr *)(p_mem_buf_desc->p_buffer +
@@ -1521,9 +1543,9 @@ bool neigh_eth::prepare_to_send_packet(header *h)
     wqe_sh.init_wqe(m_send_wqe, &m_sge, 1);
 
     if (netdevice_eth->get_vlan()) { // vlan interface
-        h->configure_vlan_eth_headers(*src, *dst, netdevice_eth->get_vlan());
+        h->configure_vlan_eth_headers(*src, *dst, netdevice_eth->get_vlan(), ETH_P_IP); // TODO IPV6
     } else {
-        h->configure_eth_headers(*src, *dst);
+        h->configure_eth_headers(*src, *dst, ETH_P_IP); // TODO IPV6
     }
 
     return (true);
@@ -1537,7 +1559,7 @@ ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
 
     ethhdr *actual_header = (ethhdr *)h->m_actual_hdr_addr;
     return m_p_ring->generate_id(actual_header->h_source, actual_header->h_dest,
-                                 actual_header->h_proto, htons(ETH_P_IP),
-                                 h->m_header.hdr.m_ip_hdr.saddr, h->m_header.hdr.m_ip_hdr.daddr,
-                                 h->m_header.hdr.m_udp_hdr.source, h->m_header.hdr.m_udp_hdr.dest);
+                                 actual_header->h_proto, htons(ETH_P_IP), h->get_ipv4_hdr()->saddr,
+                                 h->get_ipv4_hdr()->daddr, h->get_udp_hdr()->source,
+                                 h->get_udp_hdr()->dest);
 }
