@@ -108,7 +108,7 @@ bool qp_mgr_eth_mlx5_dpcp::prepare_rq(uint32_t cqn)
     rqattrs.wqe_num = m_qp_cap.max_recv_wr;
     rqattrs.wqe_sz = m_qp_cap.max_recv_sge;
 
-    unique_ptr<dpcp::basic_rq> new_rq;
+    std::unique_ptr<dpcp::basic_rq> new_rq;
     dpcp::status rc = dpcp::DPCP_OK;
 
     if (safe_mce_sys().enable_striding_rq) {

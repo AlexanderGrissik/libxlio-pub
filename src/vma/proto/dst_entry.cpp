@@ -506,7 +506,7 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
     }
     dst_logdbg("%s", to_str().c_str());
     if (!m_b_force_os && !is_valid()) {
-        bool is_ofloaded = false;
+        bool b_is_offloaded = false;
         set_state(true);
         if (resolve_net_dev(is_connect)) {
             set_src_addr();
@@ -514,7 +514,7 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
             m_max_udp_payload_size = get_route_mtu() - sizeof(struct iphdr);
             m_max_ip_payload_size = m_max_udp_payload_size & ~0x7;
             if (resolve_ring()) {
-                is_ofloaded = true;
+                b_is_offloaded = true;
                 modify_ratelimit(rate_limit);
                 if (resolve_neigh()) {
                     if (get_obs_transport_type() == VMA_TRANSPORT_ETH) {
@@ -545,7 +545,7 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
                 }
             }
         }
-        m_b_is_offloaded = is_ofloaded;
+        m_b_is_offloaded = b_is_offloaded;
         if (m_b_is_offloaded) {
             dst_logdbg("dst_entry is offloaded!");
         } else {

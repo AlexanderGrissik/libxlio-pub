@@ -125,8 +125,6 @@ public:
     int get_cache_tbl_size() { return m_cache_tbl.size(); };
 
 protected:
-    // stats - Need to define structure for statistics
-
     std::unordered_map<Key, cache_entry_subject<Key, Val> *> m_cache_tbl;
 
     lock_mutex_recursive m_lock;
@@ -199,12 +197,10 @@ void cache_table_mgr<Key, Val>::try_to_remove_cache_entry(
 template <typename Key, typename Val> void cache_table_mgr<Key, Val>::run_garbage_collector()
 {
     __log_dbg("");
-    typename std::unordered_map<Key, cache_entry_subject<Key, Val> *>::iterator cache_itr,
-        cache_itr_tmp;
     auto_unlocker lock(m_lock);
-    for (cache_itr = m_cache_tbl.begin(); cache_itr != m_cache_tbl.end();) {
-        cache_itr_tmp = cache_itr;
-        cache_itr_tmp++;
+    for (auto cache_itr = m_cache_tbl.begin(); cache_itr != m_cache_tbl.end();) {
+        auto cache_itr_tmp = cache_itr;
+        ++cache_itr_tmp;
         try_to_remove_cache_entry(cache_itr);
         cache_itr = cache_itr_tmp;
     }

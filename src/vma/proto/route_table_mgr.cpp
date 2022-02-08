@@ -113,8 +113,8 @@ route_table_mgr::~route_table_mgr()
         m_rte_list_for_each_net_dev.erase(iter);
     }
 
-    rt_tbl_cach_entry_map_t::iterator cache_itr;
-    while ((cache_itr = m_cache_tbl.begin()) != m_cache_tbl.end()) {
+    auto cache_itr = m_cache_tbl.begin();
+    for (; cache_itr != m_cache_tbl.end(); cache_itr = m_cache_tbl.begin()) {
         delete (cache_itr->second);
         m_cache_tbl.erase(cache_itr);
     }
@@ -188,16 +188,15 @@ void route_table_mgr::rt_mgr_update_source_ip()
             if (p_val->get_gw_addr() && !p_val->get_src_addr()) {
                 route_val *p_val_dst;
                 in_addr_t in_addr = p_val->get_gw_addr();
-                unsigned char table_id = p_val->get_table_id();
+                uint32_t table_id = p_val->get_table_id();
                 if (find_route_val(in_addr, table_id, p_val_dst)) {
                     if (p_val_dst->get_src_addr()) {
                         p_val->set_src_addr(p_val_dst->get_src_addr());
                     } else if (p_val == p_val_dst) { // gateway of the entry lead to same entry
-                        local_ip_list_t::iterator lip_iter;
                         local_ip_list_t lip_offloaded_list =
                             g_p_net_device_table_mgr->get_ip_list(p_val->get_if_index());
-                        for (lip_iter = lip_offloaded_list.begin();
-                             lip_offloaded_list.end() != lip_iter; lip_iter++) {
+                        for (auto lip_iter = lip_offloaded_list.begin();
+                             lip_offloaded_list.end() != lip_iter; ++lip_iter) {
                             ip_data_t ip = *lip_iter;
                             if (p_val->get_gw_addr() == ip.local_addr.get_in_addr()) {
                                 p_val->set_gw(0);
@@ -326,8 +325,7 @@ void route_table_mgr::parse_attr(struct rtattr *rt_attribute, route_val *p_val)
     }
 }
 
-bool route_table_mgr::find_route_val(const in_addr_t &dst, unsigned char table_id,
-                                     route_val *&p_val)
+bool route_table_mgr::find_route_val(const in_addr_t &dst, uint32_t table_id, route_val *&p_val)
 {
     rt_mgr_logfunc("dst addr '%s'", ip_address(dst).to_str().c_str());
 
@@ -338,10 +336,10 @@ bool route_table_mgr::find_route_val(const in_addr_t &dst, unsigned char table_i
         route_val *p_val_from_tbl = &m_tab.value[i];
         if (!p_val_from_tbl->is_deleted() && p_val_from_tbl->is_if_up()) { // value was not deleted
             if (p_val_from_tbl->get_table_id() == table_id) { // found a match in routing table ID
-                if (p_val_from_tbl->get_dst_addr() ==
-                    (dst & p_val_from_tbl->get_dst_mask())) { // found a match in routing table
-                    if (p_val_from_tbl->get_dst_pref_len() >
-                        longest_prefix) { // this is the longest prefix match
+                if (p_val_from_tbl->get_dst_addr() == (dst & p_val_from_tbl->get_dst_mask())) {
+                    // found a match in routing table
+                    if (p_val_from_tbl->get_dst_pref_len() > longest_prefix) {
+                        // this is the longest prefix match
                         longest_prefix = p_val_from_tbl->get_dst_pref_len();
                         correct_route_val = p_val_from_tbl;
                     }
@@ -365,13 +363,13 @@ bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_resul
     rt_mgr_logdbg("dst addr '%s'", dst_addr.to_str().c_str());
 
     route_val *p_val = NULL;
-    std::deque<unsigned char> table_id_list;
+    std::deque<uint32_t> table_id_list;
 
     g_p_rule_table_mgr->rule_resolve(key, table_id_list);
 
     auto_unlocker lock(m_lock);
-    std::deque<unsigned char>::iterator table_id_iter = table_id_list.begin();
-    for (; table_id_iter != table_id_list.end(); table_id_iter++) {
+    auto table_id_iter = table_id_list.begin();
+    for (; table_id_iter != table_id_list.end(); ++table_id_iter) {
         if (find_route_val(dst_addr.get_in_addr(), *table_id_iter, p_val)) {
             res.p_src = p_val->get_src_addr();
             rt_mgr_logdbg("dst ip '%s' resolved to src addr "
@@ -400,17 +398,11 @@ void route_table_mgr::update_entry(INOUT route_entry *p_ent, bool b_register_to_
         if (p_rr_entry && p_rr_entry->get_val(p_rr_val)) {
             route_val *p_val = NULL;
             in_addr_t peer_ip = p_ent->get_key().get_dst_ip();
-            unsigned char table_id;
-            for (std::deque<rule_val *>::iterator p_rule_val = p_rr_val->begin();
-                 p_rule_val != p_rr_val->end(); p_rule_val++) {
-                table_id = (*p_rule_val)->get_table_id();
+            for (auto p_rule_val = p_rr_val->begin(); p_rule_val != p_rr_val->end(); ++p_rule_val) {
+                uint32_t table_id = (*p_rule_val)->get_table_id();
                 if (find_route_val(peer_ip, table_id, p_val)) {
                     p_ent->set_val(p_val);
                     if (b_register_to_net_dev) {
-                        // in_addr_t src_addr = p_val->get_src_addr();
-                        // net_device_val* p_ndv =
-                        // g_p_net_device_table_mgr->get_net_device_val(src_addr);
-
                         // Check if broadcast IP which is NOT supported
                         if (IS_BROADCAST_N(peer_ip)) {
                             rt_mgr_logdbg(
@@ -418,17 +410,7 @@ void route_table_mgr::update_entry(INOUT route_entry *p_ent, bool b_register_to_
                                 p_ent->to_str().c_str());
                             // Need to route traffic to/from OS
                             // Prevent registering of net_device to route entry
-                        }
-                        // Check if: Local loopback over Ethernet case which was not supported
-                        // before OFED 2.1
-                        /*else if (p_ndv && (p_ndv->get_transport_type() == VMA_TRANSPORT_ETH) &&
-                        (peer_ip == src_addr)) { rt_mgr_logdbg("Disabling Offload for route_entry
-                        '%s' - this is an Ethernet unicast loopback route",
-                        p_ent->to_str().c_str());
-                            // Need to route traffic to/from OS
-                            // Prevent registering of net_device to route entry
-                        }*/
-                        else {
+                        } else {
                             // register to net device for bonding events
                             p_ent->register_to_net_device();
                         }

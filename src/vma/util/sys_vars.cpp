@@ -58,8 +58,6 @@
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/proto/ip_frag.h"
 #include "vma/proto/vma_lwip.h"
-#include "vma/proto/route_table_mgr.h"
-#include "vma/proto/rule_table_mgr.h"
 
 #include "vma/proto/neighbour_table_mgr.h"
 #include "vma/netlink/netlink_wrapper.h"

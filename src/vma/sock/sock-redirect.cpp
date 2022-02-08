@@ -49,7 +49,6 @@
 #include <vma/iomux/epoll_wait_call.h>
 #include <vma/util/sys_vars.h>
 #include <vma/proto/mapping.h>
-#include <vma/proto/route_table_mgr.h>
 #include <vma/proto/vma_lwip.h>
 #include <vma/main.h>
 #include "vma/xlio_extra.h"

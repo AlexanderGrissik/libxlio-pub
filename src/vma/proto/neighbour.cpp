@@ -40,8 +40,6 @@
 #include "vma/dev/ib_ctx_handler_collection.h"
 #include "vma/proto/neighbour.h"
 #include "vma/proto/neighbour_table_mgr.h"
-#include "vma/proto/route_rule_table_key.h"
-#include "vma/proto/route_table_mgr.h"
 #include "vma/dev/wqe_send_handler.h"
 
 // This include should be after vma includes

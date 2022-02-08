@@ -81,8 +81,8 @@ public:
 
 protected:
     typedef struct {
-        Type value[MAX_TABLE_SIZE];
         uint16_t entries_num;
+        Type value[MAX_TABLE_SIZE];
     } table_t;
 
     table_t m_tab;
@@ -122,12 +122,12 @@ template <typename Type> netlink_socket_mgr<Type>::netlink_socket_mgr(nl_data_t 
     // Create Socket
     BULLSEYE_EXCLUDE_BLOCK_START
     if ((m_fd = orig_os_api.socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) < 0) {
-        __log_err("NL socket Creation: ");
+        __log_err("NL socket creation failed, errno = %d", errno);
         return;
     }
 
     if (orig_os_api.fcntl(m_fd, F_SETFD, FD_CLOEXEC) != 0) {
-        __log_warn("Fail in fctl, error = %d", errno);
+        __log_warn("Fail in fctl, errno = %d", errno);
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
@@ -210,7 +210,7 @@ template <typename Type> int netlink_socket_mgr<Type>::recv_info()
         // Receive response from the kernel
         BULLSEYE_EXCLUDE_BLOCK_START
         if ((readLen = orig_os_api.recv(m_fd, buf_ptr, MSG_BUFF_SIZE - msgLen, 0)) < 0) {
-            __log_err("SOCK READ: ");
+            __log_err("NL socket read failed, errno = %d", errno);
             return -1;
         }
 
@@ -290,10 +290,12 @@ template <typename Type> void netlink_socket_mgr<Type>::parse_tbl(int len, int *
 // print the table
 template <typename Type> void netlink_socket_mgr<Type>::print_val_tbl()
 {
-    Type *p_val;
-    for (int i = 0; i < m_tab.entries_num; i++) {
-        p_val = &m_tab.value[i];
-        p_val->print_val();
+    if (g_vlogger_level >= VLOG_DEBUG) {
+        Type *p_val;
+        for (int i = 0; i < m_tab.entries_num; i++) {
+            p_val = &m_tab.value[i];
+            p_val->print_val();
+        }
     }
 }
 

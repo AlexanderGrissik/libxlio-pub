@@ -34,7 +34,6 @@
 #include "vma/dev/rfs_uc_tcp_gro.h"
 #include "vma/dev/gro_mgr.h"
 #include "vma/dev/ring_simple.h"
-#include "vma/proto/route_rule_table_key.h"
 #include <netinet/ip6.h>
 
 #define MODULE_NAME "rfs_uc_tcp_gro"

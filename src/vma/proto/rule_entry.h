@@ -37,7 +37,7 @@
 #include "vma/proto/route_rule_table_key.h"
 #include "rule_val.h"
 
-// This class represent an entry in rule table cashed history.
+// This class represents an entry in rule table cached history.
 class rule_entry : public cache_entry_subject<route_rule_table_key, std::deque<rule_val *> *> {
 public:
     friend class rule_table_mgr;
@@ -46,18 +46,9 @@ public:
 
     bool get_val(INOUT std::deque<rule_val *> *&val);
 
-    inline bool is_valid()
-    {
-        /* TODO for future rules live updates */
-        /* for (std::deque<rule_val*>::iterator val = m_val->begin(); val != m_val->end(); val++) {
-            if (!(*val)->is_valid()) {
-                return false;
-            }
-        } */
-        return !m_val->empty();
-    }
+    inline bool is_valid() { return !m_val->empty(); }
 
-    inline const std::string to_str() const { return get_key().to_str(); };
+    inline const std::string to_str() const { return get_key().to_str(); }
 
 private:
     std::deque<rule_val *> values;

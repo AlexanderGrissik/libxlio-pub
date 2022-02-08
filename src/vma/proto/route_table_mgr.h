@@ -42,12 +42,7 @@
 #include "rule_table_mgr.h"
 #include "route_entry.h"
 
-#define ADDR_LEN 46 // needs 16-bytes for IPv4, and 46-bytes for IPv6
-
 typedef std::unordered_map<in_addr_t, route_entry *> in_addr_route_entry_map_t;
-typedef std::unordered_map<route_rule_table_key,
-                           cache_entry_subject<route_rule_table_key, route_val *> *>
-    rt_tbl_cach_entry_map_t;
 
 struct route_result {
     in_addr_t p_src;
@@ -79,11 +74,7 @@ protected:
     virtual bool parse_enrty(nlmsghdr *nl_header, route_val *p_val);
 
 private:
-    // in constructor creates route_entry for each net_dev, to receive events in case there are no
-    // other route_entrys
-    in_addr_route_entry_map_t m_rte_list_for_each_net_dev;
-
-    bool find_route_val(const in_addr_t &dst_addr, unsigned char table_id, route_val *&p_val);
+    bool find_route_val(const in_addr_t &dst_addr, uint32_t table_id, route_val *&p_val);
 
     // save current main rt table
     void update_tbl();
@@ -92,6 +83,9 @@ private:
     void rt_mgr_update_source_ip();
 
     void new_route_event(route_val *netlink_route_val);
+
+    // Holds route_entry for each netdev, to receive events in case there are no other route_entries
+    in_addr_route_entry_map_t m_rte_list_for_each_net_dev;
 };
 
 extern route_table_mgr *g_p_route_table_mgr;

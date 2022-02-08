@@ -269,7 +269,7 @@ bool rule_table_mgr::is_matching_rule(route_rule_table_key key, rule_val *p_val)
 //		table_id_list	: list that will contain table ID for all rule that match destination info
 // Returns true if at least one rule match destination info, false otherwise.
 bool rule_table_mgr::rule_resolve(route_rule_table_key key,
-                                  std::deque<unsigned char> &table_id_list)
+                                  std::deque<uint32_t> &table_id_list)
 {
     rr_mgr_logdbg("dst info: '%s'", key.to_str().c_str());
 
@@ -277,7 +277,7 @@ bool rule_table_mgr::rule_resolve(route_rule_table_key key,
     std::deque<rule_val *> *p_values = &values;
     auto_unlocker lock(m_lock);
     if (find_rule_val(key, p_values)) {
-        for (std::deque<rule_val *>::iterator val = values.begin(); val != values.end(); val++) {
+        for (auto val = values.begin(); val != values.end(); ++val) {
             table_id_list.push_back((*val)->get_table_id());
             rr_mgr_logdbg("dst info: '%s' resolved to table ID '%u'", key.to_str().c_str(),
                           (*val)->get_table_id());
