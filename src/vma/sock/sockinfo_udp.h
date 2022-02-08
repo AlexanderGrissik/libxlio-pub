@@ -138,8 +138,8 @@ public:
      * Check that a call to this sockinof rx() will not block
      * -> meaning, we got a ready rx packet
      */
-    void rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring);
-    void rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring);
+    void rx_add_ring_cb(ring *p_ring);
+    void rx_del_ring_cb(ring *p_ring);
     virtual int rx_verify_available_data();
 
     /**

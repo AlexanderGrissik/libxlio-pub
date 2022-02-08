@@ -835,13 +835,8 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_addre
     /* just increment reference counter on attach */
     p_nd_resources->refcnt++;
 
-    // Save the new CQ from ring (dummy_flow_key is not used)
-    {
-        flow_tuple_with_local_if dummy_flow_key(
-            m_bound.get_ip_addr(), m_bound.get_in_port(), m_connected.get_ip_addr(),
-            m_connected.get_in_port(), m_protocol, m_bound.get_sa_family(), ip_local);
-        rx_add_ring_cb(dummy_flow_key, p_nd_resources->p_ring);
-    }
+    // Save the new CQ from ring.
+    rx_add_ring_cb(p_nd_resources->p_ring);
 
     return p_nd_resources;
 err:
@@ -866,12 +861,7 @@ bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
     p_nd_resources->refcnt--;
 
     // Release the new CQ from ring (dummy_flow_key is not used)
-    {
-        flow_tuple_with_local_if dummy_flow_key(
-            m_bound.get_ip_addr(), m_bound.get_in_port(), m_connected.get_ip_addr(),
-            m_connected.get_in_port(), m_protocol, m_bound.get_sa_family(), ip_local);
-        rx_del_ring_cb(dummy_flow_key, p_nd_resources->p_ring);
-    }
+    rx_del_ring_cb(p_nd_resources->p_ring);
 
     if (p_nd_resources->refcnt == 0) {
 
@@ -966,14 +956,14 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
 
             flow_tuple_with_local_if flow_key = rx_flow_iter->first;
             // Save the new CQ from ring
-            rx_add_ring_cb(flow_key, new_ring);
+            rx_add_ring_cb(new_ring);
 
             // Attach tuple
             BULLSEYE_EXCLUDE_BLOCK_START
             unlock_rx_q();
             if (!new_ring->attach_flow(flow_key, this)) {
                 si_logerr("Failed to attach %s to ring %p", flow_key.to_str().c_str(), new_ring);
-                rx_del_ring_cb(flow_key, new_ring);
+                rx_del_ring_cb(new_ring);
                 rc = p_nd_resources->p_ndv->release_ring(new_key);
                 if (rc < 0) {
                     si_logerr("Failed to release ring for allocation key %s", new_key->to_str());
@@ -994,7 +984,7 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
             unlock_rx_q();
             p_old_ring->detach_flow(flow_key, this);
             lock_rx_q();
-            rx_del_ring_cb(flow_key, p_old_ring);
+            rx_del_ring_cb(p_old_ring);
 
             rx_flow_iter++; // Pop next flow rule;
         }
@@ -1295,10 +1285,9 @@ void sockinfo::remove_cqfd_from_sock_rx_epfd(ring *base_ring)
     }
 }
 
-void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring)
+void sockinfo::rx_add_ring_cb(ring *p_ring)
 {
     si_logdbg("");
-    NOT_IN_USE(flow_key);
 
     bool notify_epoll = false;
 
@@ -1358,10 +1347,9 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring)
     lock_rx_q();
 }
 
-void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring)
+void sockinfo::rx_del_ring_cb(ring *p_ring)
 {
     si_logdbg("");
-    NOT_IN_USE(flow_key);
 
     bool notify_epoll = false;
 

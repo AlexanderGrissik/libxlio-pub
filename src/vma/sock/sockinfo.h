@@ -140,16 +140,6 @@ typedef std::unordered_map<in_addr_t, net_device_resources_t> rx_net_device_map_
     -1 // Socket option was found but not supported, error should be returned to user.
 #define SOCKOPT_PASS_TO_OS 1 // Should pass to TCP/UDP level or OS.
 
-namespace std {
-template <> class hash<flow_tuple_with_local_if> {
-public:
-    size_t operator()(const flow_tuple_with_local_if &key) const
-    {
-        flow_tuple_with_local_if *tmp_key = (flow_tuple_with_local_if *)&key;
-        return tmp_key->hash();
-    }
-};
-} // namespace std
 typedef std::unordered_map<flow_tuple_with_local_if, ring *> rx_flow_map_t;
 
 typedef struct {
@@ -372,8 +362,8 @@ protected:
                                    const struct sockaddr *sock_addr_second = NULL);
 
     // This callback will notify that socket is ready to receive and map the cq.
-    virtual void rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring);
-    virtual void rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring *p_ring);
+    virtual void rx_add_ring_cb(ring *p_ring);
+    virtual void rx_del_ring_cb(ring *p_ring);
 
     virtual void lock_rx_q() { m_lock_rcv.lock(); }
     virtual void unlock_rx_q() { m_lock_rcv.unlock(); }

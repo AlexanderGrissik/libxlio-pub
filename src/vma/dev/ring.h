@@ -171,7 +171,7 @@ public:
         NOT_IN_USE(callback_arg);
         return -1;
     }
-    virtual rfs_rule *tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir)
+    virtual rfs_rule *tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir)
     {
         NOT_IN_USE(flow_spec_5t);
         NOT_IN_USE(tir);

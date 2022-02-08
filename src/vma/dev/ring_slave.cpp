@@ -513,7 +513,7 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 }
 
 #ifdef DEFINED_UTLS
-rfs_rule *ring_slave::tls_rx_create_rule(flow_tuple &flow_spec_5t, xlio_tir *tir)
+rfs_rule *ring_slave::tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir)
 {
     flow_spec_4t_key_t rfs_key(flow_spec_5t.get_dst_ip().get_in_addr(),
                                flow_spec_5t.get_src_ip().get_in_addr(), flow_spec_5t.get_dst_port(),

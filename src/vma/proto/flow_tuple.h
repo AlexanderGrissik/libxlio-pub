@@ -144,4 +144,11 @@ protected:
     ip_address m_local_if;
 };
 
+namespace std {
+template <> class hash<flow_tuple_with_local_if> {
+public:
+    size_t operator()(const flow_tuple_with_local_if &key) const { return key.hash(); }
+};
+} // namespace std
+
 #endif /* FLOW_TUPLE_H */

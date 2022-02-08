@@ -267,7 +267,7 @@ public:
     inline ib_ctx_handler *get_ctx(void) { return m_p_connected_dst_entry->get_ctx(); }
     inline ring *get_tx_ring(void) { return m_p_connected_dst_entry->get_ring(); }
     inline ring *get_rx_ring(void) { return m_p_rx_ring; }
-    flow_tuple_with_local_if get_flow_tuple(void)
+    const flow_tuple_with_local_if &get_flow_tuple(void)
     {
         /* XXX Dosn't handle empty map and a map with multiple elements. */
         auto rx_flow_iter = m_rx_flow_map.begin();
