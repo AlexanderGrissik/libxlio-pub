@@ -102,8 +102,7 @@ private:
     int m_fd; // netlink socket to communicate with the kernel
     uint32_t m_pid; // process pid
     uint32_t m_seq_num; // seq num of the netlink messages
-    char m_msg_buf[MSG_BUFF_SIZE]; // we use this buffer for sending/receiving netlink messages
-    uint32_t m_buff_size;
+    char *m_msg_buf; // we use this buffer for sending/receiving netlink messages
 };
 
 /*********************************Implementation ********************************/
@@ -114,10 +113,13 @@ template <typename Type> netlink_socket_mgr<Type>::netlink_socket_mgr(nl_data_t 
 
     m_data_type = data_type;
     m_pid = getpid();
-    m_buff_size = MSG_BUFF_SIZE;
     m_seq_num = 0;
 
-    memset(m_msg_buf, 0, m_buff_size);
+    m_msg_buf = (char *)calloc(MSG_BUFF_SIZE, 1);
+    if (m_msg_buf == NULL) {
+        __log_err("NL message buffer allocation failed");
+        return;
+    }
 
     // Create Socket
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -141,6 +143,7 @@ template <typename Type> netlink_socket_mgr<Type>::~netlink_socket_mgr()
         orig_os_api.close(m_fd);
         m_fd = -1;
     }
+    free(m_msg_buf);
 
     __log_dbg("Done");
 }
@@ -152,7 +155,8 @@ template <typename Type> void netlink_socket_mgr<Type>::build_request(struct nlm
 {
     struct rtmsg *rt_msg;
 
-    memset(m_msg_buf, 0, m_buff_size);
+    assert(MSG_BUFF_SIZE >= NLMSG_SPACE(sizeof(struct rtmsg)));
+    memset(m_msg_buf, 0, NLMSG_SPACE(sizeof(struct rtmsg)));
 
     // point the header and the msg structure pointers into the buffer
     *nl_msg = (struct nlmsghdr *)m_msg_buf;
