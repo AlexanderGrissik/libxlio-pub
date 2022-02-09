@@ -39,15 +39,17 @@
 #include "vma/util/sock_addr.h"
 
 class rfs;
+class iphdr;
+class ipv6hdr;
 
 struct __attribute__((packed)) flow_spec_2t_key_ipv4 {
     in_addr_t dst_ip;
     in_port_t dst_port;
 
     flow_spec_2t_key_ipv4() { flow_spec_2t_key_helper(INADDR_ANY, INPORT_ANY); }
-    flow_spec_2t_key_ipv4(in_addr_t d_ip, in_port_t d_port)
+    flow_spec_2t_key_ipv4(const ip_address &d_ip, in_port_t d_port)
     {
-        flow_spec_2t_key_helper(d_ip, d_port);
+        flow_spec_2t_key_helper(d_ip.get_in_addr(), d_port);
     }
 
     flow_spec_2t_key_ipv4(const sock_addr &dst)
@@ -73,9 +75,10 @@ struct __attribute__((packed)) flow_spec_4t_key_ipv4 {
         flow_spec_4t_key_helper(INADDR_ANY, INADDR_ANY, INPORT_ANY, INPORT_ANY);
     }
 
-    flow_spec_4t_key_ipv4(in_addr_t d_ip, in_addr_t s_ip, in_port_t d_port, in_port_t s_port)
+    flow_spec_4t_key_ipv4(const ip_address &d_ip, const ip_address &s_ip, in_port_t d_port,
+                          in_port_t s_port)
     {
-        flow_spec_4t_key_helper(d_ip, s_ip, d_port, s_port);
+        flow_spec_4t_key_helper(d_ip.get_in_addr(), s_ip.get_in_addr(), d_port, s_port);
     }
 
     flow_spec_4t_key_ipv4(const sock_addr &dst, const sock_addr &src)
@@ -165,9 +168,6 @@ inline bool operator==(flow_spec_2t_key_ipv6 const &key1, flow_spec_2t_key_ipv6 
     return (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
 }
 
-typedef hash_map<flow_spec_2t_key_ipv4, rfs *> flow_spec_2t_map_ipv4;
-typedef hash_map<flow_spec_2t_key_ipv6, rfs *> flow_spec_2t_map_ipv6;
-
 /* TCP flow to rfs object hash map */
 inline bool operator==(flow_spec_4t_key_ipv4 const &key1, flow_spec_4t_key_ipv4 const &key2)
 {
@@ -181,15 +181,46 @@ inline bool operator==(flow_spec_4t_key_ipv6 const &key1, flow_spec_4t_key_ipv6 
         (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
 }
 
-typedef hash_map<flow_spec_4t_key_ipv4, rfs *> flow_spec_4t_map_ipv4;
-typedef hash_map<flow_spec_4t_key_ipv6, rfs *> flow_spec_4t_map_ipv6;
-
 struct counter_and_ibv_flows {
     int counter;
     std::vector<rfs_rule *> rfs_rule_vec;
 };
 
 typedef std::unordered_map<sock_addr, struct counter_and_ibv_flows> rule_filter_map_t;
+
+class ring_slave;
+
+template <typename KEY4T, typename KEY2T, typename HDR> class steering_handler {
+public:
+    steering_handler(ring_slave &ring)
+        : m_ring(ring)
+    {
+    }
+
+    bool attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
+    bool detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink);
+
+    inline bool rx_process_buffer_no_flow_id(mem_buf_desc_t *p_rx_wc_buf_desc,
+                                             void *pv_fd_ready_array, HDR *p_ip_h);
+
+    void flow_udp_del_all();
+    void flow_tcp_del_all();
+
+#ifdef DEFINED_UTLS
+    /* Call this method in an RX ring. */
+    rfs_rule *tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir);
+#endif /* DEFINED_UTLS */
+
+private:
+    typedef hash_map<KEY4T, rfs *> flow_spec_4t_map;
+    typedef hash_map<KEY2T, rfs *> flow_spec_2t_map;
+
+    flow_spec_4t_map m_flow_tcp_map;
+    flow_spec_4t_map m_flow_udp_uc_map;
+    flow_spec_2t_map m_flow_udp_mc_map;
+
+    ring_slave &m_ring;
+};
 
 class ring_slave : public ring {
 public:
@@ -230,9 +261,8 @@ protected:
     void flow_udp_del_all();
     void flow_tcp_del_all();
 
-    flow_spec_4t_map_ipv4 m_flow_tcp_map;
-    flow_spec_2t_map_ipv4 m_flow_udp_mc_map;
-    flow_spec_4t_map_ipv4 m_flow_udp_uc_map;
+    steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr> m_steering_ipv4;
+    steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr> m_steering_ipv6;
 
     // For IB MC flow, the port is zeroed in the ibv_flow_spec when calling to ibv_flow_spec().
     // It means that for every MC group, even if we have sockets with different ports - only one
@@ -253,6 +283,8 @@ protected:
     bool m_flow_tag_enabled;
     const bool m_b_sysvar_eth_mc_l2_only_rules;
     const bool m_b_sysvar_mc_force_flowtag;
+
+    template <typename KEY4T, typename KEY2T, typename HDR> friend class steering_handler;
 
 private:
     ring_type_t m_type; /* ring type */

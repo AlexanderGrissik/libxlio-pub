@@ -62,13 +62,21 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
 /**
  * IP Header Checksum Calculation
  */
-unsigned short compute_ip_checksum(const unsigned short *buf, unsigned int nshort_words);
+unsigned short compute_ip_checksum(const iphdr *p_ip_h);
+
+/**
+ * IPv6 Dummy Header Checksum method
+ */
+unsigned short compute_ip_checksum(const ipv6hdr *p_ip_h);
 
 /**
  * get tcp checksum: given IP header and tcp segment (assume checksum field in TCP header contains
  * zero) matches RFC 793
  */
 unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload);
+
+// [TODO IPv6 Remove when integrated with utils]
+unsigned short compute_tcp_checksum(const struct ipv6hdr *p_iphdr, const uint16_t *p_ip_payload);
 
 /**
  * Get tcp checksum: given IPv6 header and tcp segment
@@ -79,6 +87,14 @@ unsigned short compute_tcp_checksum(const ip6_hdr *p_iphdr, const uint16_t *p_ip
  * zero) matches RFC 793
  */
 unsigned short compute_udp_checksum_rx(const struct iphdr *p_iphdr, const struct udphdr *udphdrp,
+                                       mem_buf_desc_t *p_rx_wc_buf_desc);
+
+/**
+ * get udp checksum: given IP header and UDP datagram (assume checksum field in UDP header contains
+ * zero) matches RFC 793
+ */
+// [TODO IPv6 Remove when integrated with utils]
+unsigned short compute_udp_checksum_rx(const struct ipv6hdr *p_iphdr, const struct udphdr *udphdrp,
                                        mem_buf_desc_t *p_rx_wc_buf_desc);
 
 /**

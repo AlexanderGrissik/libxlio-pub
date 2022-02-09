@@ -97,7 +97,7 @@ public:
     }
 
     // Destructor specifically for cloned buffers.
-    ~mem_buf_desc_t() {}
+    ~mem_buf_desc_t() { }
 
     /* This field must be first in this class
      * It encapsulates pbuf structure from lwip
@@ -131,13 +131,13 @@ public:
                         void *p_ip_h;
                     };
                     struct tcphdr *p_tcp_h;
-                    size_t n_transport_header_len;
                 } tcp;
                 struct {
                     int ifindex; // Incoming interface index
                 } udp;
             };
 
+            size_t n_transport_header_len;
             uint32_t flow_tag_id; // Flow Tag ID of this received packet
             int8_t n_frags; // number of fragments
             bool is_vma_thr; // specify whether packet drained from VMA internal thread or from user

@@ -127,6 +127,7 @@ static inline uint64_t ntohll(uint64_t x)
 #define ETH_VLAN_HDR_LEN             (ETH_HDR_LEN + sizeof(struct vlanhdr))
 #define MAX_L2_ADDR_LEN              (ETH_ALEN)
 #define IPV4_VERSION                 0x4
+#define IPV6_VERSION                 0x6
 #define IPV4_HDR_LEN_WITHOUT_OPTIONS (sizeof(struct iphdr)) // Ip Header without any options
 #define IPV4_IGMP_HDR_LEN            (IPV4_HDR_LEN_WITHOUT_OPTIONS + sizeof(uint32_t))
 #define IPV4_IGMP_HDR_LEN_WORDS      (IPV4_IGMP_HDR_LEN / sizeof(uint32_t))

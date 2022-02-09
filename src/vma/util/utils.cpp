@@ -240,8 +240,10 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
     }
 }
 
-unsigned short compute_ip_checksum(const unsigned short *buf, unsigned int nshort_words)
+unsigned short compute_ip_checksum(const iphdr *p_ip_h)
 {
+    const unsigned short *buf = reinterpret_cast<const unsigned short *>(p_ip_h);
+    unsigned int nshort_words = p_ip_h->ihl * 2;
     unsigned long sum = 0;
 
     while (nshort_words--) {
@@ -253,6 +255,7 @@ unsigned short compute_ip_checksum(const unsigned short *buf, unsigned int nshor
     return ~sum;
 }
 
+<<<<<<< HEAD
 static uint32_t compute_pseudo_header(const iphdr *ipv4, uint16_t proto, uint16_t proto_len)
 {
     uint32_t sum = ((ipv4->saddr >> 16) & 0xFFFF) + ((ipv4->saddr) & 0xFFFF) +
@@ -270,6 +273,15 @@ static uint32_t compute_pseudo_header(const ip6_hdr *ipv6, uint16_t proto, uint1
     return sum;
 }
 
+||||||| parent of b10fd1b6... issue: 2667588 IPv6 Ring steering
+=======
+unsigned short compute_ip_checksum(const ipv6hdr *p_ip_h)
+{
+    (void)p_ip_h;
+    return 0;
+}
+
+>>>>>>> b10fd1b6... issue: 2667588 IPv6 Ring steering
 /*
  * get tcp checksum: given IP header and tcp segment (assume checksum field in TCP header contains
  * zero) matches RFC 793
@@ -311,6 +323,14 @@ unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload
     uint16_t tcpLen = ntohs(ipv6->ip6_plen);
     sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
     return compute_tcp_payload_checksum(payload, tcpLen, sum);
+}
+
+// [TODO IPv6 Remove when integrated with utils]
+unsigned short compute_tcp_checksum(const struct ipv6hdr *p_iphdr, const uint16_t *p_ip_payload)
+{
+    (void)p_iphdr;
+    (void)p_ip_payload;
+    return 0;
 }
 
 /* set udp checksum: given IP header and UDP datagram
@@ -366,6 +386,16 @@ unsigned short compute_udp_checksum_rx(const struct iphdr *ip_hdr, const struct 
     sum = ~sum;
     // computation result
     return (unsigned short)sum;
+}
+
+// [TODO IPv6 Remove when integrated with utils]
+unsigned short compute_udp_checksum_rx(const struct ipv6hdr *p_iphdr, const struct udphdr *udphdrp,
+                                       mem_buf_desc_t *p_rx_wc_buf_desc)
+{
+    (void)p_iphdr;
+    (void)udphdrp;
+    (void)p_rx_wc_buf_desc;
+    return 0;
 }
 
 /**

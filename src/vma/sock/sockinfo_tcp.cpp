@@ -115,12 +115,11 @@ inline void sockinfo_tcp::init_pbuf_custom(mem_buf_desc_t *p_desc)
 {
     p_desc->lwip_pbuf.pbuf.flags = PBUF_FLAG_IS_CUSTOM;
     p_desc->lwip_pbuf.pbuf.len = p_desc->lwip_pbuf.pbuf.tot_len =
-        (p_desc->sz_data - p_desc->rx.tcp.n_transport_header_len);
+        (p_desc->sz_data - p_desc->rx.n_transport_header_len);
     p_desc->lwip_pbuf.pbuf.ref = 1;
     p_desc->lwip_pbuf.pbuf.type = PBUF_REF;
     p_desc->lwip_pbuf.pbuf.next = NULL;
-    p_desc->lwip_pbuf.pbuf.payload =
-        (u8_t *)p_desc->p_buffer + p_desc->rx.tcp.n_transport_header_len;
+    p_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_desc->p_buffer + p_desc->rx.n_transport_header_len;
 
     if (!is_socketxtreme()) {
         /* Override default free function to return rx pbuf to the CQ cache */

@@ -52,6 +52,7 @@
 class mem_buf_desc_t;
 class event_handler_manager;
 class mem_buf_desc_owner;
+class ipv6hdr;
 
 #define IP_FRAG_FREED ((size_t)-1)
 
@@ -141,6 +142,7 @@ public:
      * -1 if finished with error and this packet needs to be droped
      */
     int add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t **ret);
+    int add_frag(ipv6hdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t **ret);
 
     uint64_t m_frag_counter;
 
