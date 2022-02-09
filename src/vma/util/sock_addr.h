@@ -195,12 +195,17 @@ public:
 
     size_t hash(void) const
     {
-        uint8_t csum = 0;
+        static size_t sz_size = sizeof(size_t);
+
+        size_t csum = 0U;
         const uint8_t *pval = reinterpret_cast<const uint8_t *>(this);
-        socklen_t sockaddr_size = get_socklen();
-        for (socklen_t i = 0; i < sockaddr_size; ++i, ++pval) {
-            csum ^= *pval;
+        const uint8_t *pend = pval + get_socklen();
+        while (pval + sz_size <= pend) {
+            csum ^= *reinterpret_cast<const size_t *>(pval);
+            pval += sz_size;
         }
+        // For now we skip the last 4 bytes for sockaddr_in6 which is unused scope_id anyway.
+
         return csum;
     }
 
@@ -219,5 +224,12 @@ private:
         struct sockaddr_in6 m_sa_in6;
     } u_sa;
 };
+
+namespace std {
+template <> class hash<sock_addr> {
+public:
+    size_t operator()(const sock_addr &key) const { return key.hash(); }
+};
+} // namespace std
 
 #endif /*SOCK_ADDR_H*/

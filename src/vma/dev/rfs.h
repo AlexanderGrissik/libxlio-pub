@@ -110,14 +110,14 @@ typedef std::vector<attach_flow_data_t *> attach_flow_data_vector_t;
 
 class rfs_rule_filter {
 public:
-    rfs_rule_filter(rule_filter_map_t &map, uint64_t key, flow_tuple &flow_tuple)
+    rfs_rule_filter(rule_filter_map_t &map, const sock_addr &key, flow_tuple &flow_tuple)
         : m_map(map)
         , m_key(key)
         , m_flow_tuple(flow_tuple)
     {
     }
     rule_filter_map_t &m_map;
-    uint64_t m_key;
+    sock_addr m_key;
     flow_tuple m_flow_tuple;
 };
 

@@ -164,8 +164,6 @@ public:
         return s_loopback6_addr;
     }
 
-    friend std::hash<ip_address>;
-
 protected:
     union {
         in6_addr m_ip6;
@@ -254,7 +252,11 @@ public:
         return *this;
     }
 
-    friend std::hash<ip_addr>;
+    uint64_t hash() const
+    {
+        std::hash<uint64_t> _hash;
+        return _hash(m_ip6_64[0] ^ m_ip6_64[1] ^ (static_cast<uint64_t>(m_family) << 30U));
+    }
 
 private:
     sa_family_t m_family;
@@ -267,12 +269,7 @@ public:
 };
 template <> class hash<ip_addr> {
 public:
-    size_t operator()(const ip_addr &key) const
-    {
-        hash<uint64_t> _hash;
-        return _hash(key.m_ip6_64[0] ^ key.m_ip6_64[1] ^
-                     (static_cast<uint64_t>(key.get_family()) << 30U));
-    }
+    size_t operator()(const ip_addr &key) const { return key.hash(); }
 };
 } // namespace std
 

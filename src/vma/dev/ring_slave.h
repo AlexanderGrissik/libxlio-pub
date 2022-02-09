@@ -40,88 +40,156 @@
 
 class rfs;
 
-typedef struct __attribute__((packed)) flow_spec_2t_key_t {
+struct __attribute__((packed)) flow_spec_2t_key_ipv4 {
     in_addr_t dst_ip;
     in_port_t dst_port;
 
-    flow_spec_2t_key_t() { flow_spec_2t_key_helper(INADDR_ANY, INPORT_ANY); }
-    flow_spec_2t_key_t(in_addr_t d_ip, in_addr_t d_port) { flow_spec_2t_key_helper(d_ip, d_port); }
+    flow_spec_2t_key_ipv4() { flow_spec_2t_key_helper(INADDR_ANY, INPORT_ANY); }
+    flow_spec_2t_key_ipv4(in_addr_t d_ip, in_port_t d_port)
+    {
+        flow_spec_2t_key_helper(d_ip, d_port);
+    }
 
-    flow_spec_2t_key_t(const sock_addr &dst)
+    flow_spec_2t_key_ipv4(const sock_addr &dst)
     {
         flow_spec_2t_key_helper(dst.get_ip_addr().get_in_addr(), dst.get_in_port());
     }
 
-    void flow_spec_2t_key_helper(in_addr_t d_ip, in_addr_t d_port)
+    void flow_spec_2t_key_helper(in_addr_t d_ip, in_port_t d_port)
     {
-        memset(this, 0, sizeof(*this)); // Silencing coverity
         dst_ip = d_ip;
         dst_port = d_port;
     };
-} flow_spec_2t_key_t;
+};
 
-typedef struct __attribute__((packed)) flow_spec_4t_key_t {
+struct __attribute__((packed)) flow_spec_4t_key_ipv4 {
     in_addr_t dst_ip;
     in_addr_t src_ip;
     in_port_t dst_port;
     in_port_t src_port;
 
-    flow_spec_4t_key_t()
+    flow_spec_4t_key_ipv4()
     {
         flow_spec_4t_key_helper(INADDR_ANY, INADDR_ANY, INPORT_ANY, INPORT_ANY);
     }
 
-    flow_spec_4t_key_t(in_addr_t d_ip, in_addr_t s_ip, in_addr_t d_port, in_addr_t s_port)
+    flow_spec_4t_key_ipv4(in_addr_t d_ip, in_addr_t s_ip, in_port_t d_port, in_port_t s_port)
     {
         flow_spec_4t_key_helper(d_ip, s_ip, d_port, s_port);
     }
 
-    flow_spec_4t_key_t(const sock_addr &dst, const sock_addr &src)
+    flow_spec_4t_key_ipv4(const sock_addr &dst, const sock_addr &src)
     {
         flow_spec_4t_key_helper(dst.get_ip_addr().get_in_addr(), src.get_ip_addr().get_in_addr(),
                                 dst.get_in_port(), src.get_in_port());
     }
 
-    void flow_spec_4t_key_helper(in_addr_t d_ip, in_addr_t s_ip, in_addr_t d_port, in_addr_t s_port)
+    void flow_spec_4t_key_helper(in_addr_t d_ip, in_addr_t s_ip, in_port_t d_port, in_port_t s_port)
     {
-        memset(this, 0, sizeof(*this)); // Silencing coverity
         dst_ip = d_ip;
         src_ip = s_ip;
         dst_port = d_port;
         src_port = s_port;
     };
-} flow_spec_4t_key_t;
+};
+
+#pragma pack(1)
+
+struct flow_spec_2t_key_ipv6 {
+    ip_address dst_ip;
+    in_port_t dst_port;
+
+    flow_spec_2t_key_ipv6() { flow_spec_2t_key_helper(ip_address::any_addr(), INPORT_ANY); }
+
+    flow_spec_2t_key_ipv6(const ip_address &d_ip, in_port_t d_port)
+    {
+        flow_spec_2t_key_helper(d_ip, d_port);
+    }
+
+    flow_spec_2t_key_ipv6(const sock_addr &dst)
+    {
+        flow_spec_2t_key_helper(dst.get_ip_addr(), dst.get_in_port());
+    }
+
+    void flow_spec_2t_key_helper(const ip_address &d_ip, in_port_t d_port)
+    {
+        dst_ip = d_ip;
+        dst_port = d_port;
+    };
+};
+
+struct flow_spec_4t_key_ipv6 {
+    ip_address dst_ip;
+    ip_address src_ip;
+    in_port_t dst_port;
+    in_port_t src_port;
+
+    flow_spec_4t_key_ipv6()
+    {
+        flow_spec_4t_key_helper(ip_address::any_addr(), ip_address::any_addr(), INPORT_ANY,
+                                INPORT_ANY);
+    }
+
+    flow_spec_4t_key_ipv6(const ip_address &d_ip, const ip_address &s_ip, in_port_t d_port,
+                          in_port_t s_port)
+    {
+        flow_spec_4t_key_helper(d_ip, s_ip, d_port, s_port);
+    }
+
+    flow_spec_4t_key_ipv6(const sock_addr &dst, const sock_addr &src)
+    {
+        flow_spec_4t_key_helper(dst.get_ip_addr(), src.get_ip_addr(), dst.get_in_port(),
+                                src.get_in_port());
+    }
+
+    void flow_spec_4t_key_helper(const ip_address &d_ip, const ip_address &s_ip, in_port_t d_port,
+                                 in_port_t s_port)
+    {
+        dst_ip = d_ip;
+        src_ip = s_ip;
+        dst_port = d_port;
+        src_port = s_port;
+    };
+};
+
+#pragma pack()
 
 /* UDP flow to rfs object hash map */
-inline bool operator==(flow_spec_2t_key_t const &key1, flow_spec_2t_key_t const &key2)
+inline bool operator==(flow_spec_2t_key_ipv4 const &key1, flow_spec_2t_key_ipv4 const &key2)
 {
     return (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
 }
 
-typedef hash_map<flow_spec_2t_key_t, rfs *> flow_spec_2t_map_t;
+inline bool operator==(flow_spec_2t_key_ipv6 const &key1, flow_spec_2t_key_ipv6 const &key2)
+{
+    return (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
+}
+
+typedef hash_map<flow_spec_2t_key_ipv4, rfs *> flow_spec_2t_map_ipv4;
+typedef hash_map<flow_spec_2t_key_ipv6, rfs *> flow_spec_2t_map_ipv6;
 
 /* TCP flow to rfs object hash map */
-inline bool operator==(flow_spec_4t_key_t const &key1, flow_spec_4t_key_t const &key2)
+inline bool operator==(flow_spec_4t_key_ipv4 const &key1, flow_spec_4t_key_ipv4 const &key2)
 {
     return (key1.src_port == key2.src_port) && (key1.src_ip == key2.src_ip) &&
         (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
 }
 
-typedef hash_map<flow_spec_4t_key_t, rfs *> flow_spec_4t_map_t;
+inline bool operator==(flow_spec_4t_key_ipv6 const &key1, flow_spec_4t_key_ipv6 const &key2)
+{
+    return (key1.src_port == key2.src_port) && (key1.src_ip == key2.src_ip) &&
+        (key1.dst_port == key2.dst_port) && (key1.dst_ip == key2.dst_ip);
+}
+
+typedef hash_map<flow_spec_4t_key_ipv4, rfs *> flow_spec_4t_map_ipv4;
+typedef hash_map<flow_spec_4t_key_ipv6, rfs *> flow_spec_4t_map_ipv6;
 
 struct counter_and_ibv_flows {
     int counter;
     std::vector<rfs_rule *> rfs_rule_vec;
 };
 
-// rule key based on ip and port
-struct rule_key_t {
-    uint64_t key;
-
-    rule_key_t(in_addr_t addr, in_port_t port) { key = (uint64_t)addr << 32 | port; }
-};
-
-typedef std::unordered_map<uint64_t, struct counter_and_ibv_flows> rule_filter_map_t;
+typedef std::unordered_map<sock_addr, struct counter_and_ibv_flows> rule_filter_map_t;
 
 class ring_slave : public ring {
 public:
@@ -162,9 +230,9 @@ protected:
     void flow_udp_del_all();
     void flow_tcp_del_all();
 
-    flow_spec_4t_map_t m_flow_tcp_map;
-    flow_spec_2t_map_t m_flow_udp_mc_map;
-    flow_spec_4t_map_t m_flow_udp_uc_map;
+    flow_spec_4t_map_ipv4 m_flow_tcp_map;
+    flow_spec_2t_map_ipv4 m_flow_udp_mc_map;
+    flow_spec_4t_map_ipv4 m_flow_udp_uc_map;
 
     // For IB MC flow, the port is zeroed in the ibv_flow_spec when calling to ibv_flow_spec().
     // It means that for every MC group, even if we have sockets with different ports - only one
