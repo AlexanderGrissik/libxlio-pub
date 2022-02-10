@@ -302,6 +302,7 @@ private:
     ip_data_vector_t m_ip; /* vector of ip addresses */
 
     std::string m_name; /* container for ifname */
+#define BUFF_SIZE 255 // TODO remove m_str field
     char m_str[BUFF_SIZE]; /* detailed information about device */
     char m_base_name[IFNAMSIZ]; /* base name of device basing ifname */
 };

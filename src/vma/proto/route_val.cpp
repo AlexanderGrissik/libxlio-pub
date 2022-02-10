@@ -30,13 +30,9 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include "vma/util/if.h"
 
 #include "route_val.h"
-#include "route_table_mgr.h"
 #include "vma/dev/net_device_table_mgr.h"
 
 #define MODULE_NAME "rtv"
@@ -45,23 +41,12 @@
 #define rt_val_logdbg  __log_info_dbg
 #define rt_val_logfunc __log_info_func
 
-#define snprintf_append(buf, ...)                                                                  \
-    snprintf((buf) + strlen(buf), sizeof(buf) - strlen(buf), __VA_ARGS__)
-
-static void addr_to_str(int af, const void *src, char *dst, socklen_t size)
-{
-    const char *r = inet_ntop(af, src, dst, size);
-    if (r == NULL && size > 0) {
-        *dst = '\0';
-    }
-}
-
 route_val::route_val()
+   : m_dst_addr(in6addr_any)
+   , m_src_addr(in6addr_any)
+   , m_gw_addr(in6addr_any)
 {
     m_dst_pref_len = 0;
-    memset(&m_dst_addr, 0, sizeof(m_dst_addr));
-    memset(&m_src_addr, 0, sizeof(m_src_addr));
-    memset(&m_gw_addr, 0, sizeof(m_gw_addr));
     m_family = 0;
     m_protocol = 0;
     m_scope = 0;
@@ -73,63 +58,39 @@ route_val::route_val()
     m_b_deleted = false;
     m_b_if_up = true;
     m_mtu = 0;
-    memset(m_str, 0, BUFF_SIZE * sizeof(char));
 }
 
-void route_val::set_str()
+const std::string route_val::to_str() const
 {
-    // TODO: improve/streamline conversion to string
+    std::string rc;
 
-    char str_addr[INET6_ADDRSTRLEN + 4] = {};
-    const int addr_width = (m_family == AF_INET) ? 15 : 45;
-    const int prefix_width = (m_family == AF_INET) ? 2 : 3;
-
-    m_str[0] = '\0';
-
-    snprintf_append(m_str, "dst: ");
-    if (!IN6_IS_ADDR_UNSPECIFIED(&m_dst_addr.v6)) {
-        addr_to_str(m_family, &m_dst_addr, str_addr, sizeof(str_addr));
-        snprintf_append(str_addr, "/%-*d", prefix_width, m_dst_pref_len);
-        snprintf_append(m_str, "%-*s", addr_width + prefix_width + 1, str_addr);
-    } else {
-        snprintf_append(m_str, "%-*s", addr_width + prefix_width + 1, "default");
+    rc = "dst: ";
+    rc += m_dst_addr.is_anyaddr() ? "default" : m_dst_addr.to_str() + '/' + std::to_string(m_dst_pref_len);
+    if (!m_gw_addr.is_anyaddr()) {
+        rc += " gw: " + m_gw_addr.to_str();
     }
-
-    if (!IN6_IS_ADDR_UNSPECIFIED(&m_gw_addr.v6)) {
-        addr_to_str(m_family, &m_gw_addr, str_addr, sizeof(str_addr));
-        snprintf_append(m_str, " gw: %-*s", addr_width, str_addr);
+    rc += " dev: " + std::string(m_if_name);
+    if (!m_src_addr.is_anyaddr()) {
+        rc += " src: " + m_src_addr.to_str();
     }
-
-    snprintf_append(m_str, " dev: %-5s", m_if_name);
-
-    if (!IN6_IS_ADDR_UNSPECIFIED(&m_src_addr.v6)) {
-        addr_to_str(m_family, &m_src_addr, str_addr, sizeof(str_addr));
-        snprintf_append(m_str, " src: %-*s", addr_width, str_addr);
-    } else {
-        snprintf_append(m_str, "                     ");
-    }
-
-    if (m_table_id != RT_TABLE_MAIN) {
-        snprintf_append(m_str, " table: %-10u", m_table_id);
-    } else {
-        snprintf_append(m_str, " table: %-10s", "main");
-    }
-
-    snprintf_append(m_str, " scope %3d type %2d index %2d", m_scope, m_type, m_if_index);
-
-    // add route metrics
+    rc += " table: ";
+    rc += (m_table_id == RT_TABLE_MAIN) ? "main" : std::to_string(m_table_id);
+    rc += " scope " + std::to_string(m_scope);
+    rc += " type " + std::to_string(m_type);
+    rc += " index " + std::to_string(m_if_index);
     if (m_mtu) {
-        snprintf_append(m_str, " mtu %d", m_mtu);
+        rc += " mtu " + std::to_string(m_mtu);
     }
     if (m_b_deleted) {
-        snprintf_append(m_str, " ---> DELETED");
+        rc += " ---> DELETED";
     }
+
+    return rc;
 }
 
 void route_val::print_val()
 {
-    set_str();
-    rt_val_logdbg("%s", to_str());
+    rt_val_logdbg("%s", to_str().c_str());
 }
 
 void route_val::set_mtu(uint32_t mtu)
@@ -139,25 +100,4 @@ void route_val::set_mtu(uint32_t mtu)
     } else {
         m_mtu = mtu;
     }
-}
-
-const char *route_val::get_dst_addr_str()
-{
-    thread_local char buf[INET6_ADDRSTRLEN];
-    addr_to_str(m_family, &m_dst_addr, buf, sizeof(buf));
-    return buf;
-}
-
-const char *route_val::get_src_addr_str()
-{
-    thread_local char buf[INET6_ADDRSTRLEN];
-    addr_to_str(m_family, &m_src_addr, buf, sizeof(buf));
-    return buf;
-}
-
-const char *route_val::get_gw_addr_str()
-{
-    thread_local char buf[INET6_ADDRSTRLEN];
-    addr_to_str(m_family, &m_gw_addr, buf, sizeof(buf));
-    return buf;
 }

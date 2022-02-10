@@ -62,6 +62,16 @@ public:
     {
     }
 
+    ip_address(const void *raw, sa_family_t family)
+    {
+        if (family == AF_INET) {
+            m_ip6_64[0] = m_ip6_64[1] = 0U;
+            m_ip = *reinterpret_cast<const in_addr_t *>(raw);
+        } else {
+            m_ip6 = *reinterpret_cast<const in6_addr *>(raw);
+        }
+    }
+
     ip_address(const ip_address &addr) { *this = addr; }
 
     ip_address(ip_address &&addr) { *this = addr; }
@@ -106,6 +116,25 @@ public:
     bool is_loopback_class(sa_family_t family) const
     {
         return (family == AF_INET ? LOOPBACK_N(m_ip) : *this == loopback6_addr());
+    }
+
+    bool is_equal_with_prefix(const ip_address &ip, unsigned prefix, sa_family_t family) const
+    {
+        if (family == AF_INET) {
+            prefix = 32U - prefix;
+            return (ntohl(m_ip) >> prefix << prefix) == (ntohl(ip.m_ip) >> prefix << prefix);
+        } else {
+            prefix = 128U - prefix;
+            if (prefix >= 64U) {
+                prefix -= 64U;
+                return (ntohll(m_ip6_64[0]) >> prefix << prefix) ==
+                    (ntohll(ip.m_ip6_64[0]) >> prefix << prefix);
+            } else {
+                return (m_ip6_64[0] == ip.m_ip6_64[0]) &&
+                    ((ntohll(m_ip6_64[1]) >> prefix << prefix) ==
+                     (ntohll(ip.m_ip6_64[1]) >> prefix << prefix));
+            }
+        }
     }
 
     bool operator==(const ip_address &ip) const

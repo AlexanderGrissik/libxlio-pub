@@ -80,8 +80,8 @@ dst_entry::~dst_entry()
 
     if (m_p_neigh_entry) {
         ip_address dst_addr = m_dst_ip;
-        if (m_p_rt_val && m_p_rt_val->get_gw_addr() != INADDR_ANY && !dst_addr.is_mc(AF_INET)) {
-            dst_addr = ip_address(m_p_rt_val->get_gw_addr());
+        if (m_p_rt_val && !m_p_rt_val->get_gw_addr().is_anyaddr() && !dst_addr.is_mc(m_family)) {
+            dst_addr = m_p_rt_val->get_gw_addr();
         }
         g_p_neigh_table_mgr->unregister_observer(
             neigh_key(ip_addr(dst_addr, m_family), m_p_net_dev_val), this);
@@ -168,8 +168,8 @@ void dst_entry::set_src_addr()
 {
     if (!m_route_src_ip.is_anyaddr()) {
         m_pkt_src_ip = m_route_src_ip;
-    } else if (m_p_rt_val && m_p_rt_val->get_src_addr()) {
-        m_pkt_src_ip = ip_address(m_p_rt_val->get_src_addr());
+    } else if (m_p_rt_val && !m_p_rt_val->get_src_addr().is_anyaddr()) {
+        m_pkt_src_ip = m_p_rt_val->get_src_addr();
     } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr().is_anyaddr()) {
         m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
     } else {
@@ -196,8 +196,8 @@ bool dst_entry::update_net_dev_val()
 
         if (m_p_neigh_entry) {
             ip_address dst_addr = m_dst_ip;
-            if (m_p_rt_val && m_p_rt_val->get_gw_addr() != INADDR_ANY && !dst_addr.is_mc(AF_INET)) {
-                dst_addr = ip_address(m_p_rt_val->get_gw_addr());
+            if (m_p_rt_val && !m_p_rt_val->get_gw_addr().is_anyaddr() && !dst_addr.is_mc(m_family)) {
+                dst_addr = m_p_rt_val->get_gw_addr();
             }
             g_p_neigh_table_mgr->unregister_observer(
                 neigh_key(ip_addr(dst_addr, m_family), m_p_net_dev_val), this);
@@ -277,9 +277,9 @@ bool dst_entry::resolve_net_dev(bool is_connect)
             m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);
             if (is_connect && m_route_src_ip.is_anyaddr()) {
                 route_val *p_rt_val = NULL;
-                if (m_p_rt_entry && m_p_rt_entry->get_val(p_rt_val) && p_rt_val->get_src_addr()) {
+                if (m_p_rt_entry && m_p_rt_entry->get_val(p_rt_val) && !p_rt_val->get_src_addr().is_anyaddr()) {
                     g_p_route_table_mgr->unregister_observer(rtk, this);
-                    m_route_src_ip = ip_address(p_rt_val->get_src_addr());
+                    m_route_src_ip = p_rt_val->get_src_addr();
                     route_rule_table_key new_rtk(
                         m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(),
                         m_tos); // [TODO IPV6] should pass ip_address not in_addr_t
@@ -309,8 +309,8 @@ bool dst_entry::resolve_neigh()
     bool ret_val = false;
     ip_address dst_addr = m_dst_ip;
 
-    if (m_p_rt_val && m_p_rt_val->get_gw_addr() != INADDR_ANY && !dst_addr.is_mc(AF_INET)) {
-        dst_addr = ip_address(m_p_rt_val->get_gw_addr());
+    if (m_p_rt_val && !m_p_rt_val->get_gw_addr().is_anyaddr() && !dst_addr.is_mc(m_family)) {
+        dst_addr = m_p_rt_val->get_gw_addr();
     }
     cache_entry_subject<neigh_key, neigh_val *> *p_ces = NULL;
     if (m_p_neigh_entry ||

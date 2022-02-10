@@ -104,22 +104,14 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
         assert(family == nl_addr_get_family(addr));
         unsigned int dst_prefixlen = nl_addr_get_prefixlen(addr);
         m_route_val->set_dst_pref_len(dst_prefixlen);
-        if (family == AF_INET) {
-            m_route_val->set_dst_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
-        } else {
-            m_route_val->set_dst_addr_v6(*(in6_addr *)nl_addr_get_binary_addr(addr));
-        }
+        m_route_val->set_dst_addr(ip_address((void *)nl_addr_get_binary_addr(addr), family));
     }
 
     addr = rtnl_route_get_pref_src(nl_route_obj);
     if (addr) {
         // TODO: improve error handling
         assert(family == nl_addr_get_family(addr));
-        if (family == AF_INET) {
-            m_route_val->set_src_addr(*(in_addr_t *)nl_addr_get_binary_addr(addr));
-        } else {
-            m_route_val->set_src_addr_v6(*(in6_addr *)nl_addr_get_binary_addr(addr));
-        }
+        m_route_val->set_src_addr(ip_address((void *)nl_addr_get_binary_addr(addr), family));
     }
 
     rtnl_nexthop *nh = rtnl_route_nexthop_n(nl_route_obj, 0);
@@ -136,11 +128,7 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
         if (addr) {
             // TODO: improve error handling
             assert(family == nl_addr_get_family(addr));
-            if (family == AF_INET) {
-                m_route_val->set_gw(*(in_addr_t *)addr);
-            } else {
-                m_route_val->set_gw_v6(*(in6_addr *)addr);
-            }
+            m_route_val->set_gw(ip_address((void *)nl_addr_get_binary_addr(addr), family));
         }
     }
 }
