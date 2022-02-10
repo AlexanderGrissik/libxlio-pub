@@ -40,7 +40,7 @@
 
 // This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member
 // except IPv4/IPv6 union and must now have virtual methods.
-// Class ip_addr is an extention to this class (see below) which allows more members and vtable.
+// Class ip_addr is an extension to this class (see below) which allows more members and vtable.
 class ip_address {
 public:
     ip_address() { m_ip6_64[0] = m_ip6_64[1] = 0U; };
@@ -172,9 +172,9 @@ protected:
     };
 };
 
-// This class is an extention to the ip_address class. It allows more members and virtual methods.
+// This class is an extension to the ip_address class. It allows more members and virtual methods.
 // However, new members should be added with caution since this still may be used in hashes and
-// performance oriented pathes.
+// performance oriented paths.
 class ip_addr : public ip_address {
 public:
     ip_addr(in_addr_t ip4)
@@ -273,5 +273,8 @@ public:
     size_t operator()(const ip_addr &key) const { return key.hash(); }
 };
 } // namespace std
+
+// We rely on that ip_address is exactly IPv6 address length, so we can cast it to uint64_t[2].
+static_assert(sizeof(ip_address) == 16U, "ip_address must be 16 bytes (128 bits)");
 
 #endif /* IP_ADDRESS_H */
