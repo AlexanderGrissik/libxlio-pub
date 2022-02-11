@@ -125,7 +125,6 @@ bool rule_table_mgr::parse_enrty(nlmsghdr *nl_header, rule_val *p_val)
         parse_attr(rt_attribute, p_val);
     }
     p_val->set_state(true);
-    p_val->set_str();
     return true;
 }
 
@@ -140,10 +139,10 @@ void rule_table_mgr::parse_attr(struct rtattr *rt_attribute, rule_val *p_val)
         p_val->set_priority(*(uint32_t *)RTA_DATA(rt_attribute));
         break;
     case FRA_DST:
-        p_val->set_dst_addr(*(in_addr_t *)RTA_DATA(rt_attribute));
+        p_val->set_dst_addr(ip_address(*(in_addr_t *)RTA_DATA(rt_attribute)));
         break;
     case FRA_SRC:
-        p_val->set_src_addr(*(in_addr_t *)RTA_DATA(rt_attribute));
+        p_val->set_src_addr(ip_address(*(in_addr_t *)RTA_DATA(rt_attribute)));
         break;
     case FRA_IFNAME:
         p_val->set_iif_name((char *)RTA_DATA(rt_attribute));
@@ -232,8 +231,8 @@ bool rule_table_mgr::is_matching_rule(route_rule_table_key key, rule_val *p_val)
     in_addr_t m_src_ip = key.get_src_ip();
     uint8_t m_tos = key.get_tos();
 
-    in_addr_t rule_dst_ip = p_val->get_dst_addr();
-    in_addr_t rule_src_ip = p_val->get_src_addr();
+    in_addr_t rule_dst_ip = p_val->get_dst_addr().get_in_addr();
+    in_addr_t rule_src_ip = p_val->get_src_addr().get_in_addr();
     uint8_t rule_tos = p_val->get_tos();
     char *rule_iif_name = (char *)p_val->get_iif_name();
     char *rule_oif_name = (char *)p_val->get_oif_name();
