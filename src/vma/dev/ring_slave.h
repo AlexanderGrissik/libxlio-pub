@@ -34,7 +34,7 @@
 #define RING_SLAVE_H_
 
 #include "ring.h"
-
+#include <memory>
 #include "vma/dev/net_device_table_mgr.h"
 #include "vma/util/sock_addr.h"
 
@@ -62,6 +62,12 @@ struct __attribute__((packed)) flow_spec_2t_key_ipv4 {
         dst_ip = d_ip;
         dst_port = d_port;
     };
+
+    size_t hash() const
+    {
+        std::hash<size_t> _hash;
+        return _hash(static_cast<size_t>(dst_ip) | (static_cast<size_t>(dst_port) << 32));
+    }
 };
 
 struct __attribute__((packed)) flow_spec_4t_key_ipv4 {
@@ -94,6 +100,13 @@ struct __attribute__((packed)) flow_spec_4t_key_ipv4 {
         dst_port = d_port;
         src_port = s_port;
     };
+
+    size_t hash() const
+    {
+        std::hash<size_t> _hash;
+        return _hash((static_cast<size_t>(dst_ip) | (static_cast<size_t>(src_ip) << 32)) ^
+            (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
+    }
 };
 
 #pragma pack(1)
@@ -119,6 +132,14 @@ struct flow_spec_2t_key_ipv6 {
         dst_ip = d_ip;
         dst_port = d_port;
     };
+
+    size_t hash() const
+    {
+        const uint64_t* dst_ip_p = reinterpret_cast<const uint64_t*>(&dst_ip);
+        std::hash<size_t> _hash;
+        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1])  ^
+            static_cast<size_t>(dst_port));
+    }
 };
 
 struct flow_spec_4t_key_ipv6 {
@@ -153,9 +174,38 @@ struct flow_spec_4t_key_ipv6 {
         dst_port = d_port;
         src_port = s_port;
     };
+
+    size_t hash() const
+    {
+        const uint64_t* dst_ip_p = reinterpret_cast<const uint64_t*>(&dst_ip);
+        const uint64_t* src_ip_p = reinterpret_cast<const uint64_t*>(&src_ip);
+        std::hash<size_t> _hash;
+        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1])  ^
+            static_cast<size_t>(src_ip_p[0]) ^ static_cast<size_t>(src_ip_p[1])  ^
+            (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
+    }
 };
 
 #pragma pack()
+
+namespace std {
+template <> class hash<flow_spec_2t_key_ipv4> {
+public:
+    size_t operator()(const flow_spec_2t_key_ipv4 &key) const { return key.hash(); }
+};
+template <> class hash<flow_spec_4t_key_ipv4> {
+public:
+    size_t operator()(const flow_spec_4t_key_ipv4 &key) const { return key.hash(); }
+};
+template <> class hash<flow_spec_2t_key_ipv6> {
+public:
+    size_t operator()(const flow_spec_2t_key_ipv6 &key) const { return key.hash(); }
+};
+template <> class hash<flow_spec_4t_key_ipv6> {
+public:
+    size_t operator()(const flow_spec_4t_key_ipv6 &key) const { return key.hash(); }
+};
+} // namespace std
 
 /* UDP flow to rfs object hash map */
 inline bool operator==(flow_spec_2t_key_ipv4 const &key1, flow_spec_2t_key_ipv4 const &key2)
@@ -203,17 +253,16 @@ public:
     inline bool rx_process_buffer_no_flow_id(mem_buf_desc_t *p_rx_wc_buf_desc,
                                              void *pv_fd_ready_array, HDR *p_ip_h);
 
-    void flow_udp_del_all();
-    void flow_tcp_del_all();
-
+    void flow_del_all_rfs();
+    
 #ifdef DEFINED_UTLS
     /* Call this method in an RX ring. */
     rfs_rule *tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir);
 #endif /* DEFINED_UTLS */
 
 private:
-    typedef hash_map<KEY4T, rfs *> flow_spec_4t_map;
-    typedef hash_map<KEY2T, rfs *> flow_spec_2t_map;
+    typedef std::unordered_map<KEY4T, rfs *> flow_spec_4t_map;
+    typedef std::unordered_map<KEY2T, rfs *> flow_spec_2t_map;
 
     flow_spec_4t_map m_flow_tcp_map;
     flow_spec_4t_map m_flow_udp_uc_map;
@@ -258,11 +307,10 @@ public:
 
 protected:
     bool request_more_tx_buffers(pbuf_type type, uint32_t count, uint32_t lkey);
-    void flow_udp_del_all();
-    void flow_tcp_del_all();
-
-    steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr> m_steering_ipv4;
-    steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr> m_steering_ipv6;
+    void flow_del_all_rfs();
+    
+    std::unique_ptr<steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr>> m_steering_ipv4;
+    std::unique_ptr<steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr>> m_steering_ipv6;
 
     // For IB MC flow, the port is zeroed in the ibv_flow_spec when calling to ibv_flow_spec().
     // It means that for every MC group, even if we have sockets with different ports - only one
@@ -278,7 +326,7 @@ protected:
     descq_t m_tx_pool;
     descq_t m_zc_pool;
     transport_type_t m_transport_type; /* transport ETH/IB */
-    ring_stats_t *m_p_ring_stat;
+    std::unique_ptr<ring_stats_t> m_p_ring_stat;
     uint16_t m_partition;
     bool m_flow_tag_enabled;
     const bool m_b_sysvar_eth_mc_l2_only_rules;
@@ -288,7 +336,6 @@ protected:
 
 private:
     ring_type_t m_type; /* ring type */
-    ring_stats_t m_ring_stat;
 };
 
 #endif /* RING_SLAVE_H_ */

@@ -49,10 +49,13 @@ static const sock_addr s_sock_addrany;
 
 ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     : ring()
-    , m_steering_ipv4(*this)
-    , m_steering_ipv6(*this)
+    , m_steering_ipv4(new steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr>(*this))
+    , m_steering_ipv6(new steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr>(*this))
+//    , m_steering_ipv4(*this)
+//    , m_steering_ipv6(*this)
     , m_lock_ring_rx("ring_slave:lock_rx")
     , m_lock_ring_tx("ring_slave:lock_tx")
+    , m_p_ring_stat(new ring_stats_t)
     , m_partition(0)
     , m_flow_tag_enabled(false)
     , m_b_sysvar_eth_mc_l2_only_rules(safe_mce_sys().eth_mc_l2_only_rules)
@@ -84,17 +87,16 @@ ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     m_active = p_slave ? p_slave->active : p_ndev->get_slave_array().empty();
 
     // use local copy of stats by default
-    m_p_ring_stat = &m_ring_stat;
-    memset(m_p_ring_stat, 0, sizeof(*m_p_ring_stat));
+    memset(m_p_ring_stat.get(), 0, sizeof(ring_stats_t));
     m_p_ring_stat->n_type = m_type;
     if (m_parent != this) {
-        m_ring_stat.p_ring_master = m_parent;
+        m_p_ring_stat->p_ring_master = m_parent;
     }
 
     m_tx_pool.set_id("ring_slave (%p) : m_tx_pool", this);
     m_zc_pool.set_id("ring_slave (%p) : m_zc_pool", this);
 
-    vma_stats_instance_create_ring_block(m_p_ring_stat);
+    vma_stats_instance_create_ring_block(m_p_ring_stat.get());
 
     print_val();
 }
@@ -104,12 +106,15 @@ ring_slave::~ring_slave()
     print_val();
 
     if (m_p_ring_stat) {
-        vma_stats_instance_remove_ring_block(m_p_ring_stat);
+        vma_stats_instance_remove_ring_block(m_p_ring_stat.get());
     }
 
     /* Release TX buffer poll */
     g_buffer_pool_tx->put_buffers_thread_safe(&m_tx_pool, m_tx_pool.size());
     g_buffer_pool_zc->put_buffers_thread_safe(&m_zc_pool, m_zc_pool.size());
+
+//    delete m_steering_ipv4;
+//    delete m_steering_ipv6;
 }
 
 void ring_slave::print_val()
@@ -195,8 +200,8 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                         si);
         }
 
-        p_rfs = m_flow_udp_uc_map.get(rfs_key, NULL);
-        if (p_rfs == NULL) {
+        auto itr = m_flow_udp_uc_map.find(rfs_key);
+        if (itr == end(m_flow_udp_uc_map)) {
             // No rfs object exists so a new one must be created and inserted in the flow map
             if (safe_mce_sys().udp_3t_rules) {
                 flow_tuple udp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(),
@@ -218,18 +223,20 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 return false;
             }
             BULLSEYE_EXCLUDE_BLOCK_END
-            p_rfs = m_flow_udp_uc_map.get(rfs_key, NULL);
-            if (p_rfs) {
-                delete p_tmp_rfs;
-            } else {
+            //p_rfs = m_flow_udp_uc_map.get(rfs_key, NULL);
+            //if (p_rfs) {
+            //    delete p_tmp_rfs;
+            //} else {
                 p_rfs = p_tmp_rfs;
 #if defined(DEFINED_NGINX)
                 if (!g_b_add_second_4t_rule)
 #endif
                 {
-                    m_flow_udp_uc_map.set(rfs_key, p_rfs);
+                    m_flow_udp_uc_map.emplace(rfs_key, p_rfs);
                 }
-            }
+           //}
+        } else {
+            p_rfs = itr->second;
         }
     } else if (flow_spec_5t.is_udp_mc()) {
         KEY2T key_udp_mc(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
@@ -262,8 +269,9 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 m_ring.m_l2_mc_ip_attach_map[rule_key].counter = ((l2_mc_iter->second.counter) + 1);
             }
         }
-        p_rfs = m_flow_udp_mc_map.get(key_udp_mc, NULL);
-        if (p_rfs == NULL) { // It means that no rfs object exists so I need to create a new one and
+
+        auto itr = m_flow_udp_mc_map.find(key_udp_mc);
+        if (itr == end(m_flow_udp_mc_map)) { // It means that no rfs object exists so I need to create a new one and
                              // insert it to the flow map
             if (m_ring.m_b_sysvar_eth_mc_l2_only_rules) {
                 l2_mc_ip_filter =
@@ -279,13 +287,15 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 ring_logerr("Failed to allocate rfs!");
                 return false;
             }
-            p_rfs = m_flow_udp_mc_map.get(key_udp_mc, NULL);
-            if (p_rfs) {
-                delete p_tmp_rfs;
-            } else {
+            //p_rfs = m_flow_udp_mc_map.get(key_udp_mc, NULL);
+            //if (p_rfs) {
+            //    delete p_tmp_rfs;
+            //} else {
                 p_rfs = p_tmp_rfs;
-                m_flow_udp_mc_map.set(key_udp_mc, p_rfs);
-            }
+                m_flow_udp_mc_map.emplace(key_udp_mc, p_rfs);
+            //}
+        } else {
+            p_rfs = itr->second;
         }
     } else if (flow_spec_5t.is_tcp()) {
         KEY4T rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(),
@@ -312,8 +322,8 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
             flow_tag_id = FLOW_TAG_MASK;
         }
 
-        p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
-        if (p_rfs == NULL) { // It means that no rfs object exists so I need to create a new one and
+        auto itr = m_flow_tcp_map.find(rfs_key);
+        if (itr == end(m_flow_tcp_map)) { // It means that no rfs object exists so I need to create a new one and
                              // insert it to the flow map
             if (safe_mce_sys().tcp_3t_rules) {
                 flow_tuple tcp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(),
@@ -340,18 +350,20 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 return false;
             }
             BULLSEYE_EXCLUDE_BLOCK_END
-            p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
-            if (p_rfs) {
-                delete p_tmp_rfs;
-            } else {
+            //p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
+            //if (p_rfs) {
+            //    delete p_tmp_rfs;
+            //} else {
                 p_rfs = p_tmp_rfs;
 #if defined(DEFINED_NGINX)
                 if (!g_b_add_second_4t_rule)
 #endif
                 {
-                    m_flow_tcp_map.set(rfs_key, p_rfs);
+                    m_flow_tcp_map.emplace(rfs_key, p_rfs);
                 }
-            }
+            //}
+        } else {
+            p_rfs = itr->second;
         }
         BULLSEYE_EXCLUDE_BLOCK_START
     } else {
@@ -387,8 +399,8 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
     auto_unlocker lock(m_lock_ring_rx);
 
-    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4.attach_flow(flow_spec_5t, sink)
-                                                 : m_steering_ipv6.attach_flow(flow_spec_5t, sink));
+    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4->attach_flow(flow_spec_5t, sink)
+                                                 : m_steering_ipv6->attach_flow(flow_spec_5t, sink));
 }
 
 template <typename KEY4T, typename KEY2T, typename HDR>
@@ -417,14 +429,15 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
                     MAX(0, ((dst_port_iter->second.counter) - 1));
             }
         }
-        p_rfs = m_flow_udp_uc_map.get(rfs_key, NULL);
+        auto itr = m_flow_udp_uc_map.find(rfs_key);
         BULLSEYE_EXCLUDE_BLOCK_START
-        if (p_rfs == NULL) {
+        if (itr == end(m_flow_udp_uc_map)) {
             ring_logdbg("Could not find rfs object to detach!");
             return false;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
 
+        p_rfs = itr->second;
         p_rfs->detach_flow(sink);
         if (!keep_in_map) {
             m_ring.m_udp_uc_dst_port_attach_map.erase(
@@ -432,9 +445,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
         }
         if (p_rfs->get_num_of_sinks() == 0) {
             BULLSEYE_EXCLUDE_BLOCK_START
-            if (!(m_flow_udp_uc_map.del(rfs_key))) {
-                ring_logdbg("Could not find rfs object to delete in ring udp hash map!");
-            }
+            m_flow_udp_uc_map.erase(itr);
             BULLSEYE_EXCLUDE_BLOCK_END
             delete p_rfs;
         }
@@ -453,22 +464,22 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
                     MAX(0, ((l2_mc_iter->second.counter) - 1));
             }
         }
-        p_rfs = m_flow_udp_mc_map.get(key_udp_mc, NULL);
+
+        auto itr = m_flow_udp_mc_map.find(key_udp_mc);
         BULLSEYE_EXCLUDE_BLOCK_START
-        if (p_rfs == NULL) {
+        if (itr == end(m_flow_udp_mc_map)) {
             ring_logdbg("Could not find rfs object to detach!");
             return false;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
+        p_rfs = itr->second;
         p_rfs->detach_flow(sink);
         if (!keep_in_map) {
             m_ring.m_l2_mc_ip_attach_map.erase(m_ring.m_l2_mc_ip_attach_map.find(rule_key));
         }
         if (p_rfs->get_num_of_sinks() == 0) {
             BULLSEYE_EXCLUDE_BLOCK_START
-            if (!(m_flow_udp_mc_map.del(key_udp_mc))) {
-                ring_logdbg("Could not find rfs object to delete in ring udp mc hash map!");
-            }
+            m_flow_udp_mc_map.erase(itr);
             BULLSEYE_EXCLUDE_BLOCK_END
             delete p_rfs;
         }
@@ -490,23 +501,22 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
                     MAX(0, ((dst_port_iter->second.counter) - 1));
             }
         }
-        p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
+        auto itr = m_flow_tcp_map.find(rfs_key);
         BULLSEYE_EXCLUDE_BLOCK_START
-        if (p_rfs == NULL) {
+        if (itr == end(m_flow_tcp_map)) {
             ring_logdbg("Could not find rfs object to detach!");
             return false;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
 
+        p_rfs = itr->second;
         p_rfs->detach_flow(sink);
         if (!keep_in_map) {
             m_ring.m_tcp_dst_port_attach_map.erase(m_ring.m_tcp_dst_port_attach_map.find(rule_key));
         }
         if (p_rfs->get_num_of_sinks() == 0) {
             BULLSEYE_EXCLUDE_BLOCK_START
-            if (!(m_flow_tcp_map.del(rfs_key))) {
-                ring_logdbg("Could not find rfs object to delete in ring tcp hash map!");
-            }
+            m_flow_tcp_map.erase(itr);
             BULLSEYE_EXCLUDE_BLOCK_END
             delete p_rfs;
         }
@@ -524,8 +534,8 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
     auto_unlocker lock(m_lock_ring_rx);
 
-    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4.detach_flow(flow_spec_5t, sink)
-                                                 : m_steering_ipv6.detach_flow(flow_spec_5t, sink));
+    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4->detach_flow(flow_spec_5t, sink)
+                                                 : m_steering_ipv6->detach_flow(flow_spec_5t, sink));
 }
 
 #ifdef DEFINED_UTLS
@@ -534,16 +544,16 @@ rfs_rule *steering_handler<KEY4T, KEY2T, HDR>::tls_rx_create_rule(const flow_tup
                                                                   xlio_tir *tir)
 {
     KEY4T rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(), flow_spec_5t.get_dst_port(),
-                  flow_spec_5t.get_src_port());
-    rfs *p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
+                  flow_spec_5t.get_src_port());        
+    rfs *p_rfs = m_flow_tcp_map.find(rfs_key)->second;
     return p_rfs->create_rule(tir, flow_spec_5t);
 }
 
 rfs_rule *ring_slave::tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir)
 {
     return (flow_spec_5t.get_family() == AF_INET
-                ? m_steering_ipv4.tls_rx_create_rule(flow_spec_5t, tir)
-                : m_steering_ipv6.tls_rx_create_rule(flow_spec_5t, tir));
+                ? m_steering_ipv4->tls_rx_create_rule(flow_spec_5t, tir)
+                : m_steering_ipv6->tls_rx_create_rule(flow_spec_5t, tir));
 }
 #endif /* DEFINED_UTLS */
 
@@ -640,7 +650,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
             } else {
                 struct ipv6hdr *p_ip_h6 = reinterpret_cast<struct ipv6hdr *>(p_ip_h);
                 ip_hdr_len = 40;
-                ip_payload_len = p_ip_h6->payload_len;
+                ip_payload_len = ntohs(p_ip_h6->payload_len);
                 protocol = p_ip_h6->nexthdr;
                 saddr = &p_ip_h6->saddr;
                 daddr = &p_ip_h6->daddr;
@@ -765,12 +775,12 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     struct iphdr *p_ip_h = (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
 
     if (likely(p_ip_h->version == IPV4_VERSION)) {
-        return m_steering_ipv4.rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
+        return m_steering_ipv4->rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
                                                             p_ip_h);
     }
 
     if (likely(p_ip_h->version == IPV6_VERSION)) {
-        return m_steering_ipv6.rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
+        return m_steering_ipv6->rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
                                                             reinterpret_cast<ipv6hdr *>(p_ip_h));
     }
 
@@ -956,16 +966,20 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
         if (!p_rx_wc_buf_desc->rx.dst.is_mc()) { // This is UDP UC packet
-            p_rfs = m_flow_udp_uc_map.get(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src),
-                                          NULL);
+            auto itr = m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src));
 
             // If we didn't find a match for 5T, look for a match with 3T
-            if (unlikely(!p_rfs)) {
-                p_rfs =
-                    m_flow_udp_uc_map.get(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany), NULL);
+            if (unlikely(itr == end(m_flow_udp_uc_map))) {
+                auto itr3T = m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany));
+                if (likely(itr3T != end(m_flow_udp_uc_map)))
+                    p_rfs = itr3T->second;
+            } else {
+                p_rfs = itr->second;
             }
         } else { // This is UDP MC packet
-            p_rfs = m_flow_udp_mc_map.get(KEY2T(p_rx_wc_buf_desc->rx.dst), NULL);
+            auto itr = m_flow_udp_mc_map.find(KEY2T(p_rx_wc_buf_desc->rx.dst));
+            if (likely(itr != end(m_flow_udp_mc_map)))
+                p_rfs = itr->second;
         }
     } break;
 
@@ -1001,11 +1015,15 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
-        p_rfs = m_flow_tcp_map.get(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src), NULL);
-
+        auto itr = m_flow_tcp_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src));
+        
         // If we didn't find a match for 5T, look for a match with 3T
-        if (unlikely(!p_rfs)) {
-            p_rfs = m_flow_tcp_map.get(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany), NULL);
+        if (unlikely(itr == end(m_flow_tcp_map))) {
+            auto itr3T = m_flow_tcp_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany));
+            if (likely(itr3T != end(m_flow_tcp_map)))
+                p_rfs = itr3T->second;
+        } else {
+            p_rfs = itr->second;
         }
     } break;
 
@@ -1027,69 +1045,31 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     return p_rfs->rx_dispatch_packet(p_rx_wc_buf_desc, pv_fd_ready_array);
 }
 
-template <typename KEY4T, typename KEY2T, typename HDR>
-void steering_handler<KEY4T, KEY2T, HDR>::flow_udp_del_all()
+template <typename T>
+void clear_rfs_map(T& rfs_map)
 {
-    KEY4T map_key_udp_uc;
-    KEY2T map_key_udp;
-    typename flow_spec_4t_map::iterator itr_udp_uc;
-    typename flow_spec_2t_map::iterator itr_udp;
-
-    itr_udp_uc = m_flow_udp_uc_map.begin();
-    while (itr_udp_uc != m_flow_udp_uc_map.end()) {
-        rfs *p_rfs = itr_udp_uc->second;
-        map_key_udp_uc = itr_udp_uc->first;
-        if (p_rfs) {
-            delete p_rfs;
+    auto itr = rfs_map.begin();
+    while (itr != end(rfs_map)) {
+        if (itr->second) {
+            delete itr->second;
         }
-        if (!(m_flow_udp_uc_map.del(map_key_udp_uc))) {
-            ring_logdbg("Could not find rfs object to delete in ring udp uc hash map!");
-        }
-        itr_udp_uc = m_flow_udp_uc_map.begin();
+        itr = rfs_map.erase(itr);
     }
-
-    itr_udp = m_flow_udp_mc_map.begin();
-    while (itr_udp != m_flow_udp_mc_map.end()) {
-        rfs *p_rfs = itr_udp->second;
-        map_key_udp = itr_udp->first;
-        if (p_rfs) {
-            delete p_rfs;
-        }
-        if (!(m_flow_udp_mc_map.del(map_key_udp))) {
-            ring_logdbg("Could not find rfs object to delete in ring udp mc hash map!");
-        }
-        itr_udp = m_flow_udp_mc_map.begin();
-    }
-}
-
-void ring_slave::flow_udp_del_all()
-{
-    m_steering_ipv4.flow_udp_del_all();
-    m_steering_ipv6.flow_udp_del_all();
 }
 
 template <typename KEY4T, typename KEY2T, typename HDR>
-void steering_handler<KEY4T, KEY2T, HDR>::flow_tcp_del_all()
+void steering_handler<KEY4T, KEY2T, HDR>::flow_del_all_rfs()
 {
-    KEY4T map_key_tcp;
-    typename flow_spec_4t_map::iterator itr_tcp;
+    clear_rfs_map(m_flow_tcp_map);
+    clear_rfs_map(m_flow_udp_uc_map);
+    clear_rfs_map(m_flow_udp_mc_map);
 
-    while ((itr_tcp = m_flow_tcp_map.begin()) != m_flow_tcp_map.end()) {
-        rfs *p_rfs = itr_tcp->second;
-        map_key_tcp = itr_tcp->first;
-        if (p_rfs) {
-            delete p_rfs;
-        }
-        if (!(m_flow_tcp_map.del(map_key_tcp))) {
-            ring_logdbg("Could not find rfs object to delete in ring tcp hash map!");
-        }
-    }
 }
 
-void ring_slave::flow_tcp_del_all()
+void ring_slave::flow_del_all_rfs()
 {
-    m_steering_ipv4.flow_tcp_del_all();
-    m_steering_ipv6.flow_tcp_del_all();
+    m_steering_ipv4->flow_del_all_rfs();
+    m_steering_ipv6->flow_del_all_rfs();
 }
 
 bool ring_slave::request_more_tx_buffers(pbuf_type type, uint32_t count, uint32_t lkey)

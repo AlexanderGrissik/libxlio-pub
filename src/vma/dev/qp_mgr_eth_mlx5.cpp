@@ -348,7 +348,7 @@ void qp_mgr_eth_mlx5::init_device_memory()
      */
     if (m_p_ib_ctx_handler->get_on_device_memory_size() > 0) {
         if (m_db_method == MLX5_DB_METHOD_BF) {
-            m_dm_enabled = m_dm_mgr.allocate_resources(m_p_ib_ctx_handler, m_p_ring->m_p_ring_stat);
+            m_dm_enabled = m_dm_mgr.allocate_resources(m_p_ib_ctx_handler, m_p_ring->m_p_ring_stat.get());
 
         } else {
 #if defined(DEFINED_IBV_DM)

@@ -89,8 +89,7 @@ ring_tap::ring_tap(int if_index, ring *parent)
 ring_tap::~ring_tap()
 {
     m_lock_ring_rx.lock();
-    flow_udp_del_all();
-    flow_tcp_del_all();
+    flow_del_all_rfs();
     m_lock_ring_rx.unlock();
 
     g_p_event_handler_manager->update_epfd(m_tap_fd, EPOLL_CTL_DEL,

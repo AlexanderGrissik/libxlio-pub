@@ -131,11 +131,11 @@ std::string flow_tuple::to_str() const
     std::string rc;
     rc.reserve(192);
     rc += "dst: ";
-    rc += m_dst_ip.to_str();
+    rc += m_dst_ip.to_str(m_family);
     rc += ":";
     rc += std::to_string(ntohs(m_dst_port));
     rc += ", src: ";
-    rc += m_src_ip.to_str();
+    rc += m_src_ip.to_str(m_family);
     rc += ":";
     rc += std::to_string(ntohs(m_src_port));
     rc += ", proto: ";

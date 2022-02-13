@@ -163,8 +163,7 @@ ring_simple::~ring_simple()
     // Go over all hash and for each flow: 1.Detach from qp 2.Delete related rfs object 3.Remove
     // flow from hash
     m_lock_ring_rx.lock();
-    flow_udp_del_all();
-    flow_tcp_del_all();
+    flow_del_all_rfs();
     m_lock_ring_rx.unlock();
 
     // Allow last few post sends to be sent by HCA.
