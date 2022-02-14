@@ -89,8 +89,7 @@ dst_entry::~dst_entry()
 
     if (m_p_rt_entry) {
         g_p_route_table_mgr->unregister_observer(
-            route_rule_table_key(m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(), m_tos),
-            this);
+            route_rule_table_key(m_dst_ip, m_route_src_ip, m_family, m_tos), this);
         m_p_rt_entry = NULL;
     }
 
@@ -269,8 +268,7 @@ bool dst_entry::resolve_net_dev(bool is_connect)
     // Source address changes is not checked since multiple bind is not allowed on the same socket
     if (!m_p_rt_entry) {
         m_route_src_ip = m_bound_ip;
-        route_rule_table_key rtk(m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(),
-                                 m_tos); // [TODO IPV6] should pass ip_address not in_addr_t
+        route_rule_table_key rtk(m_dst_ip, m_route_src_ip, m_family, m_tos);
         if (g_p_route_table_mgr->register_observer(rtk, this, &p_ces)) {
             // In case this is the first time we trying to resolve route entry,
             // means that register_observer was run
@@ -280,9 +278,7 @@ bool dst_entry::resolve_net_dev(bool is_connect)
                 if (m_p_rt_entry && m_p_rt_entry->get_val(p_rt_val) && !p_rt_val->get_src_addr().is_anyaddr()) {
                     g_p_route_table_mgr->unregister_observer(rtk, this);
                     m_route_src_ip = p_rt_val->get_src_addr();
-                    route_rule_table_key new_rtk(
-                        m_dst_ip.get_in_addr(), m_route_src_ip.get_in_addr(),
-                        m_tos); // [TODO IPV6] should pass ip_address not in_addr_t
+                    route_rule_table_key new_rtk(m_dst_ip, m_route_src_ip, m_family, m_tos);
                     if (g_p_route_table_mgr->register_observer(new_rtk, this, &p_ces)) {
                         m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);
                     } else {

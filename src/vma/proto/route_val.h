@@ -35,7 +35,6 @@
 
 #include "vma/util/if.h" // IFNAMSIZ
 #include "vma/util/ip_address.h"
-#include "vma/util/libvma.h" // VMA_NETMASK
 
 #include <string>
 
@@ -57,7 +56,6 @@ public:
     inline void set_if_index(int if_index) { m_if_index = if_index; };
     inline void set_if_name(char *if_name) { memcpy(m_if_name, if_name, IFNAMSIZ); };
 
-    inline in_addr_t get_dst_mask() const { return htonl(VMA_NETMASK(m_dst_pref_len)); };   // TODO: mask for IPv6
     inline uint8_t get_dst_pref_len() const { return m_dst_pref_len; };
     inline const ip_address &get_dst_addr() const { return m_dst_addr; };
     inline const ip_address &get_src_addr() const { return m_src_addr; };

@@ -192,6 +192,12 @@ public:
         return s_loopback6_addr;
     }
 
+    static const ip_address &broadcast4_addr()
+    {
+        static ip_address s_broadcast4_addr(INADDR_BROADCAST);
+        return s_broadcast4_addr;
+    }
+
 protected:
     union {
         in6_addr m_ip6;

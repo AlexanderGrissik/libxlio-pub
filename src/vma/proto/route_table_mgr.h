@@ -74,7 +74,7 @@ protected:
     virtual bool parse_enrty(nlmsghdr *nl_header, route_val *p_val);
 
 private:
-    bool find_route_val(const in_addr_t &dst_addr, uint32_t table_id, route_val *&p_val);
+    bool find_route_val(const ip_address &dst_addr, uint32_t table_id, route_val *&p_val);
 
     // save current main rt table
     void update_tbl();

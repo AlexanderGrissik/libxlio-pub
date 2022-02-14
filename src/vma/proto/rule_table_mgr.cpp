@@ -226,40 +226,31 @@ bool rule_table_mgr::find_rule_val(route_rule_table_key key, std::deque<rule_val
 // Returns true if destination info match rule value, false otherwise.
 bool rule_table_mgr::is_matching_rule(route_rule_table_key key, rule_val *p_val)
 {
-
-    in_addr_t m_dst_ip = key.get_dst_ip();
-    in_addr_t m_src_ip = key.get_src_ip();
+    const ip_address &m_dst_ip = key.get_dst_ip();
+    const ip_address &m_src_ip = key.get_src_ip();
     uint8_t m_tos = key.get_tos();
 
-    in_addr_t rule_dst_ip = p_val->get_dst_addr().get_in_addr();
-    in_addr_t rule_src_ip = p_val->get_src_addr().get_in_addr();
+    const ip_address &rule_dst_ip = p_val->get_dst_addr();
+    const ip_address &rule_src_ip = p_val->get_src_addr();
     uint8_t rule_tos = p_val->get_tos();
-    char *rule_iif_name = (char *)p_val->get_iif_name();
-    char *rule_oif_name = (char *)p_val->get_oif_name();
-
-    bool is_match = false;
+    const char *rule_iif_name = p_val->get_iif_name();
+    const char *rule_oif_name = p_val->get_oif_name();
 
     // Only destination IP, source IP and TOS are checked with rule, since IIF and OIF is not filled
     // in dst_entry object.
-    if ((rule_dst_ip == 0) || (rule_dst_ip == m_dst_ip)) { // Check match in destination IP
-
-        if ((rule_src_ip == 0) || (rule_src_ip == m_src_ip)) { // Check match in source IP
-
-            if ((rule_tos == 0) || (rule_tos == m_tos)) { // Check match in TOS value
-
-                if (strcmp(rule_iif_name, "") ==
-                    0) { // Check that rule doesn't contain IIF since we can't check match with
-
-                    if (strcmp(rule_oif_name, "") ==
-                        0) { // Check that rule doesn't contain OIF since we can't check match with
-                        is_match = true;
-                    }
-                }
-            }
-        }
-    }
-
-    return is_match;
+    return
+        // Check match in address family
+        (p_val->get_family() == key.get_family()) &&
+        // Check match in destination IP
+        ((rule_dst_ip.is_anyaddr()) || (rule_dst_ip == m_dst_ip)) &&
+        // Check match in source IP
+        ((rule_src_ip.is_anyaddr()) || (rule_src_ip == m_src_ip)) &&
+        // Check match in TOS value
+        ((rule_tos == 0) || (rule_tos == m_tos)) &&
+        // Check that rule doesn't contain IIF since we can't check match with
+        (strcmp(rule_iif_name, "") == 0) &&
+        // Check that rule doesn't contain OIF since we can't check match with
+        (strcmp(rule_oif_name, "") == 0);
 }
 
 // Find table ID for given destination info.

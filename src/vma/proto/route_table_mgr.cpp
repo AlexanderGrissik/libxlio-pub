@@ -79,15 +79,15 @@ route_table_mgr::route_table_mgr()
     route_val *p_val;
     for (int i = 0; i < m_tab.entries_num; i++) {
         p_val = &m_tab.value[i];
-        in_addr_t src_addr = p_val->get_src_addr().get_in_addr();
-        in_addr_route_entry_map_t::iterator iter = m_rte_list_for_each_net_dev.find(src_addr);
+        const ip_address &src_addr = p_val->get_src_addr();
+        auto iter = m_rte_list_for_each_net_dev.find(src_addr.get_in_addr());
         // if src_addr of interface exists in the map, no need to create another route_entry
         if (iter == m_rte_list_for_each_net_dev.end()) {
-            in_addr_t dst_ip = src_addr;
-            in_addr_t src_ip = 0;
+            const ip_address &dst_ip = src_addr;
+            const ip_address &src_ip = ip_address::any_addr();
             uint8_t tos = 0;
-            m_rte_list_for_each_net_dev[src_addr] =
-                create_new_entry(route_rule_table_key(dst_ip, src_ip, tos), NULL);
+            m_rte_list_for_each_net_dev[src_addr.get_in_addr()] =
+                create_new_entry(route_rule_table_key(dst_ip, src_ip, p_val->get_family(), tos), NULL);
         }
     }
 
@@ -185,9 +185,8 @@ void route_table_mgr::rt_mgr_update_source_ip()
             p_val = &m_tab.value[i];
             if (!p_val->get_gw_addr().is_anyaddr() && p_val->get_src_addr().is_anyaddr()) {
                 route_val *p_val_dst;
-                in_addr_t in_addr = p_val->get_gw_addr().get_in_addr();
                 uint32_t table_id = p_val->get_table_id();
-                if (find_route_val(in_addr, table_id, p_val_dst)) {
+                if (find_route_val(p_val->get_gw_addr(), table_id, p_val_dst)) {
                     if (!p_val_dst->get_src_addr().is_anyaddr()) {
                         p_val->set_src_addr(p_val_dst->get_src_addr());
                     } else if (p_val == p_val_dst) { // gateway of the entry lead to same entry
@@ -323,9 +322,9 @@ void route_table_mgr::parse_attr(struct rtattr *rt_attribute, route_val *p_val)
     }
 }
 
-bool route_table_mgr::find_route_val(const in_addr_t &dst, uint32_t table_id, route_val *&p_val)
+bool route_table_mgr::find_route_val(const ip_address &dst, uint32_t table_id, route_val *&p_val)
 {
-    rt_mgr_logfunc("dst addr '%s'", ip_address(dst).to_str().c_str());
+    rt_mgr_logfunc("dst addr '%s'", dst.to_str().c_str());
 
     route_val *correct_route_val = NULL;
     int longest_prefix = -1;
@@ -334,8 +333,7 @@ bool route_table_mgr::find_route_val(const in_addr_t &dst, uint32_t table_id, ro
         route_val *p_val_from_tbl = &m_tab.value[i];
         if (!p_val_from_tbl->is_deleted() && p_val_from_tbl->is_if_up()) { // value was not deleted
             if (p_val_from_tbl->get_table_id() == table_id) { // found a match in routing table ID
-                // TODO IPv6 support
-                if (p_val_from_tbl->get_dst_addr() == ip_address(dst & p_val_from_tbl->get_dst_mask())) {
+                if (p_val_from_tbl->get_dst_addr().is_equal_with_prefix(dst, p_val_from_tbl->get_dst_pref_len(), p_val_from_tbl->get_family())) {
                     // found a match in routing table
                     if (p_val_from_tbl->get_dst_pref_len() > longest_prefix) {
                         // this is the longest prefix match
@@ -358,7 +356,7 @@ bool route_table_mgr::find_route_val(const in_addr_t &dst, uint32_t table_id, ro
 
 bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_result &res)
 {
-    ip_address dst_addr = ip_address(key.get_dst_ip());
+    const ip_address &dst_addr = key.get_dst_ip();
     rt_mgr_logdbg("dst addr '%s'", dst_addr.to_str().c_str());
 
     route_val *p_val = NULL;
@@ -368,10 +366,9 @@ bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_resul
 
     auto_unlocker lock(m_lock);
     for (auto iter = table_id_list.begin(); iter != table_id_list.end(); ++iter) {
-        if (find_route_val(dst_addr.get_in_addr(), *iter, p_val)) {
+        if (find_route_val(dst_addr, *iter, p_val)) {
             res.p_src = p_val->get_src_addr().get_in_addr();
-            rt_mgr_logdbg("dst ip '%s' resolved to src addr "
-                          "'%d.%d.%d.%d'",
+            rt_mgr_logdbg("dst ip '%s' resolved to src addr '%d.%d.%d.%d'",
                           dst_addr.to_str().c_str(), NIPQUAD(res.p_src));
             res.p_gw = p_val->get_gw_addr().get_in_addr();
             rt_mgr_logdbg("dst ip '%s' resolved to gw addr '%d.%d.%d.%d'",
@@ -395,14 +392,14 @@ void route_table_mgr::update_entry(INOUT route_entry *p_ent, bool b_register_to_
         std::deque<rule_val *> *p_rr_val;
         if (p_rr_entry && p_rr_entry->get_val(p_rr_val)) {
             route_val *p_val = NULL;
-            in_addr_t peer_ip = p_ent->get_key().get_dst_ip();
+            const ip_address &peer_ip = p_ent->get_key().get_dst_ip();
             for (auto p_rule_val = p_rr_val->begin(); p_rule_val != p_rr_val->end(); ++p_rule_val) {
                 uint32_t table_id = (*p_rule_val)->get_table_id();
                 if (find_route_val(peer_ip, table_id, p_val)) {
                     p_ent->set_val(p_val);
                     if (b_register_to_net_dev) {
-                        // Check if broadcast IP which is NOT supported
-                        if (IS_BROADCAST_N(peer_ip)) {
+                        // Check if broadcast IPv4 which is NOT supported
+                        if ((p_ent->get_key().get_family() == AF_INET) && (peer_ip == ip_address::broadcast4_addr())) {
                             rt_mgr_logdbg(
                                 "Disabling Offload for route_entry '%s' - this is BC address",
                                 p_ent->to_str().c_str());
