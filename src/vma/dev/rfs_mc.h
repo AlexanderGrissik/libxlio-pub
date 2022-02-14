@@ -71,7 +71,6 @@ void rfs_mc::prepare_flow_spec_by_ip(qp_mgr *qp_mgr, attach_flow_data_t *&p_atta
         return;
     }
 
-    decltype(T::ibv_flow_attr_eth_ip_tcp_udp::ip) *p_ip = &(attach_flow_data_eth->ibv_flow_attr.ip);
     p_eth = &(attach_flow_data_eth->ibv_flow_attr.eth);
     p_tcp_udp = &(attach_flow_data_eth->ibv_flow_attr.tcp_udp);
     p_attach_flow_data = reinterpret_cast<attach_flow_data_t *>(attach_flow_data_eth);
@@ -79,7 +78,7 @@ void rfs_mc::prepare_flow_spec_by_ip(qp_mgr *qp_mgr, attach_flow_data_t *&p_atta
     const ip_address &dst_ip =
         (safe_mce_sys().eth_mc_l2_only_rules ? ip_address::any_addr() : m_flow_tuple.get_dst_ip());
 
-    ibv_flow_spec_ip_set(p_ip, dst_ip, ip_address::any_addr());
+    ibv_flow_spec_ip_set(&(attach_flow_data_eth->ibv_flow_attr.ip), dst_ip, ip_address::any_addr());
 
     if (m_flow_tag_id) { // Will not attach flow_tag spec to rule for tag_id==0
         ibv_flow_spec_flow_tag_set(&(attach_flow_data_eth->ibv_flow_attr.flow_tag), m_flow_tag_id);

@@ -39,8 +39,8 @@
 #include "vma/util/sock_addr.h"
 
 class rfs;
-class iphdr;
-class ipv6hdr;
+struct iphdr;
+struct ip6_hdr;
 
 struct __attribute__((packed)) flow_spec_2t_key_ipv4 {
     in_addr_t dst_ip;
@@ -105,7 +105,7 @@ struct __attribute__((packed)) flow_spec_4t_key_ipv4 {
     {
         std::hash<size_t> _hash;
         return _hash((static_cast<size_t>(dst_ip) | (static_cast<size_t>(src_ip) << 32)) ^
-            (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
+                     (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
     }
 };
 
@@ -135,10 +135,10 @@ struct flow_spec_2t_key_ipv6 {
 
     size_t hash() const
     {
-        const uint64_t* dst_ip_p = reinterpret_cast<const uint64_t*>(&dst_ip);
+        const uint64_t *dst_ip_p = reinterpret_cast<const uint64_t *>(&dst_ip);
         std::hash<size_t> _hash;
-        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1])  ^
-            static_cast<size_t>(dst_port));
+        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1]) ^
+                     static_cast<size_t>(dst_port));
     }
 };
 
@@ -177,12 +177,12 @@ struct flow_spec_4t_key_ipv6 {
 
     size_t hash() const
     {
-        const uint64_t* dst_ip_p = reinterpret_cast<const uint64_t*>(&dst_ip);
-        const uint64_t* src_ip_p = reinterpret_cast<const uint64_t*>(&src_ip);
+        const uint64_t *dst_ip_p = reinterpret_cast<const uint64_t *>(&dst_ip);
+        const uint64_t *src_ip_p = reinterpret_cast<const uint64_t *>(&src_ip);
         std::hash<size_t> _hash;
-        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1])  ^
-            static_cast<size_t>(src_ip_p[0]) ^ static_cast<size_t>(src_ip_p[1])  ^
-            (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
+        return _hash(static_cast<size_t>(dst_ip_p[0]) ^ static_cast<size_t>(dst_ip_p[1]) ^
+                     static_cast<size_t>(src_ip_p[0]) ^ static_cast<size_t>(src_ip_p[1]) ^
+                     (static_cast<size_t>(src_port) << 32) ^ static_cast<size_t>(dst_port));
     }
 };
 
@@ -254,7 +254,7 @@ public:
                                              void *pv_fd_ready_array, HDR *p_ip_h);
 
     void flow_del_all_rfs();
-    
+
 #ifdef DEFINED_UTLS
     /* Call this method in an RX ring. */
     rfs_rule *tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir);
@@ -308,9 +308,9 @@ public:
 protected:
     bool request_more_tx_buffers(pbuf_type type, uint32_t count, uint32_t lkey);
     void flow_del_all_rfs();
-    
-    std::unique_ptr<steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr>> m_steering_ipv4;
-    std::unique_ptr<steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr>> m_steering_ipv6;
+
+    steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr> m_steering_ipv4;
+    steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ip6_hdr> m_steering_ipv6;
 
     // For IB MC flow, the port is zeroed in the ibv_flow_spec when calling to ibv_flow_spec().
     // It means that for every MC group, even if we have sockets with different ports - only one

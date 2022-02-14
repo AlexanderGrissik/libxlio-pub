@@ -426,20 +426,3 @@ void priv_ibv_modify_cq_moderation(struct ibv_cq *cq, uint32_t period, uint32_t 
     NOT_IN_USE(period);
 #endif
 }
-/*
-template <>
-inline void ibv_flow_spec_set_ip(spec_ipv4_type& spec_ip_val, spec_ipv4_type& spec_ip_mask, const
-ip_address& in_ip)
-{
-    memcpy(&spec_ip_val, &in_ip.get_in4_addr(), sizeof(spec_ipv4_type));
-    spec_ip_mask = (!in_ip.is_anyaddr() ? FS_MASK_ON_64 : 0U);
-}
-
-template <>
-inline void ibv_flow_spec_set_ip(spec_ipv6_type& spec_ip_val, spec_ipv6_type& spec_ip_mask, const
-ip_address& in_ip)
-{
-    memcpy(&spec_ip_val, &in_ip.get_in6_addr(), sizeof(spec_ipv6_type));
-    uint64_t* p_src_msk = reinterpret_cast<uint64_t*>(spec_ip_mask);
-    p_src_msk[0] = p_src_msk[1] = (!in_ip.is_anyaddr() ? FS_MASK_ON_64 : 0U);
-}*/

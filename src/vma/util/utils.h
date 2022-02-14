@@ -67,21 +67,21 @@ unsigned short compute_ip_checksum(const iphdr *p_ip_h);
 /**
  * IPv6 Dummy Header Checksum method
  */
-unsigned short compute_ip_checksum(const ipv6hdr *p_ip_h);
+unsigned short compute_ip_checksum(const ip6_hdr *p_ip_h);
 
 /**
  * get tcp checksum: given IP header and tcp segment (assume checksum field in TCP header contains
  * zero) matches RFC 793
  */
-unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload);
-
-// [TODO IPv6 Remove when integrated with utils]
-unsigned short compute_tcp_checksum(const struct ipv6hdr *p_iphdr, const uint16_t *p_ip_payload);
+unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload,
+                                    uint16_t hdr_len);
 
 /**
  * Get tcp checksum: given IPv6 header and tcp segment
  */
-unsigned short compute_tcp_checksum(const ip6_hdr *p_iphdr, const uint16_t *p_ip_payload);
+unsigned short compute_tcp_checksum(const ip6_hdr *p_iphdr, const uint16_t *p_ip_payload,
+                                    uint16_t ext_hdr_len);
+
 /**
  * get udp checksum: given IP header and UDP datagram (assume checksum field in UDP header contains
  * zero) matches RFC 793
@@ -90,11 +90,10 @@ unsigned short compute_udp_checksum_rx(const struct iphdr *p_iphdr, const struct
                                        mem_buf_desc_t *p_rx_wc_buf_desc);
 
 /**
- * get udp checksum: given IP header and UDP datagram (assume checksum field in UDP header contains
- * zero) matches RFC 793
+ * get udp checksum: given IPv6 header and UDP datagram (assume checksum field in UDP header
+ * contains zero) matches RFC 793
  */
-// [TODO IPv6 Remove when integrated with utils]
-unsigned short compute_udp_checksum_rx(const struct ipv6hdr *p_iphdr, const struct udphdr *udphdrp,
+unsigned short compute_udp_checksum_rx(const struct ip6_hdr *p_iphdr, const struct udphdr *udphdrp,
                                        mem_buf_desc_t *p_rx_wc_buf_desc);
 
 /**

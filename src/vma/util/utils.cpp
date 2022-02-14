@@ -213,8 +213,7 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
         auto is_ipv4 = (ipv4->version == 4);
         if (is_ipv4) {
             ipv4->check = 0;
-            ipv4->check = l3_checksum =
-                compute_ip_checksum(reinterpret_cast<unsigned short *>(ipv4), ipv4->ihl * 2);
+            ipv4->check = l3_checksum = compute_ip_checksum(ipv4);
             protocol = ipv4->protocol;
         } else {
             protocol = ipv6->ip6_nxt;
@@ -229,9 +228,9 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
                 auto tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
                 tcp_hdr->check = 0;
                 if (is_ipv4) {
-                    l4_checksum = compute_tcp_checksum(ipv4, tcp_hdr_buf);
+                    l4_checksum = compute_tcp_checksum(ipv4, tcp_hdr_buf, ipv4->ihl << 2);
                 } else {
-                    l4_checksum = compute_tcp_checksum(ipv6, tcp_hdr_buf);
+                    l4_checksum = compute_tcp_checksum(ipv6, tcp_hdr_buf, 0U);
                 }
                 tcp_hdr->check = l4_checksum;
             }
@@ -255,7 +254,12 @@ unsigned short compute_ip_checksum(const iphdr *p_ip_h)
     return ~sum;
 }
 
-<<<<<<< HEAD
+unsigned short compute_ip_checksum(const ip6_hdr *p_ip_h)
+{
+    (void)p_ip_h;
+    return 0;
+}
+
 static uint32_t compute_pseudo_header(const iphdr *ipv4, uint16_t proto, uint16_t proto_len)
 {
     uint32_t sum = ((ipv4->saddr >> 16) & 0xFFFF) + ((ipv4->saddr) & 0xFFFF) +
@@ -273,15 +277,6 @@ static uint32_t compute_pseudo_header(const ip6_hdr *ipv6, uint16_t proto, uint1
     return sum;
 }
 
-||||||| parent of b10fd1b6... issue: 2667588 IPv6 Ring steering
-=======
-unsigned short compute_ip_checksum(const ipv6hdr *p_ip_h)
-{
-    (void)p_ip_h;
-    return 0;
-}
-
->>>>>>> b10fd1b6... issue: 2667588 IPv6 Ring steering
 /*
  * get tcp checksum: given IP header and tcp segment (assume checksum field in TCP header contains
  * zero) matches RFC 793
@@ -309,52 +304,29 @@ static unsigned short compute_tcp_payload_checksum(const uint16_t *payload, uint
     return static_cast<unsigned short>(sum);
 }
 
-unsigned short compute_tcp_checksum(const iphdr *ipv4, const uint16_t *payload)
+unsigned short compute_tcp_checksum(const iphdr *ipv4, const uint16_t *payload, uint16_t hdr_len)
 {
-    uint32_t sum = 0;
-    uint16_t tcpLen = ntohs(ipv4->tot_len) - (ipv4->ihl << 2);
-    sum = compute_pseudo_header(ipv4, IPPROTO_TCP, tcpLen);
+    uint16_t tcpLen = ntohs(ipv4->tot_len) - hdr_len;
+    uint32_t sum = compute_pseudo_header(ipv4, IPPROTO_TCP, tcpLen);
     return compute_tcp_payload_checksum(payload, tcpLen, sum);
 }
 
-unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload)
+unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload,
+                                    uint16_t ext_hdr_len)
 {
-    uint32_t sum = 0;
-    uint16_t tcpLen = ntohs(ipv6->ip6_plen);
-    sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
+    uint16_t tcpLen = ntohs(ipv6->ip6_plen) - ext_hdr_len;
+    uint32_t sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
     return compute_tcp_payload_checksum(payload, tcpLen, sum);
 }
 
-// [TODO IPv6 Remove when integrated with utils]
-unsigned short compute_tcp_checksum(const struct ipv6hdr *p_iphdr, const uint16_t *p_ip_payload)
+unsigned short compute_udp_payload_checksum_rx(const struct udphdr *udphdrp,
+                                               mem_buf_desc_t *p_rx_wc_buf_desc, uint16_t udp_len,
+                                               uint32_t sum)
 {
-    (void)p_iphdr;
-    (void)p_ip_payload;
-    return 0;
-}
-
-/* set udp checksum: given IP header and UDP datagram
- *
- * (assume checksum field in UDP header contains zero)
- * This code borrows from other places and their ideas.
- * Although according to rfc 768, If the computed checksum is zero, it is transmitted as all ones -
- * this method will return the original value.
- */
-unsigned short compute_udp_checksum_rx(const struct iphdr *ip_hdr, const struct udphdr *udphdrp,
-                                       mem_buf_desc_t *p_rx_wc_buf_desc)
-{
-    uint16_t udp_len = ntohs(udphdrp->len);
     const uint16_t *p_ip_payload = (const uint16_t *)udphdrp;
     mem_buf_desc_t *p_ip_frag = p_rx_wc_buf_desc;
     unsigned short ip_frag_len = p_ip_frag->rx.frag.iov_len + sizeof(struct udphdr);
     unsigned short ip_frag_remainder = ip_frag_len;
-    uint32_t sum = 0;
-    if (ip_hdr->version == 4) {
-        sum = compute_pseudo_header(ip_hdr, IPPROTO_UDP, udp_len);
-    } else {
-        auto ip6_hdr = reinterpret_cast<const struct ip6_hdr *>(ip_hdr);
-        sum = compute_pseudo_header(ip6_hdr, IPPROTO_UDP, udp_len);
-    }
 
     // add the IP payload
     while (udp_len > 1) {
@@ -388,14 +360,27 @@ unsigned short compute_udp_checksum_rx(const struct iphdr *ip_hdr, const struct 
     return (unsigned short)sum;
 }
 
-// [TODO IPv6 Remove when integrated with utils]
-unsigned short compute_udp_checksum_rx(const struct ipv6hdr *p_iphdr, const struct udphdr *udphdrp,
+/* set udp checksum: given IP header and UDP datagram
+ *
+ * (assume checksum field in UDP header contains zero)
+ * This code borrows from other places and their ideas.
+ * Although according to rfc 768, If the computed checksum is zero, it is transmitted as all ones -
+ * this method will return the original value.
+ */
+unsigned short compute_udp_checksum_rx(const struct iphdr *ip_hdr, const struct udphdr *udphdrp,
                                        mem_buf_desc_t *p_rx_wc_buf_desc)
 {
-    (void)p_iphdr;
-    (void)udphdrp;
-    (void)p_rx_wc_buf_desc;
-    return 0;
+    uint16_t udp_len = ntohs(udphdrp->len);
+    uint32_t sum = compute_pseudo_header(ip_hdr, IPPROTO_UDP, udp_len);
+    return compute_udp_payload_checksum_rx(udphdrp, p_rx_wc_buf_desc, udp_len, sum);
+}
+
+unsigned short compute_udp_checksum_rx(const struct ip6_hdr *ip_hdr, const struct udphdr *udphdrp,
+                                       mem_buf_desc_t *p_rx_wc_buf_desc)
+{
+    uint16_t udp_len = ntohs(udphdrp->len);
+    uint32_t sum = compute_pseudo_header(ip_hdr, IPPROTO_UDP, udp_len);
+    return compute_udp_payload_checksum_rx(udphdrp, p_rx_wc_buf_desc, udp_len, sum);
 }
 
 /**

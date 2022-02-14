@@ -97,7 +97,7 @@ public:
     }
 
     // Destructor specifically for cloned buffers.
-    ~mem_buf_desc_t() { }
+    ~mem_buf_desc_t() {}
 
     /* This field must be first in this class
      * It encapsulates pbuf structure from lwip

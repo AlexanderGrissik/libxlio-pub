@@ -308,7 +308,7 @@ ip_frag_desc_t *ip_frag_manager::new_frag_desc(ip_frag_key_t &key)
     return desc;
 }
 
-int ip_frag_manager::add_frag(ipv6hdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t **ret)
+int ip_frag_manager::add_frag(ip6_hdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t **ret)
 {
     // [TODO IPv6] Implement RX fragments
     NOT_IN_USE(hdr);

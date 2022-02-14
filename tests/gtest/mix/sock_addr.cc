@@ -127,8 +127,8 @@ TEST_F(sock_addr_test, sock_addr_getters)
     EXPECT_TRUE(sa1_4 == sa2_4);
     EXPECT_TRUE(sa1_6 == sa2_6);
 
-    EXPECT_EQ(11ULL, sa1_4.hash());
-    EXPECT_EQ(199ULL, sa1_6.hash());
+    EXPECT_EQ(0xAAAA999900090002ULL, sa1_4.hash());
+    EXPECT_EQ(0xCCCCAAAA77BA777DULL, sa1_6.hash());
 }
 
 TEST_F(sock_addr_test, sock_addr_setters)

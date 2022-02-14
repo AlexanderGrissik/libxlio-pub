@@ -31,8 +31,8 @@
  */
 
 #include <inttypes.h>
+#include <netinet/ip6.h>
 #include "ring_slave.h"
-
 #include "vma/proto/ip_frag.h"
 #include "vma/dev/rfs_mc.h"
 #include "vma/dev/rfs_uc_tcp_gro.h"
@@ -49,10 +49,8 @@ static const sock_addr s_sock_addrany;
 
 ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     : ring()
-    , m_steering_ipv4(new steering_handler<flow_spec_4t_key_ipv4, flow_spec_2t_key_ipv4, iphdr>(*this))
-    , m_steering_ipv6(new steering_handler<flow_spec_4t_key_ipv6, flow_spec_2t_key_ipv6, ipv6hdr>(*this))
-//    , m_steering_ipv4(*this)
-//    , m_steering_ipv6(*this)
+    , m_steering_ipv4(*this)
+    , m_steering_ipv6(*this)
     , m_lock_ring_rx("ring_slave:lock_rx")
     , m_lock_ring_tx("ring_slave:lock_tx")
     , m_p_ring_stat(new ring_stats_t)
@@ -60,7 +58,7 @@ ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     , m_flow_tag_enabled(false)
     , m_b_sysvar_eth_mc_l2_only_rules(safe_mce_sys().eth_mc_l2_only_rules)
     , m_b_sysvar_mc_force_flowtag(safe_mce_sys().mc_force_flowtag)
-			    , m_type(type)
+    , m_type(type)
 {
     net_device_val *p_ndev = NULL;
     const slave_data_t *p_slave = NULL;
@@ -112,9 +110,6 @@ ring_slave::~ring_slave()
     /* Release TX buffer poll */
     g_buffer_pool_tx->put_buffers_thread_safe(&m_tx_pool, m_tx_pool.size());
     g_buffer_pool_zc->put_buffers_thread_safe(&m_zc_pool, m_zc_pool.size());
-
-//    delete m_steering_ipv4;
-//    delete m_steering_ipv6;
 }
 
 void ring_slave::print_val()
@@ -223,18 +218,14 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 return false;
             }
             BULLSEYE_EXCLUDE_BLOCK_END
-            //p_rfs = m_flow_udp_uc_map.get(rfs_key, NULL);
-            //if (p_rfs) {
-            //    delete p_tmp_rfs;
-            //} else {
-                p_rfs = p_tmp_rfs;
+
+            p_rfs = p_tmp_rfs;
 #if defined(DEFINED_NGINX)
-                if (!g_b_add_second_4t_rule)
+            if (!g_b_add_second_4t_rule)
 #endif
-                {
-                    m_flow_udp_uc_map.emplace(rfs_key, p_rfs);
-                }
-           //}
+            {
+                m_flow_udp_uc_map[rfs_key] = p_rfs;
+            }
         } else {
             p_rfs = itr->second;
         }
@@ -271,8 +262,9 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
         }
 
         auto itr = m_flow_udp_mc_map.find(key_udp_mc);
-        if (itr == end(m_flow_udp_mc_map)) { // It means that no rfs object exists so I need to create a new one and
-                             // insert it to the flow map
+        if (itr == end(m_flow_udp_mc_map)) {
+            // It means that no rfs object exists so I need to create a new one and insert it to
+            // the flow map.
             if (m_ring.m_b_sysvar_eth_mc_l2_only_rules) {
                 l2_mc_ip_filter =
                     new rfs_rule_filter(m_ring.m_l2_mc_ip_attach_map, rule_key, flow_spec_5t);
@@ -287,13 +279,9 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 ring_logerr("Failed to allocate rfs!");
                 return false;
             }
-            //p_rfs = m_flow_udp_mc_map.get(key_udp_mc, NULL);
-            //if (p_rfs) {
-            //    delete p_tmp_rfs;
-            //} else {
-                p_rfs = p_tmp_rfs;
-                m_flow_udp_mc_map.emplace(key_udp_mc, p_rfs);
-            //}
+
+            p_rfs = p_tmp_rfs;
+            m_flow_udp_mc_map[key_udp_mc] = p_rfs;
         } else {
             p_rfs = itr->second;
         }
@@ -323,8 +311,9 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
         }
 
         auto itr = m_flow_tcp_map.find(rfs_key);
-        if (itr == end(m_flow_tcp_map)) { // It means that no rfs object exists so I need to create a new one and
-                             // insert it to the flow map
+        if (itr == end(m_flow_tcp_map)) {
+            // It means that no rfs object exists so I need to create a new one and insert it to
+            // the flow map
             if (safe_mce_sys().tcp_3t_rules) {
                 flow_tuple tcp_3t_only(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port(),
                                        ip_address::any_addr(), 0, flow_spec_5t.get_protocol(),
@@ -350,18 +339,14 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                 return false;
             }
             BULLSEYE_EXCLUDE_BLOCK_END
-            //p_rfs = m_flow_tcp_map.get(rfs_key, NULL);
-            //if (p_rfs) {
-            //    delete p_tmp_rfs;
-            //} else {
-                p_rfs = p_tmp_rfs;
+
+            p_rfs = p_tmp_rfs;
 #if defined(DEFINED_NGINX)
-                if (!g_b_add_second_4t_rule)
+            if (!g_b_add_second_4t_rule)
 #endif
-                {
-                    m_flow_tcp_map.emplace(rfs_key, p_rfs);
-                }
-            //}
+            {
+                m_flow_tcp_map[rfs_key] = p_rfs;
+            }
         } else {
             p_rfs = itr->second;
         }
@@ -399,8 +384,8 @@ bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
     auto_unlocker lock(m_lock_ring_rx);
 
-    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4->attach_flow(flow_spec_5t, sink)
-                                                 : m_steering_ipv6->attach_flow(flow_spec_5t, sink));
+    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4.attach_flow(flow_spec_5t, sink)
+                                                 : m_steering_ipv6.attach_flow(flow_spec_5t, sink));
 }
 
 template <typename KEY4T, typename KEY2T, typename HDR>
@@ -534,8 +519,8 @@ bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
     auto_unlocker lock(m_lock_ring_rx);
 
-    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4->detach_flow(flow_spec_5t, sink)
-                                                 : m_steering_ipv6->detach_flow(flow_spec_5t, sink));
+    return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4.detach_flow(flow_spec_5t, sink)
+                                                 : m_steering_ipv6.detach_flow(flow_spec_5t, sink));
 }
 
 #ifdef DEFINED_UTLS
@@ -544,7 +529,7 @@ rfs_rule *steering_handler<KEY4T, KEY2T, HDR>::tls_rx_create_rule(const flow_tup
                                                                   xlio_tir *tir)
 {
     KEY4T rfs_key(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_src_ip(), flow_spec_5t.get_dst_port(),
-                  flow_spec_5t.get_src_port());        
+                  flow_spec_5t.get_src_port());
     rfs *p_rfs = m_flow_tcp_map.find(rfs_key)->second;
     return p_rfs->create_rule(tir, flow_spec_5t);
 }
@@ -552,8 +537,8 @@ rfs_rule *steering_handler<KEY4T, KEY2T, HDR>::tls_rx_create_rule(const flow_tup
 rfs_rule *ring_slave::tls_rx_create_rule(const flow_tuple &flow_spec_5t, xlio_tir *tir)
 {
     return (flow_spec_5t.get_family() == AF_INET
-                ? m_steering_ipv4->tls_rx_create_rule(flow_spec_5t, tir)
-                : m_steering_ipv6->tls_rx_create_rule(flow_spec_5t, tir));
+                ? m_steering_ipv4.tls_rx_create_rule(flow_spec_5t, tir)
+                : m_steering_ipv6.tls_rx_create_rule(flow_spec_5t, tir));
 }
 #endif /* DEFINED_UTLS */
 
@@ -641,19 +626,19 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
             struct iphdr *p_ip_h =
                 (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
             if (likely(p_ip_h->version == IPV4_VERSION)) { // IPv4
-                ip_hdr_len = 20; //(int)(p_ip_h->ihl)*4;
+                ip_hdr_len = IP_HLEN; //(int)(p_ip_h->ihl)*4;
                 ip_payload_len = ntohs(p_ip_h->tot_len) - ip_hdr_len;
                 protocol = p_ip_h->protocol;
                 saddr = &p_ip_h->saddr;
                 daddr = &p_ip_h->daddr;
                 family = AF_INET;
             } else {
-                struct ipv6hdr *p_ip_h6 = reinterpret_cast<struct ipv6hdr *>(p_ip_h);
-                ip_hdr_len = 40;
-                ip_payload_len = ntohs(p_ip_h6->payload_len);
-                protocol = p_ip_h6->nexthdr;
-                saddr = &p_ip_h6->saddr;
-                daddr = &p_ip_h6->daddr;
+                struct ip6_hdr *p_ip_h6 = reinterpret_cast<struct ip6_hdr *>(p_ip_h);
+                ip_hdr_len = IPV6_HLEN;
+                ip_payload_len = ntohs(p_ip_h6->ip6_plen);
+                protocol = p_ip_h6->ip6_nxt;
+                saddr = &p_ip_h6->ip6_src;
+                daddr = &p_ip_h6->ip6_dst;
                 family = AF_INET6;
             }
 
@@ -775,13 +760,13 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     struct iphdr *p_ip_h = (struct iphdr *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
 
     if (likely(p_ip_h->version == IPV4_VERSION)) {
-        return m_steering_ipv4->rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
+        return m_steering_ipv4.rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
                                                             p_ip_h);
     }
 
     if (likely(p_ip_h->version == IPV6_VERSION)) {
-        return m_steering_ipv6->rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
-                                                            reinterpret_cast<ipv6hdr *>(p_ip_h));
+        return m_steering_ipv6.rx_process_buffer_no_flow_id(p_rx_wc_buf_desc, pv_fd_ready_array,
+                                                            reinterpret_cast<ip6_hdr *>(p_ip_h));
     }
 
     // Drop all non IPv4 packets
@@ -789,40 +774,14 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     return false;
 }
 
-inline uint8_t hdr_get_protocol(iphdr *p_ip_h)
-{
-    return p_ip_h->protocol;
-}
-
-inline uint8_t hdr_get_protocol(ipv6hdr *p_ip_h)
-{
-    return p_ip_h->nexthdr;
-}
-
 inline uint32_t hdr_get_tot_len(iphdr *p_ip_h)
 {
     return ntohs(p_ip_h->tot_len);
 }
 
-inline uint32_t hdr_get_tot_len(ipv6hdr *p_ip_h)
+inline uint32_t hdr_get_tot_len(ip6_hdr *p_ip_h)
 {
-    return ntohs(p_ip_h->payload_len) + 40;
-}
-
-inline void hdr_parse_ext(iphdr *p_ip_h, uint16_t &ip_frag_off, uint16_t &ip_hdr_len)
-{
-    ip_frag_off = ntohs(p_ip_h->frag_off);
-    ip_hdr_len = (int)(p_ip_h->ihl) * 4;
-}
-
-inline void hdr_parse_ext(ipv6hdr *p_ip_h, uint16_t &ip_frag_off, uint16_t &ip_hdr_len)
-{
-    ip_frag_off = 0U;
-    ip_hdr_len = 40U;
-
-    if (p_ip_h->nexthdr == 44) {
-        // [TODO IPv6] Parse fragments.
-    }
+    return ntohs(p_ip_h->ip6_plen) + IPV6_HLEN;
 }
 
 inline sa_family_t hdr_get_family(iphdr *p_ip_h)
@@ -831,7 +790,7 @@ inline sa_family_t hdr_get_family(iphdr *p_ip_h)
     return AF_INET;
 }
 
-inline sa_family_t hdr_get_family(ipv6hdr *p_ip_h)
+inline sa_family_t hdr_get_family(ip6_hdr *p_ip_h)
 {
     NOT_IN_USE(p_ip_h);
     return AF_INET6;
@@ -842,13 +801,115 @@ inline std::string hdr_get_id(iphdr *p_ip_h)
     return std::to_string(ntohs(p_ip_h->id));
 }
 
-inline std::string hdr_get_id(ipv6hdr *p_ip_h)
+inline std::string hdr_get_id(ip6_hdr *p_ip_h)
 {
-    std::stringstream rc;
-    rc << p_ip_h->flow_lbl[0] << ',';
-    rc << p_ip_h->flow_lbl[1] << ',';
-    rc << p_ip_h->flow_lbl[2];
-    return rc.str();
+    return std::to_string(ntohs(p_ip_h->ip6_flow));
+}
+
+inline const void *hdr_get_saddr(iphdr *p_ip_h)
+{
+    return &p_ip_h->saddr;
+}
+
+inline const void *hdr_get_saddr(ip6_hdr *p_ip_h)
+{
+    return &p_ip_h->ip6_src;
+}
+
+inline const void *hdr_get_daddr(iphdr *p_ip_h)
+{
+    return &p_ip_h->daddr;
+}
+
+inline const void *hdr_get_daddr(ip6_hdr *p_ip_h)
+{
+    return &p_ip_h->ip6_dst;
+}
+
+// @param data Expected at least 8 bytes long buffer.
+static inline int ipv6_ext_headers_parse(const void *data, size_t &ext_hdrs_len,
+                                         uint8_t &next_header)
+{
+    switch (next_header) {
+    case 51: // Authentication Header
+        next_header = *reinterpret_cast<const uint8_t *>(data);
+        ext_hdrs_len = (*(reinterpret_cast<const uint8_t *>(data) + 1) + 2ULL) * 4ULL;
+        ext_hdrs_len += (8ULL - (ext_hdrs_len % 8ULL));
+        break;
+    case 0: // Hop by Hop
+    case 43: // Routing
+    case 60: // Destination Options for IPv6
+    case 135: // Mobility Header
+    case 139: // Host Identity Protocol
+    case 140: // Shim6 Protocol
+        next_header = *reinterpret_cast<const uint8_t *>(data);
+        ext_hdrs_len = (1ULL + *(reinterpret_cast<const uint8_t *>(data) + 1)) * 8ULL;
+        break;
+    case IPPROTO_TCP:
+    case IPPROTO_UDP:
+    case 59:
+        return 0; // No next header.
+    case 44: // Fragment
+             // [TODO IPv6 Parse and handle fragments]
+    case 50: // Encapsulating Security Payload
+    default:
+        return -1; // Unknown ext header or L4 protocol. Ignore the packet.
+    }
+
+    return 1; // More ext headers.
+}
+
+struct ext_hdr_data {
+    uint16_t ip_frag_off;
+    uint16_t ip_hdr_len;
+    uint8_t l4_protocol;
+};
+
+static inline void hdr_parse(iphdr *p_ip_h, ext_hdr_data &hdr_data, size_t buff_payload_size)
+{
+    NOT_IN_USE(buff_payload_size);
+    hdr_data.ip_frag_off = ntohs(p_ip_h->frag_off);
+    hdr_data.ip_hdr_len = (int)(p_ip_h->ihl) * 4;
+    hdr_data.l4_protocol = p_ip_h->protocol;
+}
+
+static void hdr_parse(ip6_hdr *p_ip_h, ext_hdr_data &hdr_data, size_t buff_payload_size)
+{
+    hdr_data.ip_hdr_len = IPV6_HLEN;
+
+    if (likely(p_ip_h->ip6_nxt == IPPROTO_TCP) || likely(p_ip_h->ip6_nxt == IPPROTO_UDP)) {
+        hdr_data.ip_frag_off = 0U;
+        hdr_data.l4_protocol = p_ip_h->ip6_nxt;
+    } else { // Parse ext headers
+        size_t ext_hdr_len = 0U;
+        size_t norm_ext_hdr_len;
+        uint8_t header_code = p_ip_h->ip6_nxt;
+        const uint8_t *data = reinterpret_cast<const uint8_t *>(p_ip_h) + IPV6_HLEN;
+        buff_payload_size -= IPV6_HLEN;
+
+        while (likely(buff_payload_size >= 8U) &&
+               likely(ipv6_ext_headers_parse(data, ext_hdr_len, header_code) == 1)) {
+            norm_ext_hdr_len = std::min(buff_payload_size, ext_hdr_len);
+            hdr_data.ip_hdr_len += norm_ext_hdr_len;
+            data += norm_ext_hdr_len;
+            buff_payload_size -= norm_ext_hdr_len;
+        }
+
+        hdr_data.l4_protocol = header_code; // Unknown protocol packet is dropped later.
+        hdr_data.ip_frag_off = 0U;
+    }
+}
+
+static inline uint16_t csum_hdr_len(iphdr *p_ip_h, const ext_hdr_data &ext_data)
+{
+    NOT_IN_USE(ext_data);
+    return (p_ip_h->ihl << 2);
+}
+
+static inline uint16_t csum_hdr_len(ip6_hdr *p_ip_h, const ext_hdr_data &ext_data)
+{
+    NOT_IN_USE(p_ip_h);
+    return (ext_data.ip_hdr_len - IPV6_HLEN);
 }
 
 template <typename KEY4T, typename KEY2T, typename HDR>
@@ -861,34 +922,40 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     // Check that received buffer size is not smaller then the ip datagram total size
     if (unlikely(sz_data < ip_tot_len)) {
         ring_logwarn(
-            "Rx packet dropped - buffer too small for received datagram (RxBuf:%zu IP:%" PRIu32 ")",
+            "Rx packet dropped - buffer too small for received datagram (RxBuf:%zu IP:%zu)",
             sz_data, ip_tot_len);
         ring_loginfo("Rx packet info (buf->%p, bufsize=%zu), id=%s", p_rx_wc_buf_desc->p_buffer,
-                     p_rx_wc_buf_desc->sz_data, hdr_get_id(p_ip_h));
+                     p_rx_wc_buf_desc->sz_data, hdr_get_id(p_ip_h).c_str());
         vlog_print_buffer(VLOG_INFO, "rx packet data: ", "\n",
                           (const char *)p_rx_wc_buf_desc->p_buffer,
                           std::min(112, (int)p_rx_wc_buf_desc->sz_data));
         return false;
     }
 
+    // Read fragmentation parameters and extention headers for IPv6.
+    ext_hdr_data hdr_data;
+    hdr_parse(p_ip_h, hdr_data, sz_data);
+
     p_rx_wc_buf_desc->sz_data -= (sz_data - ip_tot_len);
 
-    // Read fragmentation parameters and extention headers for IPv6.
-    uint16_t ip_frag_off = 0U;
-    uint16_t ip_hdr_len = 0U;
-    hdr_parse_ext(p_ip_h, ip_frag_off, ip_hdr_len);
-    uint16_t n_frag_offset = (ip_frag_off & FRAGMENT_OFFSET) * 8;
+    uint16_t n_frag_offset = (hdr_data.ip_frag_off & FRAGMENT_OFFSET) * 8;
 
     ring_logfunc("Rx ip packet info: dst=%s, src=%s, packet_sz=%zu, offset=%" PRIu16
                  ", id=%s, proto=%s[%u" PRIu8 "]",
-                 ip_address(p_ip_h->daddr).to_str(hdr_get_family(p_ip_h)).c_str(),
-                 ip_address(p_ip_h->saddr).to_str(hdr_get_family(p_ip_h)).c_str(),
-                 (sz_data > ip_tot_len ? ip_tot_len : sz_data), n_frag_offset, hdr_get_id(p_ip_h),
-                 iphdr_protocol_type_to_str(hdr_get_protocol(p_ip_h)), hdr_get_protocol(p_ip_h));
+                 reinterpret_cast<const ip_address *>(hdr_get_daddr(p_ip_h))
+                     ->to_str(hdr_get_family(p_ip_h))
+                     .c_str(),
+                 reinterpret_cast<const ip_address *>(hdr_get_saddr(p_ip_h))
+                     ->to_str(hdr_get_family(p_ip_h))
+                     .c_str(),
+                 (sz_data > ip_tot_len ? ip_tot_len : sz_data), n_frag_offset,
+                 hdr_get_id(p_ip_h).c_str(), iphdr_protocol_type_to_str(hdr_data.l4_protocol),
+                 hdr_data.l4_protocol);
 
     // Check that the ip datagram has at least the udp header size for the first ip fragment
     // (besides the ip header)
-    if (unlikely((n_frag_offset == 0) && (ip_tot_len < (ip_hdr_len + sizeof(struct udphdr))))) {
+    if (unlikely((n_frag_offset == 0) &&
+                 (ip_tot_len < (hdr_data.ip_hdr_len + sizeof(struct udphdr))))) {
         ring_logwarn("Rx packet dropped - ip packet too small (%zu bytes) - udp header cut!",
                      ip_tot_len);
         return false;
@@ -898,10 +965,10 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     p_rx_wc_buf_desc->rx.n_frags = 1;
 
     // Currently we don't expect to receive fragments
-    if (unlikely((ip_frag_off & MORE_FRAGMENTS_FLAG) || n_frag_offset)) {
+    if (unlikely((hdr_data.ip_frag_off & MORE_FRAGMENTS_FLAG) || n_frag_offset)) {
         // Update fragments descriptor with datagram base address and length
-        p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_ip_h + ip_hdr_len;
-        p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - ip_hdr_len;
+        p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_ip_h + hdr_data.ip_hdr_len;
+        p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - hdr_data.ip_hdr_len;
 
         // Add ip fragment packet to out fragment manager
         mem_buf_desc_t *new_buf = NULL;
@@ -920,7 +987,8 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         size_t transport_header_len = p_rx_wc_buf_desc->rx.n_transport_header_len;
         p_rx_wc_buf_desc = new_buf;
         p_ip_h = (HDR *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
-        hdr_parse_ext(p_ip_h, ip_frag_off, ip_hdr_len);
+        sz_data = p_rx_wc_buf_desc->sz_data - transport_header_len;
+        hdr_parse(p_ip_h, hdr_data, sz_data);
         ip_tot_len = hdr_get_tot_len(p_ip_h);
 
         mem_buf_desc_t *tmp;
@@ -934,12 +1002,12 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     }
 
     rfs *p_rfs = nullptr;
-    size_t payload_len = ip_tot_len - ip_hdr_len;
+    size_t payload_len = ip_tot_len - hdr_data.ip_hdr_len;
 
-    switch (hdr_get_protocol(p_ip_h)) {
+    switch (hdr_data.l4_protocol) {
     case IPPROTO_UDP: {
         // Get the udp header pointer + udp payload size
-        struct udphdr *p_udp_h = (struct udphdr *)((uint8_t *)p_ip_h + ip_hdr_len);
+        struct udphdr *p_udp_h = (struct udphdr *)((uint8_t *)p_ip_h + hdr_data.ip_hdr_len);
 
         // Update packet descriptor with datagram base address and length
         p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_udp_h + sizeof(struct udphdr);
@@ -956,9 +1024,10 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
                      ntohs(p_udp_h->source), ntohs(p_udp_h->dest), sz_payload, p_udp_h->check);
 
         // Update the L3/L4 info
-        p_rx_wc_buf_desc->rx.src.set_ip_port(hdr_get_family(p_ip_h), &p_ip_h->saddr,
+        p_rx_wc_buf_desc->rx.src.set_ip_port(hdr_get_family(p_ip_h), hdr_get_saddr(p_ip_h),
                                              p_udp_h->source);
-        p_rx_wc_buf_desc->rx.dst.set_ip_port(hdr_get_family(p_ip_h), &p_ip_h->daddr, p_udp_h->dest);
+        p_rx_wc_buf_desc->rx.dst.set_ip_port(hdr_get_family(p_ip_h), hdr_get_daddr(p_ip_h),
+                                             p_udp_h->dest);
         p_rx_wc_buf_desc->rx.sz_payload = sz_payload;
 
         // Update the protocol info
@@ -966,29 +1035,34 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
         if (!p_rx_wc_buf_desc->rx.dst.is_mc()) { // This is UDP UC packet
-            auto itr = m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src));
+            auto itr =
+                m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src));
 
             // If we didn't find a match for 5T, look for a match with 3T
             if (unlikely(itr == end(m_flow_udp_uc_map))) {
-                auto itr3T = m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany));
-                if (likely(itr3T != end(m_flow_udp_uc_map)))
+                auto itr3T =
+                    m_flow_udp_uc_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany));
+                if (likely(itr3T != end(m_flow_udp_uc_map))) {
                     p_rfs = itr3T->second;
+                }
             } else {
                 p_rfs = itr->second;
             }
         } else { // This is UDP MC packet
             auto itr = m_flow_udp_mc_map.find(KEY2T(p_rx_wc_buf_desc->rx.dst));
-            if (likely(itr != end(m_flow_udp_mc_map)))
+            if (likely(itr != end(m_flow_udp_mc_map))) {
                 p_rfs = itr->second;
+            }
         }
     } break;
 
     case IPPROTO_TCP: {
         // Get the tcp header pointer + tcp payload size
-        struct tcphdr *p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + ip_hdr_len);
+        struct tcphdr *p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + hdr_data.ip_hdr_len);
 
         if (p_rx_wc_buf_desc->rx.is_sw_csum_need &&
-            compute_tcp_checksum(p_ip_h, (unsigned short *)p_tcp_h)) {
+            compute_tcp_checksum(p_ip_h, (unsigned short *)p_tcp_h,
+                                 csum_hdr_len(p_ip_h, hdr_data))) {
             return false; // false tcp checksum
         }
 
@@ -1005,9 +1079,10 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         p_rx_wc_buf_desc->rx.frag.iov_len = payload_len - sizeof(struct tcphdr);
 
         // Update the L3/L4 info
-        p_rx_wc_buf_desc->rx.src.set_ip_port(hdr_get_family(p_ip_h), &p_ip_h->saddr,
+        p_rx_wc_buf_desc->rx.src.set_ip_port(hdr_get_family(p_ip_h), hdr_get_saddr(p_ip_h),
                                              p_tcp_h->source);
-        p_rx_wc_buf_desc->rx.dst.set_ip_port(hdr_get_family(p_ip_h), &p_ip_h->daddr, p_tcp_h->dest);
+        p_rx_wc_buf_desc->rx.dst.set_ip_port(hdr_get_family(p_ip_h), hdr_get_daddr(p_ip_h),
+                                             p_tcp_h->dest);
         p_rx_wc_buf_desc->rx.sz_payload = sz_payload;
 
         // Update the protocol info
@@ -1016,19 +1091,20 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
         // Find the relevant hash map and pass the packet to the rfs for dispatching
         auto itr = m_flow_tcp_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, p_rx_wc_buf_desc->rx.src));
-        
+
         // If we didn't find a match for 5T, look for a match with 3T
         if (unlikely(itr == end(m_flow_tcp_map))) {
             auto itr3T = m_flow_tcp_map.find(KEY4T(p_rx_wc_buf_desc->rx.dst, s_sock_addrany));
-            if (likely(itr3T != end(m_flow_tcp_map)))
+            if (likely(itr3T != end(m_flow_tcp_map))) {
                 p_rfs = itr3T->second;
+            }
         } else {
             p_rfs = itr->second;
         }
     } break;
 
     default:
-        ring_logwarn("Rx packet dropped - undefined protocol = %" PRIu8, hdr_get_protocol(p_ip_h));
+        ring_logwarn("Rx packet dropped - undefined protocol = %" PRIu8, hdr_data.l4_protocol);
         return false;
     }
 
@@ -1037,7 +1113,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
                     "]",
                     p_rx_wc_buf_desc->rx.dst.to_str_ip_port().c_str(),
                     p_rx_wc_buf_desc->rx.src.to_str_ip_port().c_str(),
-                    iphdr_protocol_type_to_str(hdr_get_protocol(p_ip_h)), hdr_get_protocol(p_ip_h));
+                    iphdr_protocol_type_to_str(hdr_data.l4_protocol), hdr_data.l4_protocol);
 
         return false;
     }
@@ -1045,8 +1121,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     return p_rfs->rx_dispatch_packet(p_rx_wc_buf_desc, pv_fd_ready_array);
 }
 
-template <typename T>
-void clear_rfs_map(T& rfs_map)
+template <typename T> void clear_rfs_map(T &rfs_map)
 {
     auto itr = rfs_map.begin();
     while (itr != end(rfs_map)) {
@@ -1063,13 +1138,12 @@ void steering_handler<KEY4T, KEY2T, HDR>::flow_del_all_rfs()
     clear_rfs_map(m_flow_tcp_map);
     clear_rfs_map(m_flow_udp_uc_map);
     clear_rfs_map(m_flow_udp_mc_map);
-
 }
 
 void ring_slave::flow_del_all_rfs()
 {
-    m_steering_ipv4->flow_del_all_rfs();
-    m_steering_ipv6->flow_del_all_rfs();
+    m_steering_ipv4.flow_del_all_rfs();
+    m_steering_ipv6.flow_del_all_rfs();
 }
 
 bool ring_slave::request_more_tx_buffers(pbuf_type type, uint32_t count, uint32_t lkey)

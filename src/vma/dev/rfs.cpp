@@ -71,9 +71,9 @@ inline void rfs::filter_keep_attached(rule_filter_map_t::iterator &filter_iter)
     for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
         filter_iter->second.rfs_rule_vec.push_back(m_attach_flow_data_vector[i]->rfs_flow);
         rfs_logdbg("filter_keep_attached copying rfs_flow, Tag: %" PRIu32
-                   ", Flow: %s, Index: %zu, Ptr: %p, Counter: %" PRIu64,
+                   ", Flow: %s, Index: %zu, Ptr: %p, Counter: %d",
                    m_flow_tag_id, m_flow_tuple.to_str().c_str(), i,
-                   m_attach_flow_data_vector[i]->rfs_flow, filter_iter->first);
+                   m_attach_flow_data_vector[i]->rfs_flow, filter_iter->second.counter);
     }
 }
 
@@ -95,8 +95,8 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
         filter_iter->second.counter =
             filter_iter->second.counter > 0 ? filter_iter->second.counter - 1 : 0;
         rfs_logdbg("prepare_filter_detach decrement counter, Tag: %" PRIu32
-                   ", Flow: %s, Counter: %" PRIu64,
-                   m_flow_tag_id, m_flow_tuple.to_str().c_str(), filter_iter->first);
+                   ", Flow: %s, Counter: %d",
+                   m_flow_tag_id, m_flow_tuple.to_str().c_str(), filter_iter->second.counter);
     }
 
     filter_counter = filter_iter->second.counter;
@@ -122,9 +122,9 @@ inline void rfs::prepare_filter_detach(int &filter_counter, bool decrease_counte
         } else if (filter_iter->second.rfs_rule_vec[i]) {
             m_attach_flow_data_vector[i]->rfs_flow = filter_iter->second.rfs_rule_vec[i];
             rfs_logdbg("prepare_filter_detach copying rfs_flow, Tag: %" PRIu32
-                       ", Flow: %s, Index: %zu, Ptr: %p, Counter: %" PRIu64,
+                       ", Flow: %s, Index: %zu, Ptr: %p, Counter: %d",
                        m_flow_tag_id, m_flow_tuple.to_str().c_str(), i,
-                       m_attach_flow_data_vector[i]->rfs_flow, filter_iter->first);
+                       m_attach_flow_data_vector[i]->rfs_flow, filter_iter->second.counter);
         }
         BULLSEYE_EXCLUDE_BLOCK_END
     }
@@ -327,7 +327,7 @@ template <typename T>
 rfs_rule *create_rule_T(xlio_tir *tir, const flow_tuple &flow_spec, attach_flow_data_t *iter,
                         bool is5T)
 {
-    typename T::ibv_flow_attr_eth_ip_tcp_udp *p_attr =
+    auto *p_attr =
         reinterpret_cast<typename T::ibv_flow_attr_eth_ip_tcp_udp *>(&iter->ibv_flow_attr);
 
     if (unlikely(p_attr->eth.type != VMA_IBV_FLOW_SPEC_ETH)) {
@@ -335,7 +335,7 @@ rfs_rule *create_rule_T(xlio_tir *tir, const flow_tuple &flow_spec, attach_flow_
         return NULL;
     }
 
-    typename T::ibv_flow_attr_eth_ip_tcp_udp flow_attr(*p_attr);
+    auto flow_attr(*p_attr);
     if (!is5T) {
         // For UTLS, We need the most specific 5T rule (in case the current rule is 3T).
         ibv_flow_spec_set_single_ip(flow_attr.ip.val.src_ip, flow_attr.ip.mask.src_ip,
