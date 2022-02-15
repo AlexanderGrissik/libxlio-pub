@@ -65,13 +65,13 @@ const std::string route_val::to_str() const
     std::string rc;
 
     rc = "dst: ";
-    rc += m_dst_addr.is_anyaddr() ? "default" : m_dst_addr.to_str() + '/' + std::to_string(m_dst_pref_len);
+    rc += m_dst_addr.is_anyaddr() ? "default" : m_dst_addr.to_str(m_family) + '/' + std::to_string(m_dst_pref_len);
     if (!m_gw_addr.is_anyaddr()) {
-        rc += " gw: " + m_gw_addr.to_str();
+        rc += " gw: " + m_gw_addr.to_str(m_family);
     }
     rc += " dev: " + std::string(m_if_name);
     if (!m_src_addr.is_anyaddr()) {
-        rc += " src: " + m_src_addr.to_str();
+        rc += " src: " + m_src_addr.to_str(m_family);
     }
     rc += " table: ";
     rc += (m_table_id == RT_TABLE_MAIN) ? "main" : std::to_string(m_table_id);

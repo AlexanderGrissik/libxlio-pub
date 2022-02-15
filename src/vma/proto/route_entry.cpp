@@ -32,7 +32,7 @@
 
 #include "vma/util/ip_address.h"
 #include "route_entry.h"
-#include "route_table_mgr.h"
+#include "rule_table_mgr.h"
 #include "vma/infra/cache_subject_observer.h"
 #include "vma/dev/net_device_table_mgr.h"
 

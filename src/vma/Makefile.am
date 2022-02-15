@@ -124,6 +124,7 @@ libxlio_la_SOURCES := \
 	proto/vma_lwip.cpp \
 	proto/neighbour.cpp \
 	proto/neighbour_table_mgr.cpp \
+	proto/netlink_socket_mgr.cpp \
 	proto/L2_address.cpp \
 	proto/mem_desc.cpp \
 	proto/mapping.cpp \

@@ -49,10 +49,8 @@
 #include "vma/util/vtypes.h"
 #include "vma/util/utils.h"
 #include "vma/util/if.h"
-#include "rule_table_mgr.h"
-#include "vma/sock/socket_fd_api.h"
-#include "vma/sock/sock-redirect.h"
 #include "vma/util/ip_address.h"
+#include "rule_table_mgr.h"
 
 // debugging macros
 #define MODULE_NAME "rrm:"
@@ -65,20 +63,25 @@
 #define rr_mgr_logfunc     __log_func
 #define rr_mgr_logfuncall  __log_funcall
 
+#define DEFAULT_RULE_TABLE_SIZE 64
+
 rule_table_mgr *g_p_rule_table_mgr = NULL;
 
 rule_table_mgr::rule_table_mgr()
-    : netlink_socket_mgr<rule_val>(RULE_DATA_TYPE)
+    : netlink_socket_mgr()
     , cache_table_mgr<route_rule_table_key, std::deque<rule_val *> *>("rule_table_mgr")
 {
 
     rr_mgr_logdbg("");
 
+    m_table_in4.reserve(DEFAULT_RULE_TABLE_SIZE);
+    m_table_in6.reserve(DEFAULT_RULE_TABLE_SIZE);
+
     // Read Rule table from kernel and save it in local variable.
     update_tbl();
 
     // Print table
-    print_val_tbl();
+    print_tbl();
 
     rr_mgr_logdbg("Done");
 }
@@ -88,7 +91,7 @@ void rule_table_mgr::update_tbl()
 {
     auto_unlocker lock(m_lock);
 
-    netlink_socket_mgr<rule_val>::update_tbl();
+    netlink_socket_mgr::update_tbl(RULE_DATA_TYPE);
 
     return;
 }
@@ -98,67 +101,83 @@ void rule_table_mgr::update_tbl()
 //		nl_header	: object that contain rule entry.
 //		p_val		: custom object that contain parsed rule data.
 // return true if its not related to local or default table, false otherwise.
-bool rule_table_mgr::parse_enrty(nlmsghdr *nl_header, rule_val *p_val)
+void rule_table_mgr::parse_entry(struct nlmsghdr *nl_header)
 {
     int len;
     struct rtmsg *rt_msg;
     struct rtattr *rt_attribute;
+    rule_val val;
 
     // get rule entry header
     rt_msg = (struct rtmsg *)NLMSG_DATA(nl_header);
 
     // we are not concerned about the local and default rule table
-    if (rt_msg->rtm_family != AF_INET || rt_msg->rtm_table == RT_TABLE_LOCAL) {
-        return false;
+    if (rt_msg->rtm_table == RT_TABLE_LOCAL) {
+        return;
     }
 
-    p_val->set_protocol(rt_msg->rtm_protocol);
-    p_val->set_scope(rt_msg->rtm_scope);
-    p_val->set_type(rt_msg->rtm_type);
-    p_val->set_tos(rt_msg->rtm_tos);
-    p_val->set_table_id(rt_msg->rtm_table);
+    val.set_family(rt_msg->rtm_family);
+    val.set_protocol(rt_msg->rtm_protocol);
+    val.set_scope(rt_msg->rtm_scope);
+    val.set_type(rt_msg->rtm_type);
+    val.set_tos(rt_msg->rtm_tos);
+    val.set_table_id(rt_msg->rtm_table);
 
     len = RTM_PAYLOAD(nl_header);
     rt_attribute = (struct rtattr *)RTM_RTA(rt_msg);
 
     for (; RTA_OK(rt_attribute, len); rt_attribute = RTA_NEXT(rt_attribute, len)) {
-        parse_attr(rt_attribute, p_val);
+        parse_attr(rt_attribute, val);
     }
-    p_val->set_state(true);
-    return true;
+    val.set_state(true);
+
+    rule_table_t &table = val.get_family() == AF_INET ? m_table_in4 : m_table_in6;
+    table.push_back(val);
 }
 
 // Parse received rule attribute for given rule.
 // Parameters:
 //		rt_attribute	: object that contain rule attribute.
 //		p_val			: custom object that contain parsed rule data.
-void rule_table_mgr::parse_attr(struct rtattr *rt_attribute, rule_val *p_val)
+void rule_table_mgr::parse_attr(struct rtattr *rt_attribute, rule_val &val)
 {
     switch (rt_attribute->rta_type) {
     case FRA_PRIORITY:
-        p_val->set_priority(*(uint32_t *)RTA_DATA(rt_attribute));
+        val.set_priority(*(uint32_t *)RTA_DATA(rt_attribute));
         break;
     case FRA_DST:
-        p_val->set_dst_addr(ip_address(*(in_addr_t *)RTA_DATA(rt_attribute)));
+        val.set_dst_addr(ip_address((void *)RTA_DATA(rt_attribute), val.get_family()));
         break;
     case FRA_SRC:
-        p_val->set_src_addr(ip_address(*(in_addr_t *)RTA_DATA(rt_attribute)));
+        val.set_src_addr(ip_address((void *)RTA_DATA(rt_attribute), val.get_family()));
         break;
     case FRA_IFNAME:
-        p_val->set_iif_name((char *)RTA_DATA(rt_attribute));
+        val.set_iif_name((char *)RTA_DATA(rt_attribute));
         break;
     case FRA_TABLE:
-        p_val->set_table_id(*(uint32_t *)RTA_DATA(rt_attribute));
+        val.set_table_id(*(uint32_t *)RTA_DATA(rt_attribute));
         break;
 #if DEFINED_FRA_OIFNAME
     case FRA_OIFNAME:
-        p_val->set_oif_name((char *)RTA_DATA(rt_attribute));
+        val.set_oif_name((char *)RTA_DATA(rt_attribute));
         break;
 #endif
     default:
         rr_mgr_logdbg("got undetected rta_type %d %x", rt_attribute->rta_type,
                       *(uint32_t *)RTA_DATA(rt_attribute));
         break;
+    }
+}
+
+void rule_table_mgr::print_tbl()
+{
+    if (g_vlogger_level >= VLOG_DEBUG) {
+        for (auto iter = m_table_in6.begin(); iter != m_table_in6.end(); ++iter) {
+            (*iter).print_val();
+        }
+        for (auto iter = m_table_in4.begin(); iter != m_table_in4.end(); ++iter) {
+            (*iter).print_val();
+        }
     }
 }
 
@@ -204,15 +223,17 @@ void rule_table_mgr::update_entry(rule_entry *p_ent)
 //		p_val	: list of rule_val object that will contain information about all rule that match
 // destination info
 // Returns true if at least one rule match destination info, false otherwise.
-bool rule_table_mgr::find_rule_val(route_rule_table_key key, std::deque<rule_val *> *&p_val)
+bool rule_table_mgr::find_rule_val(const route_rule_table_key &key, std::deque<rule_val *> *&p_val)
 {
     rr_mgr_logfunc("destination info %s:", key.to_str().c_str());
 
-    for (int index = 0; index < m_tab.entries_num; index++) {
-        rule_val *p_val_from_tbl = &m_tab.value[index];
-        if (p_val_from_tbl->is_valid() && is_matching_rule(key, p_val_from_tbl)) {
-            p_val->push_back(p_val_from_tbl);
-            rr_mgr_logdbg("found rule val[%p]: %s", p_val_from_tbl, p_val_from_tbl->to_str());
+    rule_table_t &table = key.get_family() == AF_INET ? m_table_in4 : m_table_in6;
+
+    for (auto iter = table.begin(); iter != table.end(); ++iter) {
+        rule_val &val = *iter;
+        if (val.is_valid() && is_matching_rule(key, val)) {
+            p_val->push_back(&val);
+            rr_mgr_logdbg("found rule val: %s", val.to_str().c_str());
         }
     }
 
@@ -224,23 +245,23 @@ bool rule_table_mgr::find_rule_val(route_rule_table_key key, std::deque<rule_val
 //		key		: key object that contain information about destination.
 //		p_val	: rule_val object that contain information about specific rule from rule table
 // Returns true if destination info match rule value, false otherwise.
-bool rule_table_mgr::is_matching_rule(route_rule_table_key key, rule_val *p_val)
+bool rule_table_mgr::is_matching_rule(const route_rule_table_key &key, const rule_val &val)
 {
     const ip_address &m_dst_ip = key.get_dst_ip();
     const ip_address &m_src_ip = key.get_src_ip();
     uint8_t m_tos = key.get_tos();
 
-    const ip_address &rule_dst_ip = p_val->get_dst_addr();
-    const ip_address &rule_src_ip = p_val->get_src_addr();
-    uint8_t rule_tos = p_val->get_tos();
-    const char *rule_iif_name = p_val->get_iif_name();
-    const char *rule_oif_name = p_val->get_oif_name();
+    const ip_address &rule_dst_ip = val.get_dst_addr();
+    const ip_address &rule_src_ip = val.get_src_addr();
+    uint8_t rule_tos = val.get_tos();
+    const char *rule_iif_name = val.get_iif_name();
+    const char *rule_oif_name = val.get_oif_name();
 
     // Only destination IP, source IP and TOS are checked with rule, since IIF and OIF is not filled
     // in dst_entry object.
     return
         // Check match in address family
-        (p_val->get_family() == key.get_family()) &&
+        (val.get_family() == key.get_family()) &&
         // Check match in destination IP
         ((rule_dst_ip.is_anyaddr()) || (rule_dst_ip == m_dst_ip)) &&
         // Check match in source IP
