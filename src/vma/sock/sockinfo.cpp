@@ -59,7 +59,7 @@
 #define si_logfunc    __log_info_func
 #define si_logfuncall __log_info_funcall
 
-sockinfo::sockinfo(int fd)
+sockinfo::sockinfo(int fd, int domain)
     : socket_fd_api(fd)
     , m_b_blocking(true)
     , m_b_pktinfo(false)
@@ -71,6 +71,7 @@ sockinfo::sockinfo(int fd)
     , m_lock_rcv(MODULE_NAME "::m_lock_rcv")
     , m_lock_snd(MODULE_NAME "::m_lock_snd")
     , m_state(SOCKINFO_OPENED)
+    , m_family(domain)
     , m_p_connected_dst_entry(NULL)
     , m_so_bindtodevice_ip(INADDR_ANY)
     , m_p_rx_ring(0)
@@ -116,8 +117,8 @@ sockinfo::sockinfo(int fd)
     m_socketxtreme.completion = NULL;
     m_socketxtreme.last_buff_lst = NULL;
 
-    m_connected.set_any(AF_INET);
-    m_bound.set_any(AF_INET);
+    m_connected.set_sa_family(m_family);
+    m_bound.set_sa_family(m_family);
 }
 
 sockinfo::~sockinfo()

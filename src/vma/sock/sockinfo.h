@@ -157,7 +157,7 @@ class sockinfo : public socket_fd_api,
                  public pkt_sndr_source,
                  public wakeup_pipe {
 public:
-    sockinfo(int fd);
+    sockinfo(int fd, int domain);
     virtual ~sockinfo();
 
     enum sockinfo_state { SOCKINFO_OPENED, SOCKINFO_CLOSING, SOCKINFO_CLOSED, SOCKINFO_DESTROYING };
@@ -229,6 +229,7 @@ protected:
     lock_mutex m_rx_migration_lock;
 
     sockinfo_state m_state; // socket current state
+    sa_family_t m_family;
     sock_addr m_bound;
     sock_addr m_connected;
     dst_entry *m_p_connected_dst_entry;

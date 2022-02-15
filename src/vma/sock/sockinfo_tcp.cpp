@@ -230,8 +230,8 @@ inline void sockinfo_tcp::reuse_buffer(mem_buf_desc_t *buff)
     }
 }
 
-sockinfo_tcp::sockinfo_tcp(int fd)
-    : sockinfo(fd)
+sockinfo_tcp::sockinfo_tcp(int fd, int domain)
+    : sockinfo(fd, domain)
     , m_timer_handle(NULL)
     , m_timer_pending(false)
     , m_sysvar_buffer_batching_mode(safe_mce_sys().buffer_batching_mode)
@@ -257,7 +257,6 @@ sockinfo_tcp::sockinfo_tcp(int fd)
     m_linger.l_linger = 0;
     m_linger.l_onoff = 0;
 
-    m_bound.set_any(AF_INET);
     m_protocol = PROTO_TCP;
     m_p_socket_stats->socket_type = SOCK_STREAM;
 

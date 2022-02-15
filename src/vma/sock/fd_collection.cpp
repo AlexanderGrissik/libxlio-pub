@@ -246,7 +246,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
                 return -1;
             }
             fdcoll_logdbg("UDP rules are either not consistent or instructing to use XLIO.");
-            p_sfd_api_obj = new sockinfo_udp(fd);
+            p_sfd_api_obj = new sockinfo_udp(fd, domain);
             break;
         }
         case SOCK_STREAM: {
@@ -256,7 +256,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
                 return -1;
             }
             fdcoll_logdbg("TCP rules are either not consistent or instructing to use XLIO.");
-            p_sfd_api_obj = new sockinfo_tcp(fd);
+            p_sfd_api_obj = new sockinfo_tcp(fd, domain);
             break;
         }
         default:

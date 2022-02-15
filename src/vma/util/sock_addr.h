@@ -138,20 +138,6 @@ public:
         memcpy(&u_sa.m_sa, sa, std::min<size_t>(get_socklen_max(), size));
     }
 
-    void set_any(sa_family_t f)
-    {
-        clear_sa();
-        u_sa.m_sa.sa_family = f;
-
-        if (AF_INET == f) {
-            u_sa.m_sa_in.sin_addr.s_addr = INADDR_ANY;
-            u_sa.m_sa_in.sin_port = INPORT_ANY;
-        } else {
-            memcpy(&u_sa.m_sa_in6.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-            u_sa.m_sa_in6.sin6_port = INPORT_ANY;
-        }
-    }
-
     void set_ip_port(sa_family_t f, const void *ip_addr, in_port_t p)
     {
         clear_sa();

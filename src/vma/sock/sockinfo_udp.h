@@ -73,7 +73,7 @@ typedef std::unordered_map<in_addr_t, std::unordered_map<in_addr_t, int>> mc_mem
  */
 class sockinfo_udp : public sockinfo {
 public:
-    sockinfo_udp(int fd);
+    sockinfo_udp(int fd, int domain);
     virtual ~sockinfo_udp();
 
     void setPassthrough() { m_p_socket_stats->b_is_offloaded = m_sock_offload = false; }

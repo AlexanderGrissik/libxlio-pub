@@ -334,8 +334,8 @@ const char *setsockopt_ip_opt_to_str(int opt)
 // Throttle the amount of ring polling we do (remember last time we check for receive packets)
 tscval_t g_si_tscv_last_poll = 0;
 
-sockinfo_udp::sockinfo_udp(int fd)
-    : sockinfo(fd)
+sockinfo_udp::sockinfo_udp(int fd, int domain)
+    : sockinfo(fd, domain)
     , m_mc_tx_if(INADDR_ANY)
     , m_b_mc_tx_loop(
           safe_mce_sys().tx_mc_loopback_default) // default value is 'true'. User can change this
@@ -603,7 +603,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         if (!m_p_connected_dst_entry) {
             si_udp_logerr("Failed to create dst_entry(dst_ip:%s, dst_port:%d, src_port:%d)",
                           dst_ipaddr.to_str().c_str(), ntohs(dst_port), ntohs(src_port));
-            m_connected.set_any(AF_INET);
+            m_connected = sock_addr();
             m_p_socket_stats->connected_ip =
                 ip_address(in6addr_any); // Special assignment - it should have been done by
                                          // m_p_socket_stats->set_connected_ip()
