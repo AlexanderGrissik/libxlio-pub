@@ -31,30 +31,30 @@
  */
 
 #include "vma/util/ip_address.h"
-#include "route_entry.h"
-#include "rule_table_mgr.h"
-#include "vma/infra/cache_subject_observer.h"
+#include "vma/dev/net_device_entry.h"
 #include "vma/dev/net_device_table_mgr.h"
+#include "rule_entry.h"
+#include "rule_table_mgr.h"
+#include "route_entry.h"
 
 // debugging macros
 #define MODULE_NAME "rte"
 #undef MODULE_HDR_INFO
 #define MODULE_HDR_INFO MODULE_NAME "[%s]:%d:%s() "
 #undef __INFO__
-#define __INFO__ m_str.c_str()
+#define __INFO__ to_str().c_str()
 
 #define rt_entry_logdbg __log_info_dbg
 
 route_entry::route_entry(route_rule_table_key rtk)
     : cache_entry_subject<route_rule_table_key, route_val *>(rtk)
     , cache_observer()
-    , m_p_net_dev_entry(NULL)
-    , m_p_net_dev_val(NULL)
     , m_b_offloaded_net_dev(false)
     , m_is_valid(false)
+    , m_p_net_dev_entry(NULL)
+    , m_p_net_dev_val(NULL)
 {
     m_val = NULL;
-    m_p_rr_entry = NULL;
     cache_entry_subject<route_rule_table_key, std::deque<rule_val *> *> *rr_entry = NULL;
     g_p_rule_table_mgr->register_observer(rtk, this, &rr_entry);
     m_p_rr_entry = dynamic_cast<rule_entry *>(rr_entry);
@@ -69,6 +69,11 @@ route_entry::~route_entry()
     }
 }
 
+const std::string route_entry::to_str() const
+{
+    return get_key().to_str() + " -> " + (m_val ? m_val->get_if_name() : "invalid");
+}
+
 bool route_entry::get_val(INOUT route_val *&val)
 {
     rt_entry_logdbg("");
@@ -76,15 +81,9 @@ bool route_entry::get_val(INOUT route_val *&val)
     return is_valid();
 }
 
-void route_entry::set_str()
-{
-    m_str = get_key().to_str() + "->" + m_val->get_if_name();
-}
-
 void route_entry::set_val(IN route_val *&val)
 {
     cache_entry_subject<route_rule_table_key, route_val *>::set_val(val);
-    set_str();
 }
 
 void route_entry::register_to_net_device()
@@ -98,8 +97,7 @@ void route_entry::register_to_net_device()
         ip_addr src_addr(lip_offloaded_list.front().local_addr);
         rt_entry_logdbg("register to net device with src_addr %s", src_addr.to_str().c_str());
 
-        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry =
-            (cache_entry_subject<ip_addr, net_device_val *> *)m_p_net_dev_entry;
+        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
         if (g_p_net_device_table_mgr->register_observer(src_addr, this, &net_dev_entry)) {
             rt_entry_logdbg("route_entry [%p] is registered to an offloaded device", this);
             m_p_net_dev_entry = (net_device_entry *)net_dev_entry;

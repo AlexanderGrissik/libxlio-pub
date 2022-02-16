@@ -33,14 +33,14 @@
 #ifndef ROUTE_ENTRY_H
 #define ROUTE_ENTRY_H
 
-#include "vma/util/if.h"
-#include <netinet/in.h>
-
 #include "vma/proto/route_rule_table_key.h"
 #include "vma/infra/cache_subject_observer.h"
-#include "vma/dev/net_device_entry.h"
 #include "route_val.h"
-#include "rule_entry.h"
+
+// Forward declarations
+class net_device_entry;
+class net_device_val;
+class rule_entry;
 
 class route_entry : public cache_entry_subject<route_rule_table_key, route_val *>,
                     public cache_observer {
@@ -53,31 +53,26 @@ public:
     bool get_val(INOUT route_val *&val);
     void set_val(IN route_val *&val);
 
-    net_device_val *get_net_dev_val() { return m_p_net_dev_val; }
+    inline net_device_val *get_net_dev_val() { return m_p_net_dev_val; }
+    inline rule_entry *get_rule_entry() const { return m_p_rr_entry; }
 
     inline void set_entry_valid() { m_is_valid = true; }
-    inline bool is_valid()
-    {
-        return m_is_valid && m_val && m_val->is_valid();
-    }; // m_val is NULL at first
+    inline bool is_valid() { return m_is_valid && m_val && m_val->is_valid(); }
+
+    const std::string to_str() const;
 
     virtual void notify_cb();
 
-    void set_str();
-    const std::string to_str() const { return m_str; };
-
-    inline rule_entry *get_rule_entry() const { return m_p_rr_entry; };
-
 private:
-    net_device_entry *m_p_net_dev_entry;
-    net_device_val *m_p_net_dev_val;
-    bool m_b_offloaded_net_dev;
-    bool m_is_valid;
-    std::string m_str;
-    rule_entry *m_p_rr_entry;
-
     void register_to_net_device();
     void unregister_to_net_device();
+
+    bool m_b_offloaded_net_dev;
+    bool m_is_valid;
+
+    net_device_entry *m_p_net_dev_entry;
+    net_device_val *m_p_net_dev_val;
+    rule_entry *m_p_rr_entry;
 };
 
 #endif /* ROUTE_ENTRY_H */
