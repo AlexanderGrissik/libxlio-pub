@@ -184,15 +184,15 @@ public:
     friend class neighbour_table_mgr;
 
     neigh_entry(neigh_key key, transport_type_t type, bool is_init_resources = true);
-    virtual ~neigh_entry();
+    ~neigh_entry() override;
 
     // Overwrite cach_entry virtual function
-    virtual bool is_deletable();
-    virtual void clean_obj();
+    bool is_deletable() override;
+    void clean_obj() override;
 
     // Implementation of pure virtual function: Don't use get_val function, instead use
     // get_peer_info
-    virtual bool get_val(INOUT neigh_val *&val)
+    bool get_val(INOUT neigh_val *&val) override
     {
         NOT_IN_USE(val);
         return false;
@@ -200,14 +200,14 @@ public:
 
     virtual bool get_peer_info(neigh_val *val);
     // Overriding subject's register_observer
-    virtual bool register_observer(const observer *const new_observer);
+    bool register_observer(const observer *const new_observer) override;
     // Overriding tostr to_str()
-    virtual const std::string to_str() const;
+    const std::string to_str() const override;
 
     const char *event_to_str(event_t event) const;
     const char *state_to_str(state_t state) const;
 
-    void handle_event_rdma_cm_cb(struct rdma_cm_event *p_event);
+    void handle_event_rdma_cm_cb(struct rdma_cm_event *p_event) override;
     void handle_neigh_event(neigh_nl_event *nl_ev);
 
     static void general_st_entry(const sm_info_t &func_info);
@@ -277,7 +277,7 @@ protected:
     virtual void send_arp();
     virtual bool post_send_arp(bool) { return true; };
     virtual bool prepare_to_send_packet(header *) { return true; };
-    void handle_timer_expired(void *user_data);
+    void handle_timer_expired(void *user_data) override;
 
     virtual ring_user_id_t generate_ring_user_id(header *h = NULL)
     {
@@ -305,25 +305,25 @@ public:
     friend class neighbour_table_mgr;
     neigh_eth(neigh_key key);
     ~neigh_eth();
-    virtual bool get_peer_info(neigh_val *val);
+    bool get_peer_info(neigh_val *val) override;
     // Overriding neigh_entry register_observer
-    bool register_observer(const observer *const new_observer);
+    bool register_observer(const observer *const new_observer) override;
     // Overriding neigh_entry is_deletable
-    virtual bool is_deletable();
+    bool is_deletable() override;
 
 protected:
-    virtual ring_user_id_t generate_ring_user_id(header *h = NULL);
+    ring_user_id_t generate_ring_user_id(header *h = NULL) override;
 
 private:
     int build_mc_neigh_val();
     int build_uc_neigh_val();
     // Overriding neigh_entry priv_enter_ready
-    virtual int priv_enter_ready();
-    virtual int priv_enter_init();
-    virtual int priv_enter_init_resolution();
-    virtual bool priv_handle_neigh_is_l2_changed(address_t);
-    virtual bool post_send_arp(bool is_broadcast);
-    virtual bool prepare_to_send_packet(header *);
+    int priv_enter_ready() override;
+    int priv_enter_init() override;
+    int priv_enter_init_resolution() override;
+    bool priv_handle_neigh_is_l2_changed(address_t) override;
+    bool post_send_arp(bool is_broadcast) override;
+    bool prepare_to_send_packet(header *) override;
 };
 
 #endif /* NEIGHBOUR_H */

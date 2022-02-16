@@ -59,7 +59,7 @@ public:
     subject(const char *lock_name = "lock(subject)")
         : m_lock(lock_name) {};
     virtual ~subject() {};
-    bool register_observer(IN const observer *const new_observer);
+    virtual bool register_observer(IN const observer *const new_observer);
     bool unregister_observer(IN const observer *const old_observer);
     void notify_observers(event *ev = NULL);
 
