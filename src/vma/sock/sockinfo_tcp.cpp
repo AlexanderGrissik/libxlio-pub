@@ -2382,9 +2382,6 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
         return -1;
     }
 
-    // setup peer address
-    // TODO: Currenlty we don't check the if __to is supported and legal
-    // socket-redirect probably should do this
     m_connected.set_sockaddr(__to, __tolen);
 
     create_dst_entry();
@@ -2397,19 +2394,17 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     prepare_dst_to_send(false);
 
-    // update it after route was resolved and device was updated
-    // [TODO IPV6] Temporary
     m_p_socket_stats->set_bound_if(m_p_connected_dst_entry->get_src_addr().get_in_addr());
 
-    sockaddr_in remote_addr;
-    remote_addr.sin_family = AF_INET;
-    remote_addr.sin_addr.s_addr = m_p_connected_dst_entry->get_dst_addr().get_in_addr();
-    remote_addr.sin_port = m_p_connected_dst_entry->get_dst_port();
     sock_addr local_addr(m_bound);
     if (local_addr.is_anyaddr()) {
         local_addr.set_in_addr(ip_address(m_p_connected_dst_entry->get_src_addr()));
     }
 
+    sock_addr remote_addr;
+    remote_addr.set_sa_family(m_p_connected_dst_entry->get_sa_family());
+    remote_addr.set_in_addr(m_p_connected_dst_entry->get_dst_addr());
+    remote_addr.set_in_port(m_p_connected_dst_entry->get_dst_port());
     if (!m_p_connected_dst_entry->is_offloaded() ||
         find_target_family(ROLE_TCP_CLIENT, (sockaddr *)&remote_addr, local_addr.get_p_sa()) !=
             TRANS_VMA) {
@@ -2481,10 +2476,13 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
 int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 {
-    struct sockaddr tmp_sin;
-    socklen_t tmp_sin_len = sizeof(tmp_sin);
-
     si_tcp_logfuncall("");
+
+    sock_addr addr(__addr, __addrlen);
+    socklen_t addr_len = addr.get_socklen();
+    int ret = 0;
+
+    si_tcp_logdbg("to %s", addr.to_str_ip_port(true).c_str());
 
     if (m_sock_state == TCP_SOCK_BOUND) {
         si_tcp_logfuncall("already bounded");
@@ -2501,12 +2499,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 
     lock_tcp_con();
 
-    uint16_t bind_to_port = (__addr && __addrlen) ? ((struct sockaddr_in *)__addr)->sin_port
-                                                  : INPORT_ANY; // todo verify __addr length
-    bool disable_reuse_option = (bind_to_port == INPORT_ANY) && (m_pcb.so_options & SOF_REUSEADDR);
-    int reuse, ret;
-
-    if (disable_reuse_option) {
+    if (addr.is_anyport() && (m_pcb.so_options & SOF_REUSEADDR)) {
+        int reuse;
         reuse = 0;
         ret = orig_os_api.setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2520,11 +2514,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
             return ret;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
-    }
-
-    ret = orig_os_api.bind(m_fd, __addr, __addrlen);
-
-    if (disable_reuse_option) {
+        ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
         reuse = 1;
         int rv = orig_os_api.setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2535,8 +2525,13 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         if (ret < 0) {
             setPassthrough();
             si_tcp_logdbg("socket bound only via OS");
+            unlock_tcp_con();
+            return ret;
         }
+    } else {
+        ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
     }
+
 #if defined(DEFINED_NGINX)
     if (safe_mce_sys().actual_nginx_workers_num > 0) {
         // TODO: consider adding  correct processing of this case
@@ -2550,7 +2545,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (orig_os_api.getsockname(m_fd, &tmp_sin, &tmp_sin_len)) {
+    if (orig_os_api.getsockname(m_fd, (struct sockaddr *)addr.get_p_sa(), &addr_len)) {
         si_tcp_logerr("get sockname failed");
         unlock_tcp_con();
         return -1; // error
@@ -2558,14 +2553,14 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // TODO: mark socket as accepting both os and offloaded connections
-    if (tmp_sin.sa_family != AF_INET) {
-        si_tcp_logdbg("Illegal family %d", tmp_sin.sa_family);
+    if (!addr.is_supported()) {
+        si_tcp_logdbg("Illegal family %d", addr.get_sa_family());
         errno = EAFNOSUPPORT;
         unlock_tcp_con();
         return -1; // error
     }
-    m_pcb.is_ipv6 = false;
-    m_bound.set_sockaddr(&tmp_sin, tmp_sin_len);
+    m_pcb.is_ipv6 = (addr.get_sa_family() == AF_INET6);
+    m_bound = addr;
 
     if (!m_bound.is_anyaddr() &&
         !g_p_net_device_table_mgr->get_net_device_val(
@@ -2601,8 +2596,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 int sockinfo_tcp::prepareListen()
 {
     transport_t target_family;
-    struct sockaddr_in tmp_sin;
-    socklen_t tmp_sin_len = sizeof(sockaddr_in);
+    sock_addr addr;
+    socklen_t addr_len;
     si_tcp_logfuncall("");
 
     if (m_sock_offload == TCP_SOCK_PASSTHROUGH) {
@@ -2613,27 +2608,24 @@ int sockinfo_tcp::prepareListen()
         return 0; // listen had been called before...
     }
 
+    addr.set_sa_family(m_family);
+    addr_len = addr.get_socklen();
     if (m_sock_state != TCP_SOCK_BOUND) {
         /*It is legal application  behavior, listen was called without bind,
          * therefore need to call for bind() to get a random port from the OS
          */
         si_tcp_logdbg("listen was called without bind - calling for bind");
 
-        memset(&tmp_sin, 0, tmp_sin_len);
-        tmp_sin.sin_family = AF_INET;
-        tmp_sin.sin_port = 0;
-        tmp_sin.sin_addr.s_addr = INADDR_ANY;
-        if (bind((struct sockaddr *)&tmp_sin, tmp_sin_len) < 0) {
+        if (bind((struct sockaddr *)addr.get_p_sa(), addr_len) < 0) {
             si_tcp_logdbg("bind failed");
             return 1;
         }
     }
 
-    memset(&tmp_sin, 0, tmp_sin_len);
-    getsockname((struct sockaddr *)&tmp_sin, &tmp_sin_len);
+    getsockname((struct sockaddr *)addr.get_p_sa(), &addr_len);
     lock_tcp_con();
     target_family = __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id,
-                                           (struct sockaddr *)&tmp_sin, tmp_sin_len);
+                                           (struct sockaddr *)addr.get_p_sa(), addr_len);
     si_tcp_logdbg("TRANSPORT: %s, sock state = %d", __vma_get_transport_str(target_family),
                   get_tcp_state(&m_pcb));
 
@@ -2955,7 +2947,7 @@ sockinfo_tcp *sockinfo_tcp::accept_clone()
 
     // note that this will call socket() replacement!!!
     // and it will force proper socket creation
-    fd = socket_internal(AF_INET, SOCK_STREAM, 0);
+    fd = socket_internal(m_family, SOCK_STREAM, 0);
     if (fd < 0) {
         return 0;
     }
@@ -3163,9 +3155,15 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 
 void sockinfo_tcp::create_flow_tuple_key_from_pcb(flow_tuple &key, struct tcp_pcb *pcb)
 {
-    key = flow_tuple(ip_address(pcb->local_ip.ip4.addr), htons(pcb->local_port),
-                     ip_address(pcb->remote_ip.ip4.addr), htons(pcb->remote_port), PROTO_TCP,
-                     AF_INET);
+    if (pcb->is_ipv6) {
+        key = flow_tuple(ip_address((const in6_addr &)pcb->local_ip.ip6.addr), htons(pcb->local_port),
+                         ip_address((const in6_addr &)pcb->remote_ip.ip6.addr), htons(pcb->remote_port), PROTO_TCP,
+                         AF_INET6);
+    } else {
+        key = flow_tuple(ip_address(pcb->local_ip.ip4.addr), htons(pcb->local_port),
+                         ip_address(pcb->remote_ip.ip4.addr), htons(pcb->remote_port), PROTO_TCP,
+                         AF_INET);
+    }
 }
 
 mem_buf_desc_t *sockinfo_tcp::get_front_m_rx_pkt_ready_list()
@@ -3198,14 +3196,6 @@ struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(const flow_tuple &key) const
         ret_val = itr->second;
     }
     return ret_val;
-}
-
-struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(in_addr_t peer_ip, in_port_t peer_port,
-                                                   in_addr_t local_ip, in_port_t local_port)
-{
-    flow_tuple key(ip_address(local_ip), local_port, ip_address(peer_ip), peer_port, PROTO_TCP,
-                   AF_INET);
-    return get_syn_received_pcb(key);
 }
 
 struct tcp_pcb *sockinfo_tcp::get_syn_received_pcb(const sock_addr &src, const sock_addr &dst)
@@ -3420,8 +3410,13 @@ err_t sockinfo_tcp::syn_received_drop_lwip_cb(void *arg, struct tcp_pcb *newpcb)
 void sockinfo_tcp::set_conn_properties_from_pcb()
 {
     // setup peer address and local address
-    m_connected.set_ip_port(AF_INET, &m_pcb.remote_ip.ip4.addr, htons(m_pcb.remote_port));
-    m_bound.set_ip_port(AF_INET, &m_pcb.local_ip.ip4.addr, htons(m_pcb.local_port));
+    if (m_pcb.is_ipv6) {
+        m_connected.set_ip_port(AF_INET6, &m_pcb.remote_ip.ip6.addr, htons(m_pcb.remote_port));
+        m_bound.set_ip_port(AF_INET6, &m_pcb.local_ip.ip6.addr, htons(m_pcb.local_port));
+    } else {
+        m_connected.set_ip_port(AF_INET, &m_pcb.remote_ip.ip4.addr, htons(m_pcb.remote_port));
+        m_bound.set_ip_port(AF_INET, &m_pcb.local_ip.ip4.addr, htons(m_pcb.local_port));
+    }
 }
 
 void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)

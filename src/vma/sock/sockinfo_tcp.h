@@ -515,8 +515,6 @@ private:
     // Returns the connected pcb, with 5 tuple which matches the input arguments,
     // in state "SYN Received" or NULL if pcb wasn't found
     struct tcp_pcb *get_syn_received_pcb(const flow_tuple &key) const;
-    struct tcp_pcb *get_syn_received_pcb(in_addr_t src_addr, in_port_t src_port,
-                                         in_addr_t dest_addr, in_port_t dest_port);
     struct tcp_pcb *get_syn_received_pcb(const sock_addr &src, const sock_addr &dst);
 
     virtual mem_buf_desc_t *get_front_m_rx_pkt_ready_list();
