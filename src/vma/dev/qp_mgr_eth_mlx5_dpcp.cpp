@@ -31,7 +31,7 @@
  */
 #include "qp_mgr_eth_mlx5_dpcp.h"
 
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
+#if defined(DEFINED_DPCP)
 
 #include <cinttypes>
 #include "ring_simple.h"
@@ -323,4 +323,4 @@ dpcp::tir *qp_mgr_eth_mlx5_dpcp::create_tir(bool is_tls /*=false*/)
     return tir_obj;
 }
 
-#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
+#endif // defined(DEFINED_DPCP)

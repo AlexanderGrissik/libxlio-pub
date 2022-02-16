@@ -712,7 +712,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_TX_SEGS_BATCH_TCP        (64)
 #define MCE_DEFAULT_TX_NUM_SGE               (4)
 
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
+#if defined(DEFINED_DPCP)
 #define MCE_DEFAULT_STRQ (option_strq::ON)
 #else
 #define MCE_DEFAULT_STRQ (option_strq::OFF)

@@ -286,16 +286,28 @@ int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num, sa_fa
         vma_ibv_flow_spec_action_tag flow_tag;
     } ft_attr_ipv6;
 
-    vma_ibv_flow_attr *p_attr = (family == AF_INET ? &ft_attr_ipv4.attr : &ft_attr_ipv6.attr);
-    vma_ibv_flow_spec_eth *p_eth = (family == AF_INET ? &ft_attr_ipv4.eth : &ft_attr_ipv6.eth);
-    vma_ibv_flow_spec_tcp_udp *p_tcp_udp =
-        (family == AF_INET ? &ft_attr_ipv4.tcp_udp : &ft_attr_ipv6.tcp_udp);
-    vma_ibv_flow_spec_action_tag *p_flow_tag =
-        (family == AF_INET ? &ft_attr_ipv4.flow_tag : &ft_attr_ipv6.flow_tag);
+    vma_ibv_flow_attr *p_attr = nullptr;
+    vma_ibv_flow_spec_eth *p_eth = nullptr;
+    vma_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
+    vma_ibv_flow_spec_action_tag *p_flow_tag = nullptr;
 
     // Initialize
-    memset(p_attr, 0, sizeof(*p_attr));
-    p_attr->size = sizeof(*p_attr);
+    if (family == AF_INET) {
+        memset(&ft_attr_ipv4, 0, sizeof(ft_attr_ipv4));
+        p_attr = &(ft_attr_ipv4.attr);
+        p_eth = &(ft_attr_ipv4.eth);
+        p_tcp_udp = &(ft_attr_ipv4.tcp_udp);
+        p_flow_tag = &(ft_attr_ipv4.flow_tag);
+        p_attr->size = sizeof(ft_attr_ipv4);
+    } else {
+        memset(&ft_attr_ipv6, 0, sizeof(ft_attr_ipv6));
+        p_attr = &(ft_attr_ipv6.attr);
+        p_eth = &(ft_attr_ipv6.eth);
+        p_tcp_udp = &(ft_attr_ipv6.tcp_udp);
+        p_flow_tag = &(ft_attr_ipv6.flow_tag);
+        p_attr->size = sizeof(ft_attr_ipv6);
+    }
+
     p_attr->num_of_specs = 4;
     p_attr->type = VMA_IBV_FLOW_ATTR_NORMAL;
     p_attr->priority = 2; // almost highest priority, 1 is used for 5-tuple later

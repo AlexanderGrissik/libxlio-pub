@@ -258,6 +258,7 @@ dpcp::adapter *ib_ctx_handler::set_dpcp_adapter()
     dpcp::adapter_info *dpcp_lst = NULL;
     size_t adapters_num = 0;
     size_t i = 0;
+    int dpcp_ver = 0;
 
     m_p_adapter = NULL;
     if (!m_p_ibv_device) {

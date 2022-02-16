@@ -32,7 +32,7 @@
 
 #include "vma/dev/rfs_rule_dpcp.h"
 
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10118)
+#if defined(DEFINED_DPCP)
 
 #include <cinttypes>
 #include "vma/dev/rfs.h"
@@ -157,4 +157,4 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
     return true;
 }
 
-#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10118)
+#endif // defined(DEFINED_DPCP)

@@ -35,7 +35,7 @@
 
 #include <config.h>
 
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10118)
+#if defined(DEFINED_DPCP)
 
 #include <memory>
 #include "vma/util/utils.h"
@@ -55,6 +55,6 @@ private:
     unique_ptr<dpcp::flow_rule> _dpcp_flow;
 };
 
-#endif // defined(DEFINED_DPCP) && (DEFINED_DPCP > 10118)
+#endif // defined(DEFINED_DPCP)
 
 #endif

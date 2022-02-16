@@ -91,7 +91,7 @@ qp_mgr *ring_eth::create_qp_mgr(struct qp_mgr_desc *desc)
 {
 #if defined(DEFINED_DIRECT_VERBS)
     if (qp_mgr::is_lib_mlx5(((ib_ctx_handler *)desc->slave->p_ib_ctx)->get_ibname())) {
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
+#if defined(DEFINED_DPCP)
         if (safe_mce_sys().enable_dpcp_rq)
             return new qp_mgr_eth_mlx5_dpcp(desc, get_tx_num_wr(), m_partition);
 #endif
@@ -303,7 +303,7 @@ void ring_simple::create_resources()
     memset(&m_lro, 0, sizeof(m_lro));
     if ((safe_mce_sys().enable_lro == option_3::ON) ||
         ((safe_mce_sys().enable_lro == option_3::AUTO) && (1 == validate_lro(get_if_index())))) {
-#if defined(DEFINED_DPCP) && (DEFINED_DPCP > 10114)
+#if defined(DEFINED_DPCP)
         dpcp::adapter_hca_capabilities caps;
 
         if (m_p_ib_ctx->get_dpcp_adapter() &&
