@@ -96,10 +96,9 @@ public:
 
     const in6_addr &get_in6_addr() const { return m_ip6; };
 
-    // [TODO IPV6] Implement for IPv6
     bool is_mc(sa_family_t family) const
     {
-        return (family == AF_INET ? IN_MULTICAST_N(m_ip) : false);
+        return (family == AF_INET ? IN_MULTICAST_N(m_ip) : IN6_IS_ADDR_MULTICAST(&m_ip6));
     };
 
     bool is_anyaddr() const { return *this == any_addr(); };
@@ -225,6 +224,8 @@ public:
     bool is_ipv4() const { return (m_family == AF_INET); }
 
     bool is_ipv6() const { return (m_family == AF_INET6); }
+
+    bool is_mc() const { return ip_address::is_mc(m_family); }
 
     const std::string to_str() const { return ip_address::to_str(m_family); }
 

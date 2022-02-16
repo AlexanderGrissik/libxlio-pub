@@ -157,6 +157,7 @@ inline int neigh_eth::build_uc_neigh_val()
 neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_resources)
     : cache_entry_subject<neigh_key, neigh_val *>(key)
     , m_cma_id(NULL)
+    , m_src_addr(in6addr_any)
     , m_rdma_port_space((enum rdma_port_space)0)
     , m_state_machine(NULL)
     , m_type(UNKNOWN)
@@ -195,24 +196,19 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    memset(&m_dst_addr, 0, sizeof(m_dst_addr));
-    memset(&m_src_addr, 0, sizeof(m_src_addr));
-    m_dst_addr.sin_addr.s_addr = get_key().get_in_addr(); /*(peer_ip)*/
-    m_dst_addr.sin_family = AF_INET;
-
-    m_src_addr.sin_addr.s_addr = m_p_dev->get_local_addr().get_in_addr();
-    m_src_addr.sin_family = AF_INET;
-
     memset(&m_send_wqe, 0, sizeof(m_send_wqe));
     memset(&m_sge, 0, sizeof(m_sge));
 
-    /* Verify if neigh is local (loopback) checking into account
-     * primary and secondary ip-addresses
+    /* Verify if neigh is local (loopback).
+     * Also setup source address as first with the same family as destination.
      */
     {
         const ip_data_vector_t &ip = m_p_dev->get_ip_array();
         for (size_t i = 0; i < ip.size(); i++) {
-            if (ip[i]->local_addr.get_in_addr() == m_dst_addr.sin_addr.s_addr) {
+            if (ip[i]->local_addr.get_family() == get_family()) {
+                m_src_addr = ip[i]->local_addr;
+            }
+            if (ip[i]->local_addr == get_dst_addr()) {
                 neigh_logdbg("This is loopback neigh");
                 m_is_loopback = true;
                 break;
@@ -1046,14 +1042,19 @@ int neigh_entry::priv_enter_init_resolution()
         (void *)g_p_neigh_table_mgr->m_neigh_cma_event_channel, this);
 
     // 4. Start RDMA address resolution
-    neigh_logdbg("Calling rdma_resolve_addr, src=%d.%d.%d.%d, dst=%d.%d.%d.%d",
-                 NIPQUAD(m_src_addr.sin_addr.s_addr), NIPQUAD(m_dst_addr.sin_addr.s_addr));
+    neigh_logdbg("Calling rdma_resolve_addr, src=%s, dst=%s",
+                 m_src_addr.to_str(get_family()).c_str(), get_dst_addr().to_str().c_str());
+
+    // Note that it is safe to pass ip_address as void pointer to POSIX functions,
+    // as it is guaranteed to have same layout as in_addr/in6_addr
+    const void *dst_raw = reinterpret_cast<const void *>(&get_dst_addr());
+    sock_addr dst_sa(get_family(), dst_raw, 0);
+    sock_addr src_sa(get_family(), &m_src_addr, 0);
 
     /* we had issues passing unicast src addr, let it find the correct one itself */
-    struct sockaddr *src =
-        IN_MULTICAST_N(m_dst_addr.sin_addr.s_addr) ? (struct sockaddr *)&m_src_addr : NULL;
+    sockaddr *src_p_sa = get_dst_addr().is_mc() ? src_sa.get_p_sa() : NULL;
 
-    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src, (struct sockaddr *)&m_dst_addr, 2000))
+    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src_p_sa, dst_sa.get_p_sa(), 2000))
     {
         neigh_logdbg("Failed in rdma_resolve_addr  m_cma_id = %p (errno=%d %m)", m_cma_id, errno);
         return -1;
@@ -1192,7 +1193,10 @@ bool neigh_entry::priv_get_neigh_state(int &state)
         return true;
     }
 
-    if (inet_ntop(AF_INET, &(m_dst_addr.sin_addr), str_addr, sizeof(str_addr)) &&
+    // Note that it is safe to pass ip_address as void pointer to POSIX functions,
+    // as it is guaranteed to have same layout as in_addr/in6_addr
+    const void *dst_raw = reinterpret_cast<const void *>(&get_dst_addr());
+    if (inet_ntop(get_family(), dst_raw, str_addr, sizeof(str_addr)) &&
         g_p_netlink_handler->get_neigh(str_addr, m_p_dev->get_if_idx(), &info)) {
         state = info.state;
         neigh_logdbg("state = %s", info.get_state2str().c_str());
@@ -1214,7 +1218,10 @@ bool neigh_entry::priv_get_neigh_l2(address_t &l2_addr)
         return true;
     }
 
-    if (inet_ntop(AF_INET, &(m_dst_addr.sin_addr), str_addr, sizeof(str_addr)) &&
+    // Note that it is safe to pass ip_address as void pointer to POSIX functions,
+    // as it is guaranteed to have same layout as in_addr/in6_addr
+    const void *dst_raw = reinterpret_cast<const void *>(&get_dst_addr());
+    if (inet_ntop(get_family(), dst_raw, str_addr, sizeof(str_addr)) &&
         g_p_netlink_handler->get_neigh(str_addr, m_p_dev->get_if_idx(), &info)) {
         if (!priv_is_failed(info.state)) {
             memcpy(l2_addr, info.lladdr, info.lladdr_len);

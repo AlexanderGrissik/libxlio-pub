@@ -56,7 +56,7 @@
 
 class neigh_key : public tostr {
 public:
-    neigh_key(ip_address addr, net_device_val *p_ndvl)
+    neigh_key(ip_addr addr, net_device_val *p_ndvl)
         : m_ip_addrs(addr)
         , m_p_net_dev_val(p_ndvl) {};
     virtual ~neigh_key() {};
@@ -66,6 +66,7 @@ public:
         return (m_ip_addrs.to_str() + " " + m_p_net_dev_val->to_str());
     }
     in_addr_t get_in_addr() const { return m_ip_addrs.get_in_addr(); };
+    const ip_addr &get_ip_addr() const { return m_ip_addrs; };
     net_device_val *get_net_device_val() const { return m_p_net_dev_val; };
 
     virtual size_t hash(void)
@@ -84,7 +85,7 @@ public:
     }
 
 private:
-    ip_address m_ip_addrs;
+    ip_addr m_ip_addrs;
     net_device_val *m_p_net_dev_val;
 };
 
@@ -225,8 +226,7 @@ public:
 
 protected:
     rdma_cm_id *m_cma_id;
-    sockaddr_in m_dst_addr;
-    sockaddr_in m_src_addr;
+    ip_address m_src_addr;
     enum rdma_port_space m_rdma_port_space;
     state_machine *m_state_machine;
     type m_type; // UC  / MC
@@ -247,6 +247,9 @@ protected:
 
     const std::string m_to_str;
     ring_user_id_t m_id;
+
+    const ip_addr &get_dst_addr() const { return get_key().get_ip_addr(); }
+    sa_family_t get_family() const { return get_dst_addr().get_family(); }
 
     virtual void priv_general_st_entry(const sm_info_t &func_info);
     virtual void priv_general_st_leave(const sm_info_t &func_info);

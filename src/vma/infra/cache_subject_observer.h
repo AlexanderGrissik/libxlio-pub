@@ -90,7 +90,7 @@ protected:
     // coverity[member_decl]
     Val m_val;
 
-    inline Key get_key() const { return m_key; };
+    inline const Key &get_key() const { return m_key; }; // Note: Key should not be a reference
 
     inline void set_val(IN Val &val)
     {

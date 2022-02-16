@@ -83,7 +83,8 @@ dst_entry::~dst_entry()
         if (m_p_rt_val && m_p_rt_val->get_gw_addr() != INADDR_ANY && !dst_addr.is_mc(AF_INET)) {
             dst_addr = ip_address(m_p_rt_val->get_gw_addr());
         }
-        g_p_neigh_table_mgr->unregister_observer(neigh_key(dst_addr, m_p_net_dev_val), this);
+        g_p_neigh_table_mgr->unregister_observer(
+            neigh_key(ip_addr(dst_addr, m_family), m_p_net_dev_val), this);
     }
 
     if (m_p_rt_entry) {
@@ -198,7 +199,8 @@ bool dst_entry::update_net_dev_val()
             if (m_p_rt_val && m_p_rt_val->get_gw_addr() != INADDR_ANY && !dst_addr.is_mc(AF_INET)) {
                 dst_addr = ip_address(m_p_rt_val->get_gw_addr());
             }
-            g_p_neigh_table_mgr->unregister_observer(neigh_key(dst_addr, m_p_net_dev_val), this);
+            g_p_neigh_table_mgr->unregister_observer(
+                neigh_key(ip_addr(dst_addr, m_family), m_p_net_dev_val), this);
             m_p_neigh_entry = NULL;
         }
 
@@ -312,8 +314,8 @@ bool dst_entry::resolve_neigh()
     }
     cache_entry_subject<neigh_key, neigh_val *> *p_ces = NULL;
     if (m_p_neigh_entry ||
-        g_p_neigh_table_mgr->register_observer(neigh_key(dst_addr, m_p_net_dev_val), this,
-                                               &p_ces)) {
+        g_p_neigh_table_mgr->register_observer(
+            neigh_key(ip_addr(dst_addr, m_family), m_p_net_dev_val), this, &p_ces)) {
         if (m_p_neigh_entry == NULL) {
             m_p_neigh_entry = dynamic_cast<neigh_entry *>(p_ces);
         }

@@ -40,6 +40,7 @@
 #include <arpa/inet.h>
 #include "vma/util/vtypes.h"
 #include "vma/util/ip_address.h"
+#include "vma/util/sock_addr.h"
 
 static inline sa_family_t get_sa_family(const struct sockaddr *addr)
 {
@@ -99,6 +100,7 @@ public:
 
     ~sock_addr() {};
 
+    struct sockaddr *get_p_sa() { return &u_sa.m_sa; }
     const struct sockaddr *get_p_sa() const { return &u_sa.m_sa; }
 
     void get_sa(struct sockaddr *sa, socklen_t size) const
