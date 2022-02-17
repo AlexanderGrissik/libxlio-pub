@@ -38,7 +38,6 @@
 
 #include <linux/rtnetlink.h>
 #include <linux/netlink.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h> // getpid()
 
@@ -48,109 +47,86 @@
 
 #define MSG_BUFF_SIZE  81920
 
-netlink_socket_mgr::netlink_socket_mgr()
-{
-    __log_dbg("");
-
-    m_pid = getpid();
-    m_seq_num = 0;
-
-    m_msg_buf = (char *)calloc(MSG_BUFF_SIZE, 1);
-    if (m_msg_buf == NULL) {
-        __log_err("NL message buffer allocation failed");
-        return;
-    }
-
-    // Create Socket
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if ((m_fd = orig_os_api.socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) < 0) {
-        __log_err("NL socket creation failed, errno = %d", errno);
-        return;
-    }
-
-    if (orig_os_api.fcntl(m_fd, F_SETFD, FD_CLOEXEC) != 0) {
-        __log_warn("Fail in fctl, errno = %d", errno);
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
-
-    __log_dbg("Done");
-}
-
-netlink_socket_mgr::~netlink_socket_mgr()
-{
-    __log_dbg("");
-    if (m_fd >= 0) {
-        orig_os_api.close(m_fd);
-        m_fd = -1;
-    }
-    free(m_msg_buf);
-
-    __log_dbg("Done");
-}
-
-// This function build Netlink request to retrieve data (Rule, Route) from kernel.
+// This function builds Netlink request to retrieve data (Rule, Route) from kernel.
 // Parameters :
-//		data_type	: either RULE_DATA_TYPE or ROUTE_DATA_TYPE
-//		family	: address family for the request
-//		nl_msg	: request to be returned
-void netlink_socket_mgr::build_request(nl_data_t data_type, sa_family_t family, struct nlmsghdr **nl_msg)
+//      data_type   : either RULE_DATA_TYPE or ROUTE_DATA_TYPE
+//      pid         : opaque pid for netlink request
+//      seq         : opaque seq for netlink request
+//      buf         : buffer for the request
+//      nl_msg      : [out] pointer to request
+void netlink_socket_mgr::build_request(nl_data_t data_type, uint32_t pid, uint32_t seq, char *buf,
+    struct nlmsghdr **nl_msg)
 {
     struct rtmsg *rt_msg;
 
     assert(MSG_BUFF_SIZE >= NLMSG_SPACE(sizeof(struct rtmsg)));
-    memset(m_msg_buf, 0, NLMSG_SPACE(sizeof(struct rtmsg)));
+    memset(buf, 0, NLMSG_SPACE(sizeof(struct rtmsg)));
 
     // point the header and the msg structure pointers into the buffer
-    *nl_msg = (struct nlmsghdr *)m_msg_buf;
+    *nl_msg = (struct nlmsghdr *)buf;
     rt_msg = (struct rtmsg *)NLMSG_DATA(*nl_msg);
 
     // Fill in the nlmsg header
     (*nl_msg)->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
-    (*nl_msg)->nlmsg_seq = ++m_seq_num;
-    (*nl_msg)->nlmsg_pid = m_pid;
+    (*nl_msg)->nlmsg_seq = seq;
+    (*nl_msg)->nlmsg_pid = pid;
     (*nl_msg)->nlmsg_type = data_type == RULE_DATA_TYPE ? RTM_GETRULE : RTM_GETROUTE;
     (*nl_msg)->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 
-    rt_msg->rtm_family = family;
+    rt_msg->rtm_family = AF_UNSPEC;
 }
 
 // Query built request and receive requested data (Rule, Route)
 // Parameters:
-//		nl_msg	: request that is built previously.
-//		len		: length of received data.
-bool netlink_socket_mgr::query(struct nlmsghdr *&nl_msg, int &len)
+//      nl_msg  : request that is built previously.
+//      buf     : [out] buffer for the reply
+//      len     : [out] length of received data.
+bool netlink_socket_mgr::query(const struct nlmsghdr *nl_msg, char *buf, int &len)
 {
-    if (m_fd < 0) {
-        return false;
-    }
+    int sockfd;
+
+    // Opaque information in the request. To track expected reply.
+    uint32_t nl_pid = nl_msg->nlmsg_pid;
+    uint32_t nl_seq = nl_msg->nlmsg_seq;
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (orig_os_api.send(m_fd, nl_msg, nl_msg->nlmsg_len, 0) < 0) {
-        __log_err("Write To Socket Failed...\n");
+    if ((sockfd = orig_os_api.socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) < 0) {
+        __log_err("NL socket creation failed, errno = %d", errno);
         return false;
     }
-    if ((len = recv_info()) < 0) {
-        __log_err("Read From Socket Failed...\n");
-        return false;
+    if (orig_os_api.fcntl(sockfd, F_SETFD, FD_CLOEXEC) != 0) {
+        __log_warn("Fail in fcntl, errno = %d", errno);
+    }
+    if ((len = orig_os_api.send(sockfd, nl_msg, nl_msg->nlmsg_len, 0)) < 0) {
+        __log_err("Write to NL socket failed, errno = %d", errno);
+    }
+    if (len > 0 && (len = recv_info(sockfd, nl_pid, nl_seq, buf)) < 0) {
+        __log_err("Read from NL socket failed...");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    return true;
+    close(sockfd);
+    return len > 0;
 }
 
-// Receive requested data and save it locally.
+// Receive requested data and save it to buffer.
 // Return length of received data.
-int netlink_socket_mgr::recv_info()
+// Parameters:
+//      sockfd  : netlink socket
+//      pid     : expected opaque pid value
+//      seq     : expected opaque seq value
+//      buf     : [out] read reply
+int netlink_socket_mgr::recv_info(int sockfd, uint32_t pid, uint32_t seq, char *buf)
 {
     struct nlmsghdr *nlHdr;
-    int readLen = 0, msgLen = 0;
-
-    char *buf_ptr = m_msg_buf;
+    int readLen;
+    int msgLen = 0;
+    char *buf_ptr = buf;
 
     do {
         // Receive response from the kernel
         BULLSEYE_EXCLUDE_BLOCK_START
-        if ((readLen = orig_os_api.recv(m_fd, buf_ptr, MSG_BUFF_SIZE - msgLen, 0)) < 0) {
+        if ((readLen = orig_os_api.recv(sockfd, buf_ptr, MSG_BUFF_SIZE - msgLen, 0)) < 0) {
             __log_err("NL socket read failed, errno = %d", errno);
             return -1;
         }
@@ -161,22 +137,24 @@ int netlink_socket_mgr::recv_info()
         if ((NLMSG_OK(nlHdr, (u_int)readLen) == 0) || (nlHdr->nlmsg_type == NLMSG_ERROR)) {
             __log_err("Error in received packet, readLen = %d, msgLen = %d, type=%d, bufLen = %d",
                       readLen, nlHdr->nlmsg_len, nlHdr->nlmsg_type, MSG_BUFF_SIZE);
-            if (nlHdr->nlmsg_len == MSG_BUFF_SIZE) {
+            if ((int)nlHdr->nlmsg_len >= MSG_BUFF_SIZE - msgLen) {
                 __log_err("The buffer we pass to netlink is too small for reading the whole table");
             }
             return -1;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
 
+        if ((nlHdr->nlmsg_seq != seq) || (nlHdr->nlmsg_pid != pid)) {
+            // Skip not expected messages
+            continue;
+        }
+
         buf_ptr += readLen;
         msgLen += readLen;
 
-        // Check if the its the last message
-        if (nlHdr->nlmsg_type == NLMSG_DONE || (nlHdr->nlmsg_flags & NLM_F_MULTI) == 0) {
-            break;
-        }
+        // Loop until this is the last message of expected reply
+    } while (nlHdr->nlmsg_type != NLMSG_DONE && (nlHdr->nlmsg_flags & NLM_F_MULTI));
 
-    } while ((nlHdr->nlmsg_seq != m_seq_num) || (nlHdr->nlmsg_pid != m_pid));
     return msgLen;
 }
 
@@ -184,24 +162,38 @@ int netlink_socket_mgr::recv_info()
 void netlink_socket_mgr::update_tbl(nl_data_t data_type)
 {
     struct nlmsghdr *nl_msg = NULL;
+    char *buf;
     int len = 0;
 
-    build_request(data_type, AF_UNSPEC, &nl_msg);
-    if (!query(nl_msg, len)) {
+    // Opaque netlink information
+    uint32_t nl_pid = getpid();
+    uint32_t nl_seq = static_cast<uint32_t>(data_type);
+
+    __log_dbg("");
+
+    buf = new char[MSG_BUFF_SIZE];
+    if (!buf) {
+        __log_err("NL message buffer allocation failed");
         return;
     }
-    parse_tbl(len);
+
+    build_request(data_type, nl_pid, nl_seq, buf, &nl_msg);
+    if (query(nl_msg, buf, len)) {
+        parse_tbl(buf, len);
+    }
+
+    delete[] buf;
+    __log_dbg("Done");
 }
 
 // Parse received data in a table
 // Parameters:
-//		len				: length of received data.
-//		p_ent_num		: number of rows in received data.
-void netlink_socket_mgr::parse_tbl(int len)
+//      buf : buffer with netlink reply.
+//      len : length of received data.
+void netlink_socket_mgr::parse_tbl(char *buf, int len)
 {
-    struct nlmsghdr *nl_header;
+    struct nlmsghdr *nl_header = (struct nlmsghdr *)buf;
 
-    nl_header = (struct nlmsghdr *)m_msg_buf;
     for (; NLMSG_OK(nl_header, (u_int)len); nl_header = NLMSG_NEXT(nl_header, len)) {
         parse_entry(nl_header);
     }
