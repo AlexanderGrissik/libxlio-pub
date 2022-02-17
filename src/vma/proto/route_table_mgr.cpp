@@ -462,27 +462,22 @@ route_entry *route_table_mgr::create_new_entry(route_rule_table_key key, const o
     return p_ent;
 }
 
-void route_table_mgr::new_route_event(route_val *netlink_route_val)
+void route_table_mgr::new_route_event(const route_val &netlink_route_val)
 {
-    if (!netlink_route_val) {
-        rt_mgr_logdbg("Invalid route entry");
-        return;
-    }
-
     route_val val;
 
-    val.set_dst_addr(netlink_route_val->get_dst_addr());
-    val.set_dst_pref_len(netlink_route_val->get_dst_pref_len());
-    val.set_src_addr(netlink_route_val->get_src_addr());
-    val.set_gw(netlink_route_val->get_gw_addr());
-    val.set_family(netlink_route_val->get_family());
-    val.set_protocol(netlink_route_val->get_protocol());
-    val.set_scope(netlink_route_val->get_scope());
-    val.set_type(netlink_route_val->get_type());
-    val.set_table_id(netlink_route_val->get_table_id());
-    val.set_if_index(netlink_route_val->get_if_index());
-    val.set_if_name(const_cast<char *>(netlink_route_val->get_if_name()));
-    val.set_mtu((netlink_route_val->get_mtu()));
+    val.set_dst_addr(netlink_route_val.get_dst_addr());
+    val.set_dst_pref_len(netlink_route_val.get_dst_pref_len());
+    val.set_src_addr(netlink_route_val.get_src_addr());
+    val.set_gw(netlink_route_val.get_gw_addr());
+    val.set_family(netlink_route_val.get_family());
+    val.set_protocol(netlink_route_val.get_protocol());
+    val.set_scope(netlink_route_val.get_scope());
+    val.set_type(netlink_route_val.get_type());
+    val.set_table_id(netlink_route_val.get_table_id());
+    val.set_if_index(netlink_route_val.get_if_index());
+    val.set_if_name(const_cast<char *>(netlink_route_val.get_if_name()));
+    val.set_mtu((netlink_route_val.get_mtu()));
     val.set_state(true);
     val.print_val();
 

@@ -43,13 +43,13 @@ public:
     netlink_route_info(struct rtnl_route *nl_route_obj);
     ~netlink_route_info();
 
-    route_val *get_route_val() { return m_route_val; };
+    const route_val &get_route_val() { return m_route_val; };
 
 private:
     // fill all attributes using the provided netlink original route
     void fill(struct rtnl_route *nl_route_obj);
 
-    route_val *m_route_val;
+    route_val m_route_val;
 };
 
 #endif /* NETLINK_ROUTE_INFO_H_ */

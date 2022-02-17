@@ -91,7 +91,7 @@ private:
 
     void rt_mgr_update_source_ip(route_table_t &table);
 
-    void new_route_event(route_val *netlink_route_val);
+    void new_route_event(const route_val &netlink_route_val);
 
     // Holds route_entry for each netdev, to receive events in case there are no other route_entries
     in_addr_route_entry_map_t m_rte_list_for_each_net_dev;
