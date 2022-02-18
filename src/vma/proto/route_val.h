@@ -41,7 +41,6 @@
 class route_val {
 public:
     route_val();
-    virtual ~route_val() {};
 
     inline void set_dst_pref_len(uint8_t dst_pref_len) { m_dst_pref_len = dst_pref_len; };
     inline void set_dst_addr(ip_address const &dst_addr) { m_dst_addr = dst_addr; };
@@ -72,12 +71,18 @@ public:
     inline void set_state(bool state) { m_is_valid = state; };
     inline bool is_valid() const { return m_is_valid; };
 
+    inline void set_deleted(bool deleted) { m_b_deleted = deleted; };
     inline bool is_deleted() const { return m_b_deleted; };
-
-    inline bool is_if_up() const { return m_b_if_up; };
 
     const std::string to_str() const;
     void print_val();
+
+    bool operator==(const route_val &val) const
+    {
+        return m_dst_addr == val.m_dst_addr && m_gw_addr == val.m_gw_addr &&
+            m_dst_pref_len == val.m_dst_pref_len && m_family == val.m_family &&
+            m_table_id == val.m_table_id && m_if_index == val.m_if_index;
+    };
 
 private:
     ip_address m_dst_addr;
@@ -98,7 +103,6 @@ private:
 
     bool m_is_valid;
     bool m_b_deleted;
-    bool m_b_if_up;
 };
 
 #endif /* ROUTE_VAL_H */

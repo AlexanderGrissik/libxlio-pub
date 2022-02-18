@@ -56,7 +56,6 @@ route_val::route_val()
     m_if_index = 0;
     m_is_valid = false;
     m_b_deleted = false;
-    m_b_if_up = true;
     m_mtu = 0;
 }
 

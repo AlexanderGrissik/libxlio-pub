@@ -65,6 +65,7 @@
 #define rt_mgr_logfuncall  __log_funcall
 
 #define DEFAULT_ROUTE_TABLE_SIZE 256
+#define MAX_ROUTE_TABLE_SIZE 32768
 
 route_table_mgr *g_p_route_table_mgr = NULL;
 
@@ -336,7 +337,7 @@ bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst
 
     for (auto iter = table.begin(); iter != table.end(); ++iter) {
         route_val &val = *iter;
-        if (!val.is_deleted() && val.is_if_up()) { // Value was not deleted
+        if (!val.is_deleted()) { // Value was not deleted
             if (val.get_table_id() == table_id) { // Found a match in routing table ID
                 if (val.get_dst_addr().is_equal_with_prefix(dst, val.get_dst_pref_len(), val.get_family())) {
                     // Found a match in routing table
@@ -483,7 +484,32 @@ void route_table_mgr::new_route_event(const route_val &netlink_route_val)
 
     auto_unlocker lock(m_lock);
     route_table_t &table = val.get_family() == AF_INET ? m_table_in4 : m_table_in6;
-    table.push_back(val);
+    // Search for deleted duplicate routes
+    auto iter = table.begin();
+    for (; iter != table.end(); ++iter) {
+        if (*iter == val && iter->is_deleted()) {
+            *iter = val; // Overwrites m_b_deleted
+            break;
+        }
+    }
+    // Push new value if there is no deleted duplicate route
+    if (iter == table.end() && table.size() < MAX_ROUTE_TABLE_SIZE) {
+        table.push_back(val);
+    }
+}
+
+void route_table_mgr::del_route_event(const route_val &netlink_route_val)
+{
+    route_table_t &table = netlink_route_val.get_family() == AF_INET ? m_table_in4 : m_table_in6;
+    auto_unlocker lock(m_lock);
+
+    // We cannot erase elements in the array, because this would invalide pointers
+    for (auto iter = table.begin(); iter != table.end(); ++iter) {
+        if (*iter == netlink_route_val) {
+            (*iter).set_deleted(true);
+            break;
+        }
+    }
 }
 
 void route_table_mgr::notify_cb(event *ev)
@@ -506,11 +532,9 @@ void route_table_mgr::notify_cb(event *ev)
     case RTM_NEWROUTE:
         new_route_event(p_netlink_route_info->get_route_val());
         break;
-#if 0
-		case RTM_DELROUTE:
-			del_route_event(p_netlink_route_info->get_route_val());
-			break;
-#endif
+    case RTM_DELROUTE:
+        del_route_event(p_netlink_route_info->get_route_val());
+        break;
     default:
         rt_mgr_logdbg("Route event (%u) is not handled", route_netlink_ev->nl_type);
         break;
