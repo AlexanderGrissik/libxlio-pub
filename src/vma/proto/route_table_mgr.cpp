@@ -65,7 +65,7 @@
 #define rt_mgr_logfuncall  __log_funcall
 
 #define DEFAULT_ROUTE_TABLE_SIZE 256
-#define MAX_ROUTE_TABLE_SIZE 32768
+#define MAX_ROUTE_TABLE_SIZE     32768
 
 route_table_mgr *g_p_route_table_mgr = NULL;
 
@@ -142,7 +142,8 @@ void route_table_mgr::rt_mgr_update_source_ip(route_table_t &table)
                 for (auto lip_iter = lip_list.begin(); lip_list.end() != lip_iter; ++lip_iter) {
                     const ip_data_t &ip = *lip_iter;
                     if (val.get_family() == ip.local_addr.get_family() &&
-                        val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen, val.get_family())) {
+                        val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen,
+                                                                val.get_family())) {
                         // found a match in routing table
                         if (ip.prefixlen > longest_prefix) {
                             longest_prefix = ip.prefixlen; // this is the longest prefix match
@@ -214,7 +215,8 @@ void route_table_mgr::rt_mgr_update_source_ip(route_table_t &table)
             continue;
         }
         if (!val.get_gw_addr().is_anyaddr()) {
-            rt_mgr_logdbg("could not figure out source ip for gw address. rtv = %s", val.to_str().c_str());
+            rt_mgr_logdbg("could not figure out source ip for gw address. rtv = %s",
+                          val.to_str().c_str());
         }
         // if still no src ip, get it from ioctl
         ip_addr src_addr {0};
@@ -327,8 +329,8 @@ void route_table_mgr::print_tbl()
     }
 }
 
-bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst,
-    uint32_t table_id, route_val *&p_val)
+bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst, uint32_t table_id,
+                                     route_val *&p_val)
 {
     rt_mgr_logfunc("dst addr '%s'", dst.to_str().c_str());
 
@@ -339,7 +341,8 @@ bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst
         route_val &val = *iter;
         if (!val.is_deleted()) { // Value was not deleted
             if (val.get_table_id() == table_id) { // Found a match in routing table ID
-                if (val.get_dst_addr().is_equal_with_prefix(dst, val.get_dst_pref_len(), val.get_family())) {
+                if (val.get_dst_addr().is_equal_with_prefix(dst, val.get_dst_pref_len(),
+                                                            val.get_family())) {
                     // Found a match in routing table
                     if (val.get_dst_pref_len() > longest_prefix) {
                         // This is the longest prefix match
@@ -427,7 +430,8 @@ void route_table_mgr::update_entry(INOUT route_entry *p_ent, bool b_register_to_
                     p_ent->set_val(p_val);
                     if (b_register_to_net_dev) {
                         // Check if broadcast IPv4 which is NOT supported
-                        if ((p_ent->get_key().get_family() == AF_INET) && (peer_ip == ip_address::broadcast4_addr())) {
+                        if ((p_ent->get_key().get_family() == AF_INET) &&
+                            (peer_ip == ip_address::broadcast4_addr())) {
                             rt_mgr_logdbg("Disabling Offload for broadcast route_entry '%s'",
                                           p_ent->to_str().c_str());
                             // Need to route traffic to/from OS

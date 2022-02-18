@@ -45,7 +45,7 @@
 #define MODULE_NAME "netlink_socket_mgr:"
 #endif
 
-#define MSG_BUFF_SIZE  81920
+#define MSG_BUFF_SIZE 81920
 
 // This function builds Netlink request to retrieve data (Rule, Route) from kernel.
 // Parameters :
@@ -55,7 +55,7 @@
 //      buf         : buffer for the request
 //      nl_msg      : [out] pointer to request
 void netlink_socket_mgr::build_request(nl_data_t data_type, uint32_t pid, uint32_t seq, char *buf,
-    struct nlmsghdr **nl_msg)
+                                       struct nlmsghdr **nl_msg)
 {
     struct rtmsg *rt_msg;
 

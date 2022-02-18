@@ -47,7 +47,7 @@ protected:
 
 private:
     void build_request(nl_data_t data_type, uint32_t pid, uint32_t seq, char *buf,
-        struct nlmsghdr **nl_msg);
+                       struct nlmsghdr **nl_msg);
     bool query(const struct nlmsghdr *nl_msg, char *buf, int &len);
     int recv_info(int sockfd, uint32_t pid, uint32_t seq, char *buf);
     void parse_tbl(char *buf, int len);

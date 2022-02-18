@@ -42,9 +42,9 @@
 #define rt_val_logfunc __log_info_func
 
 route_val::route_val()
-   : m_dst_addr(in6addr_any)
-   , m_src_addr(in6addr_any)
-   , m_gw_addr(in6addr_any)
+    : m_dst_addr(in6addr_any)
+    , m_src_addr(in6addr_any)
+    , m_gw_addr(in6addr_any)
 {
     m_dst_pref_len = 0;
     m_family = 0;
@@ -64,7 +64,9 @@ const std::string route_val::to_str() const
     std::string rc;
 
     rc = "dst: ";
-    rc += m_dst_addr.is_anyaddr() ? "default" : m_dst_addr.to_str(m_family) + '/' + std::to_string(m_dst_pref_len);
+    rc += m_dst_addr.is_anyaddr()
+        ? "default"
+        : m_dst_addr.to_str(m_family) + '/' + std::to_string(m_dst_pref_len);
     if (!m_gw_addr.is_anyaddr()) {
         rc += " gw: " + m_gw_addr.to_str(m_family);
     }

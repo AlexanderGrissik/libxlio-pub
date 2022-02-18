@@ -1066,8 +1066,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 // Find local if for this MC ADD/DROP
                 route_result res;
                 // TODO IPv6 support
-                g_p_route_table_mgr->route_resolve(route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos),
-                                                   res);
+                g_p_route_table_mgr->route_resolve(
+                    route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos),
+                    res);
                 mc_if = res.p_src;
                 si_udp_logdbg(
                     "IPPROTO_IP, %s=%d.%d.%d.%d, mc_if:INADDR_ANY (resolved to: %d.%d.%d.%d)",
@@ -2329,7 +2330,8 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         // Find local if for this MC ADD/DROP
         route_result res;
         // TODO IPv6 support
-        g_p_route_table_mgr->route_resolve(route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos), res);
+        g_p_route_table_mgr->route_resolve(
+            route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos), res);
         mc_if = res.p_src;
     }
 

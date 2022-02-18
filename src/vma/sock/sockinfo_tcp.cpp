@@ -1283,9 +1283,9 @@ uint16_t sockinfo_tcp::get_route_mtu(struct tcp_pcb *pcb)
     }
     route_result res;
 
-    auto rule_key = route_rule_table_key(reinterpret_cast<ip_address&>(pcb->local_ip),
-        reinterpret_cast<ip_address&>(pcb->remote_ip), pcb->is_ipv6 ? AF_INET6 : AF_INET,
-        pcb->tos);
+    auto rule_key = route_rule_table_key(reinterpret_cast<ip_address &>(pcb->local_ip),
+                                         reinterpret_cast<ip_address &>(pcb->remote_ip),
+                                         pcb->is_ipv6 ? AF_INET6 : AF_INET, pcb->tos);
     g_p_route_table_mgr->route_resolve(rule_key, res);
 
     if (res.mtu) {

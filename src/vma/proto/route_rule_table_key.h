@@ -46,7 +46,8 @@
  */
 class route_rule_table_key {
 public:
-    route_rule_table_key(const ip_address &dst_ip, const ip_address &src_ip, sa_family_t family, uint8_t tos)
+    route_rule_table_key(const ip_address &dst_ip, const ip_address &src_ip, sa_family_t family,
+                         uint8_t tos)
         : m_dst_ip(dst_ip)
         , m_src_ip(src_ip)
         , m_family(family)

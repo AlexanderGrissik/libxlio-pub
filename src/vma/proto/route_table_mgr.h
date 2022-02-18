@@ -78,7 +78,7 @@ protected:
 
 private:
     bool find_route_val(route_table_t &table, const ip_address &dst_addr, uint32_t table_id,
-        route_val *&p_val);
+                        route_val *&p_val);
 
     // save current main rt table
     void update_tbl();
