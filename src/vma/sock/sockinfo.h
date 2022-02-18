@@ -587,7 +587,7 @@ protected:
         return "UNKNOWN SO opt";
     }
 
-    int get_sock_by_L3_L4(in_protocol_t protocol, in_addr_t ip, in_port_t port);
+    int get_sock_by_L3_L4(in_protocol_t protocol, const ip_address &ip, in_port_t port);
 
     //////////////////////////////////////////////////////////////////
     int handle_exception_flow()
