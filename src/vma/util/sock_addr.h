@@ -124,18 +124,32 @@ public:
 
     socklen_t get_socklen() const
     {
-        return static_cast<socklen_t>(get_sa_family() == AF_INET ? sizeof(struct sockaddr_in)
-                                                                 : sizeof(struct sockaddr_in6));
+        switch (get_sa_family()) {
+        case AF_INET:
+            return static_cast<socklen_t>(sizeof(struct sockaddr_in));
+        case AF_INET6:
+            return static_cast<socklen_t>(sizeof(struct sockaddr_in6));
+        default:
+            break;
+        }
+        return static_cast<socklen_t>(sizeof(u_sa));
+    }
+
+    bool is_supported() const
+    {
+        return (get_sa_family() == AF_INET || get_sa_family() == AF_INET6);
     }
 
     bool is_anyaddr() const { return get_ip_addr().is_anyaddr(); }
+
+    bool is_anyport() const { return (INPORT_ANY == get_in_port()); }
 
     bool is_mc() const { return get_ip_addr().is_mc(get_sa_family()); };
 
     void set_sockaddr(const struct sockaddr *sa, socklen_t size)
     {
         clear_sa();
-        memcpy(&u_sa.m_sa, sa, std::min<size_t>(get_socklen_max(), size));
+        memcpy(&u_sa.m_sa, sa, std::min<size_t>(sizeof(u_sa), size));
     }
 
     void set_ip_port(sa_family_t f, const void *ip_addr, in_port_t p)
@@ -151,6 +165,8 @@ public:
             u_sa.m_sa_in6.sin6_port = p;
         }
     }
+
+    void set_sa_family(const sa_family_t f) { u_sa.m_sa.sa_family = f; }
 
     void set_in_addr(const ip_address &ip)
     {
@@ -178,7 +194,7 @@ public:
 
     bool operator==(const sock_addr &other) const
     {
-        return (0 == memcmp(&u_sa, &other.u_sa, get_socklen_max()));
+        return (0 == memcmp(&u_sa, &other.u_sa, sizeof(u_sa)));
     }
 
     size_t hash(void) const
@@ -202,9 +218,7 @@ public:
     std::string to_str_ip_port(bool port = false) const { return sockaddr2str(&u_sa.m_sa, port); }
 
 private:
-    void clear_sa() { memset(&u_sa, 0, get_socklen_max()); }
-
-    size_t get_socklen_max() const { return sizeof(struct sockaddr_in6); };
+    void clear_sa() { memset(&u_sa, 0, sizeof(u_sa)); }
 
     union {
         struct sockaddr m_sa;

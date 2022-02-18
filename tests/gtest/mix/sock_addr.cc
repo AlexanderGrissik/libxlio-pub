@@ -145,8 +145,8 @@ TEST_F(sock_addr_test, sock_addr_setters)
     sock_addr sa2_6(sa1_6);
 
     uint8_t buf[sizeof(sock_addr)] = {0};
-    sa1_4.set_any(AF_INET);
-    sa1_6.set_any(AF_INET6);
+    sa1_4.set_sa_family(AF_INET);
+    sa1_6.set_sa_family(AF_INET6);
     reinterpret_cast<uint16_t *>(buf)[0] = AF_INET;
     EXPECT_EQ(0, memcmp(sa1_4.get_p_sa(), &buf, SOCKLEN4));
     reinterpret_cast<uint16_t *>(buf)[0] = AF_INET6;
