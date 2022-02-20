@@ -363,3 +363,50 @@ bool fooBar(bool Baz, char* str, std::vector<int>& Result);
 	 * looks like this.
 	 */
 ```
+
+## Class layout
+
+Fields and methods must be grouped together respectively and regardless of their visibility. All the fields must be either at the top or bottom of a class definition. It is discouraged to mix methods and fields.
+
+Rationale: fields layout matters in context of padding and cache miss optimizations. Mixing fields and methods complicates visual perception and estimation of the resulting ABI.
+
+**Right:**
+```
+class foo {
+public:
+    foo();
+    void method1();
+
+protected:
+    void method2();
+
+private:
+    void method3();
+
+public:
+    int field1;
+
+protected:
+    int field2;
+
+private:
+    int field3;
+};
+```
+
+Visibility mode doesn't have to be repeated if it is not changed for the block with fields (or methods).
+
+**Right:**
+```
+class bar {
+public:
+    bar();
+    method1();
+
+private:
+    method2();
+
+    int field1;
+    int field2;
+};
+```
