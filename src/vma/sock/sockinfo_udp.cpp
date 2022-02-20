@@ -1069,7 +1069,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 g_p_route_table_mgr->route_resolve(
                     route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos),
                     res);
-                mc_if = res.p_src;
+                mc_if = res.src.get_in_addr();
                 si_udp_logdbg(
                     "IPPROTO_IP, %s=%d.%d.%d.%d, mc_if:INADDR_ANY (resolved to: %d.%d.%d.%d)",
                     setsockopt_ip_opt_to_str(__optname), NIPQUAD(mc_grp), NIPQUAD(mc_if));
@@ -2332,7 +2332,7 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         // TODO IPv6 support
         g_p_route_table_mgr->route_resolve(
             route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos), res);
-        mc_if = res.p_src;
+        mc_if = res.src.get_in_addr();
     }
 
     // MNY: TODO: Check rules for local_if (blacklist interface feature)

@@ -1281,11 +1281,12 @@ uint16_t sockinfo_tcp::get_route_mtu(struct tcp_pcb *pcb)
     if (tcp_sock->m_p_connected_dst_entry) {
         return tcp_sock->m_p_connected_dst_entry->get_route_mtu();
     }
-    route_result res;
 
-    auto rule_key = route_rule_table_key(reinterpret_cast<ip_address &>(pcb->local_ip),
-                                         reinterpret_cast<ip_address &>(pcb->remote_ip),
-                                         pcb->is_ipv6 ? AF_INET6 : AF_INET, pcb->tos);
+    route_result res;
+    sa_family_t family = pcb->is_ipv6 ? AF_INET6 : AF_INET;
+    auto rule_key =
+        route_rule_table_key(reinterpret_cast<ip_address &>(pcb->local_ip),
+                             reinterpret_cast<ip_address &>(pcb->remote_ip), family, pcb->tos);
     g_p_route_table_mgr->route_resolve(rule_key, res);
 
     if (res.mtu) {
@@ -1293,7 +1294,7 @@ uint16_t sockinfo_tcp::get_route_mtu(struct tcp_pcb *pcb)
         return res.mtu;
     }
 
-    net_device_val *ndv = g_p_net_device_table_mgr->get_net_device_val(ip_addr(res.p_src));
+    net_device_val *ndv = g_p_net_device_table_mgr->get_net_device_val(ip_addr(res.src, family));
     if (ndv && ndv->get_mtu() > 0) {
         return ndv->get_mtu();
     }

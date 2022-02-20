@@ -332,8 +332,6 @@ void route_table_mgr::print_tbl()
 bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst, uint32_t table_id,
                                      route_val *&p_val)
 {
-    rt_mgr_logfunc("dst addr '%s'", dst.to_str().c_str());
-
     route_val *correct_route_val = NULL;
     int longest_prefix = -1;
 
@@ -355,7 +353,8 @@ bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst
     }
     if (correct_route_val) {
         p_val = correct_route_val;
-        rt_mgr_logdbg("found route val[%p]: %s", p_val, p_val->to_str().c_str());
+        rt_mgr_logdbg("dst addr '%s' -> route val: %s", dst.to_str(p_val->get_family()).c_str(),
+                      p_val->to_str().c_str());
         return true;
     }
 
@@ -365,10 +364,12 @@ bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst
 
 bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_result &res)
 {
-    const ip_address &dst_addr = key.get_dst_ip();
-    rt_mgr_logdbg("dst addr '%s'", dst_addr.to_str().c_str());
+    rt_mgr_logdbg("key: %s", key.to_str().c_str());
 
-    route_table_t &rt = key.get_family() == AF_INET ? m_table_in4 : m_table_in6;
+    const ip_address &dst_addr = key.get_dst_ip();
+    const sa_family_t family = key.get_family();
+
+    route_table_t &rt = family == AF_INET ? m_table_in4 : m_table_in6;
     route_val *p_val = NULL;
     std::deque<uint32_t> table_id_list;
 
@@ -377,12 +378,12 @@ bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_resul
     auto_unlocker lock(m_lock);
     for (auto iter = table_id_list.begin(); iter != table_id_list.end(); ++iter) {
         if (find_route_val(rt, dst_addr, *iter, p_val)) {
-            res.p_src = p_val->get_src_addr().get_in_addr();
-            rt_mgr_logdbg("dst ip '%s' resolved to src addr '%d.%d.%d.%d'",
-                          dst_addr.to_str().c_str(), NIPQUAD(res.p_src));
-            res.p_gw = p_val->get_gw_addr().get_in_addr();
-            rt_mgr_logdbg("dst ip '%s' resolved to gw addr '%d.%d.%d.%d'",
-                          dst_addr.to_str().c_str(), NIPQUAD(res.p_gw));
+            res.src = p_val->get_src_addr();
+            rt_mgr_logdbg("dst ip '%s' resolved to src addr '%s'", dst_addr.to_str(family).c_str(),
+                          res.src.to_str(family).c_str());
+            res.gw = p_val->get_gw_addr();
+            rt_mgr_logdbg("dst ip '%s' resolved to gw addr '%s'", dst_addr.to_str(family).c_str(),
+                          res.gw.to_str(family).c_str());
             res.mtu = p_val->get_mtu();
             rt_mgr_logdbg("found route mtu %d", res.mtu);
             return true;

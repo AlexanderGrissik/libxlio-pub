@@ -49,12 +49,12 @@ typedef std::unordered_map<ip_address, route_entry *> in_addr_route_entry_map_t;
 typedef std::vector<route_val> route_table_t;
 
 struct route_result {
-    in_addr_t p_src;
-    in_addr_t p_gw;
+    ip_address src;
+    ip_address gw;
     uint32_t mtu;
     route_result()
-        : p_src(0)
-        , p_gw(0)
+        : src(in6addr_any)
+        , gw(in6addr_any)
         , mtu(0)
     {
     }
