@@ -173,7 +173,7 @@ int get_base_interface_name(const char *if_name, char *base_ifname, size_t sz_ba
     return 0;
 }
 
-void print_roce_lag_warnings(char *interface, char *disable_path /* = NULL */,
+void print_roce_lag_warnings(const char *interface, char *disable_path /* = NULL */,
                              const char *port1 /* = NULL */, const char *port2 /* = NULL */)
 {
     vlog_printf(VLOG_WARNING,

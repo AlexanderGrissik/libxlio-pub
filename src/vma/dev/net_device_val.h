@@ -54,7 +54,6 @@ class L2_address;
 class ring;
 class ib_ctx_handler;
 
-#define RING_ALLOC_STR_SIZE 256
 class ring_alloc_logic_attr {
 public:
     ring_alloc_logic_attr();
@@ -63,7 +62,7 @@ public:
     void set_ring_alloc_logic(ring_logic_t logic);
     void set_memory_descriptor(iovec &mem_desc);
     void set_user_id_key(uint64_t user_id_key);
-    const char *to_str();
+    const std::string to_str() const;
     inline ring_logic_t get_ring_alloc_logic() { return m_ring_alloc_logic; }
     inline iovec *get_memory_descriptor() { return &m_mem_desc; }
     inline uint64_t get_user_id_key() { return m_user_id_key; }
@@ -86,7 +85,6 @@ public:
             m_hash = other.m_hash;
             m_mem_desc.iov_base = other.m_mem_desc.iov_base;
             m_mem_desc.iov_len = other.m_mem_desc.iov_len;
-            m_str[0] = '\0';
         }
         return *this;
     }
@@ -104,7 +102,6 @@ private:
     ring_logic_t m_ring_alloc_logic;
     /* either user_idx or key as defined in ring_logic_t */
     uint64_t m_user_id_key;
-    char m_str[RING_ALLOC_STR_SIZE];
     iovec m_mem_desc;
     void init();
 };
@@ -220,20 +217,20 @@ public:
     inline int get_if_idx() { return m_if_idx; }
     inline int get_flags() { return m_flags; }
     inline int get_mtu() { return m_mtu; }
-    inline char *get_ifname() { return (char *)m_name.c_str(); }
-    inline char *get_ifname_link() { return m_base_name; }
+    inline const char *get_ifname() const { return m_name.c_str(); }
+    inline const char *get_ifname_link() const { return m_base_name; }
     inline uint8_t *get_l2_if_addr() { return m_l2_if_addr; }
     const ip_data_vector_t &get_ip_array() const { return m_ip; }
     const slave_data_vector_t &get_slave_array() const { return m_slaves; }
     const slave_data_t *get_slave(int if_index);
 
-    void set_str();
     void print_val();
 
     ring *reserve_ring(resource_allocation_key *); // create if not exists
     int release_ring(resource_allocation_key *); // delete from m_hash if ref_cnt == 0
     state get_state() const { return m_state; } // not sure, look at state init at c'tor
-    virtual std::string to_str();
+    virtual const std::string to_str() const;
+    const std::string to_str_ex() const;
     inline void set_transport_type(transport_type_t value) { m_transport_type = value; }
     transport_type_t get_transport_type() const { return m_transport_type; }
     bool update_active_backup_slaves();
@@ -302,8 +299,6 @@ private:
     ip_data_vector_t m_ip; /* vector of ip addresses */
 
     std::string m_name; /* container for ifname */
-#define BUFF_SIZE 255 // TODO remove m_str field
-    char m_str[BUFF_SIZE]; /* detailed information about device */
     char m_base_name[IFNAMSIZ]; /* base name of device basing ifname */
 };
 
@@ -320,7 +315,7 @@ public:
         }
     }
     uint16_t get_vlan() { return m_vlan; }
-    std::string to_str();
+    const std::string to_str() const;
 
 protected:
     virtual ring *create_ring(resource_allocation_key *key);

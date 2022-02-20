@@ -41,6 +41,8 @@
 #include <sys/epoll.h>
 #include <netlink/route/link/vlan.h>
 
+#include <sstream>
+
 #include "utils/bullseye.h"
 #include "vma/util/if.h"
 #include "vma/dev/net_device_val.h"
@@ -92,14 +94,11 @@ ring_alloc_logic_attr::ring_alloc_logic_attr(const ring_alloc_logic_attr &other)
     , m_user_id_key(other.m_user_id_key)
     , m_mem_desc(other.m_mem_desc)
 {
-    m_str[0] = '\0';
 }
 
 void ring_alloc_logic_attr::init()
 {
     size_t h = 5381;
-
-    m_str[0] = '\0';
 
 #define HASH_ITER(val, type)                                                                       \
     do {                                                                                           \
@@ -147,15 +146,14 @@ void ring_alloc_logic_attr::set_user_id_key(uint64_t user_id_key)
     }
 }
 
-const char *ring_alloc_logic_attr::to_str()
+const std::string ring_alloc_logic_attr::to_str() const
 {
-    if (unlikely(m_str[0] == '\0')) {
-        snprintf(m_str, RING_ALLOC_STR_SIZE,
-                 "allocation logic %d key %ld user address %p "
-                 "user length %zd",
-                 m_ring_alloc_logic, m_user_id_key, m_mem_desc.iov_base, m_mem_desc.iov_len);
-    }
-    return m_str;
+    std::stringstream ss;
+
+    ss << "allocation logic " << m_ring_alloc_logic << " key " << m_user_id_key << " user address "
+       << m_mem_desc.iov_base << " user length " << m_mem_desc.iov_len;
+
+    return ss.str();
 }
 
 net_device_val::net_device_val(struct net_device_val_desc *desc)
@@ -237,8 +235,6 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
     } else {
         m_bond = NO_BOND;
     }
-
-    set_str();
 
     nd_logdbg("Check interface '%s' (index=%d addr=%s flags=%X)", get_ifname(), get_if_idx(),
               get_local_addr().to_str().c_str(), get_flags());
@@ -435,85 +431,97 @@ ret:
     orig_os_api.close(fd);
 }
 
-void net_device_val::set_str()
+const std::string net_device_val::to_str_ex() const
 {
-    char str_x[BUFF_SIZE] = {0};
+    std::string rc;
 
-    m_str[0] = '\0';
+    static const struct {
+        int flag;
+        const char *name;
+    } s_flags_tbl[] = {
+        {IFF_UP, "UP"},
+        {IFF_RUNNING, "RUNNING"},
+        {IFF_NOARP, "NO_ARP"},
+        {IFF_LOOPBACK, "LOOPBACK"},
+        {IFF_BROADCAST, "BROADCAST"},
+        {IFF_MULTICAST, "MULTICAST"},
+        {IFF_MASTER, "MASTER"},
+        {IFF_SLAVE, "SLAVE"},
+        {IFF_LOWER_UP, "LOWER_UP"},
+        {IFF_DEBUG, "DEBUG"},
+        {IFF_PROMISC, "PROMISC"},
+    };
 
-    str_x[0] = '\0';
-    sprintf(str_x, "%d:", m_if_idx);
-    strcat(m_str, str_x);
-
-    str_x[0] = '\0';
-    if (!strcmp(get_ifname(), get_ifname_link())) {
-        sprintf(str_x, " %s:", get_ifname());
-    } else {
-        sprintf(str_x, " %s@%s:", get_ifname(), get_ifname_link());
+    rc = std::to_string(m_if_idx) + ": ";
+    rc += get_ifname();
+    if (strcmp(get_ifname(), get_ifname_link()) != 0) {
+        rc += "@";
+        rc += get_ifname_link();
     }
-    strcat(m_str, str_x);
 
-    str_x[0] = '\0';
-    sprintf(str_x, " <%s%s%s%s%s%s%s%s%s%s%s>:", (m_flags & IFF_UP ? "UP," : ""),
-            (m_flags & IFF_RUNNING ? "RUNNING," : ""), (m_flags & IFF_NOARP ? "NO_ARP," : ""),
-            (m_flags & IFF_LOOPBACK ? "LOOPBACK," : ""),
-            (m_flags & IFF_BROADCAST ? "BROADCAST," : ""),
-            (m_flags & IFF_MULTICAST ? "MULTICAST," : ""), (m_flags & IFF_MASTER ? "MASTER," : ""),
-            (m_flags & IFF_SLAVE ? "SLAVE," : ""), (m_flags & IFF_LOWER_UP ? "LOWER_UP," : ""),
-            (m_flags & IFF_DEBUG ? "DEBUG," : ""), (m_flags & IFF_PROMISC ? "PROMISC," : ""));
-    strcat(m_str, str_x);
+    rc += " <";
+    int flags = m_flags;
+    for (size_t i = 0; flags && i < ARRAY_SIZE(s_flags_tbl); ++i) {
+        if (flags & s_flags_tbl[i].flag) {
+            rc += s_flags_tbl[i].name;
+            flags &= ~s_flags_tbl[i].flag;
+            if (flags != 0) {
+                rc += ",";
+            }
+        }
+    }
+    if (flags != 0) {
+        rc += "UNKNOWN_FLAG";
+    }
+    rc += ">:";
 
-    str_x[0] = '\0';
-    sprintf(str_x, " mtu %d", m_mtu);
-    strcat(m_str, str_x);
+    rc += " mtu " + std::to_string(m_mtu);
 
-    str_x[0] = '\0';
+    rc += " type ";
     switch (m_type) {
     case ARPHRD_LOOPBACK:
-        sprintf(str_x, " type %s", "loopback");
+        rc += "loopback";
         break;
     case ARPHRD_ETHER:
-        sprintf(str_x, " type %s", "ether");
+        rc += "ether";
         break;
     default:
-        sprintf(str_x, " type %s", "unknown");
+        rc += "unknown";
         break;
     }
 
-    str_x[0] = '\0';
+    rc += " (";
     switch (m_bond) {
     case NETVSC:
-        sprintf(str_x, " (%s)", "netvsc");
+        rc += "netvsc";
         break;
     case LAG_8023ad:
-        sprintf(str_x, " (%s)", "lag 8023ad");
+        rc += "lag 8023ad";
         break;
     case ACTIVE_BACKUP:
-        sprintf(str_x, " (%s)", "active backup");
+        rc += "active backup";
         break;
     default:
-        sprintf(str_x, " (%s)", "normal");
+        rc += "normal";
         break;
     }
-    strcat(m_str, str_x);
+    rc += ")";
+
+    return rc;
 }
 
 void net_device_val::print_val()
 {
-    size_t i = 0;
-    rings_hash_map_t::iterator ring_iter;
-
-    set_str();
-    nd_logdbg("%s", m_str);
+    nd_logdbg("%s", to_str_ex().c_str());
 
     nd_logdbg("  ip list: %s", (m_ip.empty() ? "empty " : ""));
-    for (i = 0; i < m_ip.size(); i++) {
+    for (size_t i = 0; i < m_ip.size(); i++) {
         nd_logdbg("    inet: %s/%d flags: 0x%X", m_ip[i]->local_addr.to_str().c_str(),
                   m_ip[i]->prefixlen, m_ip[i]->flags);
     }
 
     nd_logdbg("  slave list: %s", (m_slaves.empty() ? "empty " : ""));
-    for (i = 0; i < m_slaves.size(); i++) {
+    for (size_t i = 0; i < m_slaves.size(); i++) {
         char if_name[IFNAMSIZ] = {0};
 
         if_name[0] = '\0';
@@ -524,7 +532,7 @@ void net_device_val::print_val()
     }
 
     nd_logdbg("  ring list: %s", (m_h_ring_map.empty() ? "empty " : ""));
-    for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
+    for (auto ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ++ring_iter) {
         ring *cur_ring = ring_iter->second.first;
         NOT_IN_USE(cur_ring); // Suppress --enable-opt-log=high warning
         nd_logdbg("    %d: %p: parent %p ref %d", cur_ring->get_if_index(), cur_ring,
@@ -952,7 +960,7 @@ void net_device_val::update_netvsc_slaves(int if_index, int if_flags)
     }
 }
 
-std::string net_device_val::to_str()
+const std::string net_device_val::to_str() const
 {
     return std::string("Net Device: " + m_name);
 }
@@ -966,7 +974,7 @@ ring *net_device_val::reserve_ring(resource_allocation_key *key)
     rings_hash_map_t::iterator ring_iter = m_h_ring_map.find(key);
 
     if (m_h_ring_map.end() == ring_iter) {
-        nd_logdbg("Creating new RING for %s", key->to_str());
+        nd_logdbg("Creating new RING for %s", key->to_str().c_str());
         // copy key since we keep pointer and socket can die so map will lose pointer
         resource_allocation_key *new_key = new resource_allocation_key(*key);
         the_ring = create_ring(new_key);
@@ -1000,7 +1008,7 @@ ring *net_device_val::reserve_ring(resource_allocation_key *key)
     the_ring = GET_THE_RING(key);
 
     nd_logdbg("%p: if_index %d parent %p ref %d key %s", the_ring, the_ring->get_if_index(),
-              the_ring->get_parent(), RING_REF_CNT, key->to_str());
+              the_ring->get_parent(), RING_REF_CNT, key->to_str().c_str());
 
     return the_ring;
 }
@@ -1021,14 +1029,14 @@ int net_device_val::release_ring(resource_allocation_key *key)
         the_ring = GET_THE_RING(red_key);
 
         nd_logdbg("%p: if_index %d parent %p ref %d key %s", the_ring, the_ring->get_if_index(),
-                  the_ring->get_parent(), RING_REF_CNT, red_key->to_str());
+                  the_ring->get_parent(), RING_REF_CNT, red_key->to_str().c_str());
 
         if (TEST_REF_CNT_ZERO) {
             size_t num_ring_rx_fds;
             int *ring_rx_fds_array = the_ring->get_rx_channel_fds(num_ring_rx_fds);
             nd_logdbg("Deleting RING %p for key %s and removing notification fd from "
                       "global_table_mgr_epfd (epfd=%d)",
-                      the_ring, red_key->to_str(),
+                      the_ring, red_key->to_str().c_str(),
                       g_p_net_device_table_mgr->global_ring_epfd_get());
             for (size_t i = 0; i < num_ring_rx_fds; i++) {
                 int cq_ch_fd = ring_rx_fds_array[i];
@@ -1071,9 +1079,9 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
 
     if (m_h_ring_key_redirection_map.find(key) != m_h_ring_key_redirection_map.end()) {
         m_h_ring_key_redirection_map[key].second++;
-        nd_logdbg("redirecting key=%s (ref-count:%d) to key=%s", key->to_str(),
+        nd_logdbg("redirecting key=%s (ref-count:%d) to key=%s", key->to_str().c_str(),
                   m_h_ring_key_redirection_map[key].second,
-                  m_h_ring_key_redirection_map[key].first->to_str());
+                  m_h_ring_key_redirection_map[key].first->to_str().c_str());
         return m_h_ring_key_redirection_map[key].first;
     }
 
@@ -1083,7 +1091,8 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
         // replace key to redirection key
         key2->set_user_id_key(ring_map_size);
         m_h_ring_key_redirection_map[key] = std::make_pair(key2, 1);
-        nd_logdbg("redirecting key=%s (ref-count:1) to key=%s", key->to_str(), key2->to_str());
+        nd_logdbg("redirecting key=%s (ref-count:1) to key=%s", key->to_str().c_str(),
+                  key2->to_str().c_str());
         return key2;
     }
 
@@ -1098,7 +1107,8 @@ resource_allocation_key *net_device_val::ring_key_redirection_reserve(resource_a
         ring_iter++;
     }
     m_h_ring_key_redirection_map[key] = std::make_pair(new resource_allocation_key(*min_key), 1);
-    nd_logdbg("redirecting key=%s (ref-count:1) to key=%s", key->to_str(), min_key->to_str());
+    nd_logdbg("redirecting key=%s (ref-count:1) to key=%s", key->to_str().c_str(),
+              min_key->to_str().c_str());
     return min_key;
 }
 
@@ -1109,7 +1119,7 @@ resource_allocation_key *net_device_val::get_ring_key_redirection(resource_alloc
     }
 
     if (m_h_ring_key_redirection_map.find(key) == m_h_ring_key_redirection_map.end()) {
-        nd_logdbg("key = %s is not found in the redirection map", key->to_str());
+        nd_logdbg("key = %s is not found in the redirection map", key->to_str().c_str());
         return key;
     }
 
@@ -1122,9 +1132,9 @@ void net_device_val::ring_key_redirection_release(resource_allocation_key *key)
         m_h_ring_key_redirection_map.find(key) != m_h_ring_key_redirection_map.end() &&
         --m_h_ring_key_redirection_map[key].second == 0) {
         // this is allocated in ring_key_redirection_reserve
-        nd_logdbg("release redirecting key=%s (ref-count:%d) to key=%s", key->to_str(),
+        nd_logdbg("release redirecting key=%s (ref-count:%d) to key=%s", key->to_str().c_str(),
                   m_h_ring_key_redirection_map[key].second,
-                  m_h_ring_key_redirection_map[key].first->to_str());
+                  m_h_ring_key_redirection_map[key].first->to_str().c_str());
         delete m_h_ring_key_redirection_map[key].first;
         m_h_ring_key_redirection_map.erase(key);
     }
@@ -1418,7 +1428,7 @@ void net_device_val_eth::create_br_address(const char *ifname)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 }
-std::string net_device_val_eth::to_str()
+const std::string net_device_val_eth::to_str() const
 {
     return std::string("ETH: " + net_device_val::to_str());
 }

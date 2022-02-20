@@ -814,7 +814,7 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_addre
         lock_rx_q();
         if (!nd_resources.p_ring) {
             si_logdbg("Failed to reserve ring for allocation key %s on ip %s",
-                      m_ring_alloc_logic.get_key()->to_str(), ip_local.to_str().c_str());
+                      m_ring_alloc_logic.get_key()->to_str().c_str(), ip_local.to_str().c_str());
             goto err;
         }
 
@@ -877,7 +877,7 @@ bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
         if (p_nd_resources->p_ndv->release_ring(key) < 0) {
             lock_rx_q();
             si_logerr("Failed to release ring for allocation key %s on ip %s",
-                      m_ring_alloc_logic.get_key()->to_str(), ip_local.to_str().c_str());
+                      m_ring_alloc_logic.get_key()->to_str().c_str(), ip_local.to_str().c_str());
             return false;
         }
         lock_rx_q();
@@ -922,7 +922,7 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
         if (new_ring == p_old_ring) {
             rc = p_nd_resources->p_ndv->release_ring(&old_key);
             if (rc < 0) {
-                si_logerr("Failed to release ring for allocation key %s", old_key.to_str());
+                si_logerr("Failed to release ring for allocation key %s", old_key.to_str().c_str());
                 new_key->set_user_id_key(old_calc_id);
                 m_ring_alloc_logic.enable_migration(false);
                 si_logwarn("Migration is disabled due to failure");
@@ -934,8 +934,8 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
         BULLSEYE_EXCLUDE_BLOCK_START
         if (!new_ring) {
             ip_address ip_local(rx_nd_iter->first);
-            si_logerr("Failed to reserve ring for allocation key %s on lip %s", new_key->to_str(),
-                      ip_local.to_str().c_str());
+            si_logerr("Failed to reserve ring for allocation key %s on lip %s",
+                      new_key->to_str().c_str(), ip_local.to_str().c_str());
             new_key->set_user_id_key(old_calc_id);
             m_ring_alloc_logic.enable_migration(false);
             si_logwarn("Migration is disabled due to failure");
@@ -966,7 +966,8 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
                 rx_del_ring_cb(new_ring);
                 rc = p_nd_resources->p_ndv->release_ring(new_key);
                 if (rc < 0) {
-                    si_logerr("Failed to release ring for allocation key %s", new_key->to_str());
+                    si_logerr("Failed to release ring for allocation key %s",
+                              new_key->to_str().c_str());
                 }
                 new_ring = NULL;
                 break;
@@ -991,8 +992,8 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
 
         if (!new_ring) {
             ip_address ip_local(rx_nd_iter->first);
-            si_logerr("Failed to reserve ring for allocation key %s on lip %s", new_key->to_str(),
-                      ip_local.to_str().c_str());
+            si_logerr("Failed to reserve ring for allocation key %s on lip %s",
+                      new_key->to_str().c_str(), ip_local.to_str().c_str());
             new_key->set_user_id_key(old_calc_id);
             m_ring_alloc_logic.enable_migration(false);
             si_logwarn("Migration is disabled due to failure");
@@ -1036,8 +1037,8 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
             reuse_descs(&descs_rx_ready);
 
             ip_address ip_local(rx_nd_iter->first);
-            si_logerr("Failed to release ring for allocation key %s on lip %s", old_key.to_str(),
-                      ip_local.to_str().c_str());
+            si_logerr("Failed to release ring for allocation key %s on lip %s",
+                      old_key.to_str().c_str(), ip_local.to_str().c_str());
         }
         lock_rx_q();
         BULLSEYE_EXCLUDE_BLOCK_END

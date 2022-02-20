@@ -611,14 +611,14 @@ void dst_entry::do_ring_migration(lock_base &socket_lock, resource_allocation_ke
     }
     if (new_ring == m_p_ring) {
         if (m_p_net_dev_val->release_ring(&old_key) < 0) {
-            dst_logerr("Failed to release ring for allocation key %s", old_key.to_str());
+            dst_logerr("Failed to release ring for allocation key %s", old_key.to_str().c_str());
         }
         socket_lock.lock();
         return;
     }
 
-    dst_logdbg("migrating from key=%s and ring=%p to key=%s and ring=%p", old_key.to_str(),
-               m_p_ring, new_key->to_str(), new_ring);
+    dst_logdbg("migrating from key=%s and ring=%p to key=%s and ring=%p", old_key.to_str().c_str(),
+               m_p_ring, new_key->to_str().c_str(), new_ring);
 
     socket_lock.lock();
     m_slow_path_lock.lock();

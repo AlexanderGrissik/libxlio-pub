@@ -183,7 +183,7 @@ bool ring_allocation_logic::should_migrate_ring()
         return false;
     }
 
-    ral_logdbg("migrating from ring of id=%s to ring of id=%lu", m_res_key.to_str(),
+    ral_logdbg("migrating from ring of id=%s to ring of id=%lu", m_res_key.to_str().c_str(),
                m_migration_candidate);
     m_migration_candidate = 0;
 
