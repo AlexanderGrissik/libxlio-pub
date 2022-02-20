@@ -410,3 +410,19 @@ private:
     int field2;
 };
 ```
+
+## auto keyword
+
+*auto* keyword can simplify code, but it can also be harmful. Follow the recommendations:
+
+ 1. It is encouraged to use *auto* keyword for an iterator declaration and inside templates if it simplifies the code.
+ 2. Keyword *auto* may be used if the initializer is a class name and only if it doesn't complicates code readability and parsing.
+ 3. It is discouraged to use *auto* keyword in other situations.
+
+Rationale: there are multiple concerns for *auto* keyword:
+
+ * Can hide type of the variable and it will require to put more effort to derive the type and understand impact of the code.
+ * Hidden type complicates estimation of bit operations and integer promotion.
+ * Complicates parsing of the code, specific places can be unnoticed during conversion or routine changes.
+ * Can hide errors since specific code can be compilable after a type change, but become incorrect.
+ * Can hide performance critical knowledge (e.g. whether assignment uses copy or reference).

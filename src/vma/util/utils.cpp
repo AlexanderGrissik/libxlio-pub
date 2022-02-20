@@ -207,10 +207,11 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
 {
     if (l3_csum) {
         unsigned short l3_checksum = -1, l4_checksum = -1;
-        auto protocol = static_cast<uint8_t>(IPPROTO_MAX);
-        auto ipv4 = p_mem_buf_desc->tx.p_ip4_h;
-        auto ipv6 = p_mem_buf_desc->tx.p_ip6_h;
-        auto is_ipv4 = (ipv4->version == 4);
+        uint8_t protocol;
+        struct iphdr *ipv4 = p_mem_buf_desc->tx.p_ip4_h;
+        struct ip6_hdr *ipv6 = p_mem_buf_desc->tx.p_ip6_h;
+        bool is_ipv4 = (ipv4->version == 4);
+
         if (is_ipv4) {
             ipv4->check = 0;
             ipv4->check = l3_checksum = compute_ip_checksum(ipv4);
@@ -225,7 +226,7 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
                 l4_checksum = udp_hdr->check = 0;
             } else if (protocol == IPPROTO_TCP) {
                 struct tcphdr *tcp_hdr = p_mem_buf_desc->tx.p_tcp_h;
-                auto tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
+                const uint16_t *tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
                 tcp_hdr->check = 0;
                 if (is_ipv4) {
                     l4_checksum = compute_tcp_checksum(ipv4, tcp_hdr_buf, ipv4->ihl << 2);
@@ -274,7 +275,8 @@ static uint32_t compute_pseudo_header(const iphdr *ipv4, uint16_t proto, uint16_
 
 static uint32_t compute_pseudo_header(const ip6_hdr *ipv6, uint16_t proto, uint16_t proto_len)
 {
-    auto saddr = ipv6->ip6_src.s6_addr16, daddr = ipv6->ip6_dst.s6_addr16;
+    const uint16_t *saddr = ipv6->ip6_src.s6_addr16;
+    const uint16_t *daddr = ipv6->ip6_dst.s6_addr16;
 
     uint32_t sum = saddr[0] + saddr[1] + saddr[2] + saddr[3] + saddr[4] + saddr[5] + saddr[6] +
         saddr[7] + daddr[0] + daddr[1] + daddr[2] + daddr[3] + daddr[4] + daddr[5] + daddr[6] +
@@ -665,13 +667,13 @@ int get_ip_addr_from_ifindex(uint32_t ifindex, ip_addr &addr, sa_family_t family
             int len = socket_cm.recv_response();
 
             for (auto nl = socket_cm.get_nlmsghdr(); nlmsg_ok(nl, len); nl = nlmsg_next(nl, &len)) {
-                auto ifa = reinterpret_cast<ifaddrmsg *>(nlmsg_data(nl));
+                struct ifaddrmsg *ifa = reinterpret_cast<struct ifaddrmsg *>(nlmsg_data(nl));
                 if (ifa->ifa_index != ifindex || ifa->ifa_family != family ||
                     nl->nlmsg_type != RTM_NEWADDR) {
                     continue;
                 }
 
-                auto rta_len = IFA_PAYLOAD(nl);
+                uint32_t rta_len = IFA_PAYLOAD(nl);
                 for (auto rta = IFA_RTA(ifa); RTA_OK(rta, rta_len); rta = RTA_NEXT(rta, rta_len)) {
                     if (rta->rta_type != IFA_ADDRESS) {
                         continue;

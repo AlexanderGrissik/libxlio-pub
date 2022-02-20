@@ -2421,9 +2421,9 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     }
 
     if (m_bound.is_anyaddr()) {
-        ip_address ip = m_p_connected_dst_entry->get_src_addr();
+        const ip_address &ip = m_p_connected_dst_entry->get_src_addr();
         m_bound.set_in_addr(ip);
-        tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
+        tcp_bind(&m_pcb, reinterpret_cast<const ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6);
     }
     m_conn_state = TCP_CONN_CONNECTING;
@@ -2437,10 +2437,10 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     fit_rcv_wnd(true);
 
-    auto ip = m_connected.get_ip_addr();
+    const ip_address &ip = m_connected.get_ip_addr();
     int err =
-        tcp_connect(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_connected.get_in_port()),
-                    m_pcb.is_ipv6, sockinfo_tcp::connect_lwip_cb);
+        tcp_connect(&m_pcb, reinterpret_cast<const ip_addr_t *>(&ip),
+                    ntohs(m_connected.get_in_port()), m_pcb.is_ipv6, sockinfo_tcp::connect_lwip_cb);
     if (err != ERR_OK) {
         // todo consider setPassthrough and go to OS
         destructor_helper();
@@ -2577,9 +2577,9 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         return 0;
     }
 
-    ip_address ip = m_bound.get_ip_addr();
+    const ip_address &ip = m_bound.get_ip_addr();
     if (ERR_OK !=
-        tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
+        tcp_bind(&m_pcb, reinterpret_cast<const ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6)) {
         errno = EINVAL;
         unlock_tcp_con();
