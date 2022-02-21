@@ -192,6 +192,7 @@ public:
     virtual ~header_ipv6() {};
     void init() override;
 
+    void configure_ip_header(uint8_t protocol, const ip_address &src, const ip_address &dest);
     void configure_ip_header(uint8_t protocol, const ip_address &src, const ip_address &dest,
                              const dst_entry &_dst_entry, uint16_t packet_id = 0) override;
     void set_ip_ttl_hop_limit(uint8_t ttl_hop_limit) override;

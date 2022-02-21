@@ -270,24 +270,29 @@ header_ipv6::header_ipv6(const header_ipv6 &h)
 };
 
 void header_ipv6::configure_ip_header(uint8_t protocol, const ip_address &src,
-                                      const ip_address &dest, const dst_entry &_dst_entry,
-                                      uint16_t packet_id)
+                                      const ip_address &dest)
 {
     ip6_hdr *p_hdr = &m_header.hdr.m_ip_hdr;
     memset(p_hdr, 0, (sizeof(*p_hdr)));
 
     // build ipv6 header
-    p_hdr->ip6_vfc = IPV6_VERSION;
+    p_hdr->ip6_vfc = IPV6_VERSION << 4;
     p_hdr->ip6_nxt = protocol;
 
     *reinterpret_cast<ip_address *>(&p_hdr->ip6_src) = src;
     *reinterpret_cast<ip_address *>(&p_hdr->ip6_dst) = dest;
 
-    p_hdr->ip6_hlim = _dst_entry.get_ttl_hop_limit();
-    NOT_IN_USE(packet_id);
-
     m_ip_header_len = IPV6_HLEN;
     m_total_hdr_len += m_ip_header_len;
+}
+
+void header_ipv6::configure_ip_header(uint8_t protocol, const ip_address &src,
+                                      const ip_address &dest, const dst_entry &_dst_entry,
+                                      uint16_t packet_id)
+{
+    NOT_IN_USE(packet_id);
+    configure_ip_header(protocol, src, dest);
+    set_ip_ttl_hop_limit(_dst_entry.get_ttl_hop_limit());
 }
 
 void header_ipv6::copy_l2_hdr(void *p_h)
