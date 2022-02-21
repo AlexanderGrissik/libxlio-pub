@@ -46,6 +46,7 @@
 
 // This include should be after vma includes
 #include <netinet/tcp.h>
+#include <netinet/icmp6.h>
 
 #define MODULE_NAME "ne"
 #undef MODULE_HDR_INFO
@@ -98,7 +99,7 @@ inline int neigh_eth::build_mc_neigh_val()
     BULLSEYE_EXCLUDE_BLOCK_END
 
     address_t address = new unsigned char[ETH_ALEN];
-    create_multicast_mac_from_ip(address, ip_address(get_key().get_in_addr()), AF_INET);
+    create_multicast_mac_from_ip(address, get_dst_addr(), get_family());
     m_val->m_l2_address = new ETH_addr(address);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_val->m_l2_address == NULL) {
@@ -349,7 +350,7 @@ void neigh_entry::handle_timer_expired(void *ctx)
     if (!priv_is_reachable(state)) {
         neigh_logdbg("State (%d) is not reachable and L2 address wasn't changed. Sending ARP",
                      state);
-        send_arp();
+        send_discovery_request();
         m_timer_handle = priv_register_timer_event(m_n_sysvar_neigh_wait_till_send_arp_msec, this,
                                                    ONE_SHOT_TIMER, NULL);
     } else {
@@ -358,16 +359,28 @@ void neigh_entry::handle_timer_expired(void *ctx)
     }
 }
 
-void neigh_entry::send_arp()
+void neigh_entry::send_discovery_request()
 {
-    // In case we already sent the quota number of unicast ARPs, start sending broadcast ARPs
-    // or we want to send broadcast ARP for the first time
-    // or m_val is not valid
-    bool is_broadcast =
-        (m_arp_counter >= m_n_sysvar_neigh_uc_arp_quata) || m_is_first_send_arp || !m_val;
-    if (post_send_arp(is_broadcast)) {
-        m_is_first_send_arp = false;
-        m_arp_counter++;
+    switch (get_family()) {
+    case AF_INET: {
+        // In case we already sent the quota number of unicast ARPs, start sending broadcast ARPs
+        // or we want to send broadcast ARP for the first time
+        // or m_val is not valid
+        bool is_broadcast =
+            (m_arp_counter >= m_n_sysvar_neigh_uc_arp_quata) || m_is_first_send_arp || !m_val;
+        if (send_arp_request(is_broadcast)) {
+            m_is_first_send_arp = false;
+            m_arp_counter++;
+        }
+        break;
+    }
+    case AF_INET6: {
+        send_neighbor_solicitation();
+        break;
+    }
+    default:
+        neigh_logwarn("Failed to send neighbor discovery request - unsupported protocol %i",
+                      get_family());
     }
 }
 
@@ -444,7 +457,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
         uint32_t id = 0;
         uint16_t payload_length = htons(h->m_ip_header_len + sz_ip_frag);
-        if (/*get_sa_family() == AF_INET6*/ false) { // TODO: need integration to get IP version
+        if (get_family() == AF_INET6) {
             fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
             // TODO: udp fragmented
             neigh_logerr("IPv6 fragmentation currently not supported");
@@ -576,7 +589,7 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     // We've copied to aligned address, and now we must update p_pkt to point to real
     // L2 header
     uint16_t payload_length_ipv4 = p_data->m_iov.iov_len + h->m_ip_header_len;
-    if (/*get_sa_family() == AF_INET6*/ false) { // TODO: need integration to get IP version
+    if (get_family() == AF_INET6) {
         fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_tcp_hdr);
         set_ipv6_len(p_ip_hdr, htons(payload_length_ipv4 - IPV6_HLEN));
     } else {
@@ -750,7 +763,7 @@ void neigh_entry::handle_neigh_event(neigh_nl_event *nl_ev)
 
         if (!ret) {
             // If L2 address wasn't changed we need to send ARP
-            send_arp();
+            send_discovery_request();
             m_timer_handle = priv_register_timer_event(m_n_sysvar_neigh_wait_till_send_arp_msec,
                                                        this, ONE_SHOT_TIMER, NULL);
         }
@@ -1074,7 +1087,7 @@ int neigh_entry::priv_enter_addr_resolved()
     int state = 0;
     if (!priv_get_neigh_state(state) || !priv_is_reachable(state)) {
         neigh_logdbg("got addr_resolved but state=%d", state);
-        send_arp();
+        send_discovery_request();
         m_timer_handle = priv_register_timer_event(m_n_sysvar_neigh_wait_till_send_arp_msec, this,
                                                    ONE_SHOT_TIMER, NULL);
         m_lock.unlock();
@@ -1175,7 +1188,7 @@ int neigh_entry::priv_enter_ready()
     // rdma_adress_resolve() in this case will not initiate ARP
     if (m_type == UC && !m_is_loopback) {
         if (priv_get_neigh_state(state) && !priv_is_reachable(state)) {
-            send_arp();
+            send_discovery_request();
             m_timer_handle = priv_register_timer_event(m_n_sysvar_neigh_wait_till_send_arp_msec,
                                                        this, ONE_SHOT_TIMER, NULL);
         }
@@ -1456,12 +1469,13 @@ int neigh_eth::priv_enter_ready()
     return -1;
 }
 
-bool neigh_eth::post_send_arp(bool is_broadcast)
+bool neigh_eth::send_arp_request(bool is_broadcast)
 {
     header_ipv4 h;
     neigh_logdbg("Sending %s ARP", is_broadcast ? "BC" : "UC");
 
     net_device_val_eth *netdevice_eth = dynamic_cast<net_device_val_eth *>(m_p_dev);
+    BULLSEYE_EXCLUDE_BLOCK_START
     if (netdevice_eth == NULL) {
         neigh_logdbg("Net dev is NULL not sending ARP");
         return false;
@@ -1521,6 +1535,141 @@ bool neigh_eth::post_send_arp(bool is_broadcast)
     m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (vma_wr_tx_packet_attr)0);
 
     neigh_logdbg("ARP Sent");
+    return true;
+}
+
+bool neigh_eth::send_neighbor_solicitation()
+{
+    neigh_logdbg("Sending neighbor solicitation");
+    assert(get_family() == AF_INET6);
+
+    net_device_val_eth *net_dev = dynamic_cast<net_device_val_eth *>(m_p_dev);
+    BULLSEYE_EXCLUDE_BLOCK_START
+    if (net_dev == nullptr) {
+        neigh_logdbg("Net device is unavailable - not sending NS");
+        return false;
+    }
+    BULLSEYE_EXCLUDE_BLOCK_END
+
+    const L2_address *src_mac = m_p_dev->get_l2_address();
+    BULLSEYE_EXCLUDE_BLOCK_START
+    if (src_mac == nullptr) {
+        neigh_logdbg("Source MAC address is unavailable - not sending NS");
+        return false;
+    }
+    BULLSEYE_EXCLUDE_BLOCK_END
+
+    // destination IP address must be unicast
+    const in6_addr &dst_ip = get_dst_addr().get_in6_addr();
+    if (IN6_IS_ADDR_MULTICAST(&dst_ip)) {
+        neigh_logdbg("Destination address is multicast - not sending NS");
+        return false;
+    }
+
+    // build solicited-node multicast address from unicast
+    // ff02:0000:0000:0000:0000:0001:ffxx:xxxx/104
+    in6_addr dst_snm = IN6ADDR_ANY_INIT;
+    dst_snm.s6_addr[0] = 0xff;
+    dst_snm.s6_addr[1] = 0x02;
+    dst_snm.s6_addr[11] = 0x01;
+    dst_snm.s6_addr[12] = 0xff;
+    dst_snm.s6_addr[13] = dst_ip.s6_addr[13];
+    dst_snm.s6_addr[14] = dst_ip.s6_addr[14];
+    dst_snm.s6_addr[15] = dst_ip.s6_addr[15];
+
+    // build multicast MAC from IP mulicast address
+    // 33:33:xx:xx:xx:xx
+    uint8_t dst_mac_[ETH_ALEN];
+    create_multicast_mac_from_ip(dst_mac_, dst_snm, AF_INET6);
+    ETH_addr dst_mac(dst_mac_);
+
+    // generate id for tx ring and acquire mem buffer for tx
+    // TODO: generate_id() does not cover IPv6 case, requires update
+    m_id = m_p_ring->generate_id(src_mac->get_address(), dst_mac.get_address(),
+                                 net_dev->get_vlan() ? htons(ETH_P_8021Q) : htons(ETH_P_IPV6),
+                                 htons(ETH_P_IPV6), 0, 0, 0, 0);
+    mem_buf_desc_t *p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
+    BULLSEYE_EXCLUDE_BLOCK_START
+    if (unlikely(p_mem_buf_desc == NULL)) {
+        neigh_logdbg("No free TX buffer - not sending NS");
+        return false;
+    }
+    BULLSEYE_EXCLUDE_BLOCK_END
+
+    wqe_send_handler wqe_sh;
+    wqe_sh.init_wqe(m_send_wqe, &m_sge, 1);
+
+    header_ipv6 h;
+    h.init();
+
+    // build ether header
+    if (net_dev->get_vlan()) { // vlan interface
+        h.configure_vlan_eth_headers(*src_mac, dst_mac, net_dev->get_vlan(), ETH_P_IPV6);
+    } else {
+        h.configure_eth_headers(*src_mac, dst_mac, ETH_P_IPV6);
+    }
+
+    // build ip header
+    h.configure_ip_header(IPPROTO_ICMPV6, m_src_addr, dst_snm);
+    h.set_ip_ttl_hop_limit(0xff);
+
+    // copy ether + ip headers to mem_buf
+    if (unlikely(p_mem_buf_desc->sz_buffer < sizeof(tx_ipv6_hdr_template_t))) {
+        neigh_logdbg("TX buffer too small - not sending NS");
+        return false;
+    }
+    h.copy_l2_ip_hdr(p_mem_buf_desc->p_buffer);
+
+    // keep track of actual packet bounds in buffer
+    uint8_t *head = p_mem_buf_desc->p_buffer + h.m_transport_header_tx_offset;
+    uint8_t *tail = head + h.m_total_hdr_len;
+
+    // store pointer to ip header in buffer for later update (length filed)
+    ip6_hdr *ip_hdr = reinterpret_cast<ip6_hdr *>(tail) - 1;
+
+    // build icmp header (neighbor solicitation, type 135)
+    nd_neighbor_solicit *ns_hdr = reinterpret_cast<nd_neighbor_solicit *>(tail);
+    ns_hdr->nd_ns_type = ND_NEIGHBOR_SOLICIT;
+    ns_hdr->nd_ns_code = 0;
+    ns_hdr->nd_ns_cksum = 0; // must be set to zero before checksum calculation
+    ns_hdr->nd_ns_target = dst_ip;
+    tail += sizeof(*ns_hdr);
+
+    // Include option 'Source Link-Layer Address'.
+    // Should be included in unicast solicitations according to rfc4861.
+    nd_opt_hdr *ns_opt = reinterpret_cast<nd_opt_hdr *>(ns_hdr + 1);
+    ns_opt->nd_opt_type = ND_OPT_SOURCE_LINKADDR;
+    ns_opt->nd_opt_len = 1; // units of 8 octets (including type and length fields)
+    memcpy(ns_opt + 1, src_mac->get_address(), ETH_ALEN);
+    tail += sizeof(*ns_opt) + ETH_ALEN;
+
+    // Update length field
+    ip_hdr->ip6_plen = htons(tail - head);
+
+    // Calc checksum for ICMPv6 packet.
+    // As final checksum does not depend on order of 16-bit words
+    // it is possible to simplify calculation for pseudo-header by splitting it into two parts:
+    // 1) src + dst address (already present at the end of IP header)
+    // 2) packet length (16-bits) + next header as 16-bit word (0x003a for IPPROTO_ICMPV6)
+    // so appending second part to the packet and simply calculating checksum for linear buffer
+    // starting from src address in IP header
+    uint16_t *ph_head = reinterpret_cast<uint16_t *>(reinterpret_cast<in6_addr *>(ns_hdr) - 2);
+    uint16_t *ph_tail = reinterpret_cast<uint16_t *>(tail);
+    *ph_tail++ = ip_hdr->ip6_plen;
+    *ph_tail++ = htons(IPPROTO_ICMPV6);
+    ns_hdr->nd_ns_cksum = compute_ip_checksum(ph_head, ph_tail - ph_head);
+
+    m_sge.addr = reinterpret_cast<uintptr_t>(head);
+    m_sge.length = static_cast<uintptr_t>(tail - head);
+    m_sge.lkey = p_mem_buf_desc->lkey;
+    p_mem_buf_desc->p_next_desc = NULL;
+    m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
+    neigh_logdbg("NS request: base=%p addr=%p length=%lu", p_mem_buf_desc->p_buffer,
+                 (void *)m_sge.addr, m_sge.length);
+
+    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (vma_wr_tx_packet_attr)0);
+
+    neigh_logdbg("Neighbor solicitation has been sent");
     return true;
 }
 

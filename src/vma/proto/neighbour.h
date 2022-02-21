@@ -277,8 +277,9 @@ protected:
                                             timer_req_type_t req_type, void *user_data);
     void priv_unregister_timer();
 
-    virtual void send_arp();
-    virtual bool post_send_arp(bool) { return true; };
+    void send_discovery_request();
+    virtual bool send_arp_request(bool) { return true; };
+    virtual bool send_neighbor_solicitation() { return true; };
     virtual bool prepare_to_send_packet(header *) { return true; };
     void handle_timer_expired(void *user_data) override;
 
@@ -325,7 +326,8 @@ private:
     int priv_enter_init() override;
     int priv_enter_init_resolution() override;
     bool priv_handle_neigh_is_l2_changed(address_t) override;
-    bool post_send_arp(bool is_broadcast) override;
+    bool send_arp_request(bool is_broadcast) override;
+    bool send_neighbor_solicitation() override;
     bool prepare_to_send_packet(header *) override;
 };
 
