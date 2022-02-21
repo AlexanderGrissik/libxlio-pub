@@ -51,12 +51,12 @@ dst_entry::dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_
     : m_dst_ip(dst.get_ip_addr())
     , m_dst_port(dst.get_in_port())
     , m_family(dst.get_sa_family())
-    , m_so_bindtodevice_ip(0)
     , m_header((dst.get_sa_family() == AF_INET6) ? (header *)(new header_ipv6())
                                                  : (header *)(new header_ipv4()))
     , m_header_neigh((dst.get_sa_family() == AF_INET6) ? (header *)(new header_ipv6())
                                                        : (header *)(new header_ipv4()))
     , m_bound_ip(in6addr_any)
+    , m_so_bindtodevice_ip(in6addr_any)
     , m_route_src_ip(in6addr_any)
     , m_pkt_src_ip(in6addr_any)
     , m_ring_alloc_logic(sock_data.fd, ring_alloc_logic, this)
@@ -181,8 +181,8 @@ bool dst_entry::update_net_dev_val()
     bool ret_val = false;
 
     net_device_val *new_nd_val = m_p_net_dev_val;
-    if (m_so_bindtodevice_ip && g_p_net_device_table_mgr) {
-        new_nd_val = g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_so_bindtodevice_ip));
+    if (!m_so_bindtodevice_ip.is_anyaddr() && g_p_net_device_table_mgr) {
+        new_nd_val = g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_so_bindtodevice_ip, m_family));
         // TODO should we register to g_p_net_device_table_mgr  with m_p_net_dev_entry?
         // what should we do with an old one?
         dst_logdbg("getting net_dev_val by bindtodevice ip");
@@ -666,7 +666,7 @@ void dst_entry::set_bound_addr(const ip_address &addr)
     set_state(false);
 }
 
-void dst_entry::set_so_bindtodevice_addr(in_addr_t addr)
+void dst_entry::set_so_bindtodevice_addr(const ip_address &addr)
 {
     dst_logdbg("");
     m_so_bindtodevice_ip = addr;

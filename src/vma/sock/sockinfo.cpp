@@ -73,7 +73,7 @@ sockinfo::sockinfo(int fd, int domain)
     , m_state(SOCKINFO_OPENED)
     , m_family(domain)
     , m_p_connected_dst_entry(NULL)
-    , m_so_bindtodevice_ip(INADDR_ANY)
+    , m_so_bindtodevice_ip(ip_address::any_addr(), domain)
     , m_p_rx_ring(0)
     , m_rx_reuse_buf_pending(false)
     , m_rx_reuse_buf_postponed(false)
@@ -1521,10 +1521,10 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
     bool ret = true;
 
     /* m_so_bindtodevice_ip has high priority */
-    if (m_so_bindtodevice_ip != INADDR_ANY) {
-        if_addr = ip_addr(m_so_bindtodevice_ip);
-        addr.set_in_addr(if_addr); // we should pass correct ip-address information in case
-                                   // SO_BINDTODEVICE is used
+    if (!m_so_bindtodevice_ip.is_anyaddr()) {
+        if_addr = m_so_bindtodevice_ip;
+        addr.set_sa_family(if_addr.get_family());
+        addr.set_in_addr(if_addr);
         si_logdbg("Attaching using bind to device rule");
     } else {
         si_logdbg("Attaching using bind to ip rule");
@@ -1620,7 +1620,7 @@ void sockinfo::shutdown_rx()
 
     /* Destroy resources in case they are allocated using SO_BINDTODEVICE call */
     if (m_rx_nd_map.size()) {
-        destroy_nd_resources(ip_address(m_so_bindtodevice_ip));
+        destroy_nd_resources(m_so_bindtodevice_ip);
     }
     si_logdbg("shutdown RX");
 }

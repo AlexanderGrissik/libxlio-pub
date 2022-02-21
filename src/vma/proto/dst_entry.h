@@ -93,7 +93,7 @@ public:
 
     bool is_offloaded() { return m_b_is_offloaded; }
     void set_bound_addr(const ip_address &addr);
-    void set_so_bindtodevice_addr(in_addr_t addr);
+    void set_so_bindtodevice_addr(const ip_address &addr);
     const ip_address &get_dst_addr();
     uint16_t get_dst_port();
     inline const ip_address &get_src_addr() const { return m_pkt_src_ip; }
@@ -125,10 +125,10 @@ protected:
     ip_address m_dst_ip;
     in_port_t m_dst_port;
     sa_family_t m_family;
-    in_addr_t m_so_bindtodevice_ip; // [TODO IPV6] replace with ip_address
     header *m_header;
     header *m_header_neigh;
     ip_address m_bound_ip;
+    ip_address m_so_bindtodevice_ip;
     ip_address m_route_src_ip; // source IP used to register in route manager
     ip_address m_pkt_src_ip; // source IP address copied into IP header
     lock_mutex_recursive m_slow_path_lock;

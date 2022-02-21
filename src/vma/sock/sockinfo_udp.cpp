@@ -502,8 +502,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     // check if we can skip "connect()" flow, to increase performance of redundant connect() calls
     // we will use it for dedicated sockets for socket pool
     // in case dst ip and port are the same as the last connect() call
-    if (m_is_connected && m_is_for_socket_pool &&
-        m_state != SOCKINFO_DESTROYING &&
+    if (m_is_connected && m_is_for_socket_pool && m_state != SOCKINFO_DESTROYING &&
         m_connected == connect_to) {
         return 0;
     }
@@ -601,7 +600,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
         m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr());
     }
-    if (m_so_bindtodevice_ip) {
+    if (!m_so_bindtodevice_ip.is_anyaddr()) {
         m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
     }
     m_p_connected_dst_entry->prepare_to_send(m_so_ratelimit, false, true);
@@ -771,17 +770,16 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             if (__optval) {
                 ip_addr addr {0};
                 if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
-                    m_so_bindtodevice_ip = INADDR_ANY;
-                } else if (get_ip_addr_from_ifname((char *)__optval, addr)) {
+                    m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
+                } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family)) {
                     si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, cannot find if_name",
                                   setsockopt_so_opt_to_str(__optname));
                     break;
                 } else {
-                    m_so_bindtodevice_ip = addr.get_in4_addr().s_addr;
+                    m_so_bindtodevice_ip = addr;
                 }
-                si_udp_logdbg("SOL_SOCKET, %s='%s' (%d.%d.%d.%d)",
-                              setsockopt_so_opt_to_str(__optname), (char *)__optval,
-                              NIPQUAD(m_so_bindtodevice_ip));
+                si_udp_logdbg("SOL_SOCKET, %s='%s' (%s)", setsockopt_so_opt_to_str(__optname),
+                              (char *)__optval, m_so_bindtodevice_ip.to_str().c_str());
 
                 // handle TX side
                 if (m_p_connected_dst_entry) {
@@ -1043,8 +1041,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
                 if ((!m_bound.is_anyaddr()) && (!m_bound.is_mc())) {
                     src_ip = m_bound.get_ip_addr().get_in_addr();
-                } else if (m_so_bindtodevice_ip) {
-                    src_ip = m_so_bindtodevice_ip;
+                } else if (!m_so_bindtodevice_ip.is_anyaddr()) {
+                    src_ip = m_so_bindtodevice_ip.get_in_addr();
                 }
                 // Find local if for this MC ADD/DROP
                 route_result res;
@@ -1161,8 +1159,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             m_port_map_lock.lock();
             if (std::find(m_port_map.begin(), m_port_map.end(), port_socket.port) ==
                 m_port_map.end()) {
-                port_socket.fd = get_sock_by_L3_L4(PROTO_UDP, m_bound.get_ip_addr(),
-                                                   port_socket.port);
+                port_socket.fd =
+                    get_sock_by_L3_L4(PROTO_UDP, m_bound.get_ip_addr(), port_socket.port);
                 if (port_socket.fd == -1) {
                     si_udp_logdbg("could not find UDP_MAP_ADD socket for port %d",
                                   ntohs(port_socket.port));
@@ -1732,7 +1730,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
                     p_dst_entry->set_bound_addr(m_bound.get_ip_addr());
                 }
-                if (m_so_bindtodevice_ip) {
+                if (!m_so_bindtodevice_ip.is_anyaddr()) {
                     p_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
                 }
                 // Save new dst_entry in map
@@ -2307,8 +2305,8 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
 
         if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
             src_ip = m_bound.get_ip_addr().get_in_addr();
-        } else if (m_so_bindtodevice_ip) {
-            src_ip = m_so_bindtodevice_ip;
+        } else if (!m_so_bindtodevice_ip.is_anyaddr()) {
+            src_ip = m_so_bindtodevice_ip.get_in_addr();
         }
         // Find local if for this MC ADD/DROP
         route_result res;

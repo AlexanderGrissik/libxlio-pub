@@ -635,7 +635,7 @@ void sockinfo_tcp::create_dst_entry()
         if (!m_bound.is_anyaddr()) {
             m_p_connected_dst_entry->set_bound_addr(m_bound.get_ip_addr());
         }
-        if (m_so_bindtodevice_ip) {
+        if (!m_so_bindtodevice_ip.is_anyaddr()) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
         }
     }
@@ -3156,9 +3156,10 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 void sockinfo_tcp::create_flow_tuple_key_from_pcb(flow_tuple &key, struct tcp_pcb *pcb)
 {
     if (pcb->is_ipv6) {
-        key = flow_tuple(ip_address((const in6_addr &)pcb->local_ip.ip6.addr), htons(pcb->local_port),
-                         ip_address((const in6_addr &)pcb->remote_ip.ip6.addr), htons(pcb->remote_port), PROTO_TCP,
-                         AF_INET6);
+        key =
+            flow_tuple(ip_address((const in6_addr &)pcb->local_ip.ip6.addr), htons(pcb->local_port),
+                       ip_address((const in6_addr &)pcb->remote_ip.ip6.addr),
+                       htons(pcb->remote_port), PROTO_TCP, AF_INET6);
     } else {
         key = flow_tuple(ip_address(pcb->local_ip.ip4.addr), htons(pcb->local_port),
                          ip_address(pcb->remote_ip.ip4.addr), htons(pcb->remote_port), PROTO_TCP,
@@ -4102,14 +4103,17 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             ip_addr addr {0};
             allow_privileged_sock_opt = safe_mce_sys().allow_privileged_sock_opt;
             if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
-                m_so_bindtodevice_ip = INADDR_ANY;
-            } else if (get_ip_addr_from_ifname((char *)__optval, addr)) {
+                m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
+            } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family)) {
                 si_tcp_logdbg("SOL_SOCKET, SO_BINDTODEVICE - NOT HANDLED, cannot find if_name");
                 errno = EINVAL;
                 ret = -1;
                 break;
             } else {
-                m_so_bindtodevice_ip = addr.get_in4_addr().s_addr;
+                m_so_bindtodevice_ip = addr;
+
+                si_tcp_logdbg("SOL_SOCKET, %s='%s' (%s)", setsockopt_so_opt_to_str(__optname),
+                              (char *)__optval, m_so_bindtodevice_ip.to_str().c_str());
 
                 if (!is_connected()) {
                     /* Current implementation allows to create separate rings for tx and rx.
@@ -4123,15 +4127,14 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                      * Note:
                      * This inconsistency should be resolved.
                      */
-                    sock_addr local_ip(AF_INET, &m_so_bindtodevice_ip, 0);
 
                     lock_tcp_con();
                     /* We need to destroy this if attach/detach receiver is not called
                      * just reference counter for p_nd_resources is updated on attach/detach
                      */
-                    if (NULL == create_nd_resources(local_ip.get_ip_addr())) {
+                    if (NULL == create_nd_resources(m_so_bindtodevice_ip)) {
                         si_tcp_logdbg("Failed to get net device resources on ip %s",
-                                      local_ip.to_str_ip_port().c_str());
+                                      m_so_bindtodevice_ip.to_str().c_str());
                     }
                     unlock_tcp_con();
                 }
