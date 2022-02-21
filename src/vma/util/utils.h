@@ -353,7 +353,13 @@ inline void create_multicast_mac_from_ip(unsigned char *mc_mac, const ip_address
         mc_mac[4] = (uint8_t)((ip >> 16) & 0xff);
         mc_mac[5] = (uint8_t)((ip >> 24) & 0xff);
     } else {
-        // [IPv6 TODO] Implement for IPv6
+        in6_addr ip = addr.get_in6_addr();
+        mc_mac[0] = 0x33;
+        mc_mac[1] = 0x33;
+        mc_mac[2] = ip.s6_addr[12];
+        mc_mac[3] = ip.s6_addr[13];
+        mc_mac[4] = ip.s6_addr[14];
+        mc_mac[5] = ip.s6_addr[15];
     }
 }
 
