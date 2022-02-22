@@ -239,19 +239,24 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
     }
 }
 
-unsigned short compute_ip_checksum(const iphdr *p_ip_h)
+unsigned short compute_ip_checksum(const uint16_t *p_data, size_t sz_count)
 {
-    const unsigned short *buf = reinterpret_cast<const unsigned short *>(p_ip_h);
-    unsigned int nshort_words = p_ip_h->ihl * 2;
     unsigned long sum = 0;
 
-    while (nshort_words--) {
-        sum += *buf;
-        buf++;
+    while (sz_count--) {
+        sum += *p_data;
+        p_data++;
     }
     sum = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
     return ~sum;
+}
+
+unsigned short compute_ip_checksum(const iphdr *p_ip_h)
+{
+    const unsigned short *buf = reinterpret_cast<const unsigned short *>(p_ip_h);
+    unsigned int nshort_words = p_ip_h->ihl * 2;
+    return compute_ip_checksum(buf, nshort_words);
 }
 
 unsigned short compute_ip_checksum(const ip6_hdr *p_ip_h)

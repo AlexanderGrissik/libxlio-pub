@@ -60,6 +60,11 @@ int check_if_regular_file(char *path);
 void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_csum);
 
 /**
+ * Generic IP Checksum Calculation
+ */
+unsigned short compute_ip_checksum(const uint16_t *p_data, size_t sz_count);
+
+/**
  * IP Header Checksum Calculation
  */
 unsigned short compute_ip_checksum(const iphdr *p_ip_h);
