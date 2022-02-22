@@ -2417,8 +2417,8 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     }
 
     if (m_bound.is_anyaddr()) {
-        auto ip = m_p_connected_dst_entry->get_src_addr();
-        m_bound.set_in_addr(ip_address(ip));
+        ip_address ip = m_p_connected_dst_entry->get_src_addr();
+        m_bound.set_in_addr(ip);
         tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6);
     }
@@ -2573,7 +2573,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         return 0;
     }
 
-    in_addr_t ip = m_bound.get_ip_addr().get_in_addr();
+    ip_address ip = m_bound.get_ip_addr();
     if (ERR_OK !=
         tcp_bind(&m_pcb, reinterpret_cast<ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
                  m_pcb.is_ipv6)) {

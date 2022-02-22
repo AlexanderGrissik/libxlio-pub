@@ -622,8 +622,6 @@ int sockinfo_udp::getsockname(struct sockaddr *__name, socklen_t *__namelen)
 
 int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namelen)
 {
-    NOT_IN_USE(__namelen); /* TODO use __namelen for IPV6 */
-
     BULLSEYE_EXCLUDE_BLOCK_START
     if (__name == NULL) {
         si_udp_logerr("invalid NULL __name");
@@ -639,22 +637,19 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
         return 0;
     }
 
-    bool is_bound_modified = false;
-    in_addr_t bound_if = bindname.get_ip_addr().get_in_addr();
-    in_port_t bound_port = bindname.get_in_port();
-
     auto_unlocker _lock(m_lock_rcv);
+    bool is_bound_modified = false;
 
     // Check & Save bind port info
-    if (m_bound.get_in_port() != bound_port) {
+    if (m_bound.get_in_port() != bindname.get_in_port()) {
         si_udp_logdbg("bound port defined (%s -> %d)", m_bound.to_str_port().c_str(),
-                      ntohs(bound_port));
-        m_p_socket_stats->bound_port = bound_port;
+                      ntohs(bindname.get_in_port()));
+        m_p_socket_stats->bound_port = bindname.get_in_port();
         is_bound_modified = true;
     }
 
     // Check & Save bind if info
-    if (m_bound.get_ip_addr().get_in_addr() != bound_if) {
+    if (m_bound.get_ip_addr() != bindname.get_ip_addr()) {
         si_udp_logdbg("bound if changed (%s -> %s)", m_bound.to_str_ip_port().c_str(),
                       bindname.to_str_ip_port().c_str());
         m_p_socket_stats->set_bound_if(bindname);
@@ -663,7 +658,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
     m_bound = bindname;
 
     // Check if this is the new 'name' (local port) of the socket
-    if ((m_is_connected || is_bound_modified) && bound_port != INPORT_ANY) {
+    if ((m_is_connected || is_bound_modified) && !bindname.is_anyport()) {
 
         // Attach UDP unicast port to offloaded interface
         // 1. Check if local_if is offloadable OR is on INADDR_ANY which means attach to ALL
