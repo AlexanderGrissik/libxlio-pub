@@ -2394,12 +2394,12 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     prepare_dst_to_send(false);
 
-    m_p_socket_stats->set_bound_if(m_p_connected_dst_entry->get_src_addr().get_in_addr());
-
     sock_addr local_addr(m_bound);
     if (local_addr.is_anyaddr()) {
-        local_addr.set_in_addr(ip_address(m_p_connected_dst_entry->get_src_addr()));
+        local_addr.set_in_addr(m_p_connected_dst_entry->get_src_addr());
     }
+
+    m_p_socket_stats->set_bound_if(local_addr);
 
     sock_addr remote_addr;
     remote_addr.set_sa_family(m_p_connected_dst_entry->get_sa_family());

@@ -257,13 +257,6 @@ typedef struct socket_stats_t {
         mc_tx_if = sock.get_ip_addr();
     }
 
-    // [TODO IPV6] Temporary - until sockinfo_tcp will support IPv6
-    void set_bound_if(in_addr_t ipv4)
-    {
-        sa_family = AF_INET;
-        bound_if = ip_address(ipv4);
-    }
-
     socket_stats_t()
         : bound_if(in6addr_any)
         , connected_ip(in6addr_any)
