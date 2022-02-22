@@ -197,6 +197,32 @@ public:
         return (0 == memcmp(&u_sa, &other.u_sa, sizeof(u_sa)));
     }
 
+    bool operator<(sock_addr const &other) const
+    {
+        if (u_sa.m_sa.sa_family != other.u_sa.m_sa.sa_family) {
+            return (u_sa.m_sa.sa_family < other.u_sa.m_sa.sa_family);
+        }
+
+        const ip_address &this_addr = get_ip_addr();
+        const ip_address &other_addr = other.get_ip_addr();
+        if (this_addr != other_addr) {
+            return this_addr.less_than_raw(other_addr);
+        }
+
+        if (get_sa_family() == AF_INET) {
+            return (u_sa.m_sa_in.sin_port < other.u_sa.m_sa_in.sin_port);
+        } else {
+            if (u_sa.m_sa_in6.sin6_port != other.u_sa.m_sa_in6.sin6_port) {
+                return (u_sa.m_sa_in6.sin6_port < other.u_sa.m_sa_in6.sin6_port);
+            }
+            if (u_sa.m_sa_in6.sin6_flowinfo != other.u_sa.m_sa_in6.sin6_flowinfo) {
+                return (u_sa.m_sa_in6.sin6_flowinfo < other.u_sa.m_sa_in6.sin6_flowinfo);
+            }
+
+            return (u_sa.m_sa_in6.sin6_scope_id < other.u_sa.m_sa_in6.sin6_scope_id);
+        }
+    }
+
     size_t hash(void) const
     {
         static size_t sz_size = sizeof(size_t);
