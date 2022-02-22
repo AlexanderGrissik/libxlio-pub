@@ -130,7 +130,7 @@ typedef struct {
     int refcnt;
 } net_device_resources_t;
 
-typedef std::unordered_map<in_addr_t, net_device_resources_t> rx_net_device_map_t;
+typedef std::unordered_map<ip_address, net_device_resources_t> rx_net_device_map_t;
 
 /*
  * Sockinfo setsockopt() return values
@@ -347,8 +347,8 @@ protected:
 
     bool attach_receiver(flow_tuple_with_local_if &flow_key);
     bool detach_receiver(flow_tuple_with_local_if &flow_key);
-    net_device_resources_t *create_nd_resources(const ip_address &ip_local);
-    bool destroy_nd_resources(const ip_address &ip_local);
+    net_device_resources_t *create_nd_resources(const ip_addr &ip_local);
+    bool destroy_nd_resources(const ip_addr &ip_local);
     void do_rings_migration(resource_allocation_key &old_key);
     int set_ring_attr(xlio_ring_alloc_logic_attr *attr);
     int set_ring_attr_helper(ring_alloc_logic_attr *sock_attr, xlio_ring_alloc_logic_attr *attr);

@@ -1492,7 +1492,7 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
         in_pktinfo.ipi_spec_dst.s_addr = 0;
         for (auto iter = m_rx_nd_map.begin(); iter != m_rx_nd_map.end(); ++iter) {
             if (iter->second.p_ndv->get_if_idx() == in_pktinfo.ipi_ifindex) {
-                in_pktinfo.ipi_spec_dst.s_addr = iter->first;
+                in_pktinfo.ipi_spec_dst.s_addr = iter->first.get_in_addr();
                 break;
             }
         }
@@ -1967,8 +1967,7 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
 
 bool sockinfo_udp::packet_is_loopback(mem_buf_desc_t *p_desc)
 {
-    // TODO Add IPv6 support.
-    auto iter = m_rx_nd_map.find(p_desc->rx.src.get_ip_addr().get_in_addr());
+    auto iter = m_rx_nd_map.find(p_desc->rx.src.get_ip_addr());
     return (iter != m_rx_nd_map.end()) &&
         (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
 }

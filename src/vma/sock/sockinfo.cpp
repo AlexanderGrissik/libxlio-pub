@@ -666,7 +666,7 @@ bool sockinfo::attach_receiver(flow_tuple_with_local_if &flow_key)
 
     // Allocate resources on specific interface (create ring)
     net_device_resources_t *p_nd_resources =
-        create_nd_resources((const ip_address)flow_key.get_local_if());
+        create_nd_resources(ip_addr(flow_key.get_local_if(), flow_key.get_family()));
     if (NULL == p_nd_resources) {
         // any error which occurred inside create_nd_resources() was already printed. No need to
         // reprint errors here
@@ -765,16 +765,15 @@ bool sockinfo::detach_receiver(flow_tuple_with_local_if &flow_key)
     // Un-map flow from local map
     m_rx_flow_map.erase(rx_flow_iter);
 
-    return destroy_nd_resources((const ip_address)flow_key.get_local_if());
+    return destroy_nd_resources(ip_addr(flow_key.get_local_if(), flow_key.get_family()));
 }
 
-net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_address_local)
+net_device_resources_t *sockinfo::create_nd_resources(const ip_addr &ip_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
-    ip_addr ip_local(ip_address_local.get_in_addr());
 
     // Check if we are already registered to net_device with the local ip as observers
-    rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
+    rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local);
     if (rx_nd_iter == m_rx_nd_map.end()) {
 
         // Need to register as observer to net_device
@@ -820,9 +819,9 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_addre
         }
 
         // Add new net_device to rx_map
-        m_rx_nd_map[ip_local.get_in_addr()] = nd_resources;
+        m_rx_nd_map[ip_local] = nd_resources;
 
-        rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
+        rx_nd_iter = m_rx_nd_map.find(ip_local);
         if (rx_nd_iter == m_rx_nd_map.end()) {
             si_logerr("Failed to find rx_nd_iter");
             goto err;
@@ -844,11 +843,10 @@ err:
     return NULL;
 }
 
-bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
+bool sockinfo::destroy_nd_resources(const ip_addr &ip_local)
 {
     net_device_resources_t *p_nd_resources = NULL;
-    ip_addr ip_local(ip_address_local.get_in_addr());
-    rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local.get_in_addr());
+    rx_net_device_map_t::iterator rx_nd_iter = m_rx_nd_map.find(ip_local);
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (rx_nd_iter == m_rx_nd_map.end()) {
