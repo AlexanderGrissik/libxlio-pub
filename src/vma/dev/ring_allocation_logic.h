@@ -48,14 +48,14 @@
 class source_t {
 public:
     int m_fd;
-    in_addr_t m_ip;
+    ip_address m_ip;
 
     source_t(int fd)
         : m_fd(fd)
-        , m_ip(INADDR_ANY)
+        , m_ip(ip_address::any_addr())
     {
     }
-    source_t(in_addr_t ip)
+    source_t(ip_address ip)
         : m_fd(-1)
         , m_ip(ip)
     {
@@ -77,7 +77,7 @@ protected:
 
 public:
     /* careful, you'll lose the previous key !! */
-    resource_allocation_key *create_new_key(in_addr_t addr, int suggested_cpu = NO_CPU);
+    resource_allocation_key *create_new_key(ip_address addr, int suggested_cpu = NO_CPU);
 
     resource_allocation_key *get_key() { return &m_res_key; }
 

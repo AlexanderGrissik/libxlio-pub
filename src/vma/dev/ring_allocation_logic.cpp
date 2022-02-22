@@ -96,7 +96,7 @@ uint64_t ring_allocation_logic::calc_res_key_by_logic()
         }
         break;
     case RING_LOGIC_PER_IP:
-        res_key = m_source.m_ip;
+        res_key = m_source.m_ip.hash();
         break;
     case RING_LOGIC_PER_SOCKET:
         res_key = m_source.m_fd;
@@ -121,7 +121,7 @@ uint64_t ring_allocation_logic::calc_res_key_by_logic()
     return res_key;
 }
 
-resource_allocation_key *ring_allocation_logic::create_new_key(in_addr_t addr,
+resource_allocation_key *ring_allocation_logic::create_new_key(ip_address addr,
                                                                int suggested_cpu /* = NO_CPU */)
 {
     if (m_res_key.get_ring_alloc_logic() == RING_LOGIC_PER_CORE_ATTACH_THREADS) {

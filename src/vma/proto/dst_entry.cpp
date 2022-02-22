@@ -182,7 +182,8 @@ bool dst_entry::update_net_dev_val()
 
     net_device_val *new_nd_val = m_p_net_dev_val;
     if (!m_so_bindtodevice_ip.is_anyaddr() && g_p_net_device_table_mgr) {
-        new_nd_val = g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_so_bindtodevice_ip, m_family));
+        new_nd_val =
+            g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_so_bindtodevice_ip, m_family));
         // TODO should we register to g_p_net_device_table_mgr  with m_p_net_dev_entry?
         // what should we do with an old one?
         dst_logdbg("getting net_dev_val by bindtodevice ip");
@@ -336,8 +337,8 @@ bool dst_entry::resolve_ring()
     if (m_p_net_dev_val) {
         if (!m_p_ring) {
             dst_logdbg("getting a ring");
-            m_p_ring = m_p_net_dev_val->reserve_ring(
-                m_ring_alloc_logic.create_new_key(m_pkt_src_ip.get_in_addr()));
+            m_p_ring =
+                m_p_net_dev_val->reserve_ring(m_ring_alloc_logic.create_new_key(m_pkt_src_ip));
         }
         if (m_p_ring) {
             if (m_sge) {

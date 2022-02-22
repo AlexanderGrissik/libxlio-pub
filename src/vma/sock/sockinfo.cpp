@@ -808,7 +808,7 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_address &ip_addre
         if (m_rx_ring_map.size() && m_ring_alloc_logic.is_logic_support_migration()) {
             key = m_ring_alloc_logic.get_key();
         } else {
-            key = m_ring_alloc_logic.create_new_key(ip_local.get_in_addr());
+            key = m_ring_alloc_logic.create_new_key(ip_local);
         }
         m_rx_ring_map_lock.unlock();
         nd_resources.p_ring = nd_resources.p_ndv->reserve_ring(key);
@@ -873,7 +873,7 @@ bool sockinfo::destroy_nd_resources(const ip_address &ip_address_local)
         if (m_ring_alloc_logic.is_logic_support_migration()) {
             key = m_ring_alloc_logic.get_key();
         } else {
-            key = m_ring_alloc_logic.create_new_key(ip_local.get_in_addr());
+            key = m_ring_alloc_logic.create_new_key(ip_local);
         }
         if (p_nd_resources->p_ndv->release_ring(key) < 0) {
             lock_rx_q();
