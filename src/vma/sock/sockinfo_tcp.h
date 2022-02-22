@@ -34,7 +34,6 @@
 #define TCP_SOCKINFO_H
 
 #include "utils/lock_wrapper.h"
-#include "vma/proto/peer_key.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/sock/socket_fd_api.h"
 #include "vma/dev/buffer_pool.h"
@@ -114,7 +113,7 @@ struct socket_option_t {
 typedef std::deque<socket_option_t *> socket_options_list_t;
 typedef std::map<tcp_pcb *, int> ready_pcb_map_t;
 typedef std::map<flow_tuple, tcp_pcb *> syn_received_map_t;
-typedef std::map<peer_key, vma_desc_list_t> peer_map_t;
+typedef std::map<size_t, vma_desc_list_t> peer_map_t;
 
 /* taken from inet_ecn.h in kernel */
 enum inet_ecns {

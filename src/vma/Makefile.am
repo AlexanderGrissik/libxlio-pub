@@ -256,7 +256,6 @@ libxlio_la_SOURCES := \
 	proto/neighbour_observer.h \
 	proto/neighbour_table_mgr.h \
 	proto/netlink_socket_mgr.h \
-	proto/peer_key.h \
 	proto/route_entry.h \
 	proto/route_rule_table_key.h \
 	proto/route_table_mgr.h \

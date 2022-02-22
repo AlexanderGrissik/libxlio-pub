@@ -1476,7 +1476,6 @@ void sockinfo_tcp::process_my_ctl_packets()
     // skipped)
     while (!temp_list.empty()) {
         mem_buf_desc_t *desc = temp_list.get_and_pop_front();
-        peer_key pk(desc->rx.src.get_ip_addr().get_in_addr(), desc->rx.src.get_in_port());
 
         static const unsigned int MAX_SYN_RCVD = m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE
             ? safe_mce_sys().sysctl_reader.get_tcp_max_syn_backlog()
@@ -1486,9 +1485,9 @@ void sockinfo_tcp::process_my_ctl_packets()
         unsigned int num_con_waiting = m_rx_peer_packets.size();
 
         if (num_con_waiting < MAX_SYN_RCVD) {
-            m_rx_peer_packets[pk].push_back(desc);
+            m_rx_peer_packets[desc->rx.src.hash()].push_back(desc);
         } else { // map is full
-            peer_map_t::iterator iter = m_rx_peer_packets.find(pk);
+            peer_map_t::iterator iter = m_rx_peer_packets.find(desc->rx.src.hash());
             if (iter != m_rx_peer_packets.end()) {
                 // entry already exists, we can concatenate our packet
                 iter->second.push_back(desc);
