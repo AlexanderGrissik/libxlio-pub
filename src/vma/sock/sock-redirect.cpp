@@ -255,6 +255,7 @@ char *sprintf_sockaddr(char *buf, int buflen, const struct sockaddr *_addr, sock
 bool handle_close(int fd, bool cleanup, bool passthrough)
 {
     bool is_closable = true;
+    bool is_for_udp_pool = false;
     srdr_logfunc("Cleanup fd=%d", fd);
 
     if (g_zc_cache) {
@@ -268,6 +269,10 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
         socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
         if (sockfd) {
             sockfd->m_is_closable = !passthrough;
+#if defined(DEFINED_NGINX)
+            // save this value before pointer is destructed
+            is_for_udp_pool = sockfd->m_is_for_socket_pool;
+#endif
             g_p_fd_collection->del_sockfd(fd, cleanup);
             /*
              * Don't call close() syscall for socket's descriptor,
@@ -285,10 +290,12 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
         }
 
 #if defined(DEFINED_NGINX)
-        if (sockfd && sockfd->m_is_for_socket_pool) {
+        if (is_for_udp_pool) {
             g_p_fd_collection->push_socket_pool(sockfd);
             is_closable = false;
         }
+#else
+        NOT_IN_USE(is_for_udp_pool);
 #endif
     }
 
