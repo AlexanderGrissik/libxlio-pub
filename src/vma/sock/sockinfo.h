@@ -130,7 +130,7 @@ typedef struct {
     int refcnt;
 } net_device_resources_t;
 
-typedef std::unordered_map<ip_address, net_device_resources_t> rx_net_device_map_t;
+typedef std::unordered_map<ip_addr, net_device_resources_t> rx_net_device_map_t;
 
 /*
  * Sockinfo setsockopt() return values

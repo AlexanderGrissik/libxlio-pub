@@ -1962,7 +1962,8 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
 
 bool sockinfo_udp::packet_is_loopback(mem_buf_desc_t *p_desc)
 {
-    auto iter = m_rx_nd_map.find(p_desc->rx.src.get_ip_addr());
+    auto iter =
+        m_rx_nd_map.find(ip_addr(p_desc->rx.src.get_ip_addr(), p_desc->rx.src.get_sa_family()));
     return (iter != m_rx_nd_map.end()) &&
         (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
 }
