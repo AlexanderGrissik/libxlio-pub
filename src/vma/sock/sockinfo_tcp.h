@@ -113,7 +113,7 @@ struct socket_option_t {
 typedef std::deque<socket_option_t *> socket_options_list_t;
 typedef std::map<tcp_pcb *, int> ready_pcb_map_t;
 typedef std::map<flow_tuple, tcp_pcb *> syn_received_map_t;
-typedef std::map<size_t, vma_desc_list_t> peer_map_t;
+typedef std::map<sock_addr, vma_desc_list_t> peer_map_t;
 
 /* taken from inet_ecn.h in kernel */
 enum inet_ecns {

@@ -192,6 +192,12 @@ public:
         return *this;
     }
 
+    sock_addr &operator=(const sock_addr &&other)
+    {
+        u_sa.m_sa_in6 = other.u_sa.m_sa_in6;
+        return *this;
+    }
+
     bool operator==(const sock_addr &other) const
     {
         return (0 == memcmp(&u_sa, &other.u_sa, sizeof(u_sa)));

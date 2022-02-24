@@ -1485,9 +1485,9 @@ void sockinfo_tcp::process_my_ctl_packets()
         unsigned int num_con_waiting = m_rx_peer_packets.size();
 
         if (num_con_waiting < MAX_SYN_RCVD) {
-            m_rx_peer_packets[desc->rx.src.hash()].push_back(desc);
+            m_rx_peer_packets[desc->rx.src].push_back(desc);
         } else { // map is full
-            peer_map_t::iterator iter = m_rx_peer_packets.find(desc->rx.src.hash());
+            peer_map_t::iterator iter = m_rx_peer_packets.find(desc->rx.src);
             if (iter != m_rx_peer_packets.end()) {
                 // entry already exists, we can concatenate our packet
                 iter->second.push_back(desc);

@@ -144,13 +144,10 @@ TEST_F(sock_addr_test, sock_addr_setters)
     sock_addr sa2_4(sa1_4);
     sock_addr sa2_6(sa1_6);
 
-    uint8_t buf[sizeof(sock_addr)] = {0};
-    sa1_4.set_sa_family(AF_INET);
-    sa1_6.set_sa_family(AF_INET6);
-    reinterpret_cast<uint16_t *>(buf)[0] = AF_INET;
-    EXPECT_EQ(0, memcmp(sa1_4.get_p_sa(), &buf, SOCKLEN4));
-    reinterpret_cast<uint16_t *>(buf)[0] = AF_INET6;
-    EXPECT_EQ(0, memcmp(sa1_6.get_p_sa(), &buf, SOCKLEN6));
+    sa1_4.set_sa_family(AF_INET6);
+    sa1_6.set_sa_family(AF_INET);
+    EXPECT_EQ(sa1_4.get_p_sa()->sa_family, AF_INET6);
+    EXPECT_EQ(sa1_6.get_p_sa()->sa_family, AF_INET);
 
     uint32_t mc4_ip = 0x010404E0;
     uint64_t mc6_ip[2] = {0xAAAAAAAA000000FF, 0x0};
