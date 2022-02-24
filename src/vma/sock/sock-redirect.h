@@ -80,10 +80,9 @@
 
 #include <vlogger/vlogger.h>
 #include <unordered_map>
-#include <list>
+#include <vector>
 
 #if defined(DEFINED_NGINX)
-typedef std::unordered_map<uint16_t, std::list<int> *> map_port_list_t;
 typedef std::unordered_map<uint16_t, bool> map_udp_bounded_port_t;
 
 extern int g_worker_index;

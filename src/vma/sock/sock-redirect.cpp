@@ -245,107 +245,11 @@ const char *socket_get_type_str(int type)
 // Format a sockaddr into a string for logging
 char *sprintf_sockaddr(char *buf, int buflen, const struct sockaddr *_addr, socklen_t _addrlen)
 {
-    if ((_addrlen >= sizeof(struct sockaddr_in)) && (get_sa_family(_addr) == AF_INET)) {
-        /* cppcheck-suppress wrongPrintfScanfArgNum */
-        snprintf(buf, buflen, "AF_INET, addr=%s", sockaddr2str(_addr, true).c_str());
-    } else {
-        snprintf(buf, buflen, "sa_family=%d", get_sa_family(_addr));
-    }
+    sock_addr sa(_addr, _addrlen);
+
+    snprintf(buf, buflen, "%s, addr=%s", socket_get_domain_str(sa.get_sa_family()),
+             sa.to_str_ip_port().c_str());
     return buf;
-}
-
-#define XLIO_DBG_SEND_MCPKT_COUNTER_STR "XLIO_DBG_SEND_MCPKT_COUNTER"
-#define XLIO_DBG_SEND_MCPKT_MCGROUP_STR "XLIO_DBG_SEND_MCPKT_MCGROUP"
-static int dbg_check_if_need_to_send_mcpkt_setting =
-    -1; // 1-Init, 0-Disabled,  N>0-send mc packet on the Nth socket() call
-static int dbg_check_if_need_to_send_mcpkt_counter = 1;
-static int dbg_check_if_need_to_send_mcpkt_prevent_nested_calls = 0;
-
-void dbg_send_mcpkt()
-{
-    int fd = 0;
-    char *env_ptr = NULL;
-    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: socket() errno %d %m", __LINE__, errno);
-        exit(1);
-    }
-
-    struct sockaddr_in addr_in;
-    struct sockaddr *p_addr = (struct sockaddr *)&addr_in;
-
-    addr_in.sin_family = AF_INET;
-    addr_in.sin_port = INPORT_ANY;
-    addr_in.sin_addr.s_addr = INADDR_ANY;
-    if ((env_ptr = getenv(XLIO_DBG_SEND_MCPKT_MCGROUP_STR)) == NULL) {
-        vlog_printf(VLOG_WARNING,
-                    "send_mc_packet_test:%d: Need to set '%s' parameter to dest ip (dot format)\n",
-                    __LINE__, XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
-        exit(2);
-    }
-    if (1 != inet_pton(AF_INET, env_ptr, &addr_in.sin_addr)) {
-        vlog_printf(VLOG_WARNING,
-                    "send_mc_packet_test:%d: Invalid input IP address: '%s' errno %d %m\n",
-                    __LINE__, env_ptr, errno);
-        exit(3);
-    }
-
-    const char msgbuf[256] = "Hello Alex";
-
-    vlog_printf(VLOG_WARNING,
-                "send_mc_packet_test:%d: Sending MC test packet to address: %s [%s]\n", __LINE__,
-                sockaddr2str(p_addr).c_str(), XLIO_DBG_SEND_MCPKT_MCGROUP_STR);
-    if (sendto(fd, msgbuf, strlen(msgbuf), 0, p_addr, sizeof(struct sockaddr)) < 0) {
-        vlog_printf(VLOG_ERROR, "sendto mc_packet failed! errno %d %s\n", errno, strerror(errno));
-    }
-    close(fd);
-}
-
-void dbg_check_if_need_to_send_mcpkt()
-{
-    if (dbg_check_if_need_to_send_mcpkt_prevent_nested_calls) {
-        return;
-    }
-    dbg_check_if_need_to_send_mcpkt_prevent_nested_calls = 1;
-
-    // Read user setting
-    if (dbg_check_if_need_to_send_mcpkt_setting == -1) {
-        // Default will be 'Disbaled'
-        dbg_check_if_need_to_send_mcpkt_setting++;
-
-        // Then we will read the user settings
-        char *env_ptr = NULL;
-        if ((env_ptr = getenv(XLIO_DBG_SEND_MCPKT_COUNTER_STR)) != NULL) {
-            dbg_check_if_need_to_send_mcpkt_setting = atoi(env_ptr);
-        }
-        if (dbg_check_if_need_to_send_mcpkt_setting > 0) {
-            vlog_printf(VLOG_WARNING,
-                        "send_mc_packet_test: "
-                        "*************************************************************\n");
-            vlog_printf(VLOG_WARNING,
-                        "send_mc_packet_test: Send test MC packet setting is: %d [%s]\n",
-                        dbg_check_if_need_to_send_mcpkt_setting, XLIO_DBG_SEND_MCPKT_COUNTER_STR);
-            vlog_printf(VLOG_WARNING,
-                        "send_mc_packet_test: If you don't know what this means don't use "
-                        "'%s' " PRODUCT_NAME " configuration parameter!\n",
-                        XLIO_DBG_SEND_MCPKT_COUNTER_STR);
-            vlog_printf(VLOG_WARNING,
-                        "send_mc_packet_test: "
-                        "*************************************************************\n");
-        }
-    }
-
-    // Test for action
-    if (dbg_check_if_need_to_send_mcpkt_setting > 0) {
-        if (dbg_check_if_need_to_send_mcpkt_counter == dbg_check_if_need_to_send_mcpkt_setting) {
-            // Actual send mc packet
-            dbg_send_mcpkt();
-        } else {
-            vlog_printf(VLOG_WARNING, "send_mc_packet_test:%d: Skipping this socket() call\n",
-                        __LINE__);
-        }
-        dbg_check_if_need_to_send_mcpkt_counter++;
-    }
-    dbg_check_if_need_to_send_mcpkt_prevent_nested_calls--;
 }
 
 bool handle_close(int fd, bool cleanup, bool passthrough)
@@ -393,26 +297,6 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 
 #if defined(DEFINED_NGINX)
 
-bool add_to_list(uint16_t port, map_port_list_t &map_port_list, int fd)
-{
-    bool is_new_list = false;
-    if (map_port_list.find(port) == map_port_list.end()) {
-        map_port_list[port] = new list<int>;
-        ;
-        is_new_list = true;
-    }
-
-    map_port_list_t::iterator iter = map_port_list.find(port);
-    if (iter != map_port_list.end()) {
-        iter->second->push_back(fd);
-        srdr_logdbg("worker %d, port=%d, fd=%d, pushed to list. ret=%d", g_worker_index, port, fd,
-                    is_new_list);
-    } else {
-        srdr_logerr("failed to create new port list");
-    }
-    return is_new_list;
-}
-
 int init_child_process_for_nginx()
 {
     if (safe_mce_sys().actual_nginx_workers_num <= 0) {
@@ -428,95 +312,89 @@ int init_child_process_for_nginx()
     srdr_logdbg("g_worker_index: %d Size is: %d", g_worker_index,
                 g_p_fd_collection_parent_process->get_fd_map_size());
 
-    map_port_list_t map_port_list;
-    list<uint16_t> port_list = {};
-    for (int i = 0; i < g_p_fd_collection_size_parent_process; i++) {
-        socket_fd_api *fd = g_p_fd_collection_parent_process->get_sockfd(i);
-        if (fd) {
-            struct sockaddr_in addr;
+    std::unordered_map<uint16_t, uint16_t> udp_sockets_per_port;
+    sockinfo *si;
+    for (int sock_fd = 0; sock_fd < g_p_fd_collection_size_parent_process; sock_fd++) {
+        socket_fd_api *parent_sock_fd_api = g_p_fd_collection_parent_process->get_sockfd(sock_fd);
+        if (!parent_sock_fd_api || !(si = dynamic_cast<sockinfo *>(parent_sock_fd_api))) {
+            continue;
+        }
+        sock_addr sa;
+        socklen_t sa_len = sa.get_socklen();
+        parent_sock_fd_api->getsockname(sa.get_p_sa(), &sa_len);
+        if (parent_sock_fd_api->m_is_listen) {
+            srdr_logdbg("found listen socket %d\n", parent_sock_fd_api->get_fd());
+            g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_STREAM);
+            socket_fd_api *child_sock_fd_api = g_p_fd_collection->get_sockfd(sock_fd);
             int ret = 0;
-            socklen_t tmp_sin_len = sizeof(sockaddr_in);
-            fd->getsockname((struct sockaddr *)&addr, &tmp_sin_len);
-            if (fd->m_is_listen) {
-                srdr_logdbg("found listen socket %d\n", fd->get_fd());
-                g_p_fd_collection->addsocket(i, AF_INET, SOCK_STREAM);
-                fd = g_p_fd_collection->get_sockfd(i);
-                if (fd) {
-                    ret = bind(i, (struct sockaddr *)&addr, tmp_sin_len);
+            if (child_sock_fd_api) {
+                ret = bind(sock_fd, sa.get_p_sa(), sa_len);
+                if (ret < 0) {
+                    srdr_logerr("bind() error\n");
+                }
+                // is the socket really offloaded
+                ret = child_sock_fd_api->prepareListen();
+                if (ret < 0) {
+                    srdr_logerr("prepareListen error\n");
+                    child_sock_fd_api = nullptr;
+                } else if (ret > 0) { // Pass-through
+                    handle_close(child_sock_fd_api->get_fd(), false, true);
+                    child_sock_fd_api = nullptr;
+                } else {
+                    srdr_logdbg("Prepare listen successfully offloaded\n");
+                }
+
+                if (child_sock_fd_api) {
+                    ret = child_sock_fd_api->listen(child_sock_fd_api->m_back_log);
                     if (ret < 0) {
-                        srdr_logerr("bind() error\n");
-                    }
-                    ret = fd->prepareListen(); // for verifying that the socket is really offloaded
-                    if (ret < 0) {
-                        srdr_logerr("prepareListen error\n");
-                        fd = NULL;
-                    } else if (ret > 0) { // Pass-through
-                        handle_close(fd->get_fd(), false, true);
-                        fd = NULL;
+                        srdr_logerr("Listen error\n");
                     } else {
-                        srdr_logdbg("Prepare listen successfully offloaded\n");
-                    }
-
-                    if (fd) {
-                        ret = fd->listen(fd->m_back_log);
-                        if (ret < 0) {
-                            srdr_logerr("Listen error\n");
-                        } else {
-                            srdr_logdbg("Listen success\n");
-                        }
-                    }
-                }
-            } else {
-                // UDP sockets
-                sockinfo_udp *udp_sock = dynamic_cast<sockinfo_udp *>(fd);
-                if (udp_sock) {
-                    int val, size = sizeof(int);
-                    bool use_as_udp_listen_socket = true;
-                    if (udp_sock->getsockopt(SOL_SOCKET, SO_REUSEPORT, &val, (socklen_t *)&size) <
-                        0) {
-                        srdr_logdbg("fd=%d - getsockopt() failed", i);
-                        continue;
-                    }
-                    uint16_t port = ntohs(addr.sin_port);
-                    use_as_udp_listen_socket = use_as_udp_listen_socket && val;
-                    use_as_udp_listen_socket = use_as_udp_listen_socket && port;
-                    if (!use_as_udp_listen_socket) {
-                        continue;
-                    }
-
-                    if (add_to_list(port, map_port_list, i)) {
-                        port_list.push_back(port);
+                        srdr_logdbg("Listen success\n");
                     }
                 }
             }
-        }
-    }
-    // UDP sockets
-    for (auto &p : port_list) {
-        map_port_list_t::iterator iter = map_port_list.find(p);
-        if (iter != map_port_list.end()) {
-            if ((int)iter->second->size() == safe_mce_sys().actual_nginx_workers_num) {
-                for (int j = 0; j < g_worker_index; j++) {
-                    // pop "g_worker_index" number of fds from the list, so we can use the
-                    // g_worker_index'th fd for worker number g_worker_index
-                    iter->second->pop_front();
+        } else {
+            // UDP sockets
+            sockinfo_udp *udp_sock = dynamic_cast<sockinfo_udp *>(parent_sock_fd_api);
+            if (udp_sock) {
+                int optval;
+                socklen_t optlen = sizeof(optval);
+                if (udp_sock->getsockopt(SOL_SOCKET, SO_REUSEPORT, &optval, &optlen) < 0) {
+                    srdr_logdbg("fd=%d - getsockopt() failed", sock_fd);
+                    continue;
                 }
-                int fd = iter->second->front();
-                srdr_logdbg("worker %d is using fd=%d. bound to port=%d", g_worker_index, fd, p);
-                g_p_fd_collection->addsocket(fd, AF_INET, SOCK_DGRAM);
-                sockinfo_udp *new_udp_sock =
-                    dynamic_cast<sockinfo_udp *>(g_p_fd_collection->get_sockfd(fd));
-                if (new_udp_sock) {
-                    g_map_udp_bounded_port[p] = true;
-                    // in order to create new steering rules we call bind()
-                    // we skip os.bind since it always fails
-                    new_udp_sock->bind_no_os();
+                uint16_t port = ntohs(sa.get_in_port());
+                bool use_as_udp_listen_socket = optval && port;
+                if (!use_as_udp_listen_socket) {
+                    continue;
                 }
-            } else {
-                srdr_logdbg("not using port=%d. count is %u", p, (int)iter->second->size());
+
+                /*
+                 * DANGER: This code depends on a very specific NGINX implementation detail.
+                 * NGINX master process creates a QUIC UDP socket per worker process per port
+                 * before fork(). To ensure that the copy of the global g_p_fd_collection that
+                 * this child process has contains *only* the `sockinfo_udp` pointers that
+                 * belong to it we discard all the `sock_fd`s we aggregated in the
+                 * udp_sockets_per_port and take the one indexed by the g_worker_index.
+                 */
+                if (unlikely(udp_sockets_per_port[port] == g_worker_index)) {
+                    srdr_logdbg("worker %d is using fd=%d. bound to port=%d", g_worker_index,
+                                sock_fd, port);
+                    g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_DGRAM);
+                    sockinfo_udp *new_udp_sock =
+                        dynamic_cast<sockinfo_udp *>(g_p_fd_collection->get_sockfd(sock_fd));
+                    if (new_udp_sock) {
+                        g_map_udp_bounded_port[port] = true;
+                        // in order to create new steering rules we call bind()
+                        // we skip os.bind since it always fails
+                        new_udp_sock->bind_no_os();
+                    }
+                }
+                udp_sockets_per_port[port]++;
             }
         }
     }
+
     return 0;
 }
 
@@ -859,8 +737,6 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
         DO_GLOBAL_CTORS();
     }
 
-    dbg_check_if_need_to_send_mcpkt();
-
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!orig_os_api.socket) {
         get_orig_funcs();
@@ -1098,13 +974,15 @@ extern "C" EXPORT_SYMBOL int connect(int __fd, const struct sockaddr *__to, sock
     srdr_logdbg_entry("fd=%d, %s", __fd, sprintf_sockaddr(buf, 256, __to, __tolen));
 
     int ret = 0;
-    socket_fd_api *p_socket_object = NULL;
-    p_socket_object = fd_collection_get_sockfd(__fd);
-
-    /* Zero port is reserved and can not be used as destination port
-     * but it is not checked here to be consistent with Linux behaivour
-     */
-    if (__to && (get_sa_family(__to) == AF_INET) && p_socket_object) {
+    socket_fd_api *p_socket_object = fd_collection_get_sockfd(__fd);
+    if (p_socket_object == nullptr) {
+        srdr_logdbg_exit("Unable to get sock_fd_api");
+        ret = orig_os_api.connect(__fd, __to, __tolen);
+    } else if (__to == nullptr ||
+               (get_sa_family(__to) != AF_INET && (get_sa_family(__to) != AF_INET6))) {
+        p_socket_object->setPassthrough();
+        ret = orig_os_api.connect(__fd, __to, __tolen);
+    } else {
         ret = p_socket_object->connect(__to, __tolen);
         if (p_socket_object->isPassthrough()) {
             handle_close(__fd, false, true);
@@ -1112,13 +990,7 @@ extern "C" EXPORT_SYMBOL int connect(int __fd, const struct sockaddr *__to, sock
                 ret = orig_os_api.connect(__fd, __to, __tolen);
             }
         }
-    } else {
-        if (p_socket_object) {
-            p_socket_object->setPassthrough();
-        }
-        ret = orig_os_api.connect(__fd, __to, __tolen);
     }
-
     if (ret >= 0) {
         /* Restore errno on function entry in case success */
         errno = errno_tmp;

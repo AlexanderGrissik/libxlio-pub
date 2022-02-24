@@ -933,8 +933,8 @@ void sockinfo::do_rings_migration(resource_allocation_key &old_key)
         BULLSEYE_EXCLUDE_BLOCK_START
         if (!new_ring) {
             ip_addr ip_local(rx_nd_iter->first);
-            si_logerr("Failed to reserve ring for allocation key %s on lip %s", new_key->to_str(),
-                      ip_local.to_str().c_str());
+            si_logerr("Failed to reserve ring for allocation key %s on lip %s",
+                      new_key->to_str().c_str(), ip_local.to_str().c_str());
             new_key->set_user_id_key(old_calc_id);
             m_ring_alloc_logic.enable_migration(false);
             si_logwarn("Migration is disabled due to failure");

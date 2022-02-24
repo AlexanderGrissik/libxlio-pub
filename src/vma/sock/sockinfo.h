@@ -212,6 +212,8 @@ public:
         unlock_rx_q();
     }
 
+    sa_family_t get_family() { return m_family; }
+
 private:
     int fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit);
 

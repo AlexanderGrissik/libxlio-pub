@@ -213,7 +213,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     }
 
     // IPV4 domain only (at least today)
-    if (domain != AF_INET) {
+    if (domain != AF_INET && domain != AF_INET6) {
         return -1;
     }
 
