@@ -55,7 +55,7 @@ public:
         , m_ip(ip_address::any_addr())
     {
     }
-    source_t(ip_address ip)
+    source_t(const ip_address &ip)
         : m_fd(-1)
         , m_ip(ip)
     {
@@ -77,7 +77,7 @@ protected:
 
 public:
     /* careful, you'll lose the previous key !! */
-    resource_allocation_key *create_new_key(ip_address addr, int suggested_cpu = NO_CPU);
+    resource_allocation_key *create_new_key(const ip_address &addr, int suggested_cpu = NO_CPU);
 
     resource_allocation_key *get_key() { return &m_res_key; }
 
