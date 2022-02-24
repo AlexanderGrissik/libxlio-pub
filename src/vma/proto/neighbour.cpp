@@ -1662,7 +1662,7 @@ bool neigh_eth::send_neighbor_solicitation()
     m_sge.lkey = p_mem_buf_desc->lkey;
     p_mem_buf_desc->p_next_desc = NULL;
     m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
-    neigh_logdbg("NS request: base=%p addr=%p length=%lu", p_mem_buf_desc->p_buffer,
+    neigh_logdbg("NS request: base=%p addr=%p length=%" PRIu32, p_mem_buf_desc->p_buffer,
                  (void *)m_sge.addr, m_sge.length);
 
     m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (vma_wr_tx_packet_attr)0);
