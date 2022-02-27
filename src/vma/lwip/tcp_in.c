@@ -385,6 +385,7 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
     }
 
     /* Set up the new PCB. */
+    npcb->is_ipv6 = in_data->iphdr.is_ipv6;
     ip_addr_from_raw(&npcb->local_ip, in_data->iphdr.dest, in_data->iphdr.is_ipv6);
     npcb->local_port = pcb->local_port;
     ip_addr_from_raw(&npcb->remote_ip, in_data->iphdr.src, in_data->iphdr.is_ipv6);

@@ -43,7 +43,7 @@
 
 inline uint32_t ipv6_get_flowid(const struct ip6_hdr &p_ip6_h)
 {
-    const uint32_t *raw = reinterpret_cast<const uint32_t *>(p_ip6_h.ip6_flow);
+    const uint8_t *raw = reinterpret_cast<const uint8_t *>(&(p_ip6_h.ip6_flow));
     return ((static_cast<uint32_t>(raw[1] & 0xf) << 16) | (static_cast<uint32_t>(raw[2]) << 8) |
             static_cast<uint32_t>(raw[3]));
 }
