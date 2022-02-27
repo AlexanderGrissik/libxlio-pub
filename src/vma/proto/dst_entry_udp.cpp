@@ -114,7 +114,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
         m_p_send_wqe = &m_inline_send_wqe;
 
         m_header->get_udp_hdr()->len = htons((uint16_t)sz_udp_payload);
-        m_header->set_ip_len(htons(m_header->m_ip_header_len + sz_udp_payload));
+        m_header->set_ip_len(m_header->m_ip_header_len + sz_udp_payload);
 
         p_mem_buf_desc->tx.p_ip_h = m_header->get_ip_hdr();
         p_mem_buf_desc->tx.p_udp_h = m_header->get_udp_hdr();

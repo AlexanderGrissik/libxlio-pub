@@ -1662,10 +1662,13 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                           __dstlen);
             goto tx_packet_to_os;
         }
-        if (unlikely(get_sa_family(__dst) != AF_INET)) {
+
+        sa_family_t dst_family = get_sa_family(__dst);
+        if (unlikely(dst_family != AF_INET) && unlikely(dst_family != AF_INET6)) {
             si_udp_logdbg("to->sin_family != AF_INET (tx-ing to os)");
             goto tx_packet_to_os;
         }
+
         if (unlikely(get_sa_port(__dst) == 0)) {
             si_udp_logdbg("to->sin_port == 0 (tx-ing to os)");
             goto tx_packet_to_os;
@@ -1691,8 +1694,9 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 // Verify we are bounded (got a local port)
                 // can happen in UDP sendto() directly after socket(DATAGRAM)
                 if (m_bound.is_anyport()) {
-                    struct sockaddr addr = {AF_INET, {0}};
-                    if (bind(&addr, sizeof(struct sockaddr))) {
+                    sock_addr addr;
+                    addr.set_sa_family(m_family);
+                    if (bind(addr.get_p_sa(), addr.get_socklen())) {
 #ifdef VMA_TIME_MEASURE
                         INC_ERR_TX_COUNT;
 #endif
