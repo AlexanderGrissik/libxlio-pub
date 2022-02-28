@@ -311,8 +311,14 @@ struct tcp_seg {
 #define TF_SEG_OPTS_ZEROCOPY    (u8_t)TCP_WRITE_ZEROCOPY /* Use zerocopy send mode */
 
   struct tcp_hdr *tcphdr;  /* the TCP header */
-  /* TCP header for zerocopy segments, it must have enough room for options */
-  u32_t tcphdr_zc[20] __attribute__ ((aligned (16)));
+
+  /* L2+L3+TCP header for zerocopy segments, it must have enough room for options
+     This should have enough space for L2 (ETH+vLAN), L3 (IPv4/6), L4 (TCP)
+     L2 = 20: (6 for aligment, so IPv4 packet is 4 bytes aligned)
+     L3 = 20: for IPv4, 40 for IPv6 (Currently NO IP options are supported)
+     L4 = 40: TCP + options.
+  */
+  u32_t l2_l3_tcphdr_zc[25] __attribute__ ((aligned (16)));
 };
 
 #define LWIP_IS_DUMMY_SEGMENT(seg) (seg->flags & TF_SEG_OPTS_DUMMY_MSG)

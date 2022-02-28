@@ -246,7 +246,7 @@ tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u8_t flags, u32_t seqno,
 
   if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
     /* XXX Don't hardcode size/offset */
-    seg->tcphdr = (struct tcp_hdr *)(&seg->tcphdr_zc[10]);
+    seg->tcphdr = (struct tcp_hdr *)(&seg->l2_l3_tcphdr_zc[15]);
     seg->len = p->tot_len;
     goto set_tcphdr;
  }
@@ -476,7 +476,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
   optlen = LWIP_TCP_OPT_LENGTH( optflags );
   mss_local_minus_opts = mss_local - optlen;
   if (is_zerocopy) {
-    /* TCP options will reside in seg->tcphdr_zc */
+    /* TCP options will reside in seg->l2_l3_tcphdr_zc */
     optlen = 0;
   }
   if (is_file) {
