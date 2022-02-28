@@ -201,7 +201,10 @@ public:
     void *get_ip_hdr() override { return static_cast<void *>(&m_header.hdr.m_ip_hdr); }
     udphdr *get_udp_hdr() override { return &m_header.hdr.m_udp_hdr; }
     tcphdr *get_tcp_hdr() override { return &m_header.hdr.m_tcp_hdr; }
-    void set_ip_len(uint16_t len) override { m_header.hdr.m_ip_hdr.ip6_plen = htons(len - IPV6_HLEN); }
+    void set_ip_len(uint16_t len) override
+    {
+        m_header.hdr.m_ip_hdr.ip6_plen = htons(len - IPV6_HLEN);
+    }
     void copy_l2_hdr(void *p_h) override;
     void copy_l2_ip_hdr(void *p_h) override;
     void copy_l2_ip_udp_hdr(void *p_h) override;

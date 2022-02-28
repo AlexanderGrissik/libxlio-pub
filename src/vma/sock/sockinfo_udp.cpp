@@ -1663,9 +1663,8 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
             goto tx_packet_to_os;
         }
 
-        sa_family_t dst_family = get_sa_family(__dst);
-        if (unlikely(dst_family != AF_INET) && unlikely(dst_family != AF_INET6)) {
-            si_udp_logdbg("to->sin_family != AF_INET (tx-ing to os)");
+        if (unlikely(!dst.is_supported())) {
+            si_udp_logdbg("to->sin_family is not supported (tx-ing to os)");
             goto tx_packet_to_os;
         }
 

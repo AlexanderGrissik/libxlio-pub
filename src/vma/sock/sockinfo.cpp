@@ -1551,17 +1551,31 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
              lip_iter++) {
             ip_data_t ip = *lip_iter;
             if_addr = ip.local_addr;
-            if (if_addr.get_family() == addr.get_sa_family()) {
-                addr.set_in_addr(if_addr);
+
+            // We need to listen on any IP. So, select all IPv4 addresses. Plus IPv6 addresses if
+            // the listen socket is IPv6. If the 'connected' address is not any and its family is
+            // not equal to if_addr, skip the address.
+            if (((if_addr.get_family() == AF_INET) ||
+                 (if_addr.get_family() == m_bound.get_sa_family())) &&
+                (m_connected.is_anyaddr() || m_connected.get_sa_family() == if_addr.get_family())) {
                 transport_t target_family = TRANS_VMA;
                 if (!skip_rules) {
+                    addr.set_sa_family(if_addr.get_family());
+                    addr.set_in_addr(if_addr);
                     target_family = find_target_family(role, addr.get_p_sa());
                 }
                 if (target_family == TRANS_VMA) {
-                    flow_tuple_with_local_if flow_key(addr.get_ip_addr(), addr.get_in_port(),
-                                                      m_connected.get_ip_addr(),
+                    // In case m_connected is any address we need to take the any ip_address
+                    // correctly, since the layout inside m_connected is different for A_INET
+                    // and AF_INET6 (Currently m_connected family can be different from if_addr).
+                    const ip_address &src_ip_address = m_connected.is_anyaddr()
+                        ? ip_address::any_addr()
+                        : m_connected.get_ip_addr();
+
+                    flow_tuple_with_local_if flow_key(if_addr, addr.get_in_port(), src_ip_address,
                                                       m_connected.get_in_port(), m_protocol,
-                                                      m_connected.get_sa_family(), if_addr);
+                                                      if_addr.get_family(), if_addr);
+
                     ret = ret && attach_receiver(flow_key);
                 }
             }
