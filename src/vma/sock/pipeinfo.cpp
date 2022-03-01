@@ -370,16 +370,16 @@ void pipeinfo::statistics_print()
     if (m_p_socket_stats->counters.n_tx_sent_byte_count ||
         m_p_socket_stats->counters.n_tx_sent_pkt_count || m_p_socket_stats->counters.n_tx_errors ||
         m_p_socket_stats->counters.n_tx_eagain) {
-        pi_logdbg_no_funcname("Tx Offload: %d KB / %d / %d / %d [bytes/packets/errors/eagains]",
-                              m_p_socket_stats->counters.n_tx_sent_byte_count / 1024,
-                              m_p_socket_stats->counters.n_tx_sent_pkt_count,
-                              m_p_socket_stats->counters.n_tx_errors,
-                              m_p_socket_stats->counters.n_tx_eagain);
+        pi_logdbg_no_funcname(
+            "Tx Offload: %" PRIu64 " KB / %d / %d / %d [kilobytes/packets/errors/eagains]",
+            m_p_socket_stats->counters.n_tx_sent_byte_count / 1024,
+            m_p_socket_stats->counters.n_tx_sent_pkt_count, m_p_socket_stats->counters.n_tx_errors,
+            m_p_socket_stats->counters.n_tx_eagain);
         b_any_activiy = true;
     }
     if (m_p_socket_stats->counters.n_tx_os_bytes || m_p_socket_stats->counters.n_tx_os_packets ||
         m_p_socket_stats->counters.n_tx_os_errors) {
-        pi_logdbg_no_funcname("Tx OS info: %d KB / %d / %d [bytes/packets/errors]",
+        pi_logdbg_no_funcname("Tx OS info: %" PRIu64 " KB / %d / %d [kilobytes/packets/errors]",
                               m_p_socket_stats->counters.n_tx_os_bytes / 1024,
                               m_p_socket_stats->counters.n_tx_os_packets,
                               m_p_socket_stats->counters.n_tx_os_errors);
@@ -388,14 +388,14 @@ void pipeinfo::statistics_print()
     if (m_p_socket_stats->counters.n_rx_bytes || m_p_socket_stats->counters.n_rx_packets ||
         m_p_socket_stats->counters.n_rx_errors || m_p_socket_stats->counters.n_rx_eagain) {
         pi_logdbg_no_funcname(
-            "Rx Offload: %d KB / %d / %d / %d [bytes/packets/errors/eagains]",
+            "Rx Offload: %" PRIu64 " KB / %d / %d / %d [kilobytes/packets/errors/eagains]",
             m_p_socket_stats->counters.n_rx_bytes / 1024, m_p_socket_stats->counters.n_rx_packets,
             m_p_socket_stats->counters.n_rx_errors, m_p_socket_stats->counters.n_rx_eagain);
         b_any_activiy = true;
     }
     if (m_p_socket_stats->counters.n_rx_os_bytes || m_p_socket_stats->counters.n_rx_os_packets ||
         m_p_socket_stats->counters.n_rx_os_errors) {
-        pi_logdbg_no_funcname("Rx OS info: %d KB / %d / %d [bytes/packets/errors]",
+        pi_logdbg_no_funcname("Rx OS info: %" PRIu64 " KB / %d / %d [kilobytes/packets/errors]",
                               m_p_socket_stats->counters.n_rx_os_bytes / 1024,
                               m_p_socket_stats->counters.n_rx_os_packets,
                               m_p_socket_stats->counters.n_rx_os_errors);

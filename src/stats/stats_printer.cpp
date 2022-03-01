@@ -158,7 +158,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     //
     if (p_si_stats->counters.n_tx_sent_byte_count || p_si_stats->counters.n_tx_sent_pkt_count ||
         p_si_stats->counters.n_tx_eagain || p_si_stats->counters.n_tx_errors) {
-        fprintf(filename, "Tx Offload: %u / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
+        fprintf(filename,
+                "Tx Offload: %" PRIu64 " / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
                 p_si_stats->counters.n_tx_sent_byte_count / BYTES_TRAFFIC_UNIT,
                 p_si_stats->counters.n_tx_sent_pkt_count, p_si_stats->counters.n_tx_eagain,
                 p_si_stats->counters.n_tx_errors, post_fix);
@@ -166,7 +167,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     }
     if (p_si_stats->counters.n_tx_os_bytes || p_si_stats->counters.n_tx_os_packets ||
         p_si_stats->counters.n_tx_os_eagain || p_si_stats->counters.n_tx_os_errors) {
-        fprintf(filename, "Tx OS info: %u / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
+        fprintf(filename,
+                "Tx OS info: %" PRIu64 " / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
                 p_si_stats->counters.n_tx_os_bytes / BYTES_TRAFFIC_UNIT,
                 p_si_stats->counters.n_tx_os_packets, p_si_stats->counters.n_tx_os_eagain,
                 p_si_stats->counters.n_tx_os_errors, post_fix);
@@ -178,7 +180,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     }
     if (p_si_stats->counters.n_rx_bytes || p_si_stats->counters.n_rx_packets ||
         p_si_stats->counters.n_rx_eagain || p_si_stats->counters.n_rx_errors) {
-        fprintf(filename, "Rx Offload: %u / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
+        fprintf(filename,
+                "Rx Offload: %" PRIu64 " / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
                 p_si_stats->counters.n_rx_bytes / BYTES_TRAFFIC_UNIT,
                 p_si_stats->counters.n_rx_packets, p_si_stats->counters.n_rx_eagain,
                 p_si_stats->counters.n_rx_errors, post_fix);
@@ -186,7 +189,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
     }
     if (p_si_stats->counters.n_rx_os_bytes || p_si_stats->counters.n_rx_os_packets ||
         p_si_stats->counters.n_rx_os_eagain || p_si_stats->counters.n_rx_os_errors) {
-        fprintf(filename, "Rx OS info: %u / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
+        fprintf(filename,
+                "Rx OS info: %" PRIu64 " / %u / %u / %u [kilobytes/packets/eagains/errors]%s\n",
                 p_si_stats->counters.n_rx_os_bytes / BYTES_TRAFFIC_UNIT,
                 p_si_stats->counters.n_rx_os_packets, p_si_stats->counters.n_rx_os_eagain,
                 p_si_stats->counters.n_rx_os_errors, post_fix);
@@ -245,7 +249,7 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
                 p_si_stats->tls_rx_offload ? "On" : "Off");
     }
     if (p_si_stats->tls_counters.n_tls_tx_records || p_si_stats->tls_counters.n_tls_tx_bytes) {
-        fprintf(filename, "TLS Tx Offload: %u / %u [kilobytes/records]%s\n",
+        fprintf(filename, "TLS Tx Offload: %" PRIu64 " / %u [kilobytes/records]%s\n",
                 p_si_stats->tls_counters.n_tls_tx_bytes / BYTES_TRAFFIC_UNIT,
                 p_si_stats->tls_counters.n_tls_tx_records, post_fix);
         b_any_activiy = true;
@@ -259,7 +263,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
 
     if (p_si_stats->tls_counters.n_tls_rx_records || p_si_stats->tls_counters.n_tls_rx_bytes) {
         fprintf(filename,
-                "TLS Rx Offload: %u / %u / %u / %u [kilobytes/records/encrypted/mixed]%s\n",
+                "TLS Rx Offload: %" PRIu64
+                " / %u / %u / %u [kilobytes/records/encrypted/mixed]%s\n",
                 p_si_stats->tls_counters.n_tls_rx_bytes / BYTES_TRAFFIC_UNIT,
                 p_si_stats->tls_counters.n_tls_rx_records,
                 p_si_stats->tls_counters.n_tls_rx_records_enc,

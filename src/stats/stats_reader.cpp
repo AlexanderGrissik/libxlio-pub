@@ -80,8 +80,8 @@ typedef enum { e_K = 1024, e_M = 1048576 } units_t;
 #define BASIC_STATS_LINES_NUM   2
 #define UPPER_SHORT_VIEW_HEADER " %-7s %42s %31s\n"
 #define LOWER_SHORT_VIEW_HEADER " %-7s %10s %7s %8s %7s %6s %7s %7s %7s %7s\n"
-#define RX_SHORT_VIEW           " %-3d %-3s %10u %7u %8u %7u %6.1f %7u %7u %7u %7u\n"
-#define TX_SHORT_VIEW           " %-3s %-3s %10u %7u %8u %7u %-6s %7u %7u %7u %7u\n"
+#define RX_SHORT_VIEW           " %-3d %-3s %10u %20" PRIu64 " %8u %7u %6.1f %7u %20" PRIu64 " %7u %7u\n"
+#define TX_SHORT_VIEW           " %-3s %-3s %10u %20" PRIu64 " %8u %7u %-6s %7u %20" PRIu64 " %7u %7u\n"
 #define IOMUX_FORMAT            "%-8s%-2s %-9s%u%-1s%u %-12s %-9s%-5u %-7s%-4u %-5s%-2.2f%-3s %-5s%d%-1s\n"
 
 #define MEDIUM_HEADERS_NUM        3
@@ -90,8 +90,9 @@ typedef enum { e_K = 1024, e_M = 1048576 } units_t;
 #define MIDDLE_MEDIUM_VIEW_HEADER " %-7s %10s %10s %7s %8s %7s %6s%23s %7s %7s %7s %7s\n"
 #define LOWER_MEDIUM_VIEW_HEADER  " %50s %6s  %6s  %6s \n"
 #define RX_MEDIUM_VIEW                                                                             \
-    " %-3d %-3s %10u %10" PRIu64 " %7u %8u %7u %6.1f %6u  %6u  %6u %7u %7u %7u %7u\n"
-#define TX_MEDIUM_VIEW " %-3s %-3s %10u %10u %7u %8u %7u %29s %7u %7u %7u %7u\n"
+    " %-3d %-3s %10u %10" PRIu64 " %" PRIu64 " %8u %7u %6.1f %6u  %6u  %6u %7u %" PRIu64           \
+    " %7u %7u\n"
+#define TX_MEDIUM_VIEW " %-3s %-3s %10u %10u %" PRIu64 " %8u %7u %29s %7u %" PRIu64 " %7u %7u\n"
 #define CYCLES_SEPARATOR                                                                           \
     "-------------------------------------------------------------------------------\n"
 #define FORMAT_STATS_32bit     "%-20s %u\n"

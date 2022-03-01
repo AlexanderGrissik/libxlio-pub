@@ -1210,7 +1210,9 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
     if (m_p_socket_stats->counters.n_tx_sent_byte_count ||
         m_p_socket_stats->counters.n_tx_sent_pkt_count || m_p_socket_stats->counters.n_tx_errors ||
         m_p_socket_stats->counters.n_tx_eagain) {
-        vlog_printf(log_level, "Tx Offload : %d KB / %d / %d / %d [bytes/packets/eagains/errors]\n",
+        vlog_printf(log_level,
+                    "Tx Offload : %" PRIu64
+                    " KB / %d / %d / %d [kilobytes/packets/eagains/errors]\n",
                     m_p_socket_stats->counters.n_tx_sent_byte_count / 1024,
                     m_p_socket_stats->counters.n_tx_sent_pkt_count,
                     m_p_socket_stats->counters.n_tx_eagain, m_p_socket_stats->counters.n_tx_errors);
@@ -1218,7 +1220,7 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
     }
     if (m_p_socket_stats->counters.n_tx_os_bytes || m_p_socket_stats->counters.n_tx_os_packets ||
         m_p_socket_stats->counters.n_tx_os_errors) {
-        vlog_printf(log_level, "Tx OS info : %d KB / %d / %d [bytes/packets/errors]\n",
+        vlog_printf(log_level, "Tx OS info : %" PRIu64 " KB / %d / %d [kilobytes/packets/errors]\n",
                     m_p_socket_stats->counters.n_tx_os_bytes / 1024,
                     m_p_socket_stats->counters.n_tx_os_packets,
                     m_p_socket_stats->counters.n_tx_os_errors);
@@ -1231,10 +1233,11 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
     if (m_p_socket_stats->counters.n_rx_bytes || m_p_socket_stats->counters.n_rx_packets ||
         m_p_socket_stats->counters.n_rx_errors || m_p_socket_stats->counters.n_rx_eagain ||
         m_p_socket_stats->n_rx_ready_pkt_count) {
-        vlog_printf(log_level, "Rx Offload : %d KB / %d / %d / %d [bytes/packets/eagains/errors]\n",
-                    m_p_socket_stats->counters.n_rx_bytes / 1024,
-                    m_p_socket_stats->counters.n_rx_packets, m_p_socket_stats->counters.n_rx_eagain,
-                    m_p_socket_stats->counters.n_rx_errors);
+        vlog_printf(
+            log_level,
+            "Rx Offload : %" PRIu64 " KB / %d / %d / %d [kilobytes/packets/eagains/errors]\n",
+            m_p_socket_stats->counters.n_rx_bytes / 1024, m_p_socket_stats->counters.n_rx_packets,
+            m_p_socket_stats->counters.n_rx_eagain, m_p_socket_stats->counters.n_rx_errors);
 
         if (m_p_socket_stats->counters.n_rx_packets) {
             float rx_drop_percentage = 0;
@@ -1266,11 +1269,12 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
     }
     if (m_p_socket_stats->counters.n_rx_os_bytes || m_p_socket_stats->counters.n_rx_os_packets ||
         m_p_socket_stats->counters.n_rx_os_errors || m_p_socket_stats->counters.n_rx_os_eagain) {
-        vlog_printf(log_level, "Rx OS info : %d KB / %d / %d / %d [bytes/packets/eagains/errors]\n",
-                    m_p_socket_stats->counters.n_rx_os_bytes / 1024,
-                    m_p_socket_stats->counters.n_rx_os_packets,
-                    m_p_socket_stats->counters.n_rx_os_eagain,
-                    m_p_socket_stats->counters.n_rx_os_errors);
+        vlog_printf(
+            log_level,
+            "Rx OS info : %" PRIu64 " KB / %d / %d / %d [kilobytes/packets/eagains/errors]\n",
+            m_p_socket_stats->counters.n_rx_os_bytes / 1024,
+            m_p_socket_stats->counters.n_rx_os_packets, m_p_socket_stats->counters.n_rx_os_eagain,
+            m_p_socket_stats->counters.n_rx_os_errors);
         b_any_activity = true;
     }
     if (m_p_socket_stats->counters.n_rx_poll_miss || m_p_socket_stats->counters.n_rx_poll_hit) {

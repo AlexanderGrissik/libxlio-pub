@@ -127,7 +127,6 @@ typedef struct {
 // socket stat info
 typedef struct {
     uint32_t n_rx_packets;
-    uint32_t n_rx_bytes;
     uint32_t n_rx_poll_hit;
     uint32_t n_rx_poll_miss;
     uint32_t n_rx_ready_pkt_max;
@@ -137,18 +136,19 @@ typedef struct {
     uint32_t n_rx_errors;
     uint32_t n_rx_eagain;
     uint32_t n_rx_os_packets;
-    uint32_t n_rx_os_bytes;
     uint32_t n_rx_poll_os_hit;
     uint32_t n_rx_os_errors;
     uint32_t n_rx_os_eagain;
     uint32_t n_rx_migrations;
+    uint64_t n_rx_os_bytes;
+    uint64_t n_rx_bytes;
+    uint64_t n_tx_sent_byte_count;
+    uint64_t n_tx_os_bytes;
     uint32_t n_tx_sent_pkt_count;
-    uint32_t n_tx_sent_byte_count;
     uint32_t n_tx_errors;
     uint32_t n_tx_eagain;
     uint32_t n_tx_retransmits;
     uint32_t n_tx_os_packets;
-    uint32_t n_tx_os_bytes;
     uint32_t n_tx_os_errors;
     uint32_t n_tx_os_eagain;
     uint32_t n_tx_migrations;
@@ -159,14 +159,14 @@ typedef struct {
 
 #ifdef DEFINED_UTLS
 typedef struct {
+    uint64_t n_tls_tx_bytes;
+    uint64_t n_tls_rx_bytes;
     uint32_t n_tls_tx_records;
-    uint32_t n_tls_tx_bytes;
     uint32_t n_tls_tx_resync;
     uint32_t n_tls_tx_resync_replay;
     uint32_t n_tls_rx_records;
     uint32_t n_tls_rx_records_enc;
     uint32_t n_tls_rx_records_partial;
-    uint32_t n_tls_rx_bytes;
     uint32_t n_tls_rx_resync;
 } socket_tls_counters_t;
 #endif /* DEFINED_UTLS */
