@@ -775,12 +775,12 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr *pswr)
     struct mlx5_wqe_data_seg *dpseg = NULL;
     uint8_t *cur_seg = NULL;
     uint8_t *p_hdr = (uint8_t *)pswr->tso.hdr;
-    int inline_len = pswr->tso.hdr_sz;
-    int max_inline_len = align_to_octoword_up(sizeof(struct mlx5_wqe_eth_seg) + inline_len -
+    int inl_hdr_size = pswr->tso.hdr_sz;
+    int inl_hdr_copy_size = 0;
+    int max_inline_len = align_to_octoword_up(sizeof(struct mlx5_wqe_eth_seg) + inl_hdr_size -
                                               MLX5_ETH_INLINE_HEADER_SIZE);
     int wqe_size = sizeof(struct mlx5_wqe_ctrl_seg) / OCTOWORD;
     int rest = 0;
-    int bottom_hdr_sz = 0;
     int i = 0;
 
     ctrl = (struct mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
@@ -793,34 +793,37 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr *pswr)
 
     eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
     eseg->mss = htons(pswr->tso.mss);
-    eseg->inline_hdr_sz = htons(pswr->tso.hdr_sz);
+    eseg->inline_hdr_sz = htons(inl_hdr_size);
 
-    rest = (int)(m_sq_wqes_end - (uint8_t *)eseg);
+    rest = (int)((uintptr_t)(void *)m_sq_wqes_end - (uintptr_t)(void *)eseg);
     cur_seg = (uint8_t *)eseg;
 
-    if (likely(max_inline_len < rest)) {
+    if (likely(max_inline_len <= rest)) {
         // Fill Ethernet segment with full header inline
-        memcpy(eseg->inline_hdr_start, p_hdr, inline_len);
+        inl_hdr_copy_size = inl_hdr_size;
+        memcpy(eseg->inline_hdr_start, p_hdr, inl_hdr_copy_size);
         cur_seg += max_inline_len;
     } else {
         // wrap around SQ on inline ethernet header
-        bottom_hdr_sz = rest - offsetof(struct mlx5_wqe_eth_seg, inline_hdr_start);
-        memcpy(eseg->inline_hdr_start, p_hdr, bottom_hdr_sz);
-        memcpy(m_sq_wqes, p_hdr + bottom_hdr_sz, inline_len - bottom_hdr_sz);
-        max_inline_len = align_to_octoword_up(inline_len - bottom_hdr_sz);
+        inl_hdr_copy_size = rest - offsetof(struct mlx5_wqe_eth_seg, inline_hdr_start);
+        memcpy(eseg->inline_hdr_start, p_hdr, inl_hdr_copy_size);
+        p_hdr += inl_hdr_copy_size;
+        inl_hdr_copy_size = inl_hdr_size - inl_hdr_copy_size;
+        memcpy(m_sq_wqes, p_hdr, inl_hdr_copy_size);
+        max_inline_len = align_to_octoword_up(inl_hdr_copy_size);
         cur_seg = (uint8_t *)m_sq_wqes + max_inline_len;
         wqe_size += rest / OCTOWORD;
-        bottom_hdr_sz = align_to_WQEBB_up(wqe_size) / 4;
+        inl_hdr_copy_size = align_to_WQEBB_up(wqe_size) / 4;
     }
     wqe_size += max_inline_len / OCTOWORD;
-    qp_logfunc("TSO: num_sge: %d max_inline_len: %d inline_len: %d rest: %d", pswr->num_sge,
-               max_inline_len, inline_len, rest);
+    qp_logfunc("TSO: num_sge: %d max_inline_len: %d inl_hdr_size: %d rest: %d", pswr->num_sge,
+               max_inline_len, inl_hdr_size, rest);
     // Filling data pointer segments with payload by scatter-gather list elements
     dpseg = (struct mlx5_wqe_data_seg *)cur_seg;
     for (i = 0; i < pswr->num_sge; i++) {
         if (unlikely((uintptr_t)dpseg >= (uintptr_t)m_sq_wqes_end)) {
             dpseg = (struct mlx5_wqe_data_seg *)m_sq_wqes;
-            bottom_hdr_sz = align_to_WQEBB_up(wqe_size) / 4;
+            inl_hdr_copy_size = align_to_WQEBB_up(wqe_size) / 4;
         }
         dpseg->addr = htonll((uint64_t)pswr->sg_list[i].addr);
         dpseg->lkey = htonl(pswr->sg_list[i].lkey);
@@ -832,19 +835,19 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr *pswr)
         dpseg++;
         wqe_size += sizeof(struct mlx5_wqe_data_seg) / OCTOWORD;
     }
-    inline_len = align_to_WQEBB_up(wqe_size) / 4;
+    inl_hdr_size = align_to_WQEBB_up(wqe_size) / 4;
     m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | wqe_size);
 
     // sending by BlueFlame or DoorBell covering wrap around
-    if (likely(inline_len <= 4)) {
-        if (likely(bottom_hdr_sz == 0)) {
-            ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, inline_len);
+    if (likely(inl_hdr_size <= 4)) {
+        if (likely(inl_hdr_copy_size == 0)) {
+            ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, inl_hdr_size);
         } else {
-            ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, bottom_hdr_sz,
-                          inline_len - bottom_hdr_sz);
+            ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, inl_hdr_copy_size,
+                          inl_hdr_size - inl_hdr_copy_size);
         }
     } else {
-        ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, inline_len);
+        ring_doorbell((uint64_t *)m_sq_wqe_hot, MLX5_DB_METHOD_DB, inl_hdr_size);
     }
     return wqe_size;
 }
