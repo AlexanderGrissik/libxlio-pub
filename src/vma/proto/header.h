@@ -144,9 +144,6 @@ public:
     virtual void copy_l2_ip_udp_hdr(void *p_h) = 0;
     virtual header *copy() = 0;
 
-    // TODO: temp until full integration. should remain only get_ip_hdr
-    virtual iphdr *get_ipv4_hdr() { return NULL; };
-
     uintptr_t m_actual_hdr_addr;
     uint16_t m_ip_header_len;
     uint16_t m_transport_header_len;
@@ -177,9 +174,6 @@ public:
     void copy_l2_ip_udp_hdr(void *p_h) override;
     void copy_l2_hdr(void *p_h) override;
     header *copy() override { return new header_ipv4(*this); }
-
-    // TODO: temp until full integration. should remain only get_ip_hdr
-    iphdr *get_ipv4_hdr() override { return &m_header.hdr.m_ip_hdr; }
 
 private:
     tx_ipv4_packet_template_t m_header;

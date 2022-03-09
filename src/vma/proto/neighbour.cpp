@@ -1696,10 +1696,11 @@ bool neigh_eth::prepare_to_send_packet(header *h)
     wqe_send_handler wqe_sh;
     wqe_sh.init_wqe(m_send_wqe, &m_sge, 1);
 
+    uint16_t ether_type = (ip_header_version(h->get_ip_hdr()) == IPV4) ? ETH_P_IP : ETH_P_IPV6;
     if (netdevice_eth->get_vlan()) { // vlan interface
-        h->configure_vlan_eth_headers(*src, *dst, netdevice_eth->get_vlan(), ETH_P_IP); // TODO IPV6
+        h->configure_vlan_eth_headers(*src, *dst, netdevice_eth->get_vlan(), ether_type);
     } else {
-        h->configure_eth_headers(*src, *dst, ETH_P_IP); // TODO IPV6
+        h->configure_eth_headers(*src, *dst, ether_type);
     }
 
     return (true);
@@ -1712,8 +1713,8 @@ ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
     }
 
     ethhdr *actual_header = (ethhdr *)h->m_actual_hdr_addr;
+    // TODO: generate_id() does not cover IPv6 case, requires update
     return m_p_ring->generate_id(actual_header->h_source, actual_header->h_dest,
-                                 actual_header->h_proto, htons(ETH_P_IP), h->get_ipv4_hdr()->saddr,
-                                 h->get_ipv4_hdr()->daddr, h->get_udp_hdr()->source,
-                                 h->get_udp_hdr()->dest);
+                                 actual_header->h_proto, htons(ETH_P_IP), 0, 0,
+                                 h->get_udp_hdr()->source, h->get_udp_hdr()->dest);
 }
