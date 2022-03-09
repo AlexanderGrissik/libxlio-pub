@@ -399,6 +399,13 @@ Value range is 0 to MTU size
 Disable with a value of 0
 Default value is 256 bytes
 
+XLIO_TX_BUFS_BATCH_TCP
+The number of buffers fetched from the ring pool by a socket at once.
+Higher number for less ring accesses to fetch buffers.
+Lower number for less memory consumption by a socket.
+Min value is 1
+Default value is 16
+
 XLIO_RING_ALLOCATION_LOGIC_TX
 XLIO_RING_ALLOCATION_LOGIC_RX
 Ring allocation logic is used to separate the traffic to different rings.

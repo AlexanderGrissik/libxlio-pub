@@ -562,6 +562,7 @@ extern mce_sys_var &safe_mce_sys();
 #define SYS_VAR_TX_MC_LOOPBACK        "XLIO_TX_MC_LOOPBACK"
 #define SYS_VAR_TX_NONBLOCKED_EAGAINS "XLIO_TX_NONBLOCKED_EAGAINS"
 #define SYS_VAR_TX_PREFETCH_BYTES     "XLIO_TX_PREFETCH_BYTES"
+#define SYS_VAR_TX_BUFS_BATCH_TCP     "XLIO_TX_BUFS_BATCH_TCP"
 
 #define SYS_VAR_STRQ                            "XLIO_STRQ"
 #define SYS_VAR_STRQ_NUM_STRIDES                "XLIO_STRQ_NUM_STRIDES"

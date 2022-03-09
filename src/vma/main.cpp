@@ -558,6 +558,8 @@ void print_vma_global_settings()
                       safe_mce_sys().tx_nonblocked_eagains ? "Enabled " : "Disabled");
     VLOG_PARAM_NUMBER("Tx Prefetch Bytes", safe_mce_sys().tx_prefetch_bytes,
                       MCE_DEFAULT_TX_PREFETCH_BYTES, SYS_VAR_TX_PREFETCH_BYTES);
+    VLOG_PARAM_NUMBER("Tx Bufs Batch TCP", safe_mce_sys().tx_bufs_batch_tcp,
+                      MCE_DEFAULT_TX_BUFS_BATCH_TCP, SYS_VAR_TX_BUFS_BATCH_TCP);
     VLOG_PARAM_NUMBER("TCP Send Buffer size", safe_mce_sys().tcp_send_buffer_size,
                       MCE_DEFAULT_TCP_SEND_BUFFER_SIZE, SYS_VAR_TCP_SEND_BUFFER_SIZE);
 

@@ -1259,6 +1259,13 @@ void mce_sys_var::get_env_params()
         tx_prefetch_bytes = (uint32_t)atoi(env_ptr);
     }
 
+    if ((env_ptr = getenv(SYS_VAR_TX_BUFS_BATCH_TCP)) != NULL) {
+        tx_bufs_batch_tcp = (uint32_t)atoi(env_ptr);
+        if (tx_bufs_batch_tcp < 1) {
+            tx_bufs_batch_tcp = 1;
+        }
+    }
+
     if ((env_ptr = getenv(SYS_VAR_RING_ALLOCATION_LOGIC_TX)) != NULL) {
         ring_allocation_logic_tx = (ring_logic_t)atoi(env_ptr);
         if (!is_ring_logic_valid(ring_allocation_logic_tx)) {
