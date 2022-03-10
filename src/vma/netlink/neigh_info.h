@@ -70,7 +70,7 @@ public:
     uint32_t dst_addr_len;
 
     // neigh addr family
-    int addr_family;
+    sa_family_t addr_family;
 
     /* return neigh flags:
      * 		NTF_USE

@@ -130,14 +130,16 @@ void neigh_table_mgr::notify_cb(event *ev)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    // TODO: support ipv6
     const netlink_neigh_info *nl_info = nl_ev->get_neigh_info();
-    struct in_addr in;
-    if (1 != inet_pton(AF_INET, (const char *)(nl_info->dst_addr_str.c_str()), &in)) {
+    struct in6_addr in;
+    if (1 != inet_pton(nl_info->addr_family, nl_info->dst_addr_str.c_str(), &in)) {
         neigh_mgr_logdbg("Ignoring netlink neigh event neigh for IP = %s, not a valid IP",
                          nl_info->dst_addr_str.c_str());
         return;
     }
+
+    ip_addr addr(ip_address(reinterpret_cast<void *>(&in), nl_info->addr_family),
+                 nl_info->addr_family);
 
     // Search for this neigh ip in cache_table
     m_lock.lock();
@@ -145,7 +147,7 @@ void neigh_table_mgr::notify_cb(event *ev)
 
     // find all neigh entries with an appropriate peer_ip and net_device
     if (p_ndev) {
-        neigh_entry *p_ne = dynamic_cast<neigh_entry *>(get_entry(neigh_key(in, p_ndev)));
+        neigh_entry *p_ne = dynamic_cast<neigh_entry *>(get_entry(neigh_key(addr, p_ndev)));
         if (p_ne) {
             // Call the relevant neigh_entry to handle the event
             p_ne->handle_neigh_event(nl_ev);

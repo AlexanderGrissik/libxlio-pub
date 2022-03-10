@@ -199,7 +199,12 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     memset(&m_sge, 0, sizeof(m_sge));
 
     /* Verify if neigh is local (loopback).
-     * Also setup source address as first with the same family as destination.
+     * Also setup source address with proper address family.
+     *
+     * TODO Currently, we use the last address in the list which is likely link-local for IPv6.
+     * RFC4861 suggests to use link-local address for NDP. To complete this implementation, we
+     * should take into account type of the local_addr and choose source address from the same
+     * subnet if there is no link-local address.
      */
     {
         const ip_data_vector_t &ip = m_p_dev->get_ip_array();
@@ -1197,7 +1202,7 @@ int neigh_entry::priv_enter_ready()
 bool neigh_entry::priv_get_neigh_state(int &state)
 {
     netlink_neigh_info info;
-    char str_addr[INET_ADDRSTRLEN];
+    char str_addr[INET6_ADDRSTRLEN];
 
     if (m_is_loopback) {
         state = NUD_REACHABLE;
@@ -1221,7 +1226,7 @@ bool neigh_entry::priv_get_neigh_state(int &state)
 bool neigh_entry::priv_get_neigh_l2(address_t &l2_addr)
 {
     netlink_neigh_info info;
-    char str_addr[INET_ADDRSTRLEN];
+    char str_addr[INET6_ADDRSTRLEN];
 
     if (m_is_loopback) {
         memcpy(l2_addr, m_p_dev->get_l2_address()->get_address(),

@@ -39,12 +39,12 @@
 
 netlink_link_info::netlink_link_info(struct rtnl_link *link)
     : /*arptype(0),*/ broadcast_str("")
-    , addr_family(0)
     , flags(0)
     , ifindex(0)
     , /*mode(0),*/ master_ifindex(0)
     , mtu(0)
     , name("")
+    , addr_family(0)
     , operstate(0)
     , txqlen(0)
 {

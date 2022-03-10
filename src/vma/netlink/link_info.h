@@ -50,9 +50,6 @@ public:
     // the link layer broadcast address string
     std::string broadcast_str;
 
-    // Address family or AF_UNSPEC if not specified.
-    int addr_family;
-
     /* return link flags:
      * IFF_UP 			Link is up (administratively)
      * IFF_RUNNING 		Link is up and carrier is OK (RFC2863 OPER_UP)
@@ -99,6 +96,9 @@ public:
      * e.g. eth0, eth1, ethn but they may be renamed at any time
      *  */
     std::string name;
+
+    // Address family or AF_UNSPEC if not specified.
+    sa_family_t addr_family;
 
     /* extended information on the link status (from: RFC 2863 operational status linux/if.h)
      * 		Unknown state 		IF_OPER_UNKNOWN
