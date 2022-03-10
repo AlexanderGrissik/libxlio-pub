@@ -97,6 +97,7 @@ public:
         get_net_ipv4_ttl(true);
         get_igmp_max_membership(true);
         get_igmp_max_source_membership(true);
+        get_ipv6_bindv6only(true);
     }
 
     int get_tcp_max_syn_backlog(bool update = false)
@@ -218,6 +219,18 @@ public:
             val = read_file_to_int("/proc/sys/net/ipv4/igmp_max_msf", 1024);
             if (0 > val) {
                 vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_source_membership value");
+            }
+        }
+        return val;
+    }
+
+    int get_ipv6_bindv6only(bool update = false)
+    {
+        static int val;
+        if (update) {
+            val = read_file_to_int("/proc/sys/net/ipv6/bindv6only", 0);
+            if (0 > val) {
+                vlog_printf(VLOG_WARNING, "failed to read bindv6only value");
             }
         }
         return val;

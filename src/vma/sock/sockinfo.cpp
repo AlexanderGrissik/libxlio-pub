@@ -93,6 +93,7 @@ sockinfo::sockinfo(int fd, int domain)
     , m_flow_tag_enabled(false)
     , m_rx_cq_wait_ctrl(safe_mce_sys().rx_cq_wait_ctrl)
     , m_n_uc_ttl(safe_mce_sys().sysctl_reader.get_net_ipv4_ttl())
+    , m_is_ipv6only(safe_mce_sys().sysctl_reader.get_ipv6_bindv6only())
     , m_p_rings_fds(NULL)
 {
     m_ring_alloc_logic = ring_allocation_logic_rx(get_fd(), m_ring_alloc_log_rx, this);
@@ -520,6 +521,23 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
         default:
             break;
         }
+    } else if (__level == IPPROTO_IPV6) {
+        switch (__optname) {
+        case IPV6_V6ONLY:
+            if (__optval && __optlen == sizeof(int)) {
+                m_is_ipv6only = (*reinterpret_cast<const int *>(__optval) != 0);
+                si_logdbg("IPV6_V6ONLY, set to %d", m_is_ipv6only ? 1 : 0);
+            } else {
+                ret = SOCKOPT_NO_VMA_SUPPORT;
+                errno = EINVAL;
+                si_logdbg("IPV6_V6ONLY, invalid value/length arguments. "
+                          " val %p, len %zu, expected-len %zu",
+                          __optval, static_cast<size_t>(__optlen), sizeof(int));
+            }
+            break;
+        default:
+            break;
+        }
     }
 
     si_logdbg("ret (%d)", ret);
@@ -566,11 +584,46 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
                 errno = EINVAL;
             }
             break;
+        default:
+            break;
         }
+        break;
+    case IPPROTO_IPV6:
+        switch (__optname) {
+        case IPV6_V6ONLY:
+            if (__optval && __optlen && *__optlen == sizeof(int)) {
+                *reinterpret_cast<int *>(__optval) = (m_is_ipv6only ? 1 : 0);
+                ret = 0;
+                si_logerr("IPV6_V6ONLY, value is %d", m_is_ipv6only ? 1 : 0);
+            } else {
+                ret = SOCKOPT_NO_VMA_SUPPORT;
+                errno = EINVAL;
+                si_logdbg("IPV6_V6ONLY, invalid value/length arguments. "
+                          " val %p, len %p,%zu, expected-len %zu",
+                          __optval, __optlen, __optlen ? static_cast<size_t>(*__optlen) : 0,
+                          sizeof(int));
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
     }
 
     return ret;
 }
+
+#ifdef DEFINED_NGINX
+void sockinfo::copy_sockopt_fork(const socket_fd_api *copy_from)
+{
+    const sockinfo *skinfo = dynamic_cast<const sockinfo *>(copy_from);
+    if (skinfo) {
+        m_is_ipv6only = skinfo->m_is_ipv6only;
+    }
+}
+#endif // DEFINED_NGINX
 
 ////////////////////////////////////////////////////////////////////////////////
 bool sockinfo::try_un_offloading() // un-offload the socket if possible
@@ -1555,7 +1608,7 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
             // We need to listen on any IP. So, select all IPv4 addresses. Plus IPv6 addresses if
             // the listen socket is IPv6. If the 'connected' address is not any and its family is
             // not equal to if_addr, skip the address.
-            if (((if_addr.get_family() == AF_INET) ||
+            if (((if_addr.get_family() == AF_INET && !m_is_ipv6only) ||
                  (if_addr.get_family() == m_bound.get_sa_family())) &&
                 (m_connected.is_anyaddr() || m_connected.get_sa_family() == if_addr.get_family())) {
                 transport_t target_family = TRANS_VMA;

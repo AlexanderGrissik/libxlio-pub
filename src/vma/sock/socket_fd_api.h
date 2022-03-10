@@ -229,8 +229,15 @@ public:
 
     virtual fd_type_t get_type() = 0;
 
-    virtual void consider_rings_migration() {}
+#ifdef DEFINED_NGINX
+    // This socket options copy is currently implemented for nginx and for very specific options.
+    // This copy is called as part of fork() flow of nginx specifically.
+    // If a generic fork() is implemented, this copy should be reimplemented in a more generic way,
+    // see is_inherited_option mechanism of sockinfo_tcp for an example.
+    virtual void copy_sockopt_fork(const socket_fd_api *copy_from) = 0;
+#endif
 
+    virtual void consider_rings_migration() {}
     virtual int add_epoll_context(epfd_info *epfd);
     virtual void remove_epoll_context(epfd_info *epfd);
     int get_epoll_context_fd();

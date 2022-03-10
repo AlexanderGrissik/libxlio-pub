@@ -106,6 +106,11 @@ static bool is_inherited_option(int __level, int __optname)
         case IP_TTL:
             ret = true;
         }
+    } else if (__level == IPPROTO_IPV6) {
+        switch (__optname) {
+        case IPV6_V6ONLY:
+            ret = true;
+        }
     }
 
     return ret;

@@ -162,8 +162,11 @@ public:
 
     enum sockinfo_state { SOCKINFO_OPENED, SOCKINFO_CLOSING, SOCKINFO_CLOSED, SOCKINFO_DESTROYING };
 
-    virtual void consider_rings_migration();
+#ifdef DEFINED_NGINX
+    virtual void copy_sockopt_fork(const socket_fd_api *copy_from);
+#endif
 
+    virtual void consider_rings_migration();
     virtual int add_epoll_context(epfd_info *epfd);
     virtual void remove_epoll_context(epfd_info *epfd);
 
@@ -312,7 +315,7 @@ protected:
     bool m_flow_tag_enabled; // for this socket
     bool m_rx_cq_wait_ctrl;
     uint8_t m_n_uc_ttl; // time to live  // TODO IPV6 - use hop_limit instead/in addition to ttl
-
+    bool m_is_ipv6only;
     int *m_p_rings_fds;
     virtual void set_blocking(bool is_blocked);
     virtual int fcntl(int __cmd, unsigned long int __arg);

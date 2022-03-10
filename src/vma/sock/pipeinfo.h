@@ -45,6 +45,10 @@ public:
 
     virtual void clean_obj();
 
+#ifdef DEFINED_NGINX
+    virtual void copy_sockopt_fork(const socket_fd_api *copy_from) { NOT_IN_USE(copy_from); }
+#endif
+
     int fcntl(int __cmd, unsigned long int __arg);
     int fcntl64(int __cmd, unsigned long int __arg);
     int ioctl(unsigned long int __request, unsigned long int __arg);

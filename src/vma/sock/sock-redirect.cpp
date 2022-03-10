@@ -335,6 +335,8 @@ int init_child_process_for_nginx()
             socket_fd_api *child_sock_fd_api = g_p_fd_collection->get_sockfd(sock_fd);
             int ret = 0;
             if (child_sock_fd_api) {
+                child_sock_fd_api->copy_sockopt_fork(parent_sock_fd_api);
+
                 ret = bind(sock_fd, sa.get_p_sa(), sa_len);
                 if (ret < 0) {
                     srdr_logerr("bind() error\n");
@@ -391,6 +393,8 @@ int init_child_process_for_nginx()
                     sockinfo_udp *new_udp_sock =
                         dynamic_cast<sockinfo_udp *>(g_p_fd_collection->get_sockfd(sock_fd));
                     if (new_udp_sock) {
+                        new_udp_sock->copy_sockopt_fork(udp_sock);
+
                         g_map_udp_bounded_port[port] = true;
                         // in order to create new steering rules we call bind()
                         // we skip os.bind since it always fails

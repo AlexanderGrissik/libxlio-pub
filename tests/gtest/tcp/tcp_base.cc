@@ -72,6 +72,32 @@ err:
     return (-1);
 }
 
+int tcp_base::sock_create(sa_family_t family)
+{
+    int rc;
+    int fd;
+    int opt_val = 0;
+
+    fd = socket(family, SOCK_STREAM, IPPROTO_IP);
+    if (fd < 0) {
+        log_error("failed socket(%hu) %s\n", family, strerror(errno));
+        return -1;
+    }
+
+    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+    if (rc < 0) {
+        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
+        goto err;
+    }
+
+    return fd;
+
+err:
+    close(fd);
+
+    return (-1);
+}
+
 int tcp_base::sock_create_nb(void)
 {
     int rc;
