@@ -1641,8 +1641,8 @@ bool neigh_eth::send_neighbor_solicitation()
     memcpy(ns_opt + 1, src_mac->get_address(), ETH_ALEN);
     tail += sizeof(*ns_opt) + ETH_ALEN;
 
-    // Update length field
-    ip_hdr->ip6_plen = htons(tail - head);
+    // Update length field, must be size of the payload
+    ip_hdr->ip6_plen = htons(tail - reinterpret_cast<uint8_t *>(ns_hdr));
 
     // Calc checksum for ICMPv6 packet.
     // As final checksum does not depend on order of 16-bit words
