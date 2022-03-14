@@ -198,7 +198,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
             mem_buf_desc_t *p_mem_buf_desc =
                 get_buffer(type, &(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.desc),
                            is_set(attr.flags, VMA_TX_PACKET_BLOCK));
-            assert(p_mem_buf_desc != NULL);
+            if (!p_mem_buf_desc) {
+                return -1;
+            }
             p_tcp_iov[0].p_desc = p_mem_buf_desc;
         } else {
             p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
