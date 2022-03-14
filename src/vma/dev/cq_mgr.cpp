@@ -280,7 +280,7 @@ void cq_mgr::add_qp_rx(qp_mgr *qp)
                 VLOG_WARNING, VLOG_DEBUG,
                 "WARNING Out of mem_buf_desc from Rx buffer pool for qp_mgr qp_mgr initialization "
                 "(qp=%p),\n"
-                "\tThis might happen due to wrong setting of VMA_RX_BUFS and VMA_RX_WRE. Please "
+                "\tThis might happen due to wrong setting of XLIO_RX_BUFS and XLIO_RX_WRE. Please "
                 "refer to README.txt for more info",
                 qp);
             break;
