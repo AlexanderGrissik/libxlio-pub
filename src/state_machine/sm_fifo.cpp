@@ -58,16 +58,3 @@ sm_fifo_entry_t sm_fifo::pop_front()
     }
     return ret;
 }
-
-// code coverage
-#if 0
-void sm_fifo::debug_print_fifo()
-{
-	int i = 1;
-	sm_event_list_t::iterator tmp = m_sm_event_fifo.begin();
-	for (sm_event_list_t::iterator tmp = m_sm_event_fifo.begin(); tmp != m_sm_event_fifo.end(); tmp++) {
-		printf("element num %d is %d\n",i , tmp->event);
-		i++;
-	}
-}
-#endif

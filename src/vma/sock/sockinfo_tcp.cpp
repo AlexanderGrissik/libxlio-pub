@@ -3454,10 +3454,7 @@ void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)
 {
     si_tcp_logdbg("Applying all socket options on %p, fd %d", new_sock, new_sock->get_fd());
 
-    socket_options_list_t::iterator options_iter;
-    for (options_iter = m_socket_options_list.begin(); options_iter != m_socket_options_list.end();
-         options_iter++) {
-        socket_option_t *opt = *options_iter;
+    for (const auto &opt : m_socket_options_list) {
         new_sock->setsockopt(opt->level, opt->optname, opt->optval, opt->optlen);
     }
     errno = 0;
