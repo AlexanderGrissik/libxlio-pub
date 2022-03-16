@@ -36,7 +36,7 @@
 #include "common/log.h"
 #include "common/sys.h"
 #include "common/base.h"
-
+#include "src/vma/util/sock_addr.h"
 #include "tcp_base.h"
 
 class tcp_sendfile : public tcp_base {
@@ -142,8 +142,9 @@ TEST_F(tcp_sendfile, ti_1_basic)
         rc = connect(m_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
         ASSERT_EQ(0, rc);
 
-        log_trace("Established connection: fd=%d to %s\n", m_fd,
-                  sys_addr2str((struct sockaddr *)&server_addr));
+        log_trace("Established connection: fd=%d to %s from %s\n", m_fd,
+                  sockaddr2str((struct sockaddr *)&server_addr).c_str(),
+                  sockaddr2str((struct sockaddr *)&client_addr).c_str());
 
         while (m_test_file_size > 0) {
             rc = sendfile(m_fd, m_test_file, &test_file_offset, m_test_file_size);
@@ -162,7 +163,7 @@ TEST_F(tcp_sendfile, ti_1_basic)
         exit(testing::Test::HasFailure());
     } else { /* I am the parent */
         int l_fd;
-        struct sockaddr peer_addr;
+        sockaddr_store_t peer_addr;
         socklen_t socklen;
 
         m_test_buf = (char *)create_tmp_buffer(m_test_buf_size);
@@ -180,12 +181,12 @@ TEST_F(tcp_sendfile, ti_1_basic)
         barrier_fork(pid);
 
         socklen = sizeof(peer_addr);
-        m_fd = accept(l_fd, &peer_addr, &socklen);
+        m_fd = accept(l_fd, (struct sockaddr *)&peer_addr, &socklen);
         ASSERT_LE(0, m_fd);
         close(l_fd);
 
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
-                  sys_addr2str((struct sockaddr *)&peer_addr));
+                  sockaddr2str((struct sockaddr *)&peer_addr).c_str());
 
         int i = m_test_buf_size;
         while (i > 0 && !child_fork_exit()) {

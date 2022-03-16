@@ -91,7 +91,7 @@ void sys_hexdump(const char *tag, void *ptr, int buflen)
     }
 }
 
-int sys_get_addr(char *dst, struct sockaddr *addr)
+int sys_get_addr(const char *dst, struct sockaddr *addr)
 {
     int rc = 0;
     struct addrinfo *res;
@@ -130,7 +130,7 @@ bool sys_cmp_addr(const struct sockaddr *addr1, const struct sockaddr *addr2)
     return false;
 }
 
-char *sys_addr2dev(struct sockaddr *addr, char *buf, size_t size)
+char *sys_addr2dev(const struct sockaddr *addr, char *buf, size_t size)
 {
     struct ifaddrs *interfaces;
     struct ifaddrs *ifa;
@@ -157,20 +157,18 @@ char *sys_addr2dev(struct sockaddr *addr, char *buf, size_t size)
     return NULL;
 }
 
-int sys_dev2addr(char *dev, struct sockaddr *addr)
+// SIOCGIFADDR supports only IPv4.
+int sys_dev2addr(const char *dev, struct sockaddr *addr)
 {
     int rc = 0;
-    int fd;
     struct ifreq ifr;
-
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
         rc = -1;
         goto out;
     }
 
     ifr.ifr_addr.sa_family = AF_INET;
-
     ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0;
     strncpy(ifr.ifr_name, dev, sys_min(strlen(dev), sizeof(ifr.ifr_name) - 1));
 
@@ -185,26 +183,37 @@ out:
     return rc;
 }
 
-int sys_gateway(struct sockaddr *addr)
+bool sys_gateway(struct sockaddr *addr, sa_family_t family)
 {
-    int ret = -1;
+    sockaddr_store_t temp_addr;
+    bool found = false;
     char line[256];
-    char cmd[] = "route -n | grep 'UG[ \t]' | awk '{print $2}'";
-    FILE *file = NULL;
+    const char cmd4[] = "route -n | grep 'UG[ \t]' | awk '{print $2}'";
+    const char cmd6[] = "route -6 -n | grep 'UG[ \t]' | awk '{print $2}'";
+    const char *cmd_ptr = (family == AF_INET ? cmd4 : cmd6);
 
-    file = popen(cmd, "r");
-    if (fgets(line, sizeof(line), file) != NULL) {
+    FILE *file = popen(cmd_ptr, "r");
+    if (!file) {
+        log_warn("Unable to execute '%s'.\n", cmd_ptr);
+        return false;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL && !found) {
         size_t len = strlen(line);
         if (line[len - 1] == '\n' || line[len - 1] == '\r') {
             line[len - 1] = 0;
         }
-        sys_str2addr(line, addr, false);
-        ret = 0;
+        sys_str2addr(line, reinterpret_cast<struct sockaddr *>(&temp_addr), false);
+        found = (addr->sa_family == family);
+        if (found) {
+            sys_str2addr(line, addr, false);
+            log_trace("%s found gateway ip: %s\n", line, sys_addr2str(addr));
+        }
     }
 
     pclose(file);
 
-    return ret;
+    return found;
 }
 
 void sys_str2addr(const char *buf, struct sockaddr *addr, bool port)
@@ -215,8 +224,13 @@ void sys_str2addr(const char *buf, struct sockaddr *addr, bool port)
 
     if (!strchr(buf, ':')) {
         inet_pton(AF_INET, buf, &((struct sockaddr_in *)addr)->sin_addr);
+        addr->sa_family = AF_INET;
     } else {
-        inet_pton(AF_INET6, buf, &((struct sockaddr_in6 *)addr)->sin6_addr);
+        struct sockaddr_in6 *addr6 = reinterpret_cast<struct sockaddr_in6 *>(addr);
+        inet_pton(AF_INET6, buf, &(addr6->sin6_addr));
+        addr->sa_family = AF_INET6;
+        addr6->sin6_flowinfo = 0;
+        addr6->sin6_scope_id = 0;
     }
 
     if (port) {

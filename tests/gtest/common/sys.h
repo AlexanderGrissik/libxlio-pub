@@ -131,24 +131,24 @@ static INLINE bool sys_ipv6_addr_equal(const struct in6_addr *a1, const struct i
             (a1->s6_addr32[2] ^ a2->s6_addr32[2]) | (a1->s6_addr32[3] ^ a2->s6_addr32[3])) == 0;
 }
 
-int sys_get_addr(char *dst, struct sockaddr *addr);
+int sys_get_addr(const char *dst, struct sockaddr *addr);
 
-char *sys_addr2dev(struct sockaddr *addr, char *buf, size_t size);
+char *sys_addr2dev(const struct sockaddr *addr, char *buf, size_t size);
 
-int sys_dev2addr(char *dev, struct sockaddr *addr);
+int sys_dev2addr(const char *dev, struct sockaddr *addr);
 
-int sys_gateway(struct sockaddr *addr);
+bool sys_gateway(struct sockaddr *addr, sa_family_t family);
 
 void sys_str2addr(const char *buf, struct sockaddr *addr, bool port = true);
 
-static INLINE char *sys_addr2str(struct sockaddr *addr, bool port = true)
+static INLINE char *sys_addr2str(const struct sockaddr *addr, bool port = true)
 {
     static char buf[INET6_ADDRSTRLEN];
     static __thread char addrbuf[sizeof(buf) + 10];
     if (addr->sa_family == AF_INET) {
-        inet_ntop(AF_INET, &((struct sockaddr_in *)addr)->sin_addr, buf, sizeof(buf));
+        inet_ntop(AF_INET, &((const struct sockaddr_in *)addr)->sin_addr, buf, sizeof(buf));
     } else {
-        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)addr)->sin6_addr, buf, sizeof(buf));
+        inet_ntop(AF_INET6, &((const struct sockaddr_in6 *)addr)->sin6_addr, buf, sizeof(buf));
     }
 
     if (port) {

@@ -45,11 +45,11 @@ class tcp_socket : public tcp_base {
  *    Create IPv4 TCP socket
  * @details
  */
-TEST_F(tcp_socket, ti_1_ipv4)
+TEST_F(tcp_socket, ti_1_ip_socket)
 {
     int fd;
 
-    fd = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     EXPECT_LE(0, fd);
     EXPECT_EQ(errno, EOK);
 
@@ -57,29 +57,12 @@ TEST_F(tcp_socket, ti_1_ipv4)
 }
 
 /**
- * @test tcp_socket.ti_6_ipv6
- * @brief
- *    Create IPv6 TCP socket
- * @details
- */
-TEST_F(tcp_socket, ti_2_ipv6)
-{
-    int fd;
-
-    fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_IP);
-    EXPECT_LE(0, fd);
-    EXPECT_EQ(errno, EOK);
-
-    close(fd);
-}
-
-/**
- * @test tcp_socket.ti_3_ipv6only_listen_all
+ * @test tcp_socket.ti_2_ipv6only_listen_all
  * @brief
  *    Try IPv4 connection to IPv6 listen all socket with and without IPV6_V6ONLY.
  * @details
  */
-TEST_F(tcp_socket, ti_3_ipv6only_listen_all)
+TEST_F(tcp_socket, ti_2_ipv6only_listen_all)
 {
     // Test only for IPv4 to IPv6 mode.
     if (server_addr.addr.sin_family != AF_INET6 || client_addr.addr.sin_family != AF_INET) {

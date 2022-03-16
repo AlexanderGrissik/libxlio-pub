@@ -34,7 +34,7 @@
 #include "common/log.h"
 #include "common/sys.h"
 #include "common/base.h"
-
+#include "common/cmn.h"
 #include "udp_base.h"
 
 class udp_send : public udp_base {
@@ -109,14 +109,18 @@ TEST_F(udp_send, ti_2)
 /**
  * @test udp_send.ti_3
  * @brief
- *    send() invalid buffer length (>65,507 bytes)
+ *    send() invalid buffer length (>65,507 bytes, >65,527 bytes IPv6)
  * @details
  */
 TEST_F(udp_send, ti_3)
 {
     int rc = EOK;
     int fd;
-    char buf[65508] = "hello";
+    char buf[65528] = "hello";
+    size_t max_possible_size = (client_addr.addr.sin_family == AF_INET ? 65507 : 65527);
+
+    SKIP_TRUE((client_addr.addr.sin_family == AF_INET),
+              "IPv6 Fragmentation is currently unsupported");
 
     fd = udp_base::sock_create();
     ASSERT_LE(0, fd);
@@ -132,20 +136,14 @@ TEST_F(udp_send, ti_3)
     EXPECT_EQ(0, rc);
 
     errno = EOK;
-    rc = send(fd, (void *)buf, 65507, 0);
+    rc = send(fd, (void *)buf, max_possible_size, 0);
     EXPECT_EQ(EOK, errno);
-    EXPECT_EQ(65507, rc);
+    EXPECT_EQ(max_possible_size, static_cast<size_t>(rc));
 
     errno = EOK;
     rc = send(fd, (void *)buf, sizeof(buf), 0);
-    if (m_family == PF_INET) {
-        EXPECT_EQ(EMSGSIZE, errno);
-        EXPECT_EQ(-1, rc);
-    }
-    if (m_family == PF_INET6) {
-        EXPECT_EQ(ECONNREFUSED, errno);
-        EXPECT_EQ(-1, rc);
-    }
+    EXPECT_EQ(EMSGSIZE, errno);
+    EXPECT_EQ(-1, rc);
 
     close(fd);
 }
@@ -207,6 +205,10 @@ TEST_F(udp_send, ti_5)
     if (m_family == PF_INET) {
         EXPECT_EQ(EOPNOTSUPP, errno);
         EXPECT_EQ(-1, rc);
+    } else {
+        // Apparently IPv6 ignores MSG_OOB
+        EXPECT_EQ(EOK, errno);
+        EXPECT_EQ(sizeof(buf), static_cast<size_t>(rc));
     }
 
     close(fd);

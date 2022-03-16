@@ -120,19 +120,21 @@ public:
 
     bool is_equal_with_prefix(const ip_address &ip, unsigned prefix, sa_family_t family) const
     {
+        if (prefix == 0) {
+            return true;
+        }
+
         if (family == AF_INET) {
             prefix = 32U - prefix;
-            return (ntohl(m_ip) >> prefix << prefix) == (ntohl(ip.m_ip) >> prefix << prefix);
+            return (ntohl(m_ip) >> prefix) == (ntohl(ip.m_ip) >> prefix);
         } else {
             prefix = 128U - prefix;
             if (prefix >= 64U) {
                 prefix -= 64U;
-                return (ntohll(m_ip6_64[0]) >> prefix << prefix) ==
-                    (ntohll(ip.m_ip6_64[0]) >> prefix << prefix);
+                return (ntohll(m_ip6_64[0]) >> prefix) == (ntohll(ip.m_ip6_64[0]) >> prefix);
             } else {
                 return (m_ip6_64[0] == ip.m_ip6_64[0]) &&
-                    ((ntohll(m_ip6_64[1]) >> prefix << prefix) ==
-                     (ntohll(ip.m_ip6_64[1]) >> prefix << prefix));
+                    ((ntohll(m_ip6_64[1]) >> prefix) == (ntohll(ip.m_ip6_64[1]) >> prefix));
             }
         }
     }

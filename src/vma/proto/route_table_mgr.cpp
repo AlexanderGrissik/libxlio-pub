@@ -134,29 +134,30 @@ void route_table_mgr::rt_mgr_update_source_ip(route_table_t &table)
         if (!val.get_src_addr().is_anyaddr() || !val.get_gw_addr().is_anyaddr()) {
             continue;
         }
-        if (g_p_net_device_table_mgr) { // try to get src ip from net_dev list of the interface
-            int longest_prefix = -1;
-            ip_address correct_src;
-            local_ip_list_t lip_list = g_p_net_device_table_mgr->get_ip_list(val.get_if_index());
-            if (!lip_list.empty()) {
-                for (auto lip_iter = lip_list.begin(); lip_list.end() != lip_iter; ++lip_iter) {
-                    const ip_data_t &ip = *lip_iter;
-                    if (val.get_family() == ip.local_addr.get_family() &&
-                        val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen,
-                                                                val.get_family())) {
-                        // found a match in routing table
-                        if (ip.prefixlen > longest_prefix) {
-                            longest_prefix = ip.prefixlen; // this is the longest prefix match
-                            correct_src = ip.local_addr;
-                        }
+
+        // try to get src ip from net_dev list of the interface
+        int longest_prefix = -1;
+        ip_address correct_src;
+        local_ip_list_t lip_list = g_p_net_device_table_mgr->get_ip_list(val.get_if_index());
+        if (!lip_list.empty()) {
+            for (auto lip_iter = lip_list.begin(); lip_list.end() != lip_iter; ++lip_iter) {
+                const ip_data_t &ip = *lip_iter;
+                if (val.get_family() == ip.local_addr.get_family() &&
+                    val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen,
+                                                            val.get_family())) {
+                    // found a match in routing table
+                    if (ip.prefixlen > longest_prefix) {
+                        longest_prefix = ip.prefixlen; // this is the longest prefix match
+                        correct_src = ip.local_addr;
                     }
                 }
-                if (longest_prefix > -1) {
-                    val.set_src_addr(correct_src);
-                    continue;
-                }
+            }
+            if (longest_prefix > -1) {
+                val.set_src_addr(correct_src);
+                continue;
             }
         }
+
         // if still no src ip, get it from ioctl
         ip_addr src_addr {0};
         const char *if_name = val.get_if_name();

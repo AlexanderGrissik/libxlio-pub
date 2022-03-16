@@ -35,6 +35,7 @@
 
 #include "cq_mgr.h"
 #include "ring_simple.h"
+#include "vma/util/utils.h"
 
 /**/
 /** inlining functions can only help if they are implemented before their usage **/
@@ -69,6 +70,8 @@ inline uint32_t cq_mgr::process_recv_queue(void *pv_fd_ready_array)
     return processed;
 }
 
+// This method is used as part of RX-Drain-and-Process flow, to decide if the packet
+// should be processed immediately (TCP) or pushed to a queue (UDP).
 inline bool is_eth_tcp_frame(mem_buf_desc_t *buff)
 {
     struct ethhdr *p_eth_h = (struct ethhdr *)(buff->p_buffer);
@@ -81,10 +84,24 @@ inline bool is_eth_tcp_frame(mem_buf_desc_t *buff)
         transport_header_len = ETH_VLAN_HDR_LEN;
         h_proto = p_vlan_hdr->h_vlan_encapsulated_proto;
     }
-    struct iphdr *p_ip_h = (struct iphdr *)(buff->p_buffer + transport_header_len);
-    if (likely(h_proto == htons(ETH_P_IP)) && (p_ip_h->protocol == IPPROTO_TCP)) {
-        return true;
+    if (h_proto == htons(ETH_P_IP)) {
+        struct iphdr *p_ip_h = (struct iphdr *)(buff->p_buffer + transport_header_len);
+        return (p_ip_h->protocol == IPPROTO_TCP);
     }
+    if (likely(h_proto == htons(ETH_P_IPV6))) {
+        struct ip6_hdr *p_ip_h = (struct ip6_hdr *)(buff->p_buffer + transport_header_len);
+
+        // For IPv6 we must consider the case that there might be extention headers.
+        // There is no way to determine the L4 protocol without parsing the ext headers.
+        // Parsing the headers at this stage is a huge overhead.
+        // So for all next_headers that are not TCP or UDP, we consider it as TCP,
+        // Because for TCP with ext headers we still must return true. Otherwise,
+        // there will be a long stall on the connection.
+
+        // By using | we avoid branching.
+        return ((p_ip_h->ip6_nxt == IPPROTO_TCP) | (p_ip_h->ip6_nxt != IPPROTO_UDP));
+    }
+
     return false;
 }
 

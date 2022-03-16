@@ -76,38 +76,48 @@ static int _def_config(void)
     gtest_conf.log_level = 4;
     gtest_conf.random_seed = time(NULL) % 32768;
 
-    ((struct sockaddr *)&gtest_conf.client_addr)->sa_family = AF_INET;
     sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.client_addr, true);
-
-    ((struct sockaddr *)&gtest_conf.server_addr)->sa_family = AF_INET;
     sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.server_addr, true);
-
-    ((struct sockaddr *)&gtest_conf.remote_addr)->sa_family = AF_INET;
     sys_str2addr("0.0.0.0[8888]", (struct sockaddr *)&gtest_conf.remote_addr, true);
-    sys_gateway((struct sockaddr *)&gtest_conf.remote_addr);
 
     gtest_conf.port = 55555;
 
     return rc;
 }
 
+static void set_def_remote_address()
+{
+    bool rc_gw = sys_gateway((struct sockaddr *)&gtest_conf.remote_addr,
+                             gtest_conf.server_addr.addr.sin_family);
+    if (gtest_conf.server_addr.addr.sin_family == AF_INET6) {
+        if (!rc_gw) {
+            sys_str2addr("::[8888]", (struct sockaddr *)&gtest_conf.remote_addr, true);
+        } else {
+            gtest_conf.remote_addr.addr6.sin6_port = htons(8888);
+        }
+    }
+}
+
 static int _set_config(int argc, char **argv)
 {
     int rc = 0;
     static struct option long_options[] = {
-        {"addr", required_argument, 0, 'a'},  {"if", required_argument, 0, 'i'},
-        {"port", required_argument, 0, 'p'},  {"random", required_argument, 0, 's'},
-        {"debug", required_argument, 0, 'd'}, {"help", no_argument, 0, 'h'},
+        {"addr", required_argument, 0, 'a'},   {"if", required_argument, 0, 'i'},
+        {"remote", required_argument, 0, 'r'}, {"port", required_argument, 0, 'p'},
+        {"random", required_argument, 0, 's'}, {"debug", required_argument, 0, 'd'},
+        {"help", no_argument, 0, 'h'},
     };
     int op;
     int option_index;
+    bool user_defined_remote = false;
 
-    while ((op = getopt_long(argc, argv, "a:i:p:d:h", long_options, &option_index)) != -1) {
+    while ((op = getopt_long(argc, argv, "a:i:r:p:d:h", long_options, &option_index)) != -1) {
         switch (op) {
         case 'a': {
             char *token1 = NULL;
             char *token2 = NULL;
             const char s[2] = ",";
+
             if (optarg) {
                 if (optarg[0] != ',') {
                     token1 = strtok(optarg, s);
@@ -162,6 +172,15 @@ static int _set_config(int argc, char **argv)
                 }
             }
         } break;
+        case 'r': {
+            rc = sys_get_addr(optarg, (struct sockaddr *)&gtest_conf.remote_addr);
+            if (rc < 0) {
+                rc = -EINVAL;
+                log_fatal("Failed to resolve ip address %s\n", optarg);
+            } else {
+                user_defined_remote = true;
+            }
+        } break;
         case 'p':
             errno = 0;
             gtest_conf.port = strtol(optarg, NULL, 0);
@@ -201,6 +220,11 @@ static int _set_config(int argc, char **argv)
     } else {
         srand(gtest_conf.random_seed);
         sys_set_port((struct sockaddr *)&gtest_conf.server_addr, gtest_conf.port);
+
+        if (!user_defined_remote) {
+            set_def_remote_address();
+        }
+
         log_info("CONFIGURATION:\n");
         log_info("log level: %d\n", gtest_conf.log_level);
         log_info("seed: %d\n", gtest_conf.random_seed);
@@ -218,6 +242,7 @@ static void _usage(void)
     printf("Usage: gtest [options]\n"
            "\t--addr,-a <ip,ip>       IP address client,server\n"
            "\t--if,-i <ip,ip>         Interface client,server\n"
+           "\t--remote,-r <ip>        IP address remote\n"
            "\t--port,-p <num>         Listen/connect to port <num> (default %d).\n"
            "\t--random,-s <count>     Seed (default %d).\n"
            "\t--debug,-d <level>      Output verbose level (default: %d).\n"
