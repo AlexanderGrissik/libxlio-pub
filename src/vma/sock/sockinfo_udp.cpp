@@ -586,12 +586,11 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!m_p_connected_dst_entry) {
-        si_udp_logerr("Failed to create dst_entry(dst_ip:%s, dst_port:%d, src_port:%d)",
-                      dst_ipaddr.to_str().c_str(), ntohs(dst_port), ntohs(src_port));
+        si_udp_logerr("Failed to create dst_entry(dst:%s, src_port:%d)",
+                      connect_to.to_str_ip_port(true).c_str(), ntohs(src_port));
         m_connected = sock_addr();
-        m_p_socket_stats->connected_ip =
-            ip_address(in6addr_any); // Special assignment - it should have been done by
-                                     // m_p_socket_stats->set_connected_ip()
+        // Special assignment - it should have been done by m_p_socket_stats->set_connected_ip()
+        m_p_socket_stats->connected_ip = ip_address(in6addr_any);
         m_p_socket_stats->connected_port = INPORT_ANY;
         m_is_connected = false; // will skip inspection for SRC
         return 0;

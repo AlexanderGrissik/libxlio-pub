@@ -69,7 +69,7 @@ dst_entry::dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_
     , m_id(0)
     , m_src_port(src_port)
 {
-    dst_logdbg("dst:%s:%d src: %d", m_dst_ip.to_str().c_str(), ntohs(m_dst_port),
+    dst_logdbg("dst:%s:%d src: %d", m_dst_ip.to_str(m_family).c_str(), ntohs(m_dst_port),
                ntohs(m_src_port));
     init_members();
 }

@@ -76,8 +76,6 @@ public:
 
     ip_address(ip_address &&addr) { *this = addr; }
 
-    const std::string to_str() const { return to_str(AF_INET); } // [TODO IPV6] Temporary
-
     const std::string to_str(sa_family_t family) const
     {
         char buffer[INET6_ADDRSTRLEN];

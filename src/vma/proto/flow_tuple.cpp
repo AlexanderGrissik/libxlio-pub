@@ -158,6 +158,6 @@ std::string flow_tuple_with_local_if::to_str() const
     rc.reserve(192);
     rc += flow_tuple::to_str();
     rc += ", if: ";
-    rc += m_local_if.to_str();
+    rc += m_local_if.to_str(m_family);
     return rc;
 }

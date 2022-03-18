@@ -152,7 +152,6 @@ TEST_F(ip_address_test, ip_address_strings)
     ip_address sa1_4(m_addr4.m_1);
     ip_address sa1_6(m_addr6.m_1);
 
-    EXPECT_TRUE(sa1_4.to_str() == "153.153.170.170");
     EXPECT_TRUE(sa1_4.to_str(AF_INET) == "153.153.170.170");
     EXPECT_TRUE(sa1_6.to_str(AF_INET6) == "[9999:9999:eeee:eeee:eeee:eeee:9999:9999]");
 
