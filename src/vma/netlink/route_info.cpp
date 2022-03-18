@@ -71,7 +71,7 @@ void netlink_route_info::fill(struct rtnl_route *nl_route_obj)
     if (rc == 0) {
         m_route_val.set_mtu(mtu);
     } else {
-        __log_dbg("Failed to parse route metric MTU error=%d\n", rc);
+        __log_dbg("Failed to parse route metric MTU error=%d", rc);
     }
 
     int protocol = rtnl_route_get_protocol(nl_route_obj);

@@ -372,7 +372,7 @@ void Floyd_LogCircleInfo(Node x0)
             break; // extra safety; not really needed
         }
     }
-    vlog_printf(VLOG_ERROR, "circle first index (mu) = %d, circle length (lambda) = %d", mu,
+    vlog_printf(VLOG_ERROR, "circle first index (mu) = %d, circle length (lambda) = %d\n", mu,
                 lambda);
 }
 

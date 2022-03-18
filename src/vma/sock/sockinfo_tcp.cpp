@@ -1188,7 +1188,7 @@ zc_fill_iov:
 send_iov:
     /* Sanity check */
     if (unlikely(p)) {
-        vlog_printf(VLOG_ERROR, "Number of buffers in request exceed  %d, so silently dropped.",
+        vlog_printf(VLOG_ERROR, "Number of buffers in request exceed  %d, so silently dropped.\n",
                     max_count);
         return ERR_OK;
     }
@@ -1243,7 +1243,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
 
         // We don't expect pbuf chain at all
         if (p) {
-            vlog_printf(VLOG_ERROR, "pbuf chain size > 64!!! silently dropped.");
+            vlog_printf(VLOG_ERROR, "pbuf chain size > 64!!! silently dropped.\n");
             return ERR_OK;
         }
     }
@@ -1313,10 +1313,10 @@ void sockinfo_tcp::err_lwip_cb(void *pcb_container, err_t err)
         return;
     }
     sockinfo_tcp *conn = (sockinfo_tcp *)pcb_container;
-    __log_dbg("[fd=%d] sock=%p lwip_pcb=%p err=%d\n", conn->m_fd, conn, &(conn->m_pcb), err);
+    __log_dbg("[fd=%d] sock=%p lwip_pcb=%p err=%d", conn->m_fd, conn, &(conn->m_pcb), err);
 
     if (get_tcp_state(&conn->m_pcb) == LISTEN && err == ERR_RST) {
-        vlog_printf(VLOG_ERROR, "listen socket should not receive RST");
+        vlog_printf(VLOG_ERROR, "listen socket should not receive RST\n");
         return;
     }
 
@@ -1751,11 +1751,11 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
     if (unlikely(!p)) {
 
         if (conn->is_server()) {
-            vlog_printf(VLOG_ERROR, "listen socket should not receive FIN");
+            vlog_printf(VLOG_ERROR, "listen socket should not receive FIN\n");
             return ERR_OK;
         }
 
-        __log_dbg("[fd=%d] null pbuf sock(%p %p) err=%d\n", conn->m_fd, &(conn->m_pcb), pcb, err);
+        __log_dbg("[fd=%d] null pbuf sock(%p %p) err=%d", conn->m_fd, &(conn->m_pcb), pcb, err);
         conn->tcp_shutdown_rx();
 
         if (conn->m_parent != NULL) {
@@ -1781,7 +1781,7 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
         NOTIFY_ON_EVENTS(conn, EPOLLERR);
 
         conn->do_wakeup();
-        vlog_printf(VLOG_ERROR, "%s:%d %s\n", __func__, __LINE__, "recv error!!!\n");
+        vlog_printf(VLOG_ERROR, "%s:%d %s\n", __func__, __LINE__, "recv error!!!");
         pbuf_free(p);
         conn->m_sock_state = TCP_SOCK_INITED;
         return err;
@@ -2870,7 +2870,7 @@ int sockinfo_tcp::accept_helper(struct sockaddr *__addr, socklen_t *__addrlen,
     // socket SYN list
     if (!m_syn_received.erase(key)) {
         // Should we worry about that?
-        __log_dbg("Can't find the established pcb in syn received list\n");
+        __log_dbg("Can't find the established pcb in syn received list");
     } else {
         m_received_syn_num--;
     }
@@ -2994,7 +2994,7 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
     // SYN list
     if (!parent->m_syn_received.erase(key)) {
         // Should we worry about that?
-        __log_dbg("Can't find the established pcb in syn received list\n");
+        __log_dbg("Can't find the established pcb in syn received list");
     } else {
         parent->m_received_syn_num--;
     }
@@ -3030,16 +3030,15 @@ void sockinfo_tcp::auto_accept_connection(sockinfo_tcp *parent, sockinfo_tcp *ch
     } else {
         vlog_printf(VLOG_ERROR,
                     "XLIO_SOCKETXTREME_NEW_CONNECTION_ACCEPTED: can't find listen socket for new "
-                    "connected socket with [fd=%d]",
+                    "connected socket with [fd=%d]\n",
                     child->get_fd());
     }
 
     child->unlock_tcp_con();
     parent->lock_tcp_con();
 
-    __log_dbg(
-        "CONN AUTO ACCEPTED: TCP PCB FLAGS: acceptor:0x%x newsock: fd=%d 0x%x new state: %d\n",
-        parent->m_pcb.flags, child->m_fd, child->m_pcb.flags, get_tcp_state(&child->m_pcb));
+    __log_dbg("CONN AUTO ACCEPTED: TCP PCB FLAGS: acceptor:0x%x newsock: fd=%d 0x%x new state: %d",
+              parent->m_pcb.flags, child->m_fd, child->m_pcb.flags, get_tcp_state(&child->m_pcb));
 }
 
 err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t err)
@@ -3052,18 +3051,18 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
         return ERR_VAL;
     }
 
-    __log_dbg("initial state=%x\n", get_tcp_state(&conn->m_pcb));
-    __log_dbg("accept cb: arg=%p, new pcb=%p err=%d\n", arg, child_pcb, err);
+    __log_dbg("initial state=%x", get_tcp_state(&conn->m_pcb));
+    __log_dbg("accept cb: arg=%p, new pcb=%p err=%d", arg, child_pcb, err);
     if (err != ERR_OK) {
         vlog_printf(VLOG_ERROR, "%s:%d: accept cb failed\n", __func__, __LINE__);
         return err;
     }
     if (conn->m_sock_state != TCP_SOCK_ACCEPT_READY) {
-        __log_dbg("socket is not accept ready!\n");
+        __log_dbg("socket is not accept ready!");
         return ERR_RST;
     }
     // make new socket
-    __log_dbg("new stateb4clone=%x\n", get_tcp_state(child_pcb));
+    __log_dbg("new stateb4clone=%x", get_tcp_state(child_pcb));
     new_sock = (sockinfo_tcp *)child_pcb->my_container;
 
     if (!new_sock) {
@@ -3080,7 +3079,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 
     new_sock->m_sock_state = TCP_SOCK_CONNECTED_RDWR;
 
-    __log_dbg("listen(fd=%d) state=%x: new sock(fd=%d) state=%x\n", conn->m_fd,
+    __log_dbg("listen(fd=%d) state=%x: new sock(fd=%d) state=%x", conn->m_fd,
               get_tcp_state(&conn->m_pcb), new_sock->m_fd, get_tcp_state(&new_sock->m_pcb));
 
     /* Configure Nagle algorithm settings as they were set at the parent socket.
@@ -3444,7 +3443,7 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
     sockinfo_tcp *conn = (sockinfo_tcp *)arg;
     NOT_IN_USE(tpcb);
 
-    __log_dbg("connect cb: arg=%p, pcp=%p err=%d\n", arg, tpcb, err);
+    __log_dbg("connect cb: arg=%p, pcp=%p err=%d", arg, tpcb, err);
 
     if (!conn || !tpcb) {
         return ERR_VAL;
@@ -4642,7 +4641,7 @@ mem_buf_desc_t *sockinfo_tcp::get_next_desc(mem_buf_desc_t *p_desc)
 
     m_n_rx_pkt_ready_list_count--;
     if (p_desc->p_next_desc) {
-        // vlog_printf(VLOG_ERROR, "detected chained pbufs! REF %u", p_desc->lwip_pbuf.pbuf.ref);
+        // vlog_printf(VLOG_ERROR, "detected chained pbufs! REF %u\n", p_desc->lwip_pbuf.pbuf.ref);
         mem_buf_desc_t *prev = p_desc;
         p_desc = p_desc->p_next_desc;
         prev->rx.sz_payload = prev->lwip_pbuf.pbuf.len;

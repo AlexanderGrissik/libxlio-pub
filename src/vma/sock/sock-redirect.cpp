@@ -331,7 +331,7 @@ int init_child_process_for_nginx()
         socklen_t sa_len = sa.get_socklen();
         parent_sock_fd_api->getsockname(sa.get_p_sa(), &sa_len);
         if (parent_sock_fd_api->m_is_listen) {
-            srdr_logdbg("found listen socket %d\n", parent_sock_fd_api->get_fd());
+            srdr_logdbg("found listen socket %d", parent_sock_fd_api->get_fd());
             g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_STREAM | block_type);
             socket_fd_api *child_sock_fd_api = g_p_fd_collection->get_sockfd(sock_fd);
             int ret = 0;
@@ -340,26 +340,26 @@ int init_child_process_for_nginx()
 
                 ret = bind(sock_fd, sa.get_p_sa(), sa_len);
                 if (ret < 0) {
-                    srdr_logerr("bind() error\n");
+                    srdr_logerr("bind() error");
                 }
                 // is the socket really offloaded
                 ret = child_sock_fd_api->prepareListen();
                 if (ret < 0) {
-                    srdr_logerr("prepareListen error\n");
+                    srdr_logerr("prepareListen error");
                     child_sock_fd_api = nullptr;
                 } else if (ret > 0) { // Pass-through
                     handle_close(child_sock_fd_api->get_fd(), false, true);
                     child_sock_fd_api = nullptr;
                 } else {
-                    srdr_logdbg("Prepare listen successfully offloaded\n");
+                    srdr_logdbg("Prepare listen successfully offloaded");
                 }
 
                 if (child_sock_fd_api) {
                     ret = child_sock_fd_api->listen(child_sock_fd_api->m_back_log);
                     if (ret < 0) {
-                        srdr_logerr("Listen error\n");
+                        srdr_logerr("Listen error");
                     } else {
-                        srdr_logdbg("Listen success\n");
+                        srdr_logdbg("Listen success");
                     }
                 }
             }
@@ -713,7 +713,7 @@ extern "C" int vma_ioctl(void *cmsg_hdr, size_t cmsg_len)
                 memcpy(&safe_mce_sys().m_ioctl.user_alloc.memfree, ptr, sizeof(free_t));
                 if (!(safe_mce_sys().m_ioctl.user_alloc.memalloc &&
                       safe_mce_sys().m_ioctl.user_alloc.memfree)) {
-                    srdr_logdbg("Invalid data for CMSG_XLIO_IOCTL_USER_ALLOC\n");
+                    srdr_logdbg("Invalid data for CMSG_XLIO_IOCTL_USER_ALLOC");
                     errno = EINVAL;
                     return -1;
                 }
@@ -2436,7 +2436,7 @@ extern "C" EXPORT_SYMBOL int epoll_create(int __size)
     DO_GLOBAL_CTORS();
 
     if (__size <= 0) {
-        srdr_logdbg("invalid size (size=%d) - must be a positive integer\n", __size);
+        srdr_logdbg("invalid size (size=%d) - must be a positive integer", __size);
         errno = EINVAL;
         return -1;
     }
@@ -2448,7 +2448,7 @@ extern "C" EXPORT_SYMBOL int epoll_create(int __size)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     int epfd = orig_os_api.epoll_create(__size + 1); // +1 for the cq epfd
-    srdr_logdbg("ENTER: (size=%d) = %d\n", __size, epfd);
+    srdr_logdbg("ENTER: (size=%d) = %d", __size, epfd);
 
     if (epfd <= 0) {
         return epfd;
@@ -2470,7 +2470,7 @@ extern "C" EXPORT_SYMBOL int epoll_create1(int __flags)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     int epfd = orig_os_api.epoll_create1(__flags);
-    srdr_logdbg("ENTER: (flags=%d) = %d\n", __flags, epfd);
+    srdr_logdbg("ENTER: (flags=%d) = %d", __flags, epfd);
 
     if (epfd <= 0) {
         return epfd;
@@ -2581,7 +2581,7 @@ extern "C" EXPORT_SYMBOL int socketpair(int __domain, int __type, int __protocol
 
     int ret = orig_os_api.socketpair(__domain, __type, __protocol, __sv);
 
-    srdr_logdbg("(domain=%s(%d) type=%s(%d) protocol=%d, fd[%d,%d]) = %d\n",
+    srdr_logdbg("(domain=%s(%d) type=%s(%d) protocol=%d, fd[%d,%d]) = %d",
                 socket_get_domain_str(__domain), __domain, socket_get_type_str(__type), __type,
                 __protocol, __sv[0], __sv[1], ret);
 
@@ -2613,7 +2613,7 @@ extern "C" EXPORT_SYMBOL int pipe(int __filedes[2])
     BULLSEYE_EXCLUDE_BLOCK_END
 
     int ret = orig_os_api.pipe(__filedes);
-    srdr_logdbg("(fd[%d,%d]) = %d\n", __filedes[0], __filedes[1], ret);
+    srdr_logdbg("(fd[%d,%d]) = %d", __filedes[0], __filedes[1], ret);
 
     if (ret == 0 && g_p_fd_collection) {
         // Sanity check to remove any old sockinfo object using the same fd!!
@@ -2646,7 +2646,7 @@ extern "C" EXPORT_SYMBOL int open(__const char *__file, int __oflag, ...)
     int fd = orig_os_api.open(__file, __oflag, mode);
     va_end(va);
 
-    srdr_logdbg("(file=%s, flags=%#x, mode=%#x) = %d\n", __file, __oflag, mode, fd);
+    srdr_logdbg("(file=%s, flags=%#x, mode=%#x) = %d", __file, __oflag, mode, fd);
 
     // Sanity check to remove any old sockinfo object using the same fd!!
     handle_close(fd, true);
@@ -2664,7 +2664,7 @@ extern "C" EXPORT_SYMBOL int creat(const char *__pathname, mode_t __mode)
 
     int fd = orig_os_api.creat(__pathname, __mode);
 
-    srdr_logdbg("(pathname=%s, mode=%#x) = %d\n", __pathname, __mode, fd);
+    srdr_logdbg("(pathname=%s, mode=%#x) = %d", __pathname, __mode, fd);
 
     // Sanity check to remove any old sockinfo object using the same fd!!
     handle_close(fd, true);
@@ -2683,7 +2683,7 @@ extern "C" EXPORT_SYMBOL int dup(int __fd)
 
     int fid = orig_os_api.dup(__fd);
 
-    srdr_logdbg("(fd=%d) = %d\n", __fd, fid);
+    srdr_logdbg("(fd=%d) = %d", __fd, fid);
 
     // Sanity check to remove any old sockinfo object using the same fd!!
     handle_close(fid, true);
@@ -2695,7 +2695,7 @@ extern "C" EXPORT_SYMBOL int dup(int __fd)
 extern "C" EXPORT_SYMBOL int dup2(int __fd, int __fd2)
 {
     if (safe_mce_sys().close_on_dup2 && __fd != __fd2) {
-        srdr_logdbg("oldfd=%d, newfd=%d. Closing %d in VMA.\n", __fd, __fd2, __fd2);
+        srdr_logdbg("oldfd=%d, newfd=%d. Closing %d in VMA.", __fd, __fd2, __fd2);
         handle_close(__fd2);
     }
 
@@ -2707,7 +2707,7 @@ extern "C" EXPORT_SYMBOL int dup2(int __fd, int __fd2)
 
     int fid = orig_os_api.dup2(__fd, __fd2);
 
-    srdr_logdbg("(fd=%d, fd2=%d) = %d\n", __fd, __fd2, fid);
+    srdr_logdbg("(fd=%d, fd2=%d) = %d", __fd, __fd2, fid);
 
     // Sanity check to remove any old sockinfo object using the same fd!!
     handle_close(fid, true);
@@ -2736,7 +2736,7 @@ extern "C" EXPORT_SYMBOL int clone(int (*__fn)(void *), void *__child_stack, int
 
 extern "C" EXPORT_SYMBOL pid_t fork(void)
 {
-    srdr_logdbg("ENTER: **********\n");
+    srdr_logdbg("ENTER: **********");
 
     if (!g_init_global_ctors_done) {
         set_env_params();
@@ -2745,7 +2745,7 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
 
     if (!g_init_ibv_fork_done) {
         srdr_logdbg("ERROR: ibv_fork_init failed, the effect of an application calling fork() is "
-                    "undefined!!\n");
+                    "undefined!!");
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -2757,7 +2757,7 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
 #if defined(DEFINED_NGINX)
     if ((safe_mce_sys().actual_nginx_workers_num > 0) &&
         (g_worker_index >= safe_mce_sys().actual_nginx_workers_num)) {
-        srdr_logerr("g_worker_index: %d exceeds: %d\n", g_worker_index,
+        srdr_logerr("g_worker_index: %d exceeds: %d", g_worker_index,
                     safe_mce_sys().actual_nginx_workers_num);
         errno = ENOMEM;
         return -1;
@@ -2836,7 +2836,7 @@ extern "C" EXPORT_SYMBOL pid_t vfork(void)
    redirects stdin, stdout, and stderr to /dev/null.  */
 extern "C" EXPORT_SYMBOL int daemon(int __nochdir, int __noclose)
 {
-    srdr_logdbg("ENTER: ***** (%d, %d) *****\n", __nochdir, __noclose);
+    srdr_logdbg("ENTER: ***** (%d, %d) *****", __nochdir, __noclose);
 
     if (!g_init_global_ctors_done) {
         set_env_params();
@@ -2883,10 +2883,10 @@ static void handler_intr(int sig)
     switch (sig) {
     case SIGINT:
         g_b_exit = true;
-        srdr_logdbg("Catch Signal: SIGINT (%d)\n", sig);
+        srdr_logdbg("Catch Signal: SIGINT (%d)", sig);
         break;
     default:
-        srdr_logdbg("Catch Signal: %d\n", sig);
+        srdr_logdbg("Catch Signal: %d", sig);
         break;
     }
 
@@ -2924,10 +2924,10 @@ extern "C" EXPORT_SYMBOL int sigaction(int signum, const struct sigaction *act,
 
                 if (ret < 0) {
                     srdr_logdbg("Failed to register SIGINT handler, calling to original sigaction "
-                                "handler\n");
+                                "handler");
                     break;
                 }
-                srdr_logdbg("Registered SIGINT handler\n");
+                srdr_logdbg("Registered SIGINT handler");
                 g_act_prev = *act;
             }
             if (ret >= 0) {

@@ -451,7 +451,7 @@ int epfd_info::del_fd(int fd, bool passthrough)
             if (last_socket && last_socket->get_epoll_context_fd() == m_epfd) {
                 last_socket->m_fd_rec.offloaded_index = fi->offloaded_index;
             } else {
-                __log_warn("Failed to update the index of offloaded fd: %d last_socket %p\n",
+                __log_warn("Failed to update the index of offloaded fd: %d last_socket %p",
                            m_p_offloaded_fds[m_n_offloaded_fds - 1], last_socket);
             }
         }

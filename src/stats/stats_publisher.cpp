@@ -171,7 +171,7 @@ void vma_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_l
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (NULL == g_p_stats_data_reader) {
-        vlog_printf(VLOG_ERROR, "%s:%d: Can't allocate g_p_stats_data_reader \n", __func__,
+        vlog_printf(VLOG_ERROR, "%s:%d: Can't allocate g_p_stats_data_reader\n", __func__,
                     __LINE__);
         goto shmem_error;
     }
@@ -259,7 +259,7 @@ success:
            std::min(sizeof(g_sh_mem->stats_protocol_ver), sizeof(STATS_PROTOCOL_VER)));
     g_sh_mem->max_skt_inst_num = safe_mce_sys().stats_fd_num_max;
     g_sh_mem->reader_counter = 0;
-    __log_dbg("file '%s' fd %d shared memory at %p with %d max blocks\n",
+    __log_dbg("file '%s' fd %d shared memory at %p with %d max blocks",
               g_sh_mem_info.filename_sh_stats, g_sh_mem_info.fd_sh_stats, g_sh_mem_info.p_sh_stats,
               safe_mce_sys().stats_fd_num_max);
 
@@ -294,7 +294,7 @@ shmem_error:
 void vma_shmem_stats_close()
 {
     if (g_sh_mem_info.p_sh_stats && g_sh_mem_info.p_sh_stats != MAP_FAILED) {
-        __log_dbg("file '%s' fd %d shared memory at %p with %d max blocks\n",
+        __log_dbg("file '%s' fd %d shared memory at %p with %d max blocks",
                   g_sh_mem_info.filename_sh_stats, g_sh_mem_info.fd_sh_stats,
                   g_sh_mem_info.p_sh_stats, safe_mce_sys().stats_fd_num_max);
 
@@ -375,7 +375,7 @@ void vma_stats_instance_remove_socket_block(socket_stats_t *local_addr)
         (socket_stats_t *)g_p_stats_data_reader->pop_data_reader(local_addr);
 
     if (p_skt_stats == NULL) {
-        __log_dbg("application vma_stats pointer is NULL\n");
+        __log_dbg("application vma_stats pointer is NULL");
         g_lock_skt_inst_arr.unlock();
         return;
     }
@@ -474,7 +474,7 @@ void vma_stats_instance_create_ring_block(ring_stats_t *local_stats_addr)
     } else {
         g_p_stats_data_reader->add_data_reader(local_stats_addr, p_instance_ring,
                                                sizeof(ring_stats_t));
-        __log_dbg("Added ring local=%p shm=%p\n", local_stats_addr, p_instance_ring);
+        __log_dbg("Added ring local=%p shm=%p", local_stats_addr, p_instance_ring);
     }
     g_lock_ring_inst_arr.unlock();
 }
@@ -482,13 +482,13 @@ void vma_stats_instance_create_ring_block(ring_stats_t *local_stats_addr)
 void vma_stats_instance_remove_ring_block(ring_stats_t *local_stats_addr)
 {
     g_lock_ring_inst_arr.lock();
-    __log_dbg("Remove ring local=%p\n", local_stats_addr);
+    __log_dbg("Remove ring local=%p", local_stats_addr);
 
     ring_stats_t *p_ring_stats =
         (ring_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_ring_stats == NULL) { // happens on the tx cq (why don't we keep tx cq stats?)
-        __log_dbg("application vma_stats pointer is NULL\n");
+        __log_dbg("application vma_stats pointer is NULL");
         g_lock_ring_inst_arr.unlock();
         return;
     }
@@ -511,7 +511,7 @@ void vma_stats_instance_remove_ring_block(ring_stats_t *local_stats_addr)
         }
     }
 
-    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)", __func__, __LINE__,
+    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)\n", __func__, __LINE__,
                 p_ring_stats);
     g_lock_ring_inst_arr.unlock();
 }
@@ -536,7 +536,7 @@ void vma_stats_instance_create_cq_block(cq_stats_t *local_stats_addr)
         }
     } else {
         g_p_stats_data_reader->add_data_reader(local_stats_addr, p_instance_cq, sizeof(cq_stats_t));
-        __log_dbg("Added cq local=%p shm=%p\n", local_stats_addr, p_instance_cq);
+        __log_dbg("Added cq local=%p shm=%p", local_stats_addr, p_instance_cq);
     }
     g_lock_cq_inst_arr.unlock();
 }
@@ -544,12 +544,12 @@ void vma_stats_instance_create_cq_block(cq_stats_t *local_stats_addr)
 void vma_stats_instance_remove_cq_block(cq_stats_t *local_stats_addr)
 {
     g_lock_cq_inst_arr.lock();
-    __log_dbg("Remove cq local=%p\n", local_stats_addr);
+    __log_dbg("Remove cq local=%p", local_stats_addr);
 
     cq_stats_t *p_cq_stats = (cq_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_cq_stats == NULL) { // happens on the tx cq (why don't we keep tx cq stats?)
-        __log_dbg("application vma_stats pointer is NULL\n");
+        __log_dbg("application vma_stats pointer is NULL");
         g_lock_cq_inst_arr.unlock();
         return;
     }
@@ -572,7 +572,7 @@ void vma_stats_instance_remove_cq_block(cq_stats_t *local_stats_addr)
         }
     }
 
-    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)", __func__, __LINE__,
+    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)\n", __func__, __LINE__,
                 p_cq_stats);
     g_lock_cq_inst_arr.unlock();
 }
@@ -598,7 +598,7 @@ void vma_stats_instance_create_bpool_block(bpool_stats_t *local_stats_addr)
     } else {
         g_p_stats_data_reader->add_data_reader(local_stats_addr, p_instance_bpool,
                                                sizeof(bpool_stats_t));
-        __log_dbg("Added bpool local=%p shm=%p\n", local_stats_addr, p_instance_bpool);
+        __log_dbg("Added bpool local=%p shm=%p", local_stats_addr, p_instance_bpool);
     }
     g_lock_bpool_inst_arr.unlock();
 }
@@ -606,13 +606,13 @@ void vma_stats_instance_create_bpool_block(bpool_stats_t *local_stats_addr)
 void vma_stats_instance_remove_bpool_block(bpool_stats_t *local_stats_addr)
 {
     g_lock_bpool_inst_arr.lock();
-    __log_dbg("Remove bpool local=%p\n", local_stats_addr);
+    __log_dbg("Remove bpool local=%p", local_stats_addr);
 
     bpool_stats_t *p_bpool_stats =
         (bpool_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_bpool_stats == NULL) {
-        __log_dbg("application vma_stats pointer is NULL\n");
+        __log_dbg("application vma_stats pointer is NULL");
         g_lock_bpool_inst_arr.unlock();
         return;
     }
@@ -626,7 +626,7 @@ void vma_stats_instance_remove_bpool_block(bpool_stats_t *local_stats_addr)
         }
     }
 
-    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)", __func__, __LINE__,
+    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)\n", __func__, __LINE__,
                 p_bpool_stats);
     g_lock_bpool_inst_arr.unlock();
 }
@@ -659,7 +659,7 @@ void vma_stats_instance_create_epoll_block(int fd, iomux_func_stats_t *local_sta
         }
     }
 
-    vlog_printf(VLOG_INFO, "Statistics can monitor up to %d epoll fds", NUM_OF_SUPPORTED_EPFDS);
+    vlog_printf(VLOG_INFO, "Statistics can monitor up to %d epoll fds\n", NUM_OF_SUPPORTED_EPFDS);
     g_lock_iomux.unlock();
     return;
 }
@@ -671,7 +671,7 @@ void vma_stats_instance_remove_epoll_block(iomux_func_stats_t *local_stats_addr)
         (iomux_func_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (NULL == ep_func_stats) {
-        __log_dbg("application vma_stats pointer is NULL\n");
+        __log_dbg("application vma_stats pointer is NULL");
         g_lock_iomux.unlock();
         return;
     }
@@ -685,7 +685,7 @@ void vma_stats_instance_remove_epoll_block(iomux_func_stats_t *local_stats_addr)
         }
     }
 
-    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)", __func__, __LINE__,
+    vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)\n", __func__, __LINE__,
                 ep_func_stats);
     g_lock_iomux.unlock();
     return;

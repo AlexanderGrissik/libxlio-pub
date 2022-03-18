@@ -206,7 +206,7 @@ public:
         if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/igmp_max_memberships", 1024);
             if (0 > val) {
-                vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_membership value");
+                vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_membership value\n");
             }
         }
         return val;
@@ -218,7 +218,7 @@ public:
         if (update) {
             val = read_file_to_int("/proc/sys/net/ipv4/igmp_max_msf", 1024);
             if (0 > val) {
-                vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_source_membership value");
+                vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_source_membership value\n");
             }
         }
         return val;
@@ -230,7 +230,7 @@ public:
         if (update) {
             val = read_file_to_int("/proc/sys/net/ipv6/bindv6only", 0);
             if (0 > val) {
-                vlog_printf(VLOG_WARNING, "failed to read bindv6only value");
+                vlog_printf(VLOG_WARNING, "failed to read bindv6only value\n");
             }
         }
         return val;
