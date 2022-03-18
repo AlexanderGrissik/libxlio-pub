@@ -61,7 +61,7 @@
 
 #define VMA_MSG_ACK 0x80
 
-#define VMA_AGENT_VER 0x03
+#define VMA_AGENT_VER 0x04
 
 #define VMA_AGENT_BASE_NAME "xlioagent"
 #define VMA_AGENT_ADDR      "/var/run/" VMA_AGENT_BASE_NAME ".sock"
@@ -88,10 +88,22 @@ struct vma_msg_exit {
 struct vma_msg_state {
     struct vma_hdr hdr;
     uint32_t fid;
-    uint32_t src_ip;
-    uint32_t dst_ip;
-    uint16_t src_port;
-    uint16_t dst_port;
+    struct {
+        uint16_t family;
+        uint16_t port;
+        union {
+            uint32_t ipv4;
+            uint8_t ipv6[16];
+        } addr;
+    } src;
+    struct {
+        uint16_t family;
+        uint16_t port;
+        union {
+            uint32_t ipv4;
+            uint8_t ipv6[16];
+        } addr;
+    } dst;
     uint8_t type;
     uint8_t state;
 };

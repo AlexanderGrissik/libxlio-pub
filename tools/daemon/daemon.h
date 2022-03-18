@@ -58,6 +58,10 @@
 #include <linux/limits.h>
 #endif
 
+#include <netinet/ip.h> /* for struct iphdr */
+#include <netinet/ip6.h> /* for struct ip6_hdr */
+#include <netinet/tcp.h>
+
 #include "vma/util/agent_def.h"
 #include "vma/util/list.h"
 #include "utils/clock.h"
@@ -150,7 +154,8 @@ struct module_cfg {
     int lock_fd;
     const char *sock_file;
     int sock_fd;
-    int raw_fd;
+    int raw_fd_ip4;
+    int raw_fd_ip6;
     int notify_fd;
     const char *notify_dir;
     hash_t ht;
@@ -159,6 +164,18 @@ struct module_cfg {
 };
 
 extern struct module_cfg daemon_cfg;
+
+/**
+ * @struct sockaddr_store
+ * @brief Describe socket address ipv4/ipv6
+ */
+struct sockaddr_store {
+    union {
+        sa_family_t family;
+        struct sockaddr_in addr4;
+        struct sockaddr_in6 addr6;
+    };
+};
 
 /**
  * @struct store_pid
@@ -178,10 +195,8 @@ struct store_pid {
  */
 struct store_fid {
     int fid; /**< Socket id */
-    uint32_t src_ip; /**< Source IP address */
-    uint32_t dst_ip; /**< Destination IP address */
-    uint16_t src_port; /**< Source port number */
-    uint16_t dst_port; /**< Destination port number */
+    struct sockaddr_store src; /**< Source address */
+    struct sockaddr_store dst; /**< Destination address */
     uint8_t type; /**< Connection type */
     uint8_t state; /**< Current TCP state of the connection */
 };
@@ -213,12 +228,17 @@ ssize_t sys_sendto(int sockfd, const void *buf, size_t len, int flags,
 
 char *sys_exec(const char *format, ...);
 
-static inline char *sys_addr2str(struct sockaddr_in *addr)
+static inline char *sys_addr2str(struct sockaddr_store *addr)
 {
     static char buf[100];
-    static __thread char addrbuf[sizeof(buf) + sizeof(addr->sin_port) + 5];
-    inet_ntop(AF_INET, &addr->sin_addr, buf, sizeof(buf) - 1);
-    sprintf(addrbuf, "%s:%d", buf, ntohs(addr->sin_port));
+    static __thread char addrbuf[sizeof(buf) + sizeof(uint16_t) + 5];
+    if (addr->family == AF_INET) {
+        inet_ntop(addr->family, &addr->addr4.sin_addr, buf, sizeof(buf) - 1);
+        sprintf(addrbuf, "%s:%d", buf, ntohs(addr->addr4.sin_port));
+    } else {
+        inet_ntop(addr->family, &addr->addr6.sin6_addr, buf, sizeof(buf) - 1);
+        sprintf(addrbuf, "%s:%d", buf, ntohs(addr->addr6.sin6_port));
+    }
 
     return addrbuf;
 }

@@ -76,10 +76,23 @@ TEST_F(vmad_state, ti_1)
     m_data.fid = 0;
     m_data.state = ESTABLISHED;
     m_data.type = SOCK_STREAM;
-    m_data.src_ip = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
-    m_data.src_port = htons(sys_get_port((struct sockaddr *)&client_addr));
-    m_data.dst_ip = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
-    m_data.dst_port = htons(sys_get_port((struct sockaddr *)&server_addr));
+    m_data.src.family = m_family;
+    if (m_family == PF_INET) {
+        m_data.src.addr.ipv4 = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
+    } else {
+        memcpy(&m_data.src.addr.ipv6[0],
+               &((struct sockaddr_in6 *)&client_addr)->sin6_addr.s6_addr[0],
+               sizeof(m_data.src.addr.ipv6));
+    }
+    m_data.src.port = htons(sys_get_port((struct sockaddr *)&client_addr));
+    if (m_family == PF_INET) {
+        m_data.dst.addr.ipv4 = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
+    } else {
+        memcpy(&m_data.dst.addr.ipv6[0],
+               &((struct sockaddr_in6 *)&server_addr)->sin6_addr.s6_addr[0],
+               sizeof(m_data.dst.addr.ipv6));
+    }
+    m_data.dst.port = htons(sys_get_port((struct sockaddr *)&server_addr));
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);

@@ -40,8 +40,6 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
 
 #include "vma/lwip/tcp.h" /* display TCP states */
 #include "hash.h"
@@ -343,10 +341,24 @@ static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
     value->fid = data->fid;
     value->type = data->type;
     value->state = data->state;
-    value->src_ip = data->src_ip;
-    value->dst_ip = data->dst_ip;
-    value->src_port = data->src_port;
-    value->dst_port = data->dst_port;
+    value->src.family = data->src.family;
+    if (value->src.family == AF_INET) {
+        value->src.addr4.sin_port = data->src.port;
+        value->src.addr4.sin_addr.s_addr = data->src.addr.ipv4;
+    } else {
+        value->src.addr6.sin6_port = data->src.port;
+        memcpy(&value->src.addr6.sin6_addr.s6_addr[0], &data->src.addr.ipv6[0],
+               sizeof(value->src.addr6.sin6_addr.s6_addr));
+    }
+    value->dst.family = data->dst.family;
+    if (value->dst.family == AF_INET) {
+        value->dst.addr4.sin_port = data->dst.port;
+        value->dst.addr4.sin_addr.s_addr = data->dst.addr.ipv4;
+    } else {
+        value->dst.addr6.sin6_port = data->dst.port;
+        memcpy(&value->dst.addr6.sin6_addr.s6_addr[0], &data->dst.addr.ipv6[0],
+               sizeof(value->dst.addr6.sin6_addr.s6_addr));
+    }
 
     if (hash_put(pid_value->ht, value->fid, value) != value) {
         log_error("Failed hash_put() count: %d size: %d errno %d (%s)\n", hash_count(pid_value->ht),

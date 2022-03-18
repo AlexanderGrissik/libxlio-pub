@@ -262,7 +262,7 @@ static int config_def(void)
     daemon_cfg.sock_file = VMA_AGENT_ADDR;
     daemon_cfg.sock_fd = -1;
     daemon_cfg.sig = 0;
-    daemon_cfg.raw_fd = -1;
+    daemon_cfg.raw_fd_ip4 = -1;
     daemon_cfg.notify_fd = -1;
     daemon_cfg.notify_dir = VMA_AGENT_PATH;
     daemon_cfg.ht = NULL;

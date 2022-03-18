@@ -791,10 +791,22 @@ void sockinfo_tcp::put_agent_msg(void *arg)
     data.fid = p_si_tcp->get_fd();
     data.state = get_tcp_state(&p_si_tcp->m_pcb);
     data.type = SOCK_STREAM;
-    data.src_ip = p_si_tcp->m_bound.get_ip_addr().get_in_addr();
-    data.src_port = p_si_tcp->m_bound.get_in_port();
-    data.dst_ip = p_si_tcp->m_connected.get_ip_addr().get_in_addr();
-    data.dst_port = p_si_tcp->m_connected.get_in_port();
+    data.src.family = p_si_tcp->m_bound.get_sa_family();
+    data.src.port = p_si_tcp->m_bound.get_in_port();
+    if (data.src.family == AF_INET) {
+        data.src.addr.ipv4 = p_si_tcp->m_bound.get_ip_addr().get_in4_addr().s_addr;
+    } else {
+        memcpy(&data.src.addr.ipv6[0], &p_si_tcp->m_bound.get_ip_addr().get_in6_addr(),
+               sizeof(data.src.addr.ipv6));
+    }
+    data.dst.family = p_si_tcp->m_connected.get_sa_family();
+    data.dst.port = p_si_tcp->m_connected.get_in_port();
+    if (data.dst.family == AF_INET) {
+        data.dst.addr.ipv4 = p_si_tcp->m_connected.get_ip_addr().get_in4_addr().s_addr;
+    } else {
+        memcpy(&data.dst.addr.ipv6[0], &p_si_tcp->m_connected.get_ip_addr().get_in6_addr(),
+               sizeof(data.src.addr.ipv6));
+    }
 
     g_p_agent->put((const void *)&data, sizeof(data), (intptr_t)data.fid);
 }
