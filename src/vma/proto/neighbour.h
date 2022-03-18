@@ -162,6 +162,7 @@ public:
         ST_NOT_ACTIVE = 0,
         ST_INIT = 1,
         ST_INIT_RESOLUTION,
+        ST_SOLICIT_SEND,
         ST_ADDR_RESOLVED,
         ST_ARP_RESOLVED,
         ST_PATH_RESOLVED,
@@ -176,8 +177,9 @@ public:
         EV_ARP_RESOLVED,
         EV_ADDR_RESOLVED,
         EV_PATH_RESOLVED,
+        EV_RDMA_RESOLVE_FAILED,
         EV_ERROR,
-        EV_TIMEOUT_EXPIRED, // For IB MC join
+        EV_TIMEOUT_EXPIRED,
         EV_UNHANDLED,
         EV_LAST
     };
@@ -216,6 +218,7 @@ public:
     static void print_event_info(int state, int event, void *app_data);
     static void dofunc_enter_init(const sm_info_t &func_info);
     static void dofunc_enter_init_resolution(const sm_info_t &func_info);
+    static void dofunc_enter_solicit_send(const sm_info_t &func_info);
     static void dofunc_enter_addr_resolved(const sm_info_t &func_info);
     static void dofunc_enter_error(const sm_info_t &func_info);
     static void dofunc_enter_not_active(const sm_info_t &func_info);
@@ -259,6 +262,7 @@ protected:
     virtual void priv_enter_error();
     virtual int priv_enter_init();
     virtual int priv_enter_init_resolution();
+    virtual int priv_enter_solicit_send();
     virtual int priv_enter_addr_resolved();
     virtual int priv_enter_ready();
 

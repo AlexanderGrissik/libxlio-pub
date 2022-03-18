@@ -68,7 +68,7 @@
         }                                                                                          \
     }
 
-#define RDMA_CM_TIMEOUT 3500
+#define RESOLVE_TIMEOUT_MS 2000
 
 /**/
 /** inlining functions can only help if they are implemented before their usage **/
@@ -328,6 +328,10 @@ void neigh_entry::handle_timer_expired(void *ctx)
 
     if (sm_state == ST_INIT) {
         event_handler(EV_START_RESOLUTION);
+        return;
+    }
+    if (sm_state == ST_SOLICIT_SEND) {
+        event_handler(EV_TIMEOUT_EXPIRED);
         return;
     }
 
@@ -807,6 +811,8 @@ const char *neigh_entry::event_to_str(event_t event) const
         return "EV_ADDR_RESOLVED";
     case EV_PATH_RESOLVED:
         return "EV_PATH_RESOLVED";
+    case EV_RDMA_RESOLVE_FAILED:
+        return "EV_RDMA_RESOLVE_FAILED";
     case EV_ERROR:
         return "EV_ERROR";
     case EV_TIMEOUT_EXPIRED:
@@ -879,7 +885,7 @@ neigh_entry::event_t neigh_entry::rdma_event_mapping(struct rdma_cm_event *p_rdm
     case RDMA_CM_EVENT_MULTICAST_ERROR:
     case RDMA_CM_EVENT_ROUTE_ERROR:
     case RDMA_CM_EVENT_TIMEWAIT_EXIT:
-        return EV_ERROR;
+        return EV_RDMA_RESOLVE_FAILED;
         BULLSEYE_EXCLUDE_BLOCK_START
     default:
         neigh_logdbg("Un-handled rdma_cm event %d", p_rdma_cm_event->event);
@@ -977,6 +983,14 @@ void neigh_entry::dofunc_enter_init_resolution(const sm_info_t &func_info)
     run_helper_func(priv_enter_init_resolution(), EV_ERROR);
 }
 
+// Static enter function for SOLICIT_SEND state
+void neigh_entry::dofunc_enter_solicit_send(const sm_info_t &func_info)
+{
+    neigh_entry *my_neigh = (neigh_entry *)func_info.app_hndl;
+    general_st_entry(func_info);
+    run_helper_func(priv_enter_solicit_send(), EV_ERROR);
+}
+
 // Static enter function for ADDR_RESOLVED state
 void neigh_entry::dofunc_enter_addr_resolved(const sm_info_t &func_info)
 {
@@ -1070,12 +1084,25 @@ int neigh_entry::priv_enter_init_resolution()
     /* we had issues passing unicast src addr, let it find the correct one itself */
     sockaddr *src_p_sa = get_dst_addr().is_mc() ? src_sa.get_p_sa() : NULL;
 
-    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src_p_sa, dst_sa.get_p_sa(), 2000))
+    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src_p_sa, dst_sa.get_p_sa(), RESOLVE_TIMEOUT_MS))
     {
         neigh_logdbg("Failed in rdma_resolve_addr  m_cma_id = %p (errno=%d %m)", m_cma_id, errno);
         return -1;
     }
     ENDIF_RDMACM_FAILURE;
+
+    return 0;
+}
+
+// Private enter function for SOLICIT_SEND state
+int neigh_entry::priv_enter_solicit_send()
+{
+    auto_unlocker lock(m_lock);
+
+    priv_unregister_timer();
+    send_discovery_request();
+    // Timer to generate a timeout event if we don't receive the netlink event in time.
+    m_timer_handle = priv_register_timer_event(RESOLVE_TIMEOUT_MS, this, ONE_SHOT_TIMER, NULL);
 
     return 0;
 }
@@ -1314,9 +1341,13 @@ neigh_eth::neigh_eth(neigh_key key)
         {ST_ERROR, EV_KICK_START, ST_INIT, NULL},
         {ST_INIT, EV_ARP_RESOLVED, ST_READY, NULL},
         {ST_INIT, EV_START_RESOLUTION, ST_INIT_RESOLUTION, NULL},
+        {ST_INIT_RESOLUTION, EV_RDMA_RESOLVE_FAILED, ST_SOLICIT_SEND, NULL},
         {ST_INIT_RESOLUTION, EV_ADDR_RESOLVED, ST_ADDR_RESOLVED, NULL},
         {ST_INIT_RESOLUTION, EV_ARP_RESOLVED, ST_READY, NULL},
         {ST_ADDR_RESOLVED, EV_ARP_RESOLVED, ST_READY, NULL},
+        {ST_SOLICIT_SEND, EV_ARP_RESOLVED, ST_READY, NULL},
+        {ST_SOLICIT_SEND, EV_TIMEOUT_EXPIRED, ST_ERROR, NULL},
+        {ST_SOLICIT_SEND, EV_ERROR, ST_ERROR, NULL},
         {ST_READY, EV_ERROR, ST_ERROR, NULL},
         {ST_INIT, EV_ERROR, ST_ERROR, NULL},
         {ST_INIT_RESOLUTION, EV_ERROR, ST_ERROR, NULL},
@@ -1324,6 +1355,7 @@ neigh_eth::neigh_eth(neigh_key key)
         // Entry functions
         {ST_INIT, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_init},
         {ST_INIT_RESOLUTION, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_init_resolution},
+        {ST_SOLICIT_SEND, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_solicit_send},
         {ST_ERROR, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_error},
         {ST_NOT_ACTIVE, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_not_active},
         {ST_ADDR_RESOLVED, SM_STATE_ENTRY, SM_NO_ST, neigh_entry::dofunc_enter_addr_resolved},
