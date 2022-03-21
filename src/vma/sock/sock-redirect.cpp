@@ -326,12 +326,13 @@ int init_child_process_for_nginx()
         if (!parent_sock_fd_api || !(si = dynamic_cast<sockinfo *>(parent_sock_fd_api))) {
             continue;
         }
+        int block_type = si->is_blocking() ? 0 : SOCK_NONBLOCK;
         sock_addr sa;
         socklen_t sa_len = sa.get_socklen();
         parent_sock_fd_api->getsockname(sa.get_p_sa(), &sa_len);
         if (parent_sock_fd_api->m_is_listen) {
             srdr_logdbg("found listen socket %d\n", parent_sock_fd_api->get_fd());
-            g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_STREAM);
+            g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_STREAM | block_type);
             socket_fd_api *child_sock_fd_api = g_p_fd_collection->get_sockfd(sock_fd);
             int ret = 0;
             if (child_sock_fd_api) {
@@ -389,7 +390,8 @@ int init_child_process_for_nginx()
                 if (unlikely(udp_sockets_per_port[port] == g_worker_index)) {
                     srdr_logdbg("worker %d is using fd=%d. bound to port=%d", g_worker_index,
                                 sock_fd, port);
-                    g_p_fd_collection->addsocket(sock_fd, si->get_family(), SOCK_DGRAM);
+                    g_p_fd_collection->addsocket(sock_fd, si->get_family(),
+                                                 SOCK_DGRAM | block_type);
                     sockinfo_udp *new_udp_sock =
                         dynamic_cast<sockinfo_udp *>(g_p_fd_collection->get_sockfd(sock_fd));
                     if (new_udp_sock) {
