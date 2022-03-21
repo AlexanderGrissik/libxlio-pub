@@ -70,6 +70,8 @@
 
 #define RESOLVE_TIMEOUT_MS 2000
 
+static const uint64_t g_ipv6_link_local_prefix = htobe64(0xfe80000000000000ULL);
+
 /**/
 /** inlining functions can only help if they are implemented before their usage **/
 /**/
@@ -201,16 +203,19 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     /* Verify if neigh is local (loopback).
      * Also setup source address with proper address family.
      *
-     * TODO Currently, we use the last address in the list which is likely link-local for IPv6.
-     * RFC4861 suggests to use link-local address for NDP. To complete this implementation, we
-     * should take into account type of the local_addr and choose source address from the same
-     * subnet if there is no link-local address.
+     * TODO RFC4861 suggests to use link-local address for NDP. If it's not present, we should
+     * choose source address taking into account subnet prefix and the destination address.
      */
     {
         const ip_data_vector_t &ip = m_p_dev->get_ip_array();
         for (size_t i = 0; i < ip.size(); i++) {
             if (ip[i]->local_addr.get_family() == get_family()) {
                 m_src_addr = ip[i]->local_addr;
+                if (get_family() == AF_INET6 &&
+                    *reinterpret_cast<uint64_t *>(&m_src_addr) == g_ipv6_link_local_prefix) {
+                    // We found IPv6 link-local address, stop here. See RFC4861.
+                    break;
+                }
             }
             if (ip[i]->local_addr == get_dst_addr()) {
                 neigh_logdbg("This is loopback neigh");
@@ -1084,7 +1089,18 @@ int neigh_entry::priv_enter_init_resolution()
     /* we had issues passing unicast src addr, let it find the correct one itself */
     sockaddr *src_p_sa = get_dst_addr().is_mc() ? src_sa.get_p_sa() : NULL;
 
-    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src_p_sa, dst_sa.get_p_sa(), RESOLVE_TIMEOUT_MS))
+    int timeout_ms = RESOLVE_TIMEOUT_MS;
+    if (get_family() == AF_INET6 &&
+        *reinterpret_cast<uint64_t *>(&m_src_addr) != g_ipv6_link_local_prefix) {
+        // Set minimal timeout if there is no a link-local address on the interface. Address
+        // resolution is expected to fail in this scenario and rdma_resolve_addr() will report
+        // a failure event.
+        // We cannot send a manual NS packet immediately, because kernel drops replies without
+        // previous rdma_resolve_addr() call.
+        timeout_ms = 1;
+    }
+
+    IF_RDMACM_FAILURE(rdma_resolve_addr(m_cma_id, src_p_sa, dst_sa.get_p_sa(), timeout_ms))
     {
         neigh_logdbg("Failed in rdma_resolve_addr  m_cma_id = %p (errno=%d %m)", m_cma_id, errno);
         return -1;
