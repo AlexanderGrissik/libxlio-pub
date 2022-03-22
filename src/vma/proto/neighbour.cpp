@@ -1550,7 +1550,8 @@ bool neigh_eth::send_arp_request(bool is_broadcast)
 
     m_id = m_p_ring->generate_id(src->get_address(), dst->get_address(),
                                  netdevice_eth->get_vlan() ? htons(ETH_P_8021Q) : htons(ETH_P_ARP),
-                                 htons(ETH_P_ARP), 0, 0, 0, 0);
+                                 htons(ETH_P_ARP), ip_address::any_addr(), ip_address::any_addr(),
+                                 0, 0);
     mem_buf_desc_t *p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (unlikely(p_mem_buf_desc == NULL)) {
@@ -1635,10 +1636,9 @@ bool neigh_eth::send_neighbor_solicitation()
     ETH_addr dst_mac(dst_mac_);
 
     // generate id for tx ring and acquire mem buffer for tx
-    // TODO: generate_id() does not cover IPv6 case, requires update
     m_id = m_p_ring->generate_id(src_mac->get_address(), dst_mac.get_address(),
                                  net_dev->get_vlan() ? htons(ETH_P_8021Q) : htons(ETH_P_IPV6),
-                                 htons(ETH_P_IPV6), 0, 0, 0, 0);
+                                 htons(ETH_P_IPV6), m_src_addr, dst_snm, 0, 0);
     mem_buf_desc_t *p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (unlikely(p_mem_buf_desc == NULL)) {
@@ -1759,6 +1759,17 @@ bool neigh_eth::prepare_to_send_packet(header *h)
     return (true);
 }
 
+static ip_address get_ip_header_addr(bool is_src, header *h)
+{
+    if (ip_header_version(h->get_ip_hdr()) == IPV4) {
+        const struct iphdr *ipv4h = reinterpret_cast<const struct iphdr *>(h->get_ip_hdr());
+        return ip_address(is_src ? ipv4h->saddr : ipv4h->daddr);
+    }
+
+    const struct ip6_hdr *ipv6h = reinterpret_cast<const struct ip6_hdr *>(h->get_ip_hdr());
+    return ip_address(is_src ? ipv6h->ip6_src : ipv6h->ip6_dst);
+}
+
 ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
 {
     if (!h) {
@@ -1766,8 +1777,8 @@ ring_user_id_t neigh_eth::generate_ring_user_id(header *h /* = NULL */)
     }
 
     ethhdr *actual_header = (ethhdr *)h->m_actual_hdr_addr;
-    // TODO: generate_id() does not cover IPv6 case, requires update
     return m_p_ring->generate_id(actual_header->h_source, actual_header->h_dest,
-                                 actual_header->h_proto, htons(ETH_P_IP), 0, 0,
+                                 actual_header->h_proto, htons(ETH_P_IP),
+                                 get_ip_header_addr(true, h), get_ip_header_addr(false, h),
                                  h->get_udp_hdr()->source, h->get_udp_hdr()->dest);
 }

@@ -525,13 +525,12 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
                                    m_p_neigh_val->get_l2_address()->to_str().c_str());
                     }
                     configure_headers();
-                    // [TODO IPV6] gererate_id should accept ip_address
                     m_id = m_p_ring->generate_id(m_p_net_dev_val->get_l2_address()->get_address(),
                                                  m_p_neigh_val->get_l2_address()->get_address(),
                                                  /* if vlan, use vlan proto */
                                                  ((ethhdr *)(m_header->m_actual_hdr_addr))->h_proto,
-                                                 htons(ETH_P_IP), m_pkt_src_ip.get_in_addr(),
-                                                 m_dst_ip.get_in_addr(), m_src_port, m_dst_port);
+                                                 htons(ETH_P_IP), m_pkt_src_ip, m_dst_ip,
+                                                 m_src_port, m_dst_port);
                     if (m_p_tx_mem_buf_desc_list) {
                         m_p_ring->mem_buf_tx_release(m_p_tx_mem_buf_desc_list, true);
                         m_p_tx_mem_buf_desc_list = NULL;

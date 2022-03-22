@@ -755,13 +755,13 @@ int ring_bond::devide_buffers_helper(mem_buf_desc_t *p_mem_buf_desc_list,
 void ring_bond::popup_xmit_rings()
 {
     ring_slave *cur_slave = NULL;
-    int i, j;
+    size_t i, j;
 
     m_xmit_rings.clear();
 
     /* Clone m_bond_rings to m_xmit_rings */
     j = 0;
-    for (i = 0; i < (int)m_bond_rings.size(); i++) {
+    for (i = 0; i < m_bond_rings.size(); i++) {
         if (!cur_slave && m_bond_rings[i]->m_active) {
             cur_slave = m_bond_rings[i];
             j = i;
@@ -771,8 +771,8 @@ void ring_bond::popup_xmit_rings()
 
     if (cur_slave) {
         /* Assign xmit ring for non active rings in clockwise order */
-        for (i = 1; i < (int)m_xmit_rings.size(); i++) {
-            j = (j ? j : (int)m_xmit_rings.size()) - 1;
+        for (i = 1; i < m_xmit_rings.size(); i++) {
+            j = (j ? j : m_xmit_rings.size()) - 1;
             if (m_xmit_rings[j]->m_active) {
                 cur_slave = m_xmit_rings[j];
             } else {
@@ -849,8 +849,9 @@ bool ring_bond::is_member(ring_slave *rng)
 }
 
 ring_user_id_t ring_bond::generate_id(const address_t src_mac, const address_t dst_mac,
-                                      uint16_t eth_proto, uint16_t encap_proto, uint32_t src_ip,
-                                      uint32_t dst_ip, uint16_t src_port, uint16_t dst_port)
+                                      uint16_t eth_proto, uint16_t encap_proto,
+                                      const ip_address &src_ip, const ip_address &dst_ip,
+                                      uint16_t src_port, uint16_t dst_port)
 {
 
     if (m_type != net_device_val::LAG_8023ad) {
@@ -859,19 +860,20 @@ ring_user_id_t ring_bond::generate_id(const address_t src_mac, const address_t d
 
     ring_logdbg("generate_id for policy %d from src_mac=" ETH_HW_ADDR_PRINT_FMT
                 ", dst_mac=" ETH_HW_ADDR_PRINT_FMT
-                ", eth_proto=%#x, encap_proto=%#x, src_ip=%d.%d.%d.%d, dst_ip=%d.%d.%d.%d, "
+                ", eth_proto=%#x, encap_proto=%#x, src_ip=%s, dst_ip=%s, "
                 "src_port=%d, dst_port=%d",
                 m_xmit_hash_policy, ETH_HW_ADDR_PRINT_ADDR(src_mac),
                 ETH_HW_ADDR_PRINT_ADDR(dst_mac), ntohs(eth_proto), ntohs(encap_proto),
-                NIPQUAD(src_ip), NIPQUAD(dst_ip), ntohs(src_port), ntohs(dst_port));
+                src_ip.to_str(AF_INET6).c_str(), dst_ip.to_str(AF_INET6).c_str(), ntohs(src_port),
+                ntohs(dst_port));
 
-    uint32_t user_id = 0;
-
+    uint64_t user_id = 0;
+    // uint64_t ips_hash[2] = {0U};
     if (m_xmit_hash_policy > net_device_val::XHP_LAYER_2_3 && eth_proto == htons(ETH_P_8021Q)) {
         eth_proto = encap_proto;
     }
 
-    if (eth_proto != htons(ETH_P_IP)) {
+    if (eth_proto != htons(ETH_P_IP) && eth_proto != htons(ETH_P_IPV6)) {
         user_id = dst_mac[5] ^ src_mac[5] ^ eth_proto;
         return user_id % m_bond_rings.size();
     }
@@ -882,15 +884,17 @@ ring_user_id_t ring_bond::generate_id(const address_t src_mac, const address_t d
         break;
     case (net_device_val::XHP_LAYER_2_3):
     case (net_device_val::XHP_ENCAP_2_3):
+        //*reinterpret_cast<uint64_t*>(ips_hash) = dst_ip.hash() ^ src_ip.hash();
         user_id = dst_mac[5] ^ src_mac[5] ^ eth_proto;
-        user_id ^= dst_ip ^ src_ip;
+        user_id ^= dst_ip.hash() ^ src_ip.hash();
         user_id ^= (user_id >> 16);
         user_id ^= (user_id >> 8);
         break;
     case (net_device_val::XHP_LAYER_3_4):
     case (net_device_val::XHP_ENCAP_3_4):
-        user_id = src_port | (dst_port << 16);
-        user_id ^= dst_ip ^ src_ip;
+        //*reinterpret_cast<uint64_t*>(ips_hash) = dst_ip.hash() ^ src_ip.hash();
+        user_id = static_cast<size_t>(src_port) | (static_cast<size_t>(dst_port) << 16);
+        user_id ^= dst_ip.hash() ^ src_ip.hash();
         user_id ^= (user_id >> 16);
         user_id ^= (user_id >> 8);
         break;

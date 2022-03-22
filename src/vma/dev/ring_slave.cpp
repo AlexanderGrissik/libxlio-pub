@@ -139,7 +139,7 @@ ring_user_id_t ring_slave::generate_id()
 }
 
 ring_user_id_t ring_slave::generate_id(const address_t, const address_t, uint16_t, uint16_t,
-                                       uint32_t, uint32_t, uint16_t, uint16_t)
+                                       const ip_address &, const ip_address &, uint16_t, uint16_t)
 {
     return 0;
 }

@@ -54,7 +54,7 @@ typedef void (*xlio_comp_cb_t)(void *); // Copied from qp_mgr.h
 
 typedef enum { CQT_RX, CQT_TX } cq_type_t;
 
-typedef int ring_user_id_t;
+typedef size_t ring_user_id_t;
 
 /* Ring event completion */
 struct ring_ec {
@@ -125,8 +125,9 @@ public:
     ring *get_parent() { return m_parent; };
     ring_user_id_t generate_id() { return 0; };
     virtual ring_user_id_t generate_id(const address_t src_mac, const address_t dst_mac,
-                                       uint16_t eth_proto, uint16_t encap_proto, uint32_t src_ip,
-                                       uint32_t dst_ip, uint16_t src_port, uint16_t dst_port) = 0;
+                                       uint16_t eth_proto, uint16_t encap_proto,
+                                       const ip_address &src_ip, const ip_address &dst_ip,
+                                       uint16_t src_port, uint16_t dst_port) = 0;
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) = 0;
     virtual uint32_t get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL) = 0;
     virtual uint32_t get_max_inline_data() = 0;
