@@ -690,8 +690,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 {
     si_udp_logfunc("level=%d, optname=%d", __level, __optname);
 
-    int ret = 0;
-
     if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
         return orig_os_api.setsockopt(m_fd, __level, __optname, __optval, __optlen);
     }
@@ -699,9 +697,11 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
     auto_unlocker lock_tx(m_lock_snd);
     auto_unlocker lock_rx(m_lock_rcv);
 
-    if ((ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen)) !=
-        SOCKOPT_PASS_TO_OS) {
-        return ret;
+    int ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen);
+    if (ret != SOCKOPT_PASS_TO_OS) {
+        return (ret == SOCKOPT_HANDLE_BY_OS
+                    ? setsockopt_kernel(__level, __optname, __optval, __optlen, true, false)
+                    : ret);
     }
 
     bool supported = true;

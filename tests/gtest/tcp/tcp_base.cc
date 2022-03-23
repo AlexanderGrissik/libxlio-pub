@@ -48,35 +48,14 @@ void tcp_base::TearDown()
 
 int tcp_base::sock_create(void)
 {
-    int rc;
-    int fd;
-    int opt_val = 0;
-
-    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
-    if (fd < 0) {
-        log_error("failed socket() %s\n", strerror(errno));
-        return -1;
-    }
-
-    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-    if (rc < 0) {
-        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
-        goto err;
-    }
-
-    return fd;
-
-err:
-    close(fd);
-
-    return (-1);
+    return sock_create(m_family, false);
 }
 
-int tcp_base::sock_create(sa_family_t family)
+int tcp_base::sock_create(sa_family_t family, bool reuse_addr)
 {
     int rc;
     int fd;
-    int opt_val = 0;
+    int opt_val = (reuse_addr ? 1 : 0);
 
     fd = socket(family, SOCK_STREAM, IPPROTO_IP);
     if (fd < 0) {

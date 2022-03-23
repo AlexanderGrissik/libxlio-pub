@@ -39,6 +39,7 @@
 class udp_base : public testing::Test, public test_base {
 public:
     static int sock_create(void);
+    static int sock_create(sa_family_t family, bool reuse_addr = false);
     static int sock_create_nb(void);
 
 protected:

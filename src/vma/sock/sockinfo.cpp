@@ -526,6 +526,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
         case IPV6_V6ONLY:
             if (__optval && __optlen == sizeof(int)) {
                 m_is_ipv6only = (*reinterpret_cast<const int *>(__optval) != 0);
+                ret = SOCKOPT_HANDLE_BY_OS;
                 si_logdbg("IPV6_V6ONLY, set to %d", m_is_ipv6only ? 1 : 0);
             } else {
                 ret = SOCKOPT_NO_VMA_SUPPORT;

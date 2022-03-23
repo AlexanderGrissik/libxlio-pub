@@ -2722,7 +2722,10 @@ int sockinfo_tcp::listen(int backlog)
     // Calling to orig_listen() by default to monitor connection requests for not offloaded sockets
     BULLSEYE_EXCLUDE_BLOCK_START
     if (orig_os_api.listen(m_fd, orig_backlog)) {
-        si_tcp_logerr("orig_listen failed");
+        // NOTE: The attach_as_uc_receiver at this stage already created steering rules.
+        // Packets may arrive into the queues and the application may theoreticaly
+        // call accept() with success.
+        si_tcp_logdbg("orig_listen failed");
         unlock_tcp_con();
         return -1;
     }
@@ -3933,7 +3936,6 @@ int sockinfo_tcp::setsockopt(int __level, int __optname, __const void *__optval,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-#define SOCKOPT_HANDLE_BY_OS -2
 int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__optval,
                                  socklen_t __optlen)
 {
@@ -3946,12 +3948,21 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
 
     if ((ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen)) !=
         SOCKOPT_PASS_TO_OS) {
-        if (ret == SOCKOPT_INTERNAL_VMA_SUPPORT && m_sock_state <= TCP_SOCK_ACCEPT_READY &&
-            __optval != NULL && is_inherited_option(__level, __optname)) {
-            m_socket_options_list.push_back(
-                new socket_option_t(__level, __optname, __optval, __optlen));
+        if ((ret == SOCKOPT_INTERNAL_VMA_SUPPORT || ret == SOCKOPT_HANDLE_BY_OS) &&
+            m_sock_state <= TCP_SOCK_ACCEPT_READY && __optval != NULL &&
+            is_inherited_option(__level, __optname)) {
+            socket_option_t *opt_curr = new socket_option_t(__level, __optname, __optval, __optlen);
+            if (opt_curr) {
+                m_socket_options_list.push_back(opt_curr);
+            } else {
+                si_tcp_logwarn("Unable to allocate memory for socket option level=%d, optname=%d",
+                               __level, __optname);
+            }
         }
-        return ret;
+
+        return (ret == SOCKOPT_HANDLE_BY_OS
+                    ? setsockopt_kernel(__level, __optname, __optval, __optlen, true, false)
+                    : ret);
     }
 
     ret = 0;

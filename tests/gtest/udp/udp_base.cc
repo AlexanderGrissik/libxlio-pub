@@ -48,14 +48,19 @@ void udp_base::TearDown()
 
 int udp_base::sock_create(void)
 {
+    return sock_create(m_family, false);
+}
+
+int udp_base::sock_create(sa_family_t family, bool reuse_addr)
+{
     int rc;
     int fd;
-    int opt_val = 0;
+    int opt_val = (reuse_addr ? 1 : 0);
 
-    fd = socket(m_family, SOCK_DGRAM, IPPROTO_IP);
+    fd = socket(family, SOCK_DGRAM, IPPROTO_IP);
     if (fd < 0) {
-        log_error("failed socket() %s\n", strerror(errno));
-        goto err;
+        log_error("failed socket(%hu) %s\n", family, strerror(errno));
+        return -1;
     }
 
     rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));

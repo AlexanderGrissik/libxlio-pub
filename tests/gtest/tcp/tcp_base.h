@@ -39,7 +39,7 @@
 class tcp_base : virtual public testing::Test, virtual public test_base {
 public:
     static int sock_create(void);
-    static int sock_create(sa_family_t family);
+    static int sock_create(sa_family_t family, bool reuse_addr = false);
     static int sock_create_nb(void);
 
 protected:
