@@ -205,7 +205,7 @@ function do_check_result()
 }
 
 # Detect interface ip
-# $1 - [ib|eth] to select link type or empty to select the first found
+# $1 - [ib|eth|inet6] to select link type or empty to select the first found
 # $2 - [empty|mlx4|mlx5]
 # $3 - ip address not to get
 #
@@ -257,10 +257,12 @@ function do_get_ip()
                     unset found_ip
                 fi
             fi
+        elif [ -n "$1" -a "$1" == "inet6" -a -n "$(ip link show $ip | grep 'link/eth')" ]; then
+            found_ip=$(ip -6 address show $ip | grep 'inet6' | sed 's/.*inet6 \([0-9a-fA-F\:]\+\).*/\1/' | grep -v fe80 | head -n 1)
         elif [ -n "$1" -a "$1" == "eth" -a -n "$(ip link show $ip | grep 'link/eth')" ]; then
-            found_ip=$(ip -4 address show $ip | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/')
+            found_ip=$(ip -4 address show $ip | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/' | head -n1)
         elif [ -z "$1" ]; then
-            found_ip=$(ip -4 address show $ip | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/')
+            found_ip=$(ip -4 address show $ip | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/' | head -n1)
         fi
         if [ -n "$found_ip" -a "$found_ip" != "$3" ]; then
             echo $found_ip

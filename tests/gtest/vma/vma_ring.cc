@@ -170,6 +170,7 @@ TEST_F(vma_ring, ti_7)
     EXPECT_EQ(UNDEFINED_VALUE, ring_fd);
 
     close(fd);
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 TEST_F(vma_ring, ti_8)
@@ -177,20 +178,12 @@ TEST_F(vma_ring, ti_8)
     int rc = EOK;
     int ring_fd = UNDEFINED_VALUE;
     int fd;
-    struct sockaddr_in addr;
 
     fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
     ASSERT_LE(0, fd);
 
-    /*
-     * XXX This is workaround for the situation when the socket from ti_7
-     * is not destroyed in time and the following bind() fails due to
-     * "Address already in use" error.
-     */
-    memcpy(&addr, &server_addr, sizeof(addr));
-    addr.sin_port = htons(ntohs(addr.sin_port) + 1);
-
-    rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+    rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    ASSERT_EQ(EOK, errno);
     ASSERT_EQ(0, rc);
 
     rc = listen(fd, 5);
