@@ -2533,19 +2533,13 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
             return ret;
         }
     } else {
+        si_tcp_logdbg("OS bind to %s", addr.to_str_ip_port(true).c_str());
         ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
     }
 
-#if defined(DEFINED_NGINX)
-    if (safe_mce_sys().actual_nginx_workers_num > 0) {
-        // TODO: consider adding  correct processing of this case
-    } else
-#endif // DEFINED_NGINX
-    {
-        if (ret < 0) {
-            unlock_tcp_con();
-            return ret;
-        }
+    if (ret < 0) {
+        unlock_tcp_con();
+        return ret;
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START

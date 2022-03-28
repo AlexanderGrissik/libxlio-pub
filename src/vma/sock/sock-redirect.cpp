@@ -859,25 +859,24 @@ extern "C" EXPORT_SYMBOL int listen(int __fd, int backlog)
     p_socket_object = fd_collection_get_sockfd(__fd);
 
     if (p_socket_object) {
-#if defined(DEFINED_NGINX)
-        if (safe_mce_sys().actual_nginx_workers_num > 0) {
-            p_socket_object->m_is_listen = true;
-            p_socket_object->m_back_log = backlog;
-            return 0;
-        }
-#endif
-        int ret =
-            p_socket_object->prepareListen(); // for verifying that the socket is really offloaded
+        // for verifying that the socket is really offloaded
+        int ret = p_socket_object->prepareListen();
         if (ret < 0) {
             return ret; // error
         }
         if (ret > 0) { // Passthrough
             handle_close(__fd, false, true);
-            p_socket_object = NULL;
+        } else {
+#if defined(DEFINED_NGINX)
+            if (safe_mce_sys().actual_nginx_workers_num > 0) {
+                p_socket_object->m_is_listen = true;
+                p_socket_object->m_back_log = backlog;
+            } else
+#endif
+            {
+                return p_socket_object->listen(backlog);
+            }
         }
-    }
-    if (p_socket_object) {
-        return p_socket_object->listen(backlog);
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -886,6 +885,7 @@ extern "C" EXPORT_SYMBOL int listen(int __fd, int backlog)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
+    srdr_logdbg("OS listen fd=%d, backlog=%d", __fd, backlog);
     return orig_os_api.listen(__fd, backlog);
 }
 
