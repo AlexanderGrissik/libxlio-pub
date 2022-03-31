@@ -56,21 +56,24 @@ neigh_table_mgr *g_p_neigh_table_mgr = NULL;
 #define DEFAULT_GARBAGE_COLLECTOR_TIME 100000
 
 neigh_table_mgr::neigh_table_mgr()
-    : m_neigh_cma_event_channel(NULL)
 {
     // Creating cma_event_channel
 
+    create_rdma_channel();
+    start_garbage_collector(DEFAULT_GARBAGE_COLLECTOR_TIME);
+}
+
+void neigh_table_mgr::create_rdma_channel()
+{
     m_neigh_cma_event_channel = rdma_create_event_channel();
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (m_neigh_cma_event_channel == NULL) {
+    if (!m_neigh_cma_event_channel) {
         neigh_mgr_logdbg("Failed to create neigh_cma_event_channel (errno=%d %m)", errno);
     } else {
         neigh_mgr_logdbg("Creation of neigh_cma_event_channel on fd=%d",
                          m_neigh_cma_event_channel->fd);
     }
     BULLSEYE_EXCLUDE_BLOCK_END
-
-    start_garbage_collector(DEFAULT_GARBAGE_COLLECTOR_TIME);
 }
 
 neigh_table_mgr::~neigh_table_mgr()
@@ -78,6 +81,9 @@ neigh_table_mgr::~neigh_table_mgr()
     stop_garbage_collector();
     if (m_neigh_cma_event_channel) {
         rdma_destroy_event_channel(m_neigh_cma_event_channel);
+    }
+    if (m_neigh_cma_event_channel_prev) {
+        rdma_destroy_event_channel(m_neigh_cma_event_channel_prev);
     }
 }
 
@@ -162,4 +168,65 @@ void neigh_table_mgr::notify_cb(event *ev)
     m_lock.unlock();
 
     return;
+}
+
+int neigh_table_mgr::create_rdma_id_and_register(rdma_cm_id *&cma_id,
+                                                 enum rdma_port_space port_space,
+                                                 event_handler_rdma_cm *context)
+{
+#define CHANNEL_LOCK(func)                                                                         \
+    do {                                                                                           \
+        if (0 != m_channel_lock.func()) {                                                          \
+            neigh_mgr_logerr("Unable to " #func " m_channel_lock, errno=%d", errno);               \
+            return -1;                                                                             \
+        }                                                                                          \
+    } while (0)
+
+    int ch_fd = -1;
+
+    if (!g_p_neigh_table_mgr->m_neigh_cma_event_channel) {
+        return 0;
+    }
+
+    CHANNEL_LOCK(lock_rd);
+
+    neigh_mgr_logdbg("Calling rdma_create_id. tid: %d", gettid());
+    do {
+        IF_RDMACM_FAILURE(rdma_create_id(m_neigh_cma_event_channel, &cma_id, context, port_space))
+        {
+            cma_id = nullptr;
+            if (!m_neigh_cma_event_channel_prev) {
+                CHANNEL_LOCK(unlock);
+                CHANNEL_LOCK(lock_wr);
+                // The rdma_create_id() can fail in a forked process due to permission issue.
+                // Recreate the channel only once to overcome this issue.
+                // Keep previous channel not to invalidate previously created rdma-ids.
+                // If previous already exists that means the channel was already recreated once.
+                // Threads waiting for the first recreation should continue to rdma_create_id.
+                if (!m_neigh_cma_event_channel_prev) {
+                    m_neigh_cma_event_channel_prev = m_neigh_cma_event_channel;
+                    create_rdma_channel();
+                }
+
+                CHANNEL_LOCK(unlock);
+                CHANNEL_LOCK(lock_rd);
+
+                neigh_mgr_logdbg("Calling rdma_create_id second time. tid: %d", gettid());
+            } else {
+                break; // Quit on post channel-recreation rdma_create_id failure.
+            }
+        }
+        ENDIF_RDMACM_FAILURE;
+    } while (!cma_id);
+
+    if (cma_id) {
+        ch_fd = m_neigh_cma_event_channel->fd;
+        g_p_event_handler_manager->register_rdma_cm_event(ch_fd, cma_id, m_neigh_cma_event_channel,
+                                                          context);
+    } else {
+        neigh_mgr_logerr("Failed in rdma_create_id (errno=%d %m). tid: %d", errno, gettid());
+    }
+
+    CHANNEL_LOCK(unlock);
+    return ch_fd;
 }

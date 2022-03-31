@@ -173,6 +173,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     , m_to_str(std::string(priv_vma_transport_type_str(m_trans_type)) + ":" + get_key().to_str())
     , m_id(0)
     , m_is_first_send_arp(true)
+    , m_ch_fd(-1)
     , m_n_sysvar_neigh_wait_till_send_arp_msec(safe_mce_sys().neigh_wait_till_send_arp_msec)
     , m_n_sysvar_neigh_uc_arp_quata(safe_mce_sys().neigh_uc_arp_quata)
     , m_n_sysvar_neigh_num_err_retries(safe_mce_sys().neigh_num_err_retries)
@@ -1054,27 +1055,14 @@ int neigh_entry::priv_enter_init()
 // Private enter function for INIT_RESOLUTION state
 int neigh_entry::priv_enter_init_resolution()
 {
-    if (NULL == g_p_neigh_table_mgr->m_neigh_cma_event_channel) {
-        return 0;
-    }
-
     // 1. Delete old cma_id
     priv_destroy_cma_id();
 
-    // 2. Create cma_id
-    neigh_logdbg("Calling rdma_create_id");
-    IF_RDMACM_FAILURE(rdma_create_id(g_p_neigh_table_mgr->m_neigh_cma_event_channel, &m_cma_id,
-                                     (void *)this, m_rdma_port_space))
-    {
-        neigh_logerr("Failed in rdma_create_id (errno=%d %m)", errno);
-        return -1;
+    // 2. Create cma_id and register our handler on internal channel event listener thread.
+    m_ch_fd = g_p_neigh_table_mgr->create_rdma_id_and_register(m_cma_id, m_rdma_port_space, this);
+    if (m_ch_fd <= 0) {
+        return m_ch_fd;
     }
-    ENDIF_RDMACM_FAILURE;
-
-    // 3. Register our handler on internal channel event listener thread
-    g_p_event_handler_manager->register_rdma_cm_event(
-        g_p_neigh_table_mgr->m_neigh_cma_event_channel->fd, (void *)m_cma_id,
-        (void *)g_p_neigh_table_mgr->m_neigh_cma_event_channel, this);
 
     // 4. Start RDMA address resolution
     neigh_logdbg("Calling rdma_resolve_addr, src=%s, dst=%s",
@@ -1296,8 +1284,7 @@ bool neigh_entry::priv_get_neigh_l2(address_t &l2_addr)
 void neigh_entry::priv_destroy_cma_id()
 {
     if (m_cma_id) {
-        g_p_event_handler_manager->unregister_rdma_cm_event(
-            g_p_neigh_table_mgr->m_neigh_cma_event_channel->fd, (void *)m_cma_id);
+        g_p_event_handler_manager->unregister_rdma_cm_event(m_ch_fd, m_cma_id);
         neigh_logdbg("Calling rdma_destroy_id");
         IF_RDMACM_FAILURE(rdma_destroy_id(m_cma_id))
         {

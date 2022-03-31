@@ -41,7 +41,8 @@ public:
     neigh_table_mgr();
     ~neigh_table_mgr();
     virtual void notify_cb(event *event);
-    rdma_event_channel *m_neigh_cma_event_channel;
+    int create_rdma_id_and_register(rdma_cm_id *&cma_id, enum rdma_port_space port_space,
+                                    event_handler_rdma_cm *context);
     bool register_observer(neigh_key, const cache_observer *,
                            cache_entry_subject<neigh_key, class neigh_val *> **);
 
@@ -52,6 +53,11 @@ private:
      * 3. get transport type from netdev
      */
     neigh_entry *create_new_entry(neigh_key neigh_key, const observer *dst);
+    void create_rdma_channel();
+
+    rdma_event_channel *m_neigh_cma_event_channel = nullptr;
+    rdma_event_channel *m_neigh_cma_event_channel_prev = nullptr;
+    lock_rw m_channel_lock;
 };
 
 extern neigh_table_mgr *g_p_neigh_table_mgr;

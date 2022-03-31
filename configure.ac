@@ -370,6 +370,22 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
   AC_MSG_RESULT([no])
 ])
 
+AC_MSG_CHECKING([for PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP support])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <pthread.h>
+]],
+[[
+  pthread_rwlockattr_t rw_attr;
+  pthread_rwlockattr_setkind_np(&rw_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+]])],
+[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_PTHREAD_RWLOCK_NP, 1, [Define to 1 if PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP exists'])
+],
+[
+  AC_MSG_RESULT([no])
+])
+
 dnl===-----------------------------------------------------------------------===
 dnl===
 dnl=== SECTION 9: Configure makefiles

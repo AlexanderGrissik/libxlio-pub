@@ -297,6 +297,7 @@ protected:
 
 private:
     bool m_is_first_send_arp;
+    int m_ch_fd;
     const uint32_t m_n_sysvar_neigh_wait_till_send_arp_msec;
     const uint32_t m_n_sysvar_neigh_uc_arp_quata;
     const uint32_t m_n_sysvar_neigh_num_err_retries;

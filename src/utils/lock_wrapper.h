@@ -319,6 +319,50 @@ protected:
 };
 
 /**
+ * pthread rwlock
+ */
+class lock_rw {
+public:
+#ifdef HAVE_PTHREAD_RWLOCK_NP
+    enum {
+        LOCK_RW_PREFER_READ = PTHREAD_RWLOCK_PREFER_READER_NP,
+        LOCK_RW_PREFER_WRITE = PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP,
+    };
+
+    lock_rw(int rw_type = LOCK_RW_PREFER_WRITE)
+#else
+    lock_rw()
+#endif
+    {
+        pthread_rwlockattr_t rw_attr;
+        pthread_rwlockattr_init(&rw_attr);
+#ifdef HAVE_PTHREAD_RWLOCK_NP
+        pthread_rwlockattr_setkind_np(&rw_attr, rw_type);
+#endif
+        pthread_rwlock_init(&m_lock, &rw_attr);
+    };
+    ~lock_rw() { pthread_rwlock_destroy(&m_lock); };
+    inline int lock_rd()
+    {
+        DEFINED_NO_THREAD_LOCK_RETURN_0
+        return pthread_rwlock_rdlock(&m_lock);
+    };
+    inline int lock_wr()
+    {
+        DEFINED_NO_THREAD_LOCK_RETURN_0
+        return pthread_rwlock_wrlock(&m_lock);
+    };
+    inline int unlock()
+    {
+        DEFINED_NO_THREAD_LOCK_RETURN_0
+        return pthread_rwlock_unlock(&m_lock);
+    };
+
+protected:
+    pthread_rwlock_t m_lock;
+};
+
+/**
  * pthread recursive mutex
  */
 class lock_mutex_recursive : public lock_mutex {
