@@ -35,6 +35,8 @@
 
 #include "ring_slave.h"
 
+#include <unordered_map>
+
 #include "vma/dev/gro_mgr.h"
 #include "vma/dev/qp_mgr.h"
 #include "vma/dev/net_device_table_mgr.h"
@@ -48,8 +50,6 @@ struct cq_moderation_info {
     uint64_t prev_bytes;
     uint32_t missed_rounds;
 };
-
-typedef hash_map<void *, uint32_t> user_lkey_map_t;
 
 /**
  * @class ring simple
@@ -254,7 +254,7 @@ protected:
     struct cq_moderation_info m_cq_moderation_info;
     cq_mgr *m_p_cq_mgr_rx;
     cq_mgr *m_p_cq_mgr_tx;
-    user_lkey_map_t m_user_lkey_map;
+    std::unordered_map<void *, uint32_t> m_user_lkey_map;
 
 private:
     bool is_socketxtreme(void) { return m_socketxtreme.active; }

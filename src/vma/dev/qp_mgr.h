@@ -44,7 +44,6 @@
 #include "vma/util/sys_vars.h"
 #include "vma/util/libvma.h"
 #include "vma/util/if.h"
-#include "vma/util/hash_map.h"
 #include "vma/lwip/opt.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/infra/sender.h"

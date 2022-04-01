@@ -25,7 +25,6 @@ dist-hook:
 SUBDIRS = infra netlink
 
 EXTRA_DIST = \
-	util/hash_map.inl \
 	dev/cq_mgr.inl \
 	dev/cq_mgr_mlx5.inl \
 	util/libxlio.conf
@@ -279,7 +278,6 @@ libxlio_la_SOURCES := \
 	sock/sock-redirect.h \
 	\
 	util/chunk_list.h \
-	util/hash_map.h \
 	util/if.h \
 	util/instrumentation.h \
 	util/libvma.h \

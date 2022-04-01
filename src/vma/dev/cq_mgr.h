@@ -38,7 +38,6 @@
 #include "vma/dev/qp_mgr.h"
 #include "vma/dev/ib_ctx_handler.h"
 #include "vma/util/sys_vars.h"
-#include "vma/util/hash_map.h"
 #include "vma/util/vma_stats.h"
 #include "vma/proto/mem_buf_desc.h"
 #include "vma/proto/vma_lwip.h"

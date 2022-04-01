@@ -178,8 +178,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                            flow_spec_5t.get_dst_port());
         rfs_rule_filter *dst_port_filter = NULL;
         if (safe_mce_sys().udp_3t_rules) {
-            rule_filter_map_t::iterator dst_port_iter =
-                m_ring.m_udp_uc_dst_port_attach_map.find(rule_key);
+            auto dst_port_iter = m_ring.m_udp_uc_dst_port_attach_map.find(rule_key);
             if (dst_port_iter == m_ring.m_udp_uc_dst_port_attach_map.end()) {
                 m_ring.m_udp_uc_dst_port_attach_map[rule_key].counter = 1;
             } else {
@@ -252,7 +251,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
         // know when to call ibv_attach and ibv_detach
         rfs_rule_filter *l2_mc_ip_filter = NULL;
         if (m_ring.m_b_sysvar_eth_mc_l2_only_rules) {
-            rule_filter_map_t::iterator l2_mc_iter = m_ring.m_l2_mc_ip_attach_map.find(rule_key);
+            auto l2_mc_iter = m_ring.m_l2_mc_ip_attach_map.find(rule_key);
             // It means that this is the first time attach called with this MC ip
             if (l2_mc_iter == m_ring.m_l2_mc_ip_attach_map.end()) {
                 m_ring.m_l2_mc_ip_attach_map[rule_key].counter = 1;
@@ -292,8 +291,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                            flow_spec_5t.get_dst_port());
         rfs_rule_filter *dst_port_filter = NULL;
         if (safe_mce_sys().tcp_3t_rules) {
-            rule_filter_map_t::iterator dst_port_iter =
-                m_ring.m_tcp_dst_port_attach_map.find(rule_key);
+            auto dst_port_iter = m_ring.m_tcp_dst_port_attach_map.find(rule_key);
             if (dst_port_iter == m_ring.m_tcp_dst_port_attach_map.end()) {
                 m_ring.m_tcp_dst_port_attach_map[rule_key].counter = 1;
             } else {
@@ -405,8 +403,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
         sock_addr rule_key(flow_spec_5t.get_family(), &flow_spec_5t.get_dst_ip(),
                            flow_spec_5t.get_dst_port());
         if (safe_mce_sys().udp_3t_rules) {
-            rule_filter_map_t::iterator dst_port_iter =
-                m_ring.m_udp_uc_dst_port_attach_map.find(rule_key);
+            auto dst_port_iter = m_ring.m_udp_uc_dst_port_attach_map.find(rule_key);
             if (dst_port_iter == m_ring.m_udp_uc_dst_port_attach_map.end()) {
                 ring_logdbg("Could not find matching counter for UDP src port!");
             } else {
@@ -439,7 +436,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
         KEY2T key_udp_mc(flow_spec_5t.get_dst_ip(), flow_spec_5t.get_dst_port());
         sock_addr rule_key(flow_spec_5t.get_family(), &flow_spec_5t.get_dst_ip(), 0U);
         if (m_ring.m_b_sysvar_eth_mc_l2_only_rules) {
-            rule_filter_map_t::iterator l2_mc_iter = m_ring.m_l2_mc_ip_attach_map.find(rule_key);
+            auto l2_mc_iter = m_ring.m_l2_mc_ip_attach_map.find(rule_key);
             BULLSEYE_EXCLUDE_BLOCK_START
             if (l2_mc_iter == m_ring.m_l2_mc_ip_attach_map.end()) {
                 ring_logdbg("Could not find matching counter for the MC group!");
@@ -475,8 +472,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
         sock_addr rule_key(flow_spec_5t.get_family(), &flow_spec_5t.get_dst_ip(),
                            flow_spec_5t.get_dst_port());
         if (safe_mce_sys().tcp_3t_rules) {
-            rule_filter_map_t::iterator dst_port_iter =
-                m_ring.m_tcp_dst_port_attach_map.find(rule_key);
+            auto dst_port_iter = m_ring.m_tcp_dst_port_attach_map.find(rule_key);
             BULLSEYE_EXCLUDE_BLOCK_START
             if (dst_port_iter == m_ring.m_tcp_dst_port_attach_map.end()) {
                 ring_logdbg("Could not find matching counter for TCP src port!");

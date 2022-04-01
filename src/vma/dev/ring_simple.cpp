@@ -1215,13 +1215,15 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length, void *p_mappin
      * TODO In the 1st mode we don't support memory deregistration.
      */
     if (p_mapping == NULL) {
-        lkey = m_user_lkey_map.get(addr, 0);
-        if (!lkey) {
+        auto iter = m_user_lkey_map.find(addr);
+        if (iter != m_user_lkey_map.end()) {
+            lkey = iter->second;
+        } else {
             lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
             if (lkey == (uint32_t)(-1)) {
                 ring_logerr("Can't register user memory addr %p len %lx", addr, length);
             } else {
-                m_user_lkey_map.set(addr, lkey);
+                m_user_lkey_map[addr] = lkey;
             }
         }
     } else {
