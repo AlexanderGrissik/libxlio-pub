@@ -717,7 +717,9 @@ void show_basic_stats(socket_instance_block_t *p_instance,
         print_basic_stats(&p_instance->skt_stats);
         break;
     case e_deltas:
-        print_basic_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats);
+        if (p_prev_instance_block) {
+            print_basic_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats);
+        }
         break;
     default:
         break;
@@ -732,7 +734,9 @@ void print_medium_stats(socket_instance_block_t *p_instance,
         print_medium_total_stats(&p_instance->skt_stats);
         break;
     case e_deltas:
-        print_medium_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats);
+        if (p_prev_instance_block) {
+            print_medium_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats);
+        }
         break;
     default:
         break;
@@ -747,8 +751,10 @@ void show_full_stats(socket_instance_block_t *p_instance,
         print_full_stats(&p_instance->skt_stats, p_mc_grp_info, g_stats_file);
         break;
     case e_deltas:
-        print_full_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats,
-                               p_mc_grp_info);
+        if (p_prev_instance_block) {
+            print_full_delta_stats(&p_instance->skt_stats, &p_prev_instance_block->skt_stats,
+                                   p_mc_grp_info);
+        }
         break;
     default:
         break;
@@ -778,27 +784,24 @@ int show_socket_stats(socket_instance_block_t *p_instance,
     for (uint32_t i = 0; i < num_of_obj; i++) {
         size_t fd = (size_t)p_instance[i].skt_stats.fd;
         if (p_instance[i].b_enabled && g_fd_mask[fd]) {
-            socket_instance_block_t *p_prev_instance = &p_prev_instance_block[i];
-            if (p_prev_instance) {
-                num_act_inst++;
-                switch (user_params.view_mode) {
-                case e_basic:
-                    show_basic_stats(&p_instance[i], p_prev_instance);
-                    *p_printed_lines_num += BASIC_STATS_LINES_NUM;
-                    break;
-                case e_medium:
-                    print_medium_stats(&p_instance[i], p_prev_instance);
-                    *p_printed_lines_num += MEDIUM_STATS_LINES_NUM;
-                    break;
-                case e_full:
-                    show_full_stats(&p_instance[i], p_prev_instance, p_mc_grp_info);
-                    break;
-                case e_netstat_like:
-                    print_netstat_like(&p_instance[i].skt_stats, p_mc_grp_info, g_stats_file, pid);
-                    break;
-                default:
-                    break;
-                }
+            num_act_inst++;
+            switch (user_params.view_mode) {
+            case e_basic:
+                show_basic_stats(&p_instance[i], &p_prev_instance_block[i]);
+                *p_printed_lines_num += BASIC_STATS_LINES_NUM;
+                break;
+            case e_medium:
+                print_medium_stats(&p_instance[i], &p_prev_instance_block[i]);
+                *p_printed_lines_num += MEDIUM_STATS_LINES_NUM;
+                break;
+            case e_full:
+                show_full_stats(&p_instance[i], &p_prev_instance_block[i], p_mc_grp_info);
+                break;
+            case e_netstat_like:
+                print_netstat_like(&p_instance[i].skt_stats, p_mc_grp_info, g_stats_file, pid);
+                break;
+            default:
+                break;
             }
         }
     }
