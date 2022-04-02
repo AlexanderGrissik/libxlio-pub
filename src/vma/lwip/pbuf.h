@@ -40,18 +40,8 @@
 extern "C" {
 #endif
 
-/** Align a memory pointer to the alignment defined by MEM_ALIGNMENT
- * so that ADDR % MEM_ALIGNMENT == 0
- */
-#ifndef LWIP_MEM_ALIGN
-#define LWIP_MEM_ALIGN(addr) ((void *)(((mem_ptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(mem_ptr_t)(MEM_ALIGNMENT-1)))
-#endif
-
 /** Currently, the pbuf_custom code is only needed for one specific configuration of IP_FRAG */
 #define LWIP_SUPPORT_CUSTOM_PBUF 1
-
-#define PBUF_TRANSPORT_HLEN 20
-#define PBUF_IP_HLEN        20
 
 typedef enum {
   PBUF_RAM, /* pbuf data is stored in RAM */

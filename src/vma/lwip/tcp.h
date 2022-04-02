@@ -36,8 +36,6 @@
 
 #include "vma/lwip/opt.h"
 
-#if LWIP_TCP /* don't build if not configured for use in lwipopts.h */
-
 #include "vma/lwip/pbuf.h"
 #include "vma/lwip/ip.h"
 
@@ -221,19 +219,6 @@ static const char * const tcp_state_str[] = {
 #define PCB_IN_ACTIVE_STATE(pcb) (get_tcp_state(pcb) > LISTEN && get_tcp_state(pcb) < TIME_WAIT)
 #define PCB_IN_TIME_WAIT_STATE(pcb) (get_tcp_state(pcb) == TIME_WAIT)
 
-#if LWIP_CALLBACK_API
-  /* Function to call when a listener has been connected.
-   * @param arg user-supplied argument (tcp_pcb.callback_arg)
-   * @param pcb a new tcp_pcb that now is connected
-   * @param err an error argument (TODO: that is current always ERR_OK?)
-   * @return ERR_OK: accept the new connection,
-   *                 any other err_t abortsthe new connection
-   */
-#define DEF_ACCEPT_CALLBACK  tcp_accept_fn accept;
-#else /* LWIP_CALLBACK_API */
-#define DEF_ACCEPT_CALLBACK
-#endif /* LWIP_CALLBACK_API */
-
 
 /* allow user to be notified upon tcp_state changes */
 typedef void (*tcp_state_observer_fn)(void* pcb_container, enum tcp_state new_state);
@@ -251,7 +236,7 @@ extern tcp_state_observer_fn external_tcp_state_observer;
   /* Function to be called when sending data. */ \
   ip_output_fn ip_output; \
   /* the accept callback for listen- and normal pcbs, if LWIP_CALLBACK_API */ \
-  DEF_ACCEPT_CALLBACK \
+  tcp_accept_fn accept; \
   /* ports are in host byte order */ \
   u16_t local_port; \
   u32_t rcv_wnd;   /* receiver window available */ \
@@ -547,7 +532,5 @@ s32_t            tcp_is_wnd_available(struct tcp_pcb *pcb, u32_t data_len);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* LWIP_TCP */
 
 #endif /* __LWIP_TCP_H__ */

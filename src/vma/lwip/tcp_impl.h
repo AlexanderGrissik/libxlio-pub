@@ -34,8 +34,6 @@
 
 #include "vma/lwip/opt.h"
 
-#if LWIP_TCP /* don't build if not configured for use in lwipopts.h */
-
 #include "vma/lwip/tcp.h"
 
 #ifdef __cplusplus
@@ -280,9 +278,6 @@ PACK_STRUCT_END
 #define TCP_OVERSIZE_DBGCHECK 0
 #endif
 
-/** Don't generate checksum on copy if CHECKSUM_GEN_TCP is disabled */
-#define TCP_CHECKSUM_ON_COPY  (LWIP_CHECKSUM_ON_COPY && CHECKSUM_GEN_TCP)
-
 /* This structure represents a TCP segment on the unsent, unacked and ooseq queues */
 struct tcp_seg {
   struct tcp_seg *next;    /* used when putting segments on a queue */
@@ -295,15 +290,9 @@ struct tcp_seg {
                               pbuf in unsent (used for asserting vs.
                               tcp_pcb.unsent_oversized only) */
 #endif /* TCP_OVERSIZE_DBGCHECK */ 
-#if TCP_CHECKSUM_ON_COPY
-  u16_t chksum;
-  u8_t  chksum_swapped;
-#endif /* TCP_CHECKSUM_ON_COPY */
   u8_t  flags;
 #define TF_SEG_OPTS_MSS         (u8_t)0x01U /* Include MSS option. */
 #define TF_SEG_OPTS_TS          (u8_t)0x02U /* Include timestamp option. */
-#define TF_SEG_DATA_CHECKSUMMED (u8_t)0x04U /* ALL data (not the header) is
-                                               checksummed into 'chksum' */
 #define TF_SEG_OPTS_WNDSCALE	(u8_t)0x08U /* Include window scaling option */
 #define TF_SEG_OPTS_DUMMY_MSG	(u8_t)TCP_WRITE_DUMMY /* Include dummy send option */
 #define TF_SEG_OPTS_TSO         (u8_t)TCP_WRITE_TSO /* Use TSO send mode */
@@ -362,73 +351,6 @@ extern u32_t tcp_ticks;
 extern ip_route_mtu_fn external_ip_route_mtu;
 
 
-extern struct tcp_pcb *tcp_tmp_pcb;      /* Only used for temporary storage. */
-
-/* Define two macros, TCP_REG and TCP_RMV that registers a TCP PCB
-   with a PCB list or removes a PCB from a list, respectively. */
-#ifndef TCP_DEBUG_PCB_LISTS
-#define TCP_DEBUG_PCB_LISTS 0
-#endif
-#if TCP_DEBUG_PCB_LISTS
-#define TCP_REG(pcbs, npcb) do {\
-                            LWIP_DEBUGF(TCP_DEBUG, ("TCP_REG %p local port %d\n", (npcb), (npcb)->local_port)); \
-                            LWIP_PLATFORM_DIAG(("%s:%d TCP_REG %p local port %d\n", __FUNCTION__, __LINE__, (npcb), (npcb)->local_port)); \
-                            for(tcp_tmp_pcb = *(pcbs); \
-          tcp_tmp_pcb != NULL; \
-        tcp_tmp_pcb = tcp_tmp_pcb->next) { \
-                                LWIP_ASSERT("TCP_REG: already registered\n", tcp_tmp_pcb != (npcb)); \
-                            } \
-                            LWIP_ASSERT("TCP_REG: get_tcp_state(pcb) != CLOSED", ((npcb)->state != CLOSED)); \
-                            (npcb)->next = *(pcbs); \
-                            LWIP_ASSERT("TCP_REG: npcb->next != npcb", (npcb)->next != (npcb)); \
-                            *(pcbs) = (npcb); \
-                            LWIP_ASSERT("TCP_RMV: tcp_pcbs sane", tcp_pcbs_sane()); \
-              tcp_timer_needed(); \
-                            } while(0)
-#define TCP_RMV(pcbs, npcb) do { \
-                            LWIP_DEBUGF(TCP_DEBUG, ("TCP_RMV: removing %p from %p\n", (npcb), *(pcbs))); \
-                            LWIP_PLATFORM_DIAG(("%s:%d TCP_RMV: removing %p from %p\n", __FUNCTION__, __LINE__, (npcb), *(pcbs))); \
-                            if(*(pcbs) == (npcb)) { \
-                               *(pcbs) = (*pcbs)->next; \
-                            } else for(tcp_tmp_pcb = *(pcbs); tcp_tmp_pcb != NULL; tcp_tmp_pcb = tcp_tmp_pcb->next) { \
-                               if(tcp_tmp_pcb->next == (npcb)) { \
-                                  tcp_tmp_pcb->next = (npcb)->next; \
-                                  break; \
-                               } \
-                            } \
-                            (npcb)->next = NULL; \
-                            LWIP_ASSERT("TCP_RMV: tcp_pcbs sane", tcp_pcbs_sane()); \
-                            LWIP_DEBUGF(TCP_DEBUG, ("TCP_RMV: removed %p from %p\n", (npcb), *(pcbs))); \
-                            } while(0)
-
-#else /* LWIP_DEBUG */
-
-#define TCP_REG(pcbs, npcb)                        \
-  do {                                             \
-    (npcb)->next = *pcbs;                          \
-    *(pcbs) = (npcb);                              \
-   } while (0)
-
-#define TCP_RMV(pcbs, npcb)                        \
-  do {                                             \
-    if(*(pcbs) == (npcb)) {                        \
-      (*(pcbs)) = (*pcbs)->next;                   \
-    }                                              \
-    else {                                         \
-      for(tcp_tmp_pcb = *pcbs;                     \
-          tcp_tmp_pcb != NULL;                     \
-          tcp_tmp_pcb = tcp_tmp_pcb->next) {       \
-        if(tcp_tmp_pcb->next == (npcb)) {          \
-          tcp_tmp_pcb->next = (npcb)->next;        \
-          break;                                   \
-        }                                          \
-      }                                            \
-    }                                              \
-    (npcb)->next = NULL;                           \
-  } while(0)
-
-#endif /* LWIP_DEBUG */
-
 #if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)) || (__GNUC__ > 4))
 #pragma GCC visibility push(hidden)
 #endif
@@ -481,13 +403,11 @@ void tcp_debug_print(struct tcp_hdr *tcphdr);
 void tcp_debug_print_flags(u8_t flags);
 void tcp_debug_print_state(enum tcp_state s);
 void tcp_debug_print_pcbs(void);
-s16_t tcp_pcbs_sane(void);
 #else
 #define tcp_debug_print(tcphdr)
 #define tcp_debug_print_flags(flags)
 #define tcp_debug_print_state(s)
 #define tcp_debug_print_pcbs()
-#define tcp_pcbs_sane() 1
 #endif /* TCP_DEBUG */
 
 /** External function (implemented in timers.c), called when TCP detects
@@ -501,7 +421,5 @@ void tcp_timer_needed(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* LWIP_TCP */
 
 #endif /* __LWIP_TCP_H__ */

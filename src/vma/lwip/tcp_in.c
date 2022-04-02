@@ -43,8 +43,6 @@
 
 #include "vma/lwip/opt.h"
 
-#if LWIP_TCP /* don't build if not configured for use in lwipopts.h */
-
 #include "vma/lwip/tcp_impl.h"
 #include "vma/lwip/stats.h"
 
@@ -337,8 +335,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
         }
         pbuf_free(p);
     }
-
-    LWIP_ASSERT("tcp_input: tcp_pcbs_sane()", tcp_pcbs_sane());
 }
 #endif //LWIP_3RD_PARTY_L3
 /**
@@ -867,7 +863,7 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     p->tot_len -= len;
     p->len -= len;
     p->payload = (u8_t *)p->payload + len;
-    MEMMOVE(p->payload, seg->tcphdr, TCP_HLEN);
+    memmove(p->payload, seg->tcphdr, TCP_HLEN);
     seg->tcphdr = p->payload;
     return count;
   }
@@ -925,7 +921,7 @@ tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t ackno)
     cur_p->tot_len += TCP_HLEN;
     cur_p->len += TCP_HLEN;
     cur_p->payload = (u8_t *)cur_p->payload - TCP_HLEN;
-    MEMCPY(cur_p->payload, seg->tcphdr, TCP_HLEN);
+    memcpy(cur_p->payload, seg->tcphdr, TCP_HLEN);
     seg->tcphdr = cur_p->payload;
 
     p = seg->p;
@@ -1864,5 +1860,3 @@ tcp_parseopt(struct tcp_pcb *pcb, tcp_in_data* in_data)
     }
   }
 }
-
-#endif /* LWIP_TCP */

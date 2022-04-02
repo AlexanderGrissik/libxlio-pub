@@ -42,7 +42,6 @@
 
 #include "vma/lwip/opt.h"
 
-#if LWIP_TCP /* don't build if not configured for use in lwipopts.h */
 #include "vma/lwip/cc.h"
 #include "vma/lwip/tcp.h"
 #include "vma/lwip/tcp_impl.h"
@@ -108,9 +107,6 @@ const u8_t tcp_backoff[13] =
     { 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7};
  /* Times per slowtmr hits */
 const u8_t tcp_persist_backoff[7] = { 3, 6, 12, 24, 48, 96, 120 };
-
-/** Only used for temporary storage. */
-struct tcp_pcb *tcp_tmp_pcb;
 
 /**
  *
@@ -964,7 +960,7 @@ tcp_seg_copy(struct tcp_pcb* pcb, struct tcp_seg *seg)
   if (cseg == NULL) {
     return NULL;
   }
-  SMEMCPY((u8_t *)cseg, (const u8_t *)seg, sizeof(struct tcp_seg)); 
+  memcpy((u8_t *)cseg, (const u8_t *)seg, sizeof(struct tcp_seg)); 
   pbuf_ref(cseg->p);
   return cseg;
 }
@@ -1392,8 +1388,6 @@ tcp_pcb_remove(struct tcp_pcb *pcb)
   }
 
   set_tcp_state(pcb, CLOSED);
-
-  LWIP_ASSERT("tcp_pcb_remove: tcp_pcbs_sane()", tcp_pcbs_sane());
 }
 
 /**
@@ -1528,5 +1522,3 @@ tcp_debug_print_pcbs(void)
   LWIP_DEBUGF(TCP_DEBUG, ("Listen PCB states: REMOVED\n"));
 }
 #endif /* TCP_DEBUG */
-
-#endif /* LWIP_TCP */

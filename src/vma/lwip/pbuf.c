@@ -361,8 +361,8 @@ pbuf_cat(struct pbuf *h, struct pbuf *t)
 {
   struct pbuf *p;
 
-  LWIP_ERROR_ABORT("(h != NULL) && (t != NULL) (programmer violates API)",
-             ((h != NULL) && (t != NULL)), return;);
+  LWIP_ASSERT("(h != NULL) && (t != NULL) (programmer violates API)",
+              ((h != NULL) && (t != NULL)));
 
   /* proceed to last pbuf of chain */
   for (p = h; p->next != NULL; p = p->next) {

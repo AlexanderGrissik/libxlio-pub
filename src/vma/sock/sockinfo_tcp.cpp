@@ -3811,26 +3811,6 @@ int sockinfo_tcp::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
     return 0;
 }
 
-/*
- * TCP options from netinet/tcp.h
- * including file directly conflicts with lwipopts.h (TCP_MSS define)
- */
-/*
- * User-settable options (used with setsockopt).
- */
-#define TCP_NODELAY      1 /* Don't delay send to coalesce packets  */
-#define TCP_MAXSEG       2 /* Set maximum segment size  */
-#define TCP_CORK         3 /* Control sending of partial frames  */
-#define TCP_KEEPIDLE     4 /* Start keeplives after this period */
-#define TCP_KEEPINTVL    5 /* Interval between keepalives */
-#define TCP_KEEPCNT      6 /* Number of keepalives before death */
-#define TCP_SYNCNT       7 /* Number of SYN retransmits */
-#define TCP_LINGER2      8 /* Life time of orphaned FIN-WAIT-2 state */
-#define TCP_DEFER_ACCEPT 9 /* Wake up listener only when data arrive */
-#define TCP_WINDOW_CLAMP 10 /* Bound advertised window */
-#define TCP_INFO         11 /* Information about this connection. */
-#define TCP_QUICKACK     12 /* Block/reenable quick ACKs.  */
-
 int sockinfo_tcp::fcntl(int __cmd, unsigned long int __arg)
 {
     if (!safe_mce_sys().avoid_sys_calls_on_tcp_fd || !is_connected()) {
