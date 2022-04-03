@@ -388,8 +388,6 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
     set_tcp_state(npcb, SYN_RCVD);
     npcb->rcv_nxt = in_data->seqno + 1;
     npcb->rcv_ann_right_edge = npcb->rcv_nxt;
-    npcb->snd_wnd = in_data->tcphdr->wnd;
-    npcb->ssthresh = npcb->snd_wnd;
     npcb->snd_wl1 = in_data->seqno - 1;/* initialise to seqno-1 to force window update */
     npcb->callback_arg = pcb->callback_arg;
     npcb->accept = pcb->accept;
@@ -405,14 +403,14 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
     /* Parse any options in the SYN. */
     tcp_parseopt(npcb, in_data);
 
-  	npcb->rcv_wnd = TCP_WND_SCALED(npcb);
-  	npcb->rcv_ann_wnd = TCP_WND_SCALED(npcb);
-  	npcb->rcv_wnd_max = TCP_WND_SCALED(npcb);
-  	npcb->rcv_wnd_max_desired = TCP_WND_SCALED(npcb);
+    npcb->rcv_wnd = TCP_WND_SCALED(npcb);
+    npcb->rcv_ann_wnd = TCP_WND_SCALED(npcb);
+    npcb->rcv_wnd_max = TCP_WND_SCALED(npcb);
+    npcb->rcv_wnd_max_desired = TCP_WND_SCALED(npcb);
 
-  	npcb->snd_wnd = SND_WND_SCALE(npcb, in_data->tcphdr->wnd);
-  	npcb->snd_wnd_max = npcb->snd_wnd;
-  	npcb->ssthresh = npcb->snd_wnd;
+    npcb->snd_wnd = SND_WND_SCALE(npcb, in_data->tcphdr->wnd);
+    npcb->snd_wnd_max = npcb->snd_wnd;
+    npcb->ssthresh = npcb->snd_wnd;
 #if TCP_CALCULATE_EFF_SEND_MSS
     UPDATE_PCB_BY_MSS(npcb, npcb->advtsd_mss);
 #endif /* TCP_CALCULATE_EFF_SEND_MSS */
