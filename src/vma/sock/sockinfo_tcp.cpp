@@ -561,9 +561,9 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 
         if (is_listen_socket) {
             tcp_accept(&m_pcb, 0);
-            tcp_syn_handled((struct tcp_pcb_listen *)(&m_pcb), 0);
-            tcp_clone_conn((struct tcp_pcb_listen *)(&m_pcb), 0);
-            tcp_accepted_pcb((struct tcp_pcb_listen *)(&m_pcb), 0);
+            tcp_syn_handled(&m_pcb, 0);
+            tcp_clone_conn(&m_pcb, 0);
+            tcp_accepted_pcb(&m_pcb, 0);
             prepare_listen_to_close(); // close pending to accept sockets
         } else {
             tcp_recv(&m_pcb, sockinfo_tcp::rx_drop_lwip_cb);
@@ -2718,15 +2718,15 @@ int sockinfo_tcp::listen(int backlog)
         // and update the relevant fields of tcp_listen_pcb.
         struct tcp_pcb tmp_pcb;
         memcpy(&tmp_pcb, &m_pcb, sizeof(struct tcp_pcb));
-        tcp_listen((struct tcp_pcb_listen *)(&m_pcb), &tmp_pcb);
+        tcp_listen(&m_pcb, &tmp_pcb);
     }
 
     m_sock_state = TCP_SOCK_ACCEPT_READY;
 
     tcp_accept(&m_pcb, sockinfo_tcp::accept_lwip_cb);
-    tcp_syn_handled((struct tcp_pcb_listen *)(&m_pcb), sockinfo_tcp::syn_received_lwip_cb);
-    tcp_clone_conn((struct tcp_pcb_listen *)(&m_pcb), sockinfo_tcp::clone_conn_cb);
-    tcp_accepted_pcb((struct tcp_pcb_listen *)(&m_pcb), sockinfo_tcp::accepted_pcb_cb);
+    tcp_syn_handled(&m_pcb, sockinfo_tcp::syn_received_lwip_cb);
+    tcp_clone_conn(&m_pcb, sockinfo_tcp::clone_conn_cb);
+    tcp_accepted_pcb(&m_pcb, sockinfo_tcp::accepted_pcb_cb);
 
     bool success = attach_as_uc_receiver(ROLE_TCP_SERVER);
 
@@ -3753,8 +3753,7 @@ int sockinfo_tcp::shutdown(int __how)
     if (is_server()) {
         if (shut_rx) {
             tcp_accept(&m_pcb, 0);
-            tcp_syn_handled((struct tcp_pcb_listen *)(&m_pcb),
-                            sockinfo_tcp::syn_received_drop_lwip_cb);
+            tcp_syn_handled(&m_pcb, sockinfo_tcp::syn_received_drop_lwip_cb);
         }
     } else {
         if (get_tcp_state(&m_pcb) != LISTEN && shut_rx && m_n_rx_pkt_ready_list_count) {

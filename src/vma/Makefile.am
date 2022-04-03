@@ -227,7 +227,6 @@ libxlio_la_SOURCES := \
 	lwip/err.h \
 	lwip/init.h \
 	lwip/ip_addr.h \
-	lwip/ip.h \
 	lwip/opt.h \
 	lwip/pbuf.h \
 	lwip/stats.h \

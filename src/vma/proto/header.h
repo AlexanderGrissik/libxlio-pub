@@ -46,7 +46,7 @@
 #include "vma/util/to_str.h"
 #include "L2_address.h"
 #include "vma/util/sys_vars.h"
-#include "vma/lwip/ip.h"
+#include "vma/lwip/ip_addr.h"
 
 class dst_entry;
 

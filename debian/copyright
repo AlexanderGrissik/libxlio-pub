@@ -53,7 +53,6 @@ Files: src/vma/lwip/def.h
  src/vma/lwip/err.h
  src/vma/lwip/init.c
  src/vma/lwip/init.h
- src/vma/lwip/ip.h
  src/vma/lwip/ip_addr.h
  src/vma/lwip/opt.h
  src/vma/lwip/pbuf.c

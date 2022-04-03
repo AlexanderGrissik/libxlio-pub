@@ -415,7 +415,7 @@ tcp_accept_null(void *arg, struct tcp_pcb *pcb, err_t err)
  *
  */
 err_t
-tcp_listen(struct tcp_pcb_listen *listen_pcb, struct tcp_pcb *pcb)
+tcp_listen(struct tcp_pcb *listen_pcb, struct tcp_pcb *pcb)
 {
   /* already listening? */
   if (!listen_pcb || (!pcb || get_tcp_state(pcb) == LISTEN)) {
@@ -1218,7 +1218,7 @@ tcp_ip_output(struct tcp_pcb *pcb, ip_output_fn ip_output)
  *        is received
  */
 void
-tcp_syn_handled(struct tcp_pcb_listen *pcb, tcp_syn_handled_fn syn_handled)
+tcp_syn_handled(struct tcp_pcb *pcb, tcp_syn_handled_fn syn_handled)
 {
   pcb->syn_handled_cb = syn_handled;
 }
@@ -1230,7 +1230,7 @@ tcp_syn_handled(struct tcp_pcb_listen *pcb, tcp_syn_handled_fn syn_handled)
  * @param clone callback function to call in order to clone the pcb
  */
 void
-tcp_clone_conn(struct tcp_pcb_listen *pcb, tcp_clone_conn_fn clone_conn)
+tcp_clone_conn(struct tcp_pcb *pcb, tcp_clone_conn_fn clone_conn)
 {
   pcb->clone_conn = clone_conn;
 }
@@ -1242,7 +1242,7 @@ tcp_clone_conn(struct tcp_pcb_listen *pcb, tcp_clone_conn_fn clone_conn)
  * @param accepted_pcb Callback function to call when the accepted pcb is ready.
  */
 void
-tcp_accepted_pcb(struct tcp_pcb_listen *pcb, tcp_accepted_pcb_fn accepted_pcb)
+tcp_accepted_pcb(struct tcp_pcb *pcb, tcp_accepted_pcb_fn accepted_pcb)
 {
   pcb->accepted_pcb = accepted_pcb;
 }

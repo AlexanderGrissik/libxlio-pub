@@ -75,7 +75,7 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static bool tcp_parseopt_ts(u8_t *opts, u16_t opts_len, u32_t *tsval);
 static void tcp_parseopt(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
-static void tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data);
+static void tcp_listen_input(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static err_t tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static s8_t tcp_quickack(struct tcp_pcb *pcb, tcp_in_data* in_data);
 
@@ -338,14 +338,14 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
  * Called by L3_level_tcp_input() when a segment arrives for a listening
  * connection (from L3_level_tcp_input()).
  *
- * @param pcb the tcp_pcb_listen for which a segment arrived
+ * @param pcb the listen tcp_pcb for which a segment arrived
  * @return The new pcb if there is one. Otherwise, NULL.
  *
  * @note the segment which arrived is saved in global variables, therefore only the pcb
  *       involved is passed as a parameter to this function
  */
 static void
-tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
+tcp_listen_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
 {
   struct tcp_pcb *npcb = NULL;
   err_t rc;
