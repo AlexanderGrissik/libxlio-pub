@@ -1163,6 +1163,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
 
 zc_fill_iov:
     /* For zerocopy, 1st pbuf contains pointer to TCP header */
+    assert(p->type == PBUF_STACK);
     lwip_iovec[0].tcphdr = p->payload;
     attr.length += p->len;
     p = p->next;

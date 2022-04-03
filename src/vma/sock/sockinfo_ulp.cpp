@@ -796,7 +796,7 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
                 bool skip_static;
 
                 /* For zerocopy the 1st pbuf is always a TCP header and the pbuf is on stack */
-                assert(p->type == PBUF_ROM); /* TCP header pbuf */
+                assert(p->type == PBUF_STACK); /* TCP header pbuf */
                 assert(p->next != NULL && p->next->desc.attr == PBUF_DESC_MDESC);
                 tls_record *rec = dynamic_cast<tls_record *>((mem_desc *)p->next->desc.mdesc);
                 if (unlikely(rec == NULL)) {

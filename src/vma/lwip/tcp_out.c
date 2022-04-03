@@ -1897,7 +1897,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
   if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
     p = &zc_pbuf;
     /* Assign a unique type to distinguish pbuf on stack */
-    p->type = PBUF_ROM;
+    p->type = PBUF_STACK;
     p->payload = seg->tcphdr;
     p->next = seg->p;
     p->len = p->tot_len = LWIP_TCP_HDRLEN(seg->tcphdr);
