@@ -85,13 +85,6 @@ void register_sys_now(sys_now_fn fn)
 }
 
 #if LWIP_3RD_PARTY_L3
-ip_output_fn external_ip_output;
-
-void register_ip_output(ip_output_fn fn)
-{
-    external_ip_output = fn;
-}
-
 ip_route_mtu_fn external_ip_route_mtu;
 
 void register_ip_route_mtu(ip_route_mtu_fn fn)
