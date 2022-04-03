@@ -1011,6 +1011,7 @@ void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio, void *container)
 
 	pcb->keep_cnt_sent = 0;
 	pcb->quickack = 0;
+    pcb->is_in_input = 0;
 	pcb->enable_ts_opt = enable_ts_option;
 	pcb->seg_alloc = NULL;
 	pcb->pbuf_alloc = NULL;
@@ -1052,6 +1053,7 @@ void tcp_pcb_recycle(struct tcp_pcb* pcb)
 	pcb->recv = tcp_recv_null;
 	pcb->keep_cnt_sent = 0;
 	pcb->quickack = 0;
+    pcb->is_in_input = 0;
 	pcb->snd_queuelen = 0;
 	pcb->snd_scale = 0;
 	pcb->rcv_scale = 0;

@@ -1591,7 +1591,7 @@ tcp_output(struct tcp_pcb *pcb)
      code. If so, we do not output anything. Instead, we rely on the
      input processing code to call us when input processing is done
      with. */
-  if (tcp_input_pcb == pcb) {
+  if (pcb->is_in_input) {
     return ERR_OK;
   }
 
@@ -1602,11 +1602,11 @@ tcp_output(struct tcp_pcb *pcb)
   seg = pcb->unsent;
 
   /* If the TF_ACK_NOW flag is set and no data will be sent (either
-  * because the ->unsent queue is empty or because the window does
-  * not allow it), construct an empty ACK segment and send it.
-  *
-  * If data is to be sent, we will just piggyback the ACK (see below).
-  */
+   * because the ->unsent queue is empty or because the window does
+   * not allow it), construct an empty ACK segment and send it.
+   *
+   * If data is to be sent, we will just piggyback the ACK (see below).
+   */
   if ((pcb->flags & TF_ACK_NOW) &&
     (seg == NULL ||
     seg->seqno - pcb->lastack + seg->len > wnd)) {

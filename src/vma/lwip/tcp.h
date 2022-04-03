@@ -396,6 +396,9 @@ struct tcp_pcb {
   /* Delayed ACK control: number of quick acks */
   u8_t quickack;
 
+  /* Set to true in a specific section of RX path to avoid tcp_output() */
+  u8_t is_in_input;
+
   /* TSO description */
   struct {
     /* Maximum length of memory buffer */

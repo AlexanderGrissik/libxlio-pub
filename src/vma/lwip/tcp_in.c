@@ -69,8 +69,6 @@ typedef struct tcp_in_data {
 	u8_t recv_flags;
 } tcp_in_data;
 
-struct tcp_pcb *tcp_input_pcb;
-
 /* Forward declarations. */
 static err_t tcp_process(struct tcp_pcb *pcb, tcp_in_data* in_data);
 static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data);
@@ -209,7 +207,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 					return;
 				}
 			}
-			tcp_input_pcb = pcb;
+			pcb->is_in_input = 1;
 			err = tcp_process(pcb, &in_data);
 			/* A return value of ERR_ABRT means that tcp_abort() was called
 			   and that the pcb has been freed. If so, we don't do anything. */
@@ -284,7 +282,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 						}
 					}
 
-					tcp_input_pcb = NULL;
+                    pcb->is_in_input = 0;
 					/* Try to send something out. */
 					tcp_output(pcb);
 			#if TCP_INPUT_DEBUG
@@ -297,7 +295,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 				/* Jump target if pcb has been aborted in a callback (by calling tcp_abort()).
 				   Below this line, 'pcb' may not be dereferenced! */
 			aborted:
-				tcp_input_pcb = NULL;
+                pcb->is_in_input = 0;
 				in_data.recv_data = NULL;
 
 				/* give up our reference to inseg.p */
