@@ -98,20 +98,20 @@ tcp_quickack(struct tcp_pcb *pcb, tcp_in_data* in_data)
 static inline void fill_parsed_ip_hdr(const void *payload,
                                       parsed_ip_hdr_t *iphdr)
 {
-    const u8_t *view_8byte = (const u8_t *)payload;
-    const u16_t *view_16byte = (const u16_t *)payload;
+    const u8_t *view_8bit = (const u8_t *)payload;
+    const u16_t *view_16bit = (const u16_t *)payload;
 
-    iphdr->is_ipv6 = (view_8byte[0] >> 4U) == IPV6_VERSION;
+    iphdr->is_ipv6 = (view_8bit[0] >> 4U) == IPV6_VERSION;
     if (iphdr->is_ipv6) {
-        iphdr->src = (void *)&view_8byte[8];
-        iphdr->dest = (void *)&view_8byte[24];
+        iphdr->src = (void *)&view_8bit[8];
+        iphdr->dest = (void *)&view_8bit[24];
         iphdr->header_length = 40;
-        iphdr->total_length = ntohs(view_16byte[2U]) + iphdr->header_length;
+        iphdr->total_length = ntohs(view_16bit[2U]) + iphdr->header_length;
     } else {
-        iphdr->src = (const void *)&view_8byte[12];
-        iphdr->dest = (const void *)&view_8byte[16];
-        iphdr->header_length = ((view_8byte[0] & 0x0f) * 4);
-        iphdr->total_length = ntohs(view_16byte[1U]);
+        iphdr->src = (const void *)&view_8bit[12];
+        iphdr->dest = (const void *)&view_8bit[16];
+        iphdr->header_length = ((view_8bit[0] & 0x0f) * 4);
+        iphdr->total_length = ntohs(view_16bit[1U]);
     }
 }
 
