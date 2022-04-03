@@ -55,7 +55,6 @@ extern u32_t lwip_zc_tx_size;
 struct tcp_seg;
 typedef err_t (*ip_output_fn)(struct pbuf *p, struct tcp_seg *seg, void* p_conn, u16_t flags);
 
-#if LWIP_3RD_PARTY_BUFS
 typedef struct pbuf * (*tcp_tx_pbuf_alloc_fn)(void* p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
 
 void register_tcp_tx_pbuf_alloc(tcp_tx_pbuf_alloc_fn fn);
@@ -77,7 +76,6 @@ extern tcp_tx_pbuf_alloc_fn external_tcp_tx_pbuf_alloc;
 extern tcp_tx_pbuf_free_fn external_tcp_tx_pbuf_free;
 extern tcp_seg_alloc_fn external_tcp_seg_alloc;
 extern tcp_seg_free_fn external_tcp_seg_free;
-#endif /* LWIP_3RD_PARTY_BUFS */
 
 
 struct tcp_pcb;
@@ -355,7 +353,6 @@ struct tcp_pcb {
   struct tcp_seg *seg_alloc; /* Available tcp_seg element for use */
   struct pbuf *pbuf_alloc; /* Available pbuf element for use */
 
-#if LWIP_CALLBACK_API
   /* Function to be called when more send buffer space is available. */
   tcp_sent_fn sent;
   /* Function to be called when (in-sequence) data has arrived. */
@@ -366,7 +363,6 @@ struct tcp_pcb {
   tcp_poll_fn poll;
   /* Function to be called whenever a fatal error occurs. */
   tcp_err_fn errf;
-#endif /* LWIP_CALLBACK_API */
 
   u8_t enable_ts_opt;
 #if LWIP_TCP_TIMESTAMPS
@@ -435,24 +431,6 @@ struct tcp_pcb_listen {
 };
 #endif /* VMA_NO_TCP_PCB_LISTEN_STRUCT */
 
-#if LWIP_EVENT_API
-
-enum lwip_event {
-  LWIP_EVENT_ACCEPT,
-  LWIP_EVENT_SENT,
-  LWIP_EVENT_RECV,
-  LWIP_EVENT_CONNECTED,
-  LWIP_EVENT_POLL,
-  LWIP_EVENT_ERR
-};
-
-err_t lwip_tcp_event(void *arg, struct tcp_pcb *pcb,
-         enum lwip_event,
-         struct pbuf *p,
-         u16_t size,
-         err_t err);
-
-#endif /* LWIP_EVENT_API */
 
 #if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)) || (__GNUC__ > 4))
 #pragma GCC visibility push(hidden)

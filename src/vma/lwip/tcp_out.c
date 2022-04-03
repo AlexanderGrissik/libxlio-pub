@@ -84,14 +84,12 @@ void register_sys_now(sys_now_fn fn)
 	sys_now = fn;
 }
 
-#if LWIP_3RD_PARTY_L3
 ip_route_mtu_fn external_ip_route_mtu;
 
 void register_ip_route_mtu(ip_route_mtu_fn fn)
 {
     external_ip_route_mtu = fn;
 }
-#endif
 
 /* Forward declarations.*/
 static err_t tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb);
@@ -1943,9 +1941,9 @@ tcp_rst(u32_t seqno, u32_t ackno, u16_t local_port, u16_t remote_port, struct tc
 {
   struct pbuf *p;
   struct tcp_hdr *tcphdr;
-#if LWIP_3RD_PARTY_BUFS
+
   if (!pcb) return;
-#endif
+
   p = tcp_tx_pbuf_alloc(pcb, 0, PBUF_RAM, NULL, NULL);
   if (p == NULL) {
       LWIP_DEBUGF(TCP_DEBUG, ("tcp_rst: could not allocate memory for pbuf\n"));

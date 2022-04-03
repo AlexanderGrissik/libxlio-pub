@@ -97,7 +97,6 @@ tcp_quickack(struct tcp_pcb *pcb, tcp_in_data* in_data)
 #endif
 }
 
-#if LWIP_3RD_PARTY_L3
 static inline void fill_parsed_ip_hdr(const void *payload,
                                       parsed_ip_hdr_t *iphdr)
 {
@@ -336,7 +335,7 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
         pbuf_free(p);
     }
 }
-#endif //LWIP_3RD_PARTY_L3
+
 /**
  * Called by L3_level_tcp_input() when a segment arrives for a listening
  * connection (from L3_level_tcp_input()).
@@ -393,9 +392,7 @@ tcp_listen_input(struct tcp_pcb_listen *pcb, tcp_in_data* in_data)
     npcb->ssthresh = npcb->snd_wnd;
     npcb->snd_wl1 = in_data->seqno - 1;/* initialise to seqno-1 to force window update */
     npcb->callback_arg = pcb->callback_arg;
-#if LWIP_CALLBACK_API
     npcb->accept = pcb->accept;
-#endif /* LWIP_CALLBACK_API */
     /* inherit socket options */
     npcb->so_options = pcb->so_options & SOF_INHERITED;
 
@@ -673,9 +670,7 @@ tcp_process(struct tcp_pcb *pcb, tcp_in_data* in_data)
         u32_t old_cwnd;
         set_tcp_state(pcb, ESTABLISHED);
         LWIP_DEBUGF(TCP_DEBUG, ("TCP connection established %"U16_F" -> %"U16_F".\n", in_data->inseg.tcphdr->src, in_data->inseg.tcphdr->dest));
-#if LWIP_CALLBACK_API
         LWIP_ASSERT("pcb->accept != NULL", pcb->accept != NULL);
-#endif
         /* Call the accept function. */
         TCP_EVENT_ACCEPT(pcb, ERR_OK, err);
         if (err != ERR_OK) {

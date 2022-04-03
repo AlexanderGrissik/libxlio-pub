@@ -107,9 +107,6 @@
 #define LWIP_PLATFORM_HTONS(x) bswap_16(x)
 #define LWIP_PLATFORM_HTONL(x) bswap_32(x)
 
-#define LWIP_3RD_PARTY_L3 1
-#define LWIP_3RD_PARTY_BUFS 1
-
 //enable LWIP DEBUG here
 #if 1
 //#define PBUF_DEBUG				LWIP_DBG_ON
@@ -216,21 +213,6 @@
  */
 #ifndef TCP_WND_UPDATE_THRESHOLD
 #define TCP_WND_UPDATE_THRESHOLD   (pcb->rcv_wnd_max / 4)
-#endif
-
-/**
- * LWIP_EVENT_API and LWIP_CALLBACK_API: Only one of these should be set to 1.
- *     LWIP_EVENT_API==1: The user defines lwip_tcp_event() to receive all
- *         events (accept, sent, etc) that happen in the system.
- *     LWIP_CALLBACK_API==1: The PCB callback function is called directly
- *         for the event.
- */
-#ifndef LWIP_EVENT_API
-#define LWIP_EVENT_API                  0
-#define LWIP_CALLBACK_API               1
-#else 
-#define LWIP_EVENT_API                  1
-#define LWIP_CALLBACK_API               0
 #endif
 
 

@@ -53,9 +53,8 @@ void             tcp_tmr     (struct tcp_pcb* pcb);  /* Must be called every (sl
 void             tcp_slowtmr (struct tcp_pcb* pcb);
 void             tcp_fasttmr (struct tcp_pcb* pcb);
 
-#if LWIP_3RD_PARTY_L3
 void             L3_level_tcp_input   (struct pbuf *p, struct tcp_pcb *pcb);
-#endif
+
 /* Used within the TCP code only: */
 struct tcp_pcb * tcp_alloc   (u8_t prio);
 struct pbuf *    tcp_tx_pbuf_alloc(struct tcp_pcb * pcb, u16_t length, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
@@ -178,25 +177,6 @@ PACK_STRUCT_END
 #define TF_GOT_FIN   (u8_t)0x20U   /* Connection was closed by the remote end. */
 
 
-#if LWIP_EVENT_API
-
-#define TCP_EVENT_ACCEPT(pcb,err,ret)    ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                LWIP_EVENT_ACCEPT, NULL, 0, err)
-#define TCP_EVENT_SENT(pcb,space,ret) ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                   LWIP_EVENT_SENT, NULL, space, ERR_OK)
-#define TCP_EVENT_RECV(pcb,p,err,ret) ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                LWIP_EVENT_RECV, (p), 0, (err))
-#define TCP_EVENT_CLOSED(pcb,ret) ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                LWIP_EVENT_RECV, NULL, 0, ERR_OK)
-#define TCP_EVENT_CONNECTED(pcb,err,ret) ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                LWIP_EVENT_CONNECTED, NULL, 0, (err))
-#define TCP_EVENT_POLL(pcb,ret)       ret = lwip_tcp_event((pcb)->callback_arg, (pcb),\
-                LWIP_EVENT_POLL, NULL, 0, ERR_OK)
-#define TCP_EVENT_ERR(errf,arg,err)  lwip_tcp_event((arg), NULL, \
-                LWIP_EVENT_ERR, NULL, 0, (err))
-
-#else /* LWIP_EVENT_API */
-
 #define TCP_EVENT_ACCEPT(pcb,err,ret)                            \
   do {                                                         			  \
     if((pcb)->accept != NULL)                                  			  \
@@ -269,7 +249,6 @@ PACK_STRUCT_END
       (errf)((arg),(err));                                     \
   } while (0)
 
-#endif /* LWIP_EVENT_API */
 
 /** Enabled extra-check for TCP_OVERSIZE if LWIP_DEBUG is enabled */
 #if TCP_OVERSIZE && defined(LWIP_DEBUG)
@@ -394,9 +373,7 @@ void tcp_zero_window_probe(struct tcp_pcb *pcb);
 
 u16_t tcp_send_mss(struct tcp_pcb *pcb);
 
-#if LWIP_CALLBACK_API
 err_t tcp_recv_null(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
-#endif /* LWIP_CALLBACK_API */
 
 #if TCP_DEBUG || TCP_INPUT_DEBUG || TCP_OUTPUT_DEBUG
 void tcp_debug_print(struct tcp_hdr *tcphdr);

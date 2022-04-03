@@ -51,38 +51,32 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if LWIP_3RD_PARTY_BUFS
 tcp_tx_pbuf_alloc_fn external_tcp_tx_pbuf_alloc;
+tcp_tx_pbuf_free_fn external_tcp_tx_pbuf_free;
+tcp_seg_alloc_fn external_tcp_seg_alloc;
+tcp_seg_free_fn external_tcp_seg_free;
+/* allow user to be notified upon tcp_state changes */
+tcp_state_observer_fn external_tcp_state_observer;
 
 void register_tcp_tx_pbuf_alloc(tcp_tx_pbuf_alloc_fn fn)
 {
     external_tcp_tx_pbuf_alloc = fn;
 }
 
-tcp_tx_pbuf_free_fn external_tcp_tx_pbuf_free;
-
 void register_tcp_tx_pbuf_free(tcp_tx_pbuf_free_fn fn)
 {
     external_tcp_tx_pbuf_free = fn;
 }
-
-tcp_seg_alloc_fn external_tcp_seg_alloc;
 
 void register_tcp_seg_alloc(tcp_seg_alloc_fn fn)
 {
     external_tcp_seg_alloc = fn;
 }
 
-tcp_seg_free_fn external_tcp_seg_free;
-
 void register_tcp_seg_free(tcp_seg_free_fn fn)
 {
     external_tcp_seg_free = fn;
 }
-#endif
-
-/* allow user to be notified upon tcp_state changes */
-tcp_state_observer_fn external_tcp_state_observer;
 
 void register_tcp_state_observer(tcp_state_observer_fn fn)
 {
@@ -95,7 +89,6 @@ enum cc_algo_mod lwip_cc_algo_module = CC_MOD_LWIP;
 u16_t lwip_tcp_mss = CONST_TCP_MSS;
 u32_t lwip_tcp_snd_buf = 0;
 u32_t lwip_zc_tx_size = 0;
-
 
 u8_t enable_push_flag = 1;
 u8_t enable_ts_option = 0;
@@ -338,9 +331,7 @@ tcp_abandon(struct tcp_pcb *pcb, int reset)
   } else {
     int send_rst = reset && (get_tcp_state(pcb) != CLOSED);
     void *errf_arg = pcb->my_container;
-#if LWIP_CALLBACK_API
     tcp_err_fn errf = pcb->errf;
-#endif /* LWIP_CALLBACK_API */
 
     if (send_rst) {
       LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_abandon: sending RST\n"));
@@ -399,7 +390,7 @@ tcp_bind(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port, bool is_ipv6)
 
   return ERR_OK;
 }
-#if LWIP_CALLBACK_API
+
 /**
  * Default accept callback if no accept callback is specified by the user.
  */
@@ -412,7 +403,6 @@ tcp_accept_null(void *arg, struct tcp_pcb *pcb, err_t err)
 
   return ERR_ABRT;
 }
-#endif /* LWIP_CALLBACK_API */
 
 /**
  * Set the state of the connection to be LISTEN, which means that it
@@ -427,10 +417,6 @@ tcp_accept_null(void *arg, struct tcp_pcb *pcb, err_t err)
 err_t
 tcp_listen(struct tcp_pcb_listen *listen_pcb, struct tcp_pcb *pcb)
 {
-  /*
-  * LWIP_ERROR("tcp_listen: conn_pcb already connected", get_tcp_state(pcb) == CLOSED, ERR_ISCONN);
-  */
-
   /* already listening? */
   if (!listen_pcb || (!pcb || get_tcp_state(pcb) == LISTEN)) {
     return ERR_ISCONN;
@@ -444,11 +430,9 @@ tcp_listen(struct tcp_pcb_listen *listen_pcb, struct tcp_pcb *pcb)
   listen_pcb->ttl = pcb->ttl;
   listen_pcb->tos = pcb->tos;
   ip_addr_copy(&listen_pcb->local_ip, &pcb->local_ip, pcb->is_ipv6);
-#if LWIP_CALLBACK_API
   listen_pcb->accept = tcp_accept_null;
-#endif /* LWIP_CALLBACK_API */
-  return ERR_OK;
 
+  return ERR_OK;
 }
 
 /**
@@ -944,7 +928,6 @@ tcp_seg_copy(struct tcp_pcb* pcb, struct tcp_seg *seg)
 }
 #endif /* TCP_QUEUE_OOSEQ */
 
-#if LWIP_CALLBACK_API
 /**
  * Default receive callback that is called if the user didn't register
  * a recv callback for the pcb.
@@ -961,7 +944,6 @@ tcp_recv_null(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
   }
   return ERR_OK;
 }
-#endif /* LWIP_CALLBACK_API */
 
 void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio, void *container)
 {
@@ -1017,9 +999,7 @@ void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio, void *container)
 
 	pcb->polltmr = 0;
 	pcb->tcp_timer = 0;
-#if LWIP_CALLBACK_API
 	pcb->recv = tcp_recv_null;
-#endif /* LWIP_CALLBACK_API */
 
 	/* Init KEEPALIVE timer */
 	pcb->keep_idle  = TCP_KEEPIDLE_DEFAULT;
@@ -1069,9 +1049,7 @@ void tcp_pcb_recycle(struct tcp_pcb* pcb)
 	pcb->polltmr = 0;
 	pcb->tcp_timer = 0;
 	pcb->rttest = 0;
-#if LWIP_CALLBACK_API
 	pcb->recv = tcp_recv_null;
-#endif
 	pcb->keep_cnt_sent = 0;
 	pcb->quickack = 0;
 	pcb->snd_queuelen = 0;
@@ -1161,7 +1139,6 @@ tcp_arg(struct tcp_pcb *pcb, void *arg)
 {  
   pcb->callback_arg = arg;
 }
-#if LWIP_CALLBACK_API
 
 /**
  * Used to specify the function that should be called when a TCP
@@ -1267,8 +1244,6 @@ tcp_accepted_pcb(struct tcp_pcb_listen *pcb, tcp_accepted_pcb_fn accepted_pcb)
 {
   pcb->accepted_pcb = accepted_pcb;
 }
-#endif /* LWIP_CALLBACK_API */
-
 
 /**
  * Used to specify the function that should be called periodically
@@ -1279,11 +1254,7 @@ tcp_accepted_pcb(struct tcp_pcb_listen *pcb, tcp_accepted_pcb_fn accepted_pcb)
 void
 tcp_poll(struct tcp_pcb *pcb, tcp_poll_fn poll, u8_t interval)
 {
-#if LWIP_CALLBACK_API
   pcb->poll = poll;
-#else /* LWIP_CALLBACK_API */  
-  LWIP_UNUSED_ARG(poll);
-#endif /* LWIP_CALLBACK_API */  
   pcb->pollinterval = interval;
 }
 
