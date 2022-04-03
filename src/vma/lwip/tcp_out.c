@@ -1966,8 +1966,7 @@ tcp_rst(u32_t seqno, u32_t ackno, u16_t local_port, u16_t remote_port, struct tc
   tcphdr->urgp = 0;
 
   TCP_STATS_INC(tcp.xmit);
-   /* Send output with hardcoded TTL since we have no access to the pcb */
-  if(pcb) pcb->ip_output(p, NULL, pcb, 0);
+  pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
   LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_rst: seqno %"U32_F" ackno %"U32_F".\n", seqno, ackno));
 }
