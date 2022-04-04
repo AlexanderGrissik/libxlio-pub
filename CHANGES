@@ -1,3 +1,12 @@
+Version 1.2.8-1:
+Date + Time 2022-04-04
+=============================================================
+Fixed:
+        - RM #2783472 Recreating rdma channel in case of rdma_create_id failure
+        - RM #3008661 Handling IPv4 IPv6 dual stack listen
+        - RM #3018068 Fix stats output logic
+        - RM #3019742 Fix debian/copyright file
+
 Version 1.2.7-1:
 Date + Time 2022-03-25
 =============================================================
