@@ -220,6 +220,33 @@ TEST_F(tcp_bind, ti_4)
 }
 
 /**
+ * @test tcp_bind.ti_5
+ * @brief
+ *    bind(SOCK_STREAM) bind with twice listen
+ * @details
+ */
+TEST_F(tcp_bind, ti_5)
+{
+    int fd = tcp_base::sock_create();
+    ASSERT_LE(0, fd);
+
+    sockaddr_store_t addr;
+    memcpy(&addr, &client_addr, sizeof(addr));
+    sys_set_port((struct sockaddr *)&addr, 17004);
+    int rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+    EXPECT_EQ(0, rc);
+
+    rc = listen(fd, 100);
+    EXPECT_EQ(0, rc);
+
+    rc = listen(fd, 200);
+    EXPECT_EQ(0, rc);
+
+    rc = close(fd);
+    EXPECT_EQ(0, rc);
+}
+
+/**
  * @test tcp_bind.bind_IP4_6_dual_stack_no_reuse_addr
  * @brief
  *    Bind to the same port IPv4 then IPv6-Dual-socket.
