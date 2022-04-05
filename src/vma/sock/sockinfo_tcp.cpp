@@ -2537,9 +2537,16 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
     }
 
-    if (ret < 0) {
-        unlock_tcp_con();
-        return ret;
+#if defined(DEFINED_NGINX)
+    if (g_p_fd_collection_parent_process) {
+        // For Nginx child ignore OS bind.
+    } else
+#endif // DEFINED_NGINX
+    {
+        if (ret < 0) {
+            unlock_tcp_con();
+            return ret;
+        }
     }
 
     BULLSEYE_EXCLUDE_BLOCK_START
@@ -2601,6 +2608,14 @@ int sockinfo_tcp::prepareListen()
     if (m_sock_offload == TCP_SOCK_PASSTHROUGH) {
         return 1; // passthrough
     }
+
+#if defined(DEFINED_NGINX)
+    if (safe_mce_sys().actual_nginx_workers_num > 0) {
+        if (m_sock_state == TCP_SOCK_LISTEN_READY) {
+            return 0; // prepareListen() had been called before...
+        }
+    }
+#endif // DEFINED_NGINX
 
     if (is_server()) {
         return 0; // listen had been called before...
