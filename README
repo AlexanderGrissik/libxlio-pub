@@ -97,6 +97,8 @@ Example:
  XLIO DETAILS: Tx MC Loopback                 Enabled                    [XLIO_TX_MC_LOOPBACK]
  XLIO DETAILS: Tx non-blocked eagains         Disabled                   [XLIO_TX_NONBLOCKED_EAGAINS]
  XLIO DETAILS: Tx Prefetch Bytes              256                        [XLIO_TX_PREFETCH_BYTES]
+ XLIO DETAILS: Tx Bufs Batch TCP              16                         [XLIO_TX_BUFS_BATCH_TCP]
+ XLIO DETAILS: Tx Segs Batch TCP              64                         [XLIO_TX_SEGS_BATCH_TCP]
  XLIO DETAILS: TCP Send Buffer size           1000000                    [XLIO_TCP_SEND_BUFFER_SIZE]
  XLIO DETAILS: Rx Mem Bufs                    200000                     [XLIO_RX_BUFS]
  XLIO DETAILS: Rx Mem Buf size                0                          [XLIO_RX_BUF_SIZE]
@@ -405,6 +407,11 @@ Higher number for less ring accesses to fetch buffers.
 Lower number for less memory consumption by a socket.
 Min value is 1
 Default value is 16
+
+XLIO_TX_SEGS_BATCH_TCP
+The number of TCP segments fetched from the segments pool by a socket at once.
+Min value is 1
+Default value is 64
 
 XLIO_RING_ALLOCATION_LOGIC_TX
 XLIO_RING_ALLOCATION_LOGIC_RX
