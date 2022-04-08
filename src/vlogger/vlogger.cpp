@@ -141,10 +141,12 @@ const char *get_color(vlog_levels_t level)
 }
 } // namespace log_level
 
+#ifndef HAVE_GETTID
 pid_t gettid(void)
 {
     return syscall(__NR_gettid);
 }
+#endif
 
 #if _BullseyeCoverage
 #pragma BullseyeCoverage off
