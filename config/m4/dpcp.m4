@@ -56,7 +56,7 @@ get_version_number()
 
 get_min_supported_version()
 {
-    echo 10120
+    echo 10126
 }
 
 AC_ARG_WITH([dpcp],

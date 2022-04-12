@@ -348,9 +348,11 @@ void ring_simple::create_resources()
             (dpcp::DPCP_OK == m_p_ib_ctx->get_dpcp_adapter()->get_hca_capabilities(caps))) {
             m_tls.tls_tx = caps.tls_tx;
             m_tls.tls_rx = caps.tls_rx;
+            m_tls.tls_synchronize_dek = caps.synchronize_dek;
         }
         ring_logdbg("ring attributes: m_tls:tls_tx = %d", m_tls.tls_tx);
         ring_logdbg("ring attributes: m_tls:tls_rx = %d", m_tls.tls_rx);
+        ring_logdbg("ring attributes: m_tls:tls_synchronize_dek = %d", m_tls.tls_synchronize_dek);
     }
 #endif /* DEFINED_UTLS */
 

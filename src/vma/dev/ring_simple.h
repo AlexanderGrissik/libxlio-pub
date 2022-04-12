@@ -130,6 +130,7 @@ public:
 #ifdef DEFINED_UTLS
     bool tls_tx_supported(void) { return m_tls.tls_tx; }
     bool tls_rx_supported(void) { return m_tls.tls_rx; }
+    bool tls_sync_dek_supported() { return m_tls.tls_synchronize_dek; }
     xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
     {
         auto_unlocker lock(m_lock_ring_tx);
@@ -357,6 +358,8 @@ private:
         bool tls_tx;
         /* TLS RX offload is supported */
         bool tls_rx;
+        /* TLS DEK modify Crypto-Sync is supported */
+        bool tls_synchronize_dek;
     } m_tls;
 #endif /* DEFINED_UTLS */
     struct {

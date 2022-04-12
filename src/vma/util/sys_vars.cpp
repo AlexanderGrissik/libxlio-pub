@@ -760,6 +760,8 @@ void mce_sys_var::get_env_params()
 #ifdef DEFINED_UTLS
     enable_utls_rx = MCE_DEFAULT_UTLS_RX;
     enable_utls_tx = MCE_DEFAULT_UTLS_TX;
+    utls_high_wmark_dek_cache_size = MCE_DEFAULT_UTLS_HIGH_WMARK_DEK_CACHE_SIZE;
+    utls_low_wmark_dek_cache_size = MCE_DEFAULT_UTLS_LOW_WMARK_DEK_CACHE_SIZE;
 #endif /* DEFINED_UTLS */
     enable_lro = MCE_DEFAULT_LRO;
     handle_fork = MCE_DEFAULT_FORK_SUPPORT;
@@ -1799,6 +1801,19 @@ void mce_sys_var::get_env_params()
 
     if ((env_ptr = getenv(SYS_VAR_UTLS_TX)) != NULL) {
         enable_utls_tx = atoi(env_ptr) ? true : false;
+    }
+
+    if ((env_ptr = getenv(SYS_VAR_UTLS_HIGH_WMARK_DEK_CACHE_SIZE)) != NULL) {
+        int temp = atoi(env_ptr);
+        utls_high_wmark_dek_cache_size = (temp >= 0 ? static_cast<size_t>(temp) : 0);
+    }
+
+    if ((env_ptr = getenv(SYS_VAR_UTLS_LOW_WMARK_DEK_CACHE_SIZE)) != NULL) {
+        int temp = atoi(env_ptr);
+        utls_low_wmark_dek_cache_size = (temp >= 0 ? static_cast<size_t>(temp) : 0);
+        if (utls_low_wmark_dek_cache_size >= utls_high_wmark_dek_cache_size) {
+            utls_low_wmark_dek_cache_size = utls_high_wmark_dek_cache_size / 2U;
+        }
     }
 #endif /* DEFINED_UTLS */
 

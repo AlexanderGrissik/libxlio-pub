@@ -36,7 +36,7 @@
 #include "qp_mgr.h"
 #include "vma/util/sg_array.h"
 #include "vma/dev/dm_mgr.h"
-
+#include <list>
 #include <vector>
 
 #if defined(DEFINED_DIRECT_VERBS)
@@ -134,6 +134,12 @@ public:
 #endif /* DEFINED_UTLS */
     void post_nop_fence(void);
 
+#if defined(DEFINED_UTLS)
+    std::unique_ptr<dpcp::dek> get_new_dek(const void *key, uint32_t key_size_bytes);
+    std::unique_ptr<dpcp::dek> get_dek(const void *key, uint32_t key_size_bytes);
+    void put_dek(std::unique_ptr<dpcp::dek> &&dek_obj);
+#endif
+
 protected:
     void post_recv_buffer_rq(mem_buf_desc_t *p_mem_buf_desc);
     void trigger_completion_for_all_sent_packets();
@@ -144,6 +150,7 @@ protected:
     virtual cq_mgr *init_tx_cq_mgr(void);
 
     void put_tir_in_cache(xlio_tir *tir);
+    void put_tis_in_cache(xlio_tis *tis);
     void ti_released(xlio_ti *ti);
     inline bool is_sq_wqe_prop_valid(sq_wqe_prop *p, sq_wqe_prop *prev)
     {
@@ -217,6 +224,11 @@ private:
      */
     std::vector<xlio_tis *> m_tis_cache;
     std::vector<xlio_tir *> m_tir_cache;
+
+#if defined(DEFINED_UTLS)
+    std::list<std::unique_ptr<dpcp::dek>> m_dek_get_cache;
+    std::list<std::unique_ptr<dpcp::dek>> m_dek_put_cache;
+#endif
 };
 #endif // defined(DEFINED_DIRECT_VERBS)
 #endif // QP_MGR_ETH_MLX5_H

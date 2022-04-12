@@ -1016,7 +1016,7 @@ void print_global_deltas(global_instance_block_t *p_curr_global_stats,
             break;
         }
         update_delta_global_stat(&p_curr_global_stats[i].global_stats,
-                                  &p_prev_global_stats[i].global_stats);
+                                 &p_prev_global_stats[i].global_stats);
     }
     print_global_stats(p_prev_global_stats);
 }
@@ -1458,9 +1458,9 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
                    NUM_OF_SUPPORTED_CQS * sizeof(cq_instance_block_t));
             memcpy((void *)prev_ring_blocks, (void *)curr_ring_blocks,
                    NUM_OF_SUPPORTED_RINGS * sizeof(ring_instance_block_t));
-             memcpy((void *)prev_bpool_blocks, (void *)curr_bpool_blocks,
+            memcpy((void *)prev_bpool_blocks, (void *)curr_bpool_blocks,
                    NUM_OF_SUPPORTED_BPOOLS * sizeof(bpool_instance_block_t));
-             memcpy((void *)prev_global_blocks, (void *)curr_global_blocks,
+            memcpy((void *)prev_global_blocks, (void *)curr_global_blocks,
                    NUM_OF_SUPPORTED_GLOBALS * sizeof(global_instance_block_t));
             prev_iomux_blocks = curr_iomux_blocks;
             break;
