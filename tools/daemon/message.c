@@ -426,8 +426,15 @@ static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_u
     value->type = data->type;
     value->if_id = data->if_id;
     value->tap_id = data->tap_id;
-    value->flow.dst_ip = data->flow.dst_ip;
-    value->flow.dst_port = data->flow.dst_port;
+    value->flow.dst.family = data->flow.dst.family;
+    if (value->flow.dst.family == AF_INET) {
+        value->flow.dst.addr4.sin_port = data->flow.dst.port;
+        value->flow.dst.addr4.sin_addr.s_addr = data->flow.dst.addr.ipv4;
+    } else {
+        value->flow.dst.addr6.sin6_port = data->flow.dst.port;
+        memcpy(&value->flow.dst.addr6.sin6_addr.s6_addr[0], &data->flow.dst.addr.ipv6[0],
+               sizeof(value->flow.dst.addr6.sin6_addr.s6_addr));
+    }
 
     switch (data->type) {
     case VMA_MSG_FLOW_EGRESS:
@@ -436,8 +443,15 @@ static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_u
         break;
     case VMA_MSG_FLOW_TCP_5T:
     case VMA_MSG_FLOW_UDP_5T:
-        value->flow.t5.src_ip = data->flow.t5.src_ip;
-        value->flow.t5.src_port = data->flow.t5.src_port;
+        value->flow.src.family = data->flow.src.family;
+        if (value->flow.src.family == AF_INET) {
+            value->flow.src.addr4.sin_port = data->flow.src.port;
+            value->flow.src.addr4.sin_addr.s_addr = data->flow.src.addr.ipv4;
+        } else {
+            value->flow.src.addr6.sin6_port = data->flow.src.port;
+            memcpy(&value->flow.src.addr6.sin6_addr.s6_addr[0], &data->flow.src.addr.ipv6[0],
+                   sizeof(value->flow.src.addr6.sin6_addr.s6_addr));
+        }
         break;
     default:
         log_error("Received unknown message errno %d (%s)\n", errno, strerror(errno));
@@ -457,7 +471,7 @@ static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_u
             goto err;
         }
     } else if ((VMA_MSG_FLOW_TCP_5T == data->type || VMA_MSG_FLOW_UDP_5T == data->type) &&
-               sys_iplocal(value->flow.t5.src_ip)) {
+               sys_iplocal(value->flow.src.addr4.sin_addr.s_addr)) {
         rc = 0;
         goto err;
     }

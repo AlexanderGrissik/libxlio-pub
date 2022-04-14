@@ -212,12 +212,8 @@ struct store_flow {
     uint32_t if_id; /**< Interface index */
     uint32_t tap_id; /**< Tap device index */
     struct {
-        uint32_t dst_ip;
-        uint16_t dst_port;
-        struct {
-            uint32_t src_ip;
-            uint16_t src_port;
-        } t5;
+        struct sockaddr_store src; /**< Source address */
+        struct sockaddr_store dst; /**< Destination address */
     } flow;
 };
 
@@ -243,12 +239,14 @@ static inline char *sys_addr2str(struct sockaddr_store *addr)
     return addrbuf;
 }
 
-static inline char *sys_ip2str(uint32_t ip)
+static inline char *sys_ip2str(struct sockaddr_store *addr)
 {
     static __thread char ipbuf[100];
-    struct in_addr value = {0};
-    value.s_addr = ip;
-    inet_ntop(AF_INET, &value, ipbuf, sizeof(ipbuf) - 1);
+    if (addr->family == AF_INET) {
+        inet_ntop(addr->family, &addr->addr4.sin_addr, ipbuf, sizeof(ipbuf) - 1);
+    } else {
+        inet_ntop(addr->family, &addr->addr6.sin6_addr, ipbuf, sizeof(ipbuf) - 1);
+    }
 
     return ipbuf;
 }
@@ -344,7 +342,7 @@ static inline void sys_hexdump(void *ptr, int buflen)
             return;
         }
         out_pos += ret;
-        for (j = 0; j < 16; j++)
+        for (j = 0; j < 16; j++) {
             if (i + j < buflen) {
                 ret = sprintf(out_buf + out_pos, "%c", isprint(buf[i + j]) ? buf[i + j] : '.');
                 if (ret < 0) {
@@ -352,6 +350,7 @@ static inline void sys_hexdump(void *ptr, int buflen)
                 }
                 out_pos += ret;
             }
+        }
         ret = sprintf(out_buf + out_pos, "\n");
         if (ret < 0) {
             return;

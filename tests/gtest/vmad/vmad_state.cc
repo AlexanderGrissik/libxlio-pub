@@ -85,6 +85,7 @@ TEST_F(vmad_state, ti_1)
                sizeof(m_data.src.addr.ipv6));
     }
     m_data.src.port = htons(sys_get_port((struct sockaddr *)&client_addr));
+    m_data.dst.family = m_family;
     if (m_family == PF_INET) {
         m_data.dst.addr.ipv4 = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
     } else {

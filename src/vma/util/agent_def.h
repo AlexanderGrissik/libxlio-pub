@@ -125,12 +125,22 @@ struct vma_msg_flow {
     uint32_t if_id; /* interface index */
     uint32_t tap_id; /* tap device index */
     struct {
-        uint32_t dst_ip;
-        uint16_t dst_port;
         struct {
-            uint32_t src_ip;
-            uint16_t src_port;
-        } t5;
+            uint16_t family;
+            uint16_t port;
+            union {
+                uint32_t ipv4;
+                uint8_t ipv6[16];
+            } addr;
+        } src;
+        struct {
+            uint16_t family;
+            uint16_t port;
+            union {
+                uint32_t ipv4;
+                uint8_t ipv6[16];
+            } addr;
+        } dst;
     } flow;
 };
 
