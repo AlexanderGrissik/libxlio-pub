@@ -688,8 +688,11 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 goto done;
             }
             ++m_next_recno_tx;
-            /* Prepare unique explicit_nonce for the next TLS1.2 record. */
-            ++m_tls_info_tx.iv64;
+            /* Prepare unique explicit_nonce for the next TLS1.2 record.
+               TLS1.3 always uses the initial IV.*/
+            if (!is_tx_tls13()) {
+                ++m_tls_info_tx.iv64;
+            }
 
             /* Control sendmsg() support */
             if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr != NULL) {
@@ -785,7 +788,6 @@ done:
 
 int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr)
 {
-    NOT_IN_USE(p);
     if (m_is_tls_tx && seg != NULL && p->type != PBUF_RAM) {
         if (seg->len != 0) {
             if (unlikely(seg->seqno != m_expected_seqno)) {
