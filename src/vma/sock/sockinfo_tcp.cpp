@@ -585,6 +585,8 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
     if (state) {
         m_state = SOCKINFO_CLOSED;
         reset_ops();
+    } else if (!is_listen_socket) {
+        m_pcb.syn_tw_handled_cb = &sockinfo_tcp::syn_received_timewait_cb;
     }
 
     unlock_tcp_con();
@@ -3245,8 +3247,6 @@ err_t sockinfo_tcp::clone_conn_cb(void *arg, struct tcp_pcb **newpcb)
         /* XXX We have to search for correct listen socket every time,
          * because the listen socket may be closed and reopened. */
         new_sock->m_pcb.listen_sock = (void *)conn;
-        /* XXX Do similar as for other callbacks. */
-        new_sock->m_pcb.syn_tw_handled_cb = &sockinfo_tcp::syn_received_timewait_cb;
     } else {
         ret_val = ERR_MEM;
     }
@@ -3302,6 +3302,7 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb)
     tcp_recv(&new_sock->m_pcb, sockinfo_tcp::rx_lwip_cb);
     tcp_err(&new_sock->m_pcb, sockinfo_tcp::err_lwip_cb);
     tcp_sent(&new_sock->m_pcb, sockinfo_tcp::ack_recvd_lwip_cb);
+    new_sock->m_pcb.syn_tw_handled_cb = nullptr;
     new_sock->wakeup_clear();
     if (new_sock->m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE) {
         tcp_ip_output(&new_sock->m_pcb, sockinfo_tcp::ip_output_syn_ack);

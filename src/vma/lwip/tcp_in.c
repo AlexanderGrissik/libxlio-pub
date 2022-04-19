@@ -521,7 +521,7 @@ tcp_timewait_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
 #else
     reusable = TCP_SEQ_GEQ(in_data->seqno, pcb->rcv_nxt);
 #endif
-
+    reusable &= (pcb->syn_tw_handled_cb != NULL);
     if (reusable) {
       return tcp_pcb_reuse(pcb, in_data);
     } else {
