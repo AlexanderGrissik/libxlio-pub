@@ -560,6 +560,8 @@ public:
 private:
     tcp_seg *m_tcp_segs_array;
     tcp_seg *m_p_head;
+    tcp_seg_stats_t *m_p_tcp_seg_stat;
+    tcp_seg_stats_t m_tcp_seg_stat_static;
     void free_tsp_resources(void);
 };
 

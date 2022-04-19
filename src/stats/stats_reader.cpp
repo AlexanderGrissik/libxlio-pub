@@ -420,6 +420,19 @@ void update_delta_bpool_stat(bpool_stats_t *p_curr_bpool_stats, bpool_stats_t *p
     }
 }
 
+void update_delta_tcp_seg_stat(tcp_seg_stats_t *p_curr_tcp_seg_stats,
+                               tcp_seg_stats_t *p_prev_tcp_seg_stats)
+{
+    int delay = INTERVAL;
+    if (p_curr_tcp_seg_stats && p_prev_tcp_seg_stats) {
+        p_prev_tcp_seg_stats->n_tcp_seg_pool_size = p_curr_tcp_seg_stats->n_tcp_seg_pool_size;
+        p_prev_tcp_seg_stats->n_tcp_seg_pool_no_segs =
+            (p_curr_tcp_seg_stats->n_tcp_seg_pool_no_segs -
+             p_prev_tcp_seg_stats->n_tcp_seg_pool_no_segs) /
+            delay;
+    }
+}
+
 void print_ring_stats(ring_instance_block_t *p_ring_inst_arr)
 {
     ring_stats_t *p_ring_stats = NULL;
@@ -571,6 +584,28 @@ void print_bpool_stats(bpool_instance_block_t *p_bpool_inst_arr)
             if (p_bpool_stats->n_buffer_pool_expands) {
                 printf(FORMAT_STATS_32bit, "Expands:", p_bpool_stats->n_buffer_pool_expands);
             }
+        }
+    }
+    printf("======================================================\n");
+}
+
+void print_tcp_seg_stats(tcp_seg_instance_block_t *p_tcp_seg_inst_arr)
+{
+    tcp_seg_stats_t *p_tcp_seg_stats = NULL;
+    char post_fix[3] = "";
+
+    if (user_params.print_details_mode == e_deltas) {
+        strcpy(post_fix, "/s");
+    }
+
+    for (int i = 0; i < NUM_OF_SUPPORTED_SEG_POOLS; i++) {
+        if (p_tcp_seg_inst_arr && p_tcp_seg_inst_arr[i].b_enabled) {
+            p_tcp_seg_stats = &p_tcp_seg_inst_arr[i].tcp_seg_stats;
+            printf("======================================================\n");
+            printf("\tTCP_SEG_POOL\n");
+            printf(FORMAT_STATS_32bit, "Size:", p_tcp_seg_stats->n_tcp_seg_pool_size);
+            printf(FORMAT_STATS_32bit,
+                   "No segments error:", p_tcp_seg_stats->n_tcp_seg_pool_no_segs);
         }
     }
     printf("======================================================\n");
@@ -966,6 +1001,19 @@ void print_bpool_deltas(bpool_instance_block_t *p_curr_bpool_stats,
     print_bpool_stats(p_prev_bpool_stats);
 }
 
+void print_tcp_seg_deltas(tcp_seg_instance_block_t *p_curr_tcp_seg_stats,
+                          tcp_seg_instance_block_t *p_prev_tcp_seg_stats)
+{
+    for (int i = 0; i < NUM_OF_SUPPORTED_SEG_POOLS; i++) {
+        if (!p_curr_tcp_seg_stats || !p_prev_tcp_seg_stats) {
+            break;
+        }
+        update_delta_tcp_seg_stat(&p_curr_tcp_seg_stats[i].tcp_seg_stats,
+                                  &p_prev_tcp_seg_stats[i].tcp_seg_stats);
+    }
+    print_tcp_seg_stats(p_prev_tcp_seg_stats);
+}
+
 void show_ring_stats(ring_instance_block_t *p_curr_ring_blocks,
                      ring_instance_block_t *p_prev_ring_blocks)
 {
@@ -1000,6 +1048,19 @@ void show_bpool_stats(bpool_instance_block_t *p_curr_bpool_blocks,
         break;
     default:
         print_bpool_deltas(p_curr_bpool_blocks, p_prev_bpool_blocks);
+        break;
+    }
+}
+
+void show_tcp_seg_stats(tcp_seg_instance_block_t *p_curr_tcp_seg_blocks,
+                        tcp_seg_instance_block_t *p_prev_tcp_seg_blocks)
+{
+    switch (user_params.print_details_mode) {
+    case e_totals:
+        print_tcp_seg_stats(p_curr_tcp_seg_blocks);
+        break;
+    default:
+        print_tcp_seg_deltas(p_curr_tcp_seg_blocks, p_prev_tcp_seg_blocks);
         break;
     }
 }
@@ -1262,6 +1323,8 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
     ring_instance_block_t curr_ring_blocks[NUM_OF_SUPPORTED_RINGS];
     bpool_instance_block_t prev_bpool_blocks[NUM_OF_SUPPORTED_BPOOLS];
     bpool_instance_block_t curr_bpool_blocks[NUM_OF_SUPPORTED_BPOOLS];
+    tcp_seg_instance_block_t prev_tcp_seg_blocks[NUM_OF_SUPPORTED_SEG_POOLS];
+    tcp_seg_instance_block_t curr_tcp_seg_blocks[NUM_OF_SUPPORTED_SEG_POOLS];
     iomux_stats_t prev_iomux_blocks;
     iomux_stats_t curr_iomux_blocks;
 
@@ -1298,6 +1361,10 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
     memset((void *)curr_ring_blocks, 0, sizeof(ring_instance_block_t) * NUM_OF_SUPPORTED_RINGS);
     memset((void *)prev_bpool_blocks, 0, sizeof(bpool_instance_block_t) * NUM_OF_SUPPORTED_BPOOLS);
     memset((void *)curr_bpool_blocks, 0, sizeof(bpool_instance_block_t) * NUM_OF_SUPPORTED_BPOOLS);
+    memset((void *)prev_tcp_seg_blocks, 0,
+           sizeof(tcp_seg_instance_block_t) * NUM_OF_SUPPORTED_SEG_POOLS);
+    memset((void *)curr_tcp_seg_blocks, 0,
+           sizeof(tcp_seg_instance_block_t) * NUM_OF_SUPPORTED_SEG_POOLS);
     memset(&prev_iomux_blocks, 0, sizeof(prev_iomux_blocks));
     memset(&curr_iomux_blocks, 0, sizeof(curr_iomux_blocks));
 
@@ -1336,6 +1403,8 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
                    NUM_OF_SUPPORTED_RINGS * sizeof(ring_instance_block_t));
             memcpy((void *)curr_bpool_blocks, (void *)p_sh_mem->bpool_inst_arr,
                    NUM_OF_SUPPORTED_BPOOLS * sizeof(bpool_instance_block_t));
+            memcpy((void *)curr_tcp_seg_blocks, (void *)p_sh_mem->tcp_seg_inst_arr,
+                   NUM_OF_SUPPORTED_SEG_POOLS * sizeof(tcp_seg_instance_block_t));
             curr_iomux_blocks = p_sh_mem->iomux;
         }
         switch (user_params.view_mode) {
@@ -1361,6 +1430,7 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
                 show_cq_stats(p_sh_mem->cq_inst_arr, NULL);
                 show_ring_stats(p_sh_mem->ring_inst_arr, NULL);
                 show_bpool_stats(p_sh_mem->bpool_inst_arr, NULL);
+                show_tcp_seg_stats(p_sh_mem->tcp_seg_inst_arr, NULL);
             }
             break;
         case e_deltas:
@@ -1372,6 +1442,7 @@ void stats_reader_handler(sh_mem_t *p_sh_mem, int pid)
                 show_cq_stats(curr_cq_blocks, prev_cq_blocks);
                 show_ring_stats(curr_ring_blocks, prev_ring_blocks);
                 show_bpool_stats(curr_bpool_blocks, prev_bpool_blocks);
+                show_tcp_seg_stats(curr_tcp_seg_blocks, prev_tcp_seg_blocks);
             }
             memcpy((void *)prev_instance_blocks, (void *)curr_instance_blocks,
                    p_sh_mem->max_skt_inst_num * sizeof(socket_instance_block_t));
