@@ -590,6 +590,12 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
         m_state = SOCKINFO_CLOSED;
         reset_ops();
     } else if (!is_listen_socket) {
+        // This solution is good for current Nginx case however,
+        // There is still possibility of race in case of multithreded polling.
+        // Once we unlock this connection there are still two operations that are racebale:
+        // 1. In fd_collection::del_sockfd after this method is done.
+        // 2. In handle_close when fd_collection::del_sockfd is finished and we remove the
+        //    socket from epfds.
         m_pcb.syn_tw_handled_cb = &sockinfo_tcp::syn_received_timewait_cb;
     }
 
