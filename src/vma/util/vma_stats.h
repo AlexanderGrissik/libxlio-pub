@@ -289,6 +289,7 @@ typedef struct {
     uint32_t n_rx_sw_queue_len;
     uint32_t n_rx_drained_at_once_max;
     uint32_t n_buffer_pool_len;
+    uint32_t n_rx_cqe_error;
     uint16_t n_rx_max_stirde_per_packet;
 } cq_stats_t;
 

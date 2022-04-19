@@ -252,6 +252,16 @@ void cq_mgr_mlx5::cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t 
         break;
     }
     }
+
+    // increase cqe error counter should be done once, here (regular flow) OR in
+    // cqe_to_vma_wc function (socketxtreme)
+    switch (MLX5_CQE_OPCODE(cqe->op_own)) {
+    case MLX5_CQE_INVALID:
+    case MLX5_CQE_REQ_ERR:
+    case MLX5_CQE_RESP_ERR:
+        m_p_cq_stat->n_rx_cqe_error++;
+        break;
+    }
 }
 
 int cq_mgr_mlx5::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/)
@@ -631,6 +641,7 @@ inline void cq_mgr_mlx5::cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc)
         wc->status = IBV_WC_SUCCESS;
         return;
     default:
+        m_p_cq_stat->n_rx_cqe_error++;
         break;
     }
 

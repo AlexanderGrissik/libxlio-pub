@@ -407,6 +407,7 @@ void update_delta_cq_stat(cq_stats_t *p_curr_cq_stats, cq_stats_t *p_prev_cq_sta
         p_prev_cq_stats->n_rx_packet_count =
             (p_curr_cq_stats->n_rx_packet_count - p_prev_cq_stats->n_rx_packet_count) / delay;
         p_prev_cq_stats->n_rx_max_stirde_per_packet = p_curr_cq_stats->n_rx_max_stirde_per_packet;
+        p_prev_cq_stats->n_rx_cqe_error = p_curr_cq_stats->n_rx_cqe_error;
     }
 }
 
@@ -543,6 +544,7 @@ void print_cq_stats(cq_instance_block_t *p_cq_inst_arr)
                    post_fix);
             printf(FORMAT_STATS_64bit, "Strides received:", p_cq_stats->n_rx_stride_count,
                    post_fix);
+            printf(FORMAT_STATS_32bit, "CQE errors:", p_cq_stats->n_rx_cqe_error);
             printf(FORMAT_STATS_64bit, "Consumed rwqes:", p_cq_stats->n_rx_consumed_rwqe_count,
                    post_fix);
             printf(FORMAT_STATS_32bit, "Max strides/packet:",
