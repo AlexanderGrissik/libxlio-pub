@@ -165,6 +165,7 @@ public:
 
 #ifdef DEFINED_NGINX
     virtual void copy_sockopt_fork(const socket_fd_api *copy_from);
+    void set_m_n_sysvar_rx_num_buffs_reuse(int val) { m_n_sysvar_rx_num_buffs_reuse = val; }
 #endif
 
     virtual void consider_rings_migration();
@@ -272,7 +273,7 @@ protected:
     size_t m_rx_pkt_ready_offset;
     size_t m_rx_ready_byte_count;
 
-    const int m_n_sysvar_rx_num_buffs_reuse;
+    int m_n_sysvar_rx_num_buffs_reuse;
     const int32_t m_n_sysvar_rx_poll_num;
     ring_alloc_logic_attr m_ring_alloc_log_rx;
     ring_alloc_logic_attr m_ring_alloc_log_tx;

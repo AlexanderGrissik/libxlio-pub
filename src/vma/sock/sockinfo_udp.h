@@ -157,6 +157,11 @@ public:
 
 #if defined(DEFINED_NGINX)
     virtual void prepare_to_close_socket_pool(bool _push_pop);
+    virtual void set_params_for_socket_pool()
+    {
+        m_is_for_socket_pool = true;
+        set_m_n_sysvar_rx_num_buffs_reuse(safe_mce_sys().nginx_udp_socket_pool_rx_num_buffs_reuse);
+    }
     bool is_closable() { return !m_is_for_socket_pool; }
 #endif
 

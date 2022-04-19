@@ -690,6 +690,6 @@ void fd_collection::handle_socket_pool(int fd)
         m_use_socket_pool = false;
         return;
     }
-    sockfd->m_is_for_socket_pool = true;
+    sockfd->set_params_for_socket_pool();
 }
 #endif

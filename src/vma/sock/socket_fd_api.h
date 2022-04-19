@@ -196,6 +196,7 @@ public:
 
 #if defined(DEFINED_NGINX)
     virtual void prepare_to_close_socket_pool(bool _push_pop) { NOT_IN_USE(_push_pop); }
+    virtual void set_params_for_socket_pool() {}
 #endif
 
     // In some cases we need the socket can't be deleted immidiatly

@@ -770,6 +770,7 @@ void mce_sys_var::get_env_params()
     power_2_nginx_workers_num = MCE_DEFAULT_NGINX_WORKERS_NUM;
     src_port_stride = MCE_DEFAULT_SRC_PORT_STRIDE;
     nginx_udp_socket_pool_size = MCE_DEFAULT_NGINX_UDP_POOL_SIZE;
+    nginx_udp_socket_pool_rx_num_buffs_reuse = MCE_DEFAULT_NGINX_UDP_POOL_RX_NUM_BUFFS_REUSE;
 #endif
     lwip_mss = MCE_DEFAULT_MSS;
     lwip_cc_algo_mod = MCE_DEFAULT_LWIP_CC_ALGO_MOD;
@@ -1818,6 +1819,9 @@ void mce_sys_var::get_env_params()
     }
     if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_SIZE)) != NULL) {
         nginx_udp_socket_pool_size = (uint32_t)atoi(env_ptr);
+    }
+    if ((env_ptr = getenv(SYS_VAR_NGINX_UDP_POOL_RX_NUM_BUFFS_REUSE)) != NULL) {
+        nginx_udp_socket_pool_rx_num_buffs_reuse = (uint32_t)atoi(env_ptr);
     }
 #endif // DEFINED_NGINX
     if ((env_ptr = getenv(SYS_VAR_MSS)) != NULL) {
