@@ -522,6 +522,11 @@ int cq_mgr_mlx5::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *pv_fd
                         !compensate_qp_poll_success(buff)) {
                         process_recv_buffer(buff, pv_fd_ready_array);
                     }
+                } else {
+                    m_p_cq_stat->n_rx_pkt_drop++;
+                    if (++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv) {
+                        compensate_qp_poll_failed();
+                    }
                 }
             } else {
                 m_b_was_drained = true;
@@ -806,12 +811,15 @@ int cq_mgr_mlx5::poll_and_process_error_element_rx(struct vma_mlx5_cqe *cqe,
     ++m_qp->m_mlx5_qp.rq.tail;
 
     m_rx_hot_buffer = cq_mgr::process_cq_element_rx(&wce);
-    if (m_rx_hot_buffer) {
-        if (vma_wc_opcode(wce) & VMA_IBV_WC_RECV) {
-            if ((++m_qp_rec.debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
-                !compensate_qp_poll_success(m_rx_hot_buffer)) {
-                process_recv_buffer(m_rx_hot_buffer, pv_fd_ready_array);
-            }
+    if (m_rx_hot_buffer && (vma_wc_opcode(wce) & VMA_IBV_WC_RECV)) {
+        if ((++m_qp_rec.debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
+            !compensate_qp_poll_success(m_rx_hot_buffer)) {
+            process_recv_buffer(m_rx_hot_buffer, pv_fd_ready_array);
+        }
+    } else {
+        m_p_cq_stat->n_rx_pkt_drop++;
+        if ((++m_qp_rec.debt >= (int)m_n_sysvar_rx_num_wr_to_post_recv)) {
+            compensate_qp_poll_failed();
         }
     }
     m_rx_hot_buffer = NULL;
