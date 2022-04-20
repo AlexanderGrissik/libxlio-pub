@@ -187,6 +187,7 @@ struct os_api {
     sighandler_t (*signal)(int signum, sighandler_t handler);
 #if defined(DEFINED_NGINX)
     int (*setuid)(uid_t uid);
+    pid_t (*waitpid)(pid_t pid, int *wstatus, int options);
 #endif // DEFINED_NGINX
 };
 

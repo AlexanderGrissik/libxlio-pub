@@ -35,6 +35,11 @@
 #include <sys/time.h>
 #include <dlfcn.h>
 #include <iostream>
+#if defined(DEFINED_NGINX)
+#include <algorithm>
+#include <iterator>
+#include <vector>
+#endif // DEFINED_NGINX
 #include <fcntl.h>
 
 #include "utils/compiler.h"
@@ -81,6 +86,7 @@ using namespace std;
 #define EP_MAX_EVENTS (int)((INT_MAX / sizeof(struct epoll_event)))
 
 #if defined(DEFINED_NGINX)
+static std::vector<pid_t> g_nginx_worker_pids = {};
 int g_worker_index = 0;
 bool g_b_add_second_4t_rule = false;
 map_udp_bounded_port_t g_map_udp_bounded_port;
@@ -207,6 +213,7 @@ void get_orig_funcs()
     GET_ORIG_FUNC(signal);
 #if defined(DEFINED_NGINX)
     GET_ORIG_FUNC(setuid);
+    GET_ORIG_FUNC(waitpid);
 #endif // DEFINED_NGINX
 }
 
@@ -2755,12 +2762,24 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
     BULLSEYE_EXCLUDE_BLOCK_END
 
 #if defined(DEFINED_NGINX)
-    if ((safe_mce_sys().actual_nginx_workers_num > 0) &&
-        (g_worker_index >= safe_mce_sys().actual_nginx_workers_num)) {
-        srdr_logerr("g_worker_index: %d exceeds: %d", g_worker_index,
-                    safe_mce_sys().actual_nginx_workers_num);
-        errno = ENOMEM;
-        return -1;
+    int worker_index = 0;
+    if (safe_mce_sys().actual_nginx_workers_num > 0) {
+        if (g_nginx_worker_pids.size() <
+            static_cast<std::size_t>(safe_mce_sys().actual_nginx_workers_num)) {
+            g_nginx_worker_pids.resize(safe_mce_sys().actual_nginx_workers_num, -1);
+            g_worker_index = -1;
+        }
+
+        auto nginx_pid_slot_iter =
+            std::find(g_nginx_worker_pids.begin(), g_nginx_worker_pids.end(), -1);
+        if (nginx_pid_slot_iter == g_nginx_worker_pids.end()) {
+            srdr_logerr(
+                "Cannot fork: number of running worker processes are at configured maximum (%d)",
+                safe_mce_sys().actual_nginx_workers_num);
+            errno = ENOMEM;
+            return -1;
+        }
+        worker_index = std::distance(g_nginx_worker_pids.begin(), nginx_pid_slot_iter);
     }
 #endif
 
@@ -2769,6 +2788,7 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
         g_is_forked_child = true;
         srdr_logdbg_exit("Child Process: returned with %d", pid);
 #if defined(DEFINED_NGINX)
+        g_worker_index = worker_index;
         /* Library is fully initialized in case application
          * calls socket(), getsockopt(), epoll_create(), epoll_create1(), pipe()
          * In other cases global objects can be invalid.
@@ -2815,7 +2835,7 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
         srdr_logdbg_exit("Parent Process: returned with %d", pid);
 #if defined(DEFINED_NGINX)
         if (safe_mce_sys().actual_nginx_workers_num > 0) {
-            g_worker_index++;
+            g_nginx_worker_pids.at(worker_index) = pid;
         }
 #endif
     } else {
@@ -3013,6 +3033,27 @@ extern "C" EXPORT_SYMBOL int setuid(uid_t uid)
     }
 
     return orig_rc;
+}
+
+extern "C" EXPORT_SYMBOL pid_t waitpid(pid_t pid, int *wstatus, int options)
+{
+    pid_t child_pid = orig_os_api.waitpid(pid, wstatus, options);
+    /* This segment is used as part of NGINX worker termination recovery mechanism. The mechanism
+     * marks the worker PID slot as vacant with -1 later to reuse it in the fork system call.The
+     * implicit assumptions here are that:
+     *     * NGINX monitors the worker process termination with waitpid system call.
+     *     * NGINX internally updates that it currently has less than the worker number it needs.
+     *     * NGINX at some future point forks a new worker process(es) to replenish the worker
+     * process tally.
+     */
+    if (safe_mce_sys().actual_nginx_workers_num > 0 && child_pid > 0 && !WIFCONTINUED(*wstatus)) {
+        auto worker_pid =
+            std::find(g_nginx_worker_pids.begin(), g_nginx_worker_pids.end(), child_pid);
+        if (worker_pid != g_nginx_worker_pids.end()) {
+            *worker_pid = -1;
+        }
+    }
+    return child_pid;
 }
 
 #endif // DEFINED_NGINX
