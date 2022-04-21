@@ -259,7 +259,13 @@ void qp_mgr_eth_mlx5_dpcp::modify_qp_to_error_state()
     qp_mgr_eth_mlx5::modify_qp_to_error_state();
 
     dpcp::status rc = _rq->modify_state(dpcp::RQ_ERR);
-    if (dpcp::DPCP_OK != rc) {
+
+    /* During plugout theres is possibility that kernel
+     * remove device resources before working process complete
+     * removing process. As a result ibv api function can
+     * return EIO=5 errno code.
+     */
+    if (dpcp::DPCP_OK != rc && errno != EIO) {
         qp_logerr("Failed to modify rq state to ERR, rc: %d, rqn: %" PRIu32, static_cast<int>(rc),
                   m_mlx5_qp.rqn);
     }
