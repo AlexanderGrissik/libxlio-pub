@@ -168,6 +168,7 @@ void vma_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_l
     int ret;
     size_t shmem_size = 0;
     mode_t saved_mode;
+    const char *dir_path = safe_mce_sys().stats_shmem_dirname;
 
     g_p_stats_data_reader = new stats_data_reader();
 
@@ -188,17 +189,22 @@ void vma_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_l
 
     p_shmem = buf;
 
-    if (strlen(safe_mce_sys().stats_shmem_dirname) <= 0) {
+    if (strlen(dir_path) == 0) {
+        goto no_shmem;
+    }
+
+    if ((mkdir(dir_path, 0777) != 0) && (errno != EEXIST)) {
+        vlog_printf(VLOG_DEBUG, "Failed to create folder %s (errno = %d)\n", dir_path, errno);
         goto no_shmem;
     }
 
     g_sh_mem_info.filename_sh_stats[0] = '\0';
     g_sh_mem_info.p_sh_stats = MAP_FAILED;
     ret = snprintf(g_sh_mem_info.filename_sh_stats, sizeof(g_sh_mem_info.filename_sh_stats),
-                   "%s/xliostat.%d", safe_mce_sys().stats_shmem_dirname, getpid());
+                   "%s/xliostat.%d", dir_path, getpid());
     if (!((0 < ret) && (ret < (int)sizeof(g_sh_mem_info.filename_sh_stats)))) {
-        vlog_printf(VLOG_ERROR, "%s: Could not create file under %s %s\n", __func__,
-                    safe_mce_sys().stats_shmem_dirname, strerror(errno));
+        vlog_printf(VLOG_ERROR, "%s: Could not create file under %s %s\n", __func__, dir_path,
+                    strerror(errno));
         goto no_shmem;
     }
     saved_mode = umask(0);

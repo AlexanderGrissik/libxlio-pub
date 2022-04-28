@@ -350,6 +350,7 @@ public:
     char stats_shmem_dirname[PATH_MAX];
     char conf_filename[PATH_MAX];
     char service_notify_dir[PATH_MAX];
+    bool service_enable;
     bool log_colors;
     bool handle_sigintr;
     bool handle_segfault;
@@ -535,8 +536,9 @@ extern mce_sys_var &safe_mce_sys();
 #define SYS_VAR_LOG_DETAILS         "XLIO_LOG_DETAILS"
 #define SYS_VAR_LOG_FILENAME        "XLIO_LOG_FILE"
 #define SYS_VAR_STATS_FILENAME      "XLIO_STATS_FILE"
-#define SYS_VAR_SERVICE_DIR         "XLIO_SERVICE_NOTIFY_DIR"
 #define SYS_VAR_STATS_SHMEM_DIRNAME "XLIO_STATS_SHMEM_DIR"
+#define SYS_VAR_SERVICE_DIR         "XLIO_SERVICE_NOTIFY_DIR"
+#define SYS_VAR_SERVICE_ENABLE      "XLIO_SERVICE_ENABLE"
 #define SYS_VAR_CONF_FILENAME       "XLIO_CONFIG_FILE"
 #define SYS_VAR_LOG_COLORS          "XLIO_LOG_COLORS"
 #define SYS_VAR_APPLICATION_ID      "XLIO_APPLICATION_ID"
@@ -683,8 +685,9 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_LOG_FILE                 ("")
 #define MCE_DEFAULT_CONF_FILE                ("/etc/libxlio.conf")
 #define MCE_DEFAULT_STATS_FILE               ("")
-#define MCE_DEFAULT_SERVICE_FOLDER           (VMA_AGENT_PATH)
 #define MCE_DEFAULT_STATS_SHMEM_DIR          (VMA_AGENT_PATH)
+#define MCE_DEFAULT_SERVICE_FOLDER           (VMA_AGENT_PATH)
+#define MCE_DEFAULT_SERVICE_ENABLE           (false)
 #define MCE_DEFAULT_LOG_DETAILS              (0)
 #define MCE_DEFAULT_LOG_COLORS               (true)
 #define MCE_DEFAULT_APP_ID                   ("XLIO_DEFAULT_APPLICATION_ID")

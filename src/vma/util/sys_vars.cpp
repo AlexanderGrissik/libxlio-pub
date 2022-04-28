@@ -654,6 +654,8 @@ void mce_sys_var::get_env_params()
     strcpy(internal_thread_cpuset, MCE_DEFAULT_INTERNAL_THREAD_CPUSET);
     strcpy(internal_thread_affinity_str, MCE_DEFAULT_INTERNAL_THREAD_AFFINITY_STR);
 
+    service_enable = MCE_DEFAULT_SERVICE_ENABLE;
+
     log_level = VLOG_DEFAULT;
     log_details = MCE_DEFAULT_LOG_DETAILS;
     log_colors = MCE_DEFAULT_LOG_COLORS;
@@ -838,7 +840,6 @@ void mce_sys_var::get_env_params()
     if (actual_nginx_workers_num > 0 && mce_spec == MCE_SPEC_NONE) {
         mce_spec = MCE_SPEC_NGINX_669;
     }
-
 #endif // DEFINED_NGINX
 
     switch (mce_spec) {
@@ -1139,6 +1140,15 @@ void mce_sys_var::get_env_params()
 
     if ((env_ptr = getenv(SYS_VAR_SERVICE_DIR)) != NULL) {
         read_env_variable_with_pid(service_notify_dir, sizeof(service_notify_dir), env_ptr);
+    }
+
+    if ((env_ptr = getenv(SYS_VAR_SERVICE_ENABLE)) != NULL) {
+        service_enable = atoi(env_ptr) ? true : false;
+    }
+    if (HYPER_MSHV == hypervisor && !service_enable) {
+        service_enable = true;
+        vlog_printf(VLOG_DEBUG, "%s parameter is forced to 'true' for MSHV hypervisor\n",
+                    SYS_VAR_SERVICE_ENABLE);
     }
 
     if ((env_ptr = getenv(SYS_VAR_LOG_LEVEL)) != NULL) {
