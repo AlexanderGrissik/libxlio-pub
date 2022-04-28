@@ -1,3 +1,19 @@
+Version 1.2.10-1:
+Date + Time 2022-04-28
+=============================================================
+Added:
+        - RM #2982769 Add XLIO_TX_SEGS_BATCH_TCP env variable
+Fixed:
+        - RM #2737656 Disable communication with service by default
+        - RM #3045735 Fix no traffic during disabled sriov (azure)
+        - RM #3048432 reuse buff for udp socket pool
+        - RM #3048433 add rx buffers compensation after cqe error
+        - RM #2885753 Fixing reusing socket in process of closing
+        - RM #3036032 Fix misaligned address access in IPv6 spec
+        - RM #3046720 Nginx worker thread crash recovery
+        - RM #3016626 Fixing TLS1.3 resync
+        - RM #3015420 Update Copyright notice
+
 Version 1.2.9-1:
 Date + Time 2022-04-06
 =============================================================
