@@ -2,7 +2,7 @@
 #
 # Testing script for XLIO, to run from Jenkins CI
 #
-# Copyright (C) Mellanox Technologies Ltd. 2001-2020.  ALL RIGHTS RESERVED.
+# Copyright (c) 2001-2022 NVIDIA CORPORATION & AFFILIATES. ALL RIGHTS RESERVED.
 #
 # See file LICENSE for terms.
 #

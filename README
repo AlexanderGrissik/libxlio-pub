@@ -960,7 +960,7 @@ OFED will also try to allocate QP & CQ memory accordingly:
 To override OFED use: (MLX_QP_ALLOC_TYPE, MLX_CQ_ALLOC_TYPE)
 Default value is 1 (Contiguous pages)
 
-The following XLIO neigh parameters are for advanced users or Mellanox support only:
+The following XLIO neigh parameters are for advanced users or internal support only:
 
 XLIO_NEIGH_UC_ARP_QUATA
 XLIO will send UC ARP in case neigh state is NUD_STALE.

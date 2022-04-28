@@ -8,7 +8,6 @@ general:
         - "contrib/valgrind.*"
         - "contrib/xlio-bench.*"
         - "debian.*"
-        - "tools.*"
         - ".*\\.pdf"
         - ".*Makefile\\.am"
         - ".*CHANGES"
@@ -29,12 +28,9 @@ general:
         - ".*\\.png"
         - ".*\\.conf"
         #
-        # 3rd-party packages
-        #
-        - ".*src/vma/config_parser.*"
-        #
         # Auto generated files
         #
+        - ".*src/vma/config_parser.*"
         - ".*src/vma/config_scanner\\.c"
 
 nbu-open-source:

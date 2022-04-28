@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2022 Mellanox Technologies, Ltd. All rights reserved.
+ * Copyright (c) 2001-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -360,7 +360,7 @@ static int config_set(int argc, char **argv)
 
 static void usage(void)
 {
-    printf(MODULE_NAME " is a part of Mellanox's Messaging Accelerator (VMA) product\n"
+    printf(MODULE_NAME " is a part of NVIDIA Accelerated IO (XLIO) product\n"
                        "that boosts performance for message-based and streaming applications.\n");
     printf("version: %s (0x%X)\n\n", PACKAGE_VERSION, VMA_AGENT_VER);
 
