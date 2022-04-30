@@ -3029,9 +3029,8 @@ sockinfo_tcp *sockinfo_tcp::accept_clone()
     sockinfo_tcp *si;
     int fd;
 
-    // note that this will call socket() replacement!!!
-    // and it will force proper socket creation
-    fd = socket_internal(m_family, SOCK_STREAM, 0);
+    // Create the socket object. We skip shadow sockets for incoming connections.
+    fd = socket_internal(m_family, SOCK_STREAM, 0, false, false);
     if (fd < 0) {
         return 0;
     }
@@ -3172,8 +3171,8 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
         new_sock->fit_snd_bufs_to_nagle(conn_nagle_disabled);
     }
 
-    if (new_sock->m_conn_state ==
-        TCP_CONN_INIT) { // in case m_conn_state is not in one of the error states
+    if (new_sock->m_conn_state == TCP_CONN_INIT) {
+        // in case m_conn_state is not in one of the error states
         new_sock->m_conn_state = TCP_CONN_CONNECTED;
     }
 
@@ -4016,7 +4015,8 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
 
     if ((ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen)) !=
         SOCKOPT_PASS_TO_OS) {
-        if ((ret == SOCKOPT_INTERNAL_VMA_SUPPORT || ret == SOCKOPT_HANDLE_BY_OS) &&
+        if (!is_incoming() &&
+            (ret == SOCKOPT_INTERNAL_VMA_SUPPORT || ret == SOCKOPT_HANDLE_BY_OS) &&
             m_sock_state <= TCP_SOCK_ACCEPT_READY && __optval != NULL &&
             is_inherited_option(__level, __optname)) {
             socket_option_t *opt_curr = new socket_option_t(__level, __optname, __optval, __optlen);
@@ -4064,9 +4064,11 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             supported = false;
             break;
         }
-    }
-    if (__level == IPPROTO_TCP) {
+    } else if (__level == IPPROTO_TCP) {
         switch (__optname) {
+        case TCP_CORK:
+            // We don't support TCP_CORK.
+            break;
         case TCP_NODELAY:
             val = *(int *)__optval;
             lock_tcp_con();
@@ -4095,7 +4097,9 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                     lock_tcp_con();
                     ret = ulp->attach(this);
                     unlock_tcp_con();
-                    return ret;
+                    /* On success we call kernel setsockopt() in case this socket is not connected
+                       and is unoffloaded later.  */
+                    break;
                 }
             }
 #endif /* DEFINED_UTLS */
@@ -4130,8 +4134,7 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             supported = false;
             break;
         }
-    }
-    if (__level == SOL_SOCKET) {
+    } else if (__level == SOL_SOCKET) {
         switch (__optname) {
         case SO_REUSEADDR:
             val = *(int *)__optval;
@@ -4315,14 +4318,21 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             supported = false;
             break;
         }
+    } else {
+        // Unsupported level.
+        ret = SOCKOPT_HANDLE_BY_OS;
+        supported = false;
     }
 
-    if (m_sock_state <= TCP_SOCK_ACCEPT_READY && __optval != NULL &&
+    if (ret == -1) {
+        // Avoid saving inherited option or calling kernel setsockopt() if XLIO fails explicitly.
+        return ret;
+    }
+    if (!is_incoming() && m_sock_state <= TCP_SOCK_ACCEPT_READY && __optval != NULL &&
         is_inherited_option(__level, __optname)) {
         m_socket_options_list.push_back(
             new socket_option_t(__level, __optname, __optval, __optlen));
     }
-
     if (safe_mce_sys().avoid_sys_calls_on_tcp_fd && ret != SOCKOPT_HANDLE_BY_OS && is_connected()) {
         return ret;
     }
@@ -4605,6 +4615,12 @@ int sockinfo_tcp::getsockopt(int __level, int __optname, void *__optval, socklen
         case -2:
             vma_throw_object_with_msg(vma_unsupported_api, buf);
         }
+    }
+
+    if (!is_shadow_socket_present()) {
+        // Avoid getsockopt(2) syscall when there is no shadow socket.
+        errno = ENOPROTOOPT;
+        return -1;
     }
 
     ret = orig_os_api.getsockopt(m_fd, __level, __optname, __optval, __optlen);

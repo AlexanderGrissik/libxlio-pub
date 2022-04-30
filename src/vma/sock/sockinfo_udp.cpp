@@ -395,6 +395,7 @@ sockinfo_udp::sockinfo_udp(int fd, int domain)
     , m_multicast(false)
 {
     si_udp_logfunc("");
+    assert(is_shadow_socket_present());
 
     m_protocol = PROTO_UDP;
     m_p_socket_stats->socket_type = SOCK_DGRAM;

@@ -50,7 +50,6 @@ socket_fd_api::socket_fd_api(int fd)
     , m_fd(fd)
     , m_n_sysvar_select_poll_os_ratio(safe_mce_sys().select_poll_os_ratio)
     , m_econtext(NULL)
-    , m_is_closable(true)
 #if defined(DEFINED_NGINX)
     , m_is_for_socket_pool(false)
     , m_is_listen(false)
@@ -61,9 +60,12 @@ socket_fd_api::socket_fd_api(int fd)
 
 socket_fd_api::~socket_fd_api()
 {
-    if (m_is_closable) {
+#if defined(DEFINED_NGINX)
+    if (m_is_for_socket_pool && m_fd >= 0) {
+        // Sockets from a socket pool are not closed during close(), so do it now.
         orig_os_api.close(m_fd);
     }
+#endif
 }
 
 void socket_fd_api::destructor_helper()

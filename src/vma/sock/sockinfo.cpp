@@ -105,6 +105,10 @@ sockinfo::sockinfo(int fd, int domain)
         throw_vma_exception("create internal epoll");
     }
     wakeup_set_epoll_fd(m_rx_epfd);
+    if (m_fd == SOCKET_FAKE_FD) {
+        m_fd = m_rx_epfd;
+        m_fd_context = (void *)((uintptr_t)m_fd);
+    }
 
     m_p_socket_stats = &m_socket_stats; // Save stats as local copy and allow state publisher to
                                         // copy from this location
@@ -129,10 +133,16 @@ sockinfo::~sockinfo()
 {
     m_state = SOCKINFO_DESTROYING;
 
+    if (!sockinfo::is_shadow_socket_present()) {
+        // Don't let other destructors know about substituted fd
+        m_fd = -1;
+    }
+
     // Change to non-blocking socket so calling threads can exit
     m_b_blocking = false;
-    orig_os_api.close(
-        m_rx_epfd); // this will wake up any blocked thread in rx() call to orig_os_api.epoll_wait()
+    // This will wake up any blocked thread in rx() call to orig_os_api.epoll_wait()
+    orig_os_api.close(m_rx_epfd);
+
     if (m_p_rings_fds) {
         delete[] m_p_rings_fds;
         m_p_rings_fds = NULL;
@@ -737,10 +747,12 @@ void sockinfo::copy_sockopt_fork(const socket_fd_api *copy_from)
 ////////////////////////////////////////////////////////////////////////////////
 bool sockinfo::try_un_offloading() // un-offload the socket if possible
 {
-    if (!this->isPassthrough()) {
+    if (!isPassthrough() && is_shadow_socket_present()) {
         setPassthrough();
+        if (isPassthrough()) {
+            si_logdbg("Socket is unoffloaded");
+        }
     }
-
     return true;
 }
 
@@ -1941,6 +1953,16 @@ int sockinfo::setsockopt_kernel(int __level, int __optname, const void *__optval
             return rc;
         case -2:
             vma_throw_object_with_msg(vma_unsupported_api, buf);
+        }
+    }
+
+    if (!is_shadow_socket_present()) {
+        // Avoid setsockopt(2) syscall if there is no shadow socket.
+        if (!supported) {
+            errno = ENOPROTOOPT;
+            return -1;
+        } else {
+            return 0;
         }
     }
 

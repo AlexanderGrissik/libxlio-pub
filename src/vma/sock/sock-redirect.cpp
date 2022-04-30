@@ -263,6 +263,7 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 {
     bool to_close_now = true;
     bool is_for_udp_pool = false;
+
     srdr_logfunc("Cleanup fd=%d", fd);
 
     if (g_zc_cache) {
@@ -275,15 +276,10 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 
         socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
         if (sockfd) {
-            sockfd->m_is_closable = !passthrough && sockfd->is_incoming();
-            /*
-             * Don't call close() syscall for incoming sockets, because such a TCP socket can
-             * exist after closing and be reused. In this case, keep shadow socket alive until
-             * the socket is destroyed.
-             */
-            to_close_now = !sockfd->m_is_closable;
+            // Don't call close(2) for objects without a shadow socket (TCP incoming sockets).
+            to_close_now = !passthrough && sockfd->is_shadow_socket_present();
 #if defined(DEFINED_NGINX)
-            // save this value before pointer is destructed
+            // Save this value before pointer is destructed
             is_for_udp_pool = sockfd->m_is_for_socket_pool;
 #endif
             g_p_fd_collection->del_sockfd(fd, cleanup);
@@ -739,15 +735,16 @@ extern "C" int vma_ioctl(void *cmsg_hdr, size_t cmsg_len)
    Returns a file descriptor for the new socket, or -1 for errors.  */
 extern "C" EXPORT_SYMBOL int socket(int __domain, int __type, int __protocol)
 {
-    return socket_internal(__domain, __type, __protocol, true);
+    return socket_internal(__domain, __type, __protocol, true, true);
 }
 
-// allow calling our socket(...) implementation safely from within libvma.so
-// this is critical in case VMA was loaded using dlopen and not using LD_PRELOAD
-// TODO: look for additional such functions/calls
-int socket_internal(int __domain, int __type, int __protocol, bool check_offload /*= false*/)
+/* Internal logic of socket() syscall implementation. It can be called from within XLIO, for
+   example, to create a socket for an incoming TCP connection.  */
+int socket_internal(int __domain, int __type, int __protocol, bool shadow, bool check_offload)
 {
-    bool offload_sockets = (__type & 0xf) == SOCK_DGRAM || (__type & 0xf) == SOCK_STREAM;
+    int fd;
+    bool offload_sockets = (__domain == AF_INET || __domain == AF_INET6) &&
+        ((__type & 0xf) == SOCK_DGRAM || (__type & 0xf) == SOCK_STREAM);
 
     if (offload_sockets) {
         DO_GLOBAL_CTORS();
@@ -758,32 +755,34 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
         get_orig_funcs();
     }
     BULLSEYE_EXCLUDE_BLOCK_END
-    int fd;
 
 #if defined(DEFINED_NGINX)
     bool add_to_udp_pool = false;
-    if (g_p_fd_collection &&
+    if (g_p_fd_collection && offload_sockets &&
         g_p_fd_collection->pop_socket_pool(fd, add_to_udp_pool, __type & 0xf)) {
         return fd;
     }
 #endif
 
-    fd = orig_os_api.socket(__domain, __type, __protocol);
-    vlog_printf(VLOG_DEBUG, "ENTER: %s(domain=%s(%d), type=%s(%d), protocol=%d) = %d\n", __func__,
-                socket_get_domain_str(__domain), __domain, socket_get_type_str(__type), __type,
-                __protocol, fd);
-    if (fd < 0) {
-        return fd;
+    fd = SOCKET_FAKE_FD;
+    if (shadow || !offload_sockets || !g_p_fd_collection) {
+        fd = orig_os_api.socket(__domain, __type, __protocol);
+        vlog_printf(VLOG_DEBUG, "ENTER: %s(domain=%s(%d), type=%s(%d), protocol=%d) = %d\n",
+                    __func__, socket_get_domain_str(__domain), __domain,
+                    socket_get_type_str(__type), __type, __protocol, fd);
+        if (fd < 0) {
+            return fd;
+        }
     }
 
-    if (g_p_fd_collection) {
-        // Sanity check to remove any old sockinfo object using the same fd!!
-        handle_close(fd, true);
-
-        // Create new sockinfo object for this new socket
-        if (offload_sockets) {
-            g_p_fd_collection->addsocket(fd, __domain, __type, check_offload);
+    if (g_p_fd_collection && offload_sockets) {
+        // Create new sockinfo object for this socket
+        int fd2 = g_p_fd_collection->addsocket(fd, __domain, __type, check_offload);
+        if (fd == SOCKET_FAKE_FD) {
+            fd = fd2;
         }
+        /* If shadow socket is created, but XLIO object fails, we still return shadow socket
+           fd and such a socket won't be offloaded.  */
     }
 
 #if defined(DEFINED_NGINX)
@@ -792,6 +791,7 @@ int socket_internal(int __domain, int __type, int __protocol, bool check_offload
     }
 #endif
 
+    assert(fd != SOCKET_FAKE_FD);
     return fd;
 }
 
@@ -818,6 +818,11 @@ extern "C" EXPORT_SYMBOL void __res_iclose(res_state statp, bool free_addr)
         get_orig_funcs();
     }
     BULLSEYE_EXCLUDE_BLOCK_END
+
+    /* Current implementation doesn't handle XLIO sockets without a shadow socket or from a socket
+       pool. If such a socket is present in the nssocks list, system __res_iclose() will close the
+       fd. This will break the socket functionality.
+       Assume that resolver doesn't use the above scenarios.  */
 
     srdr_logdbg_entry("");
     for (int ns = 0; ns < statp->_u._ext.nscount; ns++) {

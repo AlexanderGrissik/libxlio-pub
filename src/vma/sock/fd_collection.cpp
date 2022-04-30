@@ -206,6 +206,9 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     const int SOCK_TYPE_MASK = 0xf;
     int sock_type = type & SOCK_TYPE_MASK;
     int sock_flags = type & ~SOCK_TYPE_MASK;
+    socket_fd_api *p_sfd_api_obj;
+
+    fdcoll_logfunc("fd=%d domain=%d type=%d", fd, domain, type);
 
     if (check_offload && !create_offloaded_sockets()) {
         fdcoll_logdbg(
@@ -214,31 +217,13 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
         return -1;
     }
 
-    // IPV4 domain only (at least today)
     if (domain != AF_INET && domain != AF_INET6) {
         return -1;
     }
-
-    fdcoll_logfunc("fd=%d", fd);
-
-    if (!is_valid_fd(fd)) {
+    if (fd != SOCKET_FAKE_FD && !is_valid_fd(fd)) {
         return -1;
     }
 
-    lock();
-
-    // Sanity check to remove any old sockinfo object using the same fd!!
-    socket_fd_api *p_sfd_api_obj = get_sockfd(fd);
-    BULLSEYE_EXCLUDE_BLOCK_START
-    if (p_sfd_api_obj) {
-        fdcoll_logwarn("[fd=%d] Deleting old duplicate sockinfo object (%p)", fd, p_sfd_api_obj);
-        unlock();
-        handle_close(fd);
-        lock();
-    }
-    BULLSEYE_EXCLUDE_BLOCK_END
-
-    unlock();
     try {
         switch (sock_type) {
         case SOCK_DGRAM: {
@@ -259,6 +244,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
             }
             fdcoll_logdbg("TCP rules are either not consistent or instructing to use XLIO.");
             p_sfd_api_obj = new sockinfo_tcp(fd, domain);
+            fd = p_sfd_api_obj->get_fd();
             break;
         }
         default:
@@ -286,6 +272,8 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
         }
     }
 
+    assert(!get_sockfd(fd));
+    assert(!get_epfd(fd));
     m_p_sockfd_map[fd] = p_sfd_api_obj;
 
     unlock();

@@ -195,6 +195,7 @@ public:
     virtual bool is_outgoing() { return false; }
     virtual bool is_incoming() { return false; }
     virtual bool is_closable() { return true; }
+    virtual bool is_shadow_socket_present() { return m_fd >= 0; }
 
 #if defined(DEFINED_NGINX)
     virtual void prepare_to_close_socket_pool(bool _push_pop) { NOT_IN_USE(_push_pop); }
@@ -300,7 +301,6 @@ protected:
     epfd_info *m_econtext;
 
 public:
-    bool m_is_closable;
 #if defined(DEFINED_NGINX)
     bool m_is_for_socket_pool; // true when this fd will be used for socket pool on close
     bool m_is_listen;

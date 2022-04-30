@@ -163,4 +163,7 @@ struct __attribute__((packed)) vlanhdr {
 #define EPOLLRDHUP 0x2000
 #endif
 
+// Fake fd for non-existent shadow socket
+#define SOCKET_FAKE_FD (-2)
+
 #endif // VTYPES_H
