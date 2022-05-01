@@ -46,7 +46,7 @@ static lock_spin g_lock_skt_inst_arr("g_lock_skt_inst_arr");
 static lock_spin g_lock_ring_inst_arr("g_lock_ring_inst_arr");
 static lock_spin g_lock_cq_inst_arr("g_lock_cq_inst_arr");
 static lock_spin g_lock_bpool_inst_arr("g_lock_bpool_inst_arr");
-static lock_spin g_lock_tcp_seg_inst("g_lock_tcp_seg_inst");
+static lock_spin g_lock_global_inst("g_lock_global_inst");
 static lock_spin g_lock_iomux("g_lock_iomux");
 
 static sh_mem_info_t g_sh_mem_info;
@@ -68,7 +68,7 @@ bool printed_sock_limit_info = false;
 bool printed_ring_limit_info = false;
 bool printed_cq_limit_info = false;
 bool printed_bpool_limit_info = false;
-bool printed_tcp_seg_limit_info = false;
+bool printed_global_limit_info = false;
 
 stats_data_reader::stats_data_reader()
     : m_timer_handler(NULL)
@@ -639,59 +639,59 @@ void vma_stats_instance_remove_bpool_block(bpool_stats_t *local_stats_addr)
     g_lock_bpool_inst_arr.unlock();
 }
 
-void vma_stats_instance_create_tcp_seg_block(tcp_seg_stats_t *local_stats_addr)
+void vma_stats_instance_create_global_block(global_stats_t *local_stats_addr)
 {
-    tcp_seg_stats_t *p_instance_tcp_seg = NULL;
-    g_lock_tcp_seg_inst.lock();
-    for (int i = 0; i < NUM_OF_SUPPORTED_SEG_POOLS; i++) {
-        if (!g_sh_mem->tcp_seg_inst_arr[i].b_enabled) {
-            g_sh_mem->tcp_seg_inst_arr[i].b_enabled = true;
-            p_instance_tcp_seg = &g_sh_mem->tcp_seg_inst_arr[i].tcp_seg_stats;
-            memset(p_instance_tcp_seg, 0, sizeof(tcp_seg_stats_t));
+    global_stats_t *p_instance_global = NULL;
+    g_lock_global_inst.lock();
+    for (int i = 0; i < NUM_OF_SUPPORTED_GLOBALS; i++) {
+        if (!g_sh_mem->global_inst_arr[i].b_enabled) {
+            g_sh_mem->global_inst_arr[i].b_enabled = true;
+            p_instance_global = &g_sh_mem->global_inst_arr[i].global_stats;
+            memset(p_instance_global, 0, sizeof(global_stats_t));
             break;
         }
     }
 
-    if (p_instance_tcp_seg == NULL) {
-        if (!printed_tcp_seg_limit_info) {
-            printed_tcp_seg_limit_info = true;
-            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d tcp segments pools\n",
-                        NUM_OF_SUPPORTED_SEG_POOLS);
+    if (p_instance_global == NULL) {
+        if (!printed_global_limit_info) {
+            printed_global_limit_info = true;
+            vlog_printf(VLOG_INFO, "Statistics can monitor up to %d globals\n",
+                        NUM_OF_SUPPORTED_GLOBALS);
         }
     } else {
-        g_p_stats_data_reader->add_data_reader(local_stats_addr, p_instance_tcp_seg,
-                                               sizeof(tcp_seg_stats_t));
-        __log_dbg("Added tcp_seg local=%p shm=%p", local_stats_addr, p_instance_tcp_seg);
+        g_p_stats_data_reader->add_data_reader(local_stats_addr, p_instance_global,
+                                               sizeof(global_stats_t));
+        __log_dbg("Added global local=%p shm=%p", local_stats_addr, p_instance_global);
     }
-    g_lock_tcp_seg_inst.unlock();
+    g_lock_global_inst.unlock();
 }
 
-void vma_stats_instance_remove_tcp_seg_block(tcp_seg_stats_t *local_stats_addr)
+void vma_stats_instance_remove_global_block(global_stats_t *local_stats_addr)
 {
-    g_lock_tcp_seg_inst.lock();
-    __log_dbg("Remove tcp_seg local=%p", local_stats_addr);
+    g_lock_global_inst.lock();
+    __log_dbg("Remove global local=%p", local_stats_addr);
 
-    tcp_seg_stats_t *p_tcp_seg_stats =
-        (tcp_seg_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
+    global_stats_t *p_global_stats =
+        (global_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
-    if (p_tcp_seg_stats == NULL) {
-        __log_dbg("application vma_stats pointer is NULL");
-        g_lock_tcp_seg_inst.unlock();
+    if (p_global_stats == NULL) {
+        __log_dbg("application p_global_stats pointer is NULL");
+        g_lock_global_inst.unlock();
         return;
     }
 
     // Search sh_mem block to release
-    for (int i = 0; i < NUM_OF_SUPPORTED_SEG_POOLS; i++) {
-        if (&g_sh_mem->tcp_seg_inst_arr[i].tcp_seg_stats == p_tcp_seg_stats) {
-            g_sh_mem->tcp_seg_inst_arr[i].b_enabled = false;
-            g_lock_tcp_seg_inst.unlock();
+    for (int i = 0; i < NUM_OF_SUPPORTED_GLOBALS; i++) {
+        if (&g_sh_mem->global_inst_arr[i].global_stats == p_global_stats) {
+            g_sh_mem->global_inst_arr[i].b_enabled = false;
+            g_lock_global_inst.unlock();
             return;
         }
     }
 
     vlog_printf(VLOG_ERROR, "%s:%d: Could not find user pointer (%p)\n", __func__, __LINE__,
-                p_tcp_seg_stats);
-    g_lock_tcp_seg_inst.unlock();
+                p_global_stats);
+    g_lock_global_inst.unlock();
 }
 
 void vma_stats_instance_get_poll_block(iomux_func_stats_t *local_stats_addr)

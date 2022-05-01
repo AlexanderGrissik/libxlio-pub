@@ -105,6 +105,8 @@ static command_netlink *s_cmd_nl = NULL;
 #define MAX_VERSION_STR_LEN 128
 #define ONE_MB              (1024 * 1024)
 
+global_stats_t g_global_stat_static;
+
 static int free_libvma_resources()
 {
     vlog_printf(VLOG_DEBUG, "%s: Closing libvma resources\n", __FUNCTION__);
@@ -919,6 +921,11 @@ extern "C" void sock_redirect_exit(void)
     finit_instrumentation(safe_mce_sys().vma_time_measure_filename);
 #endif
     vlog_printf(VLOG_DEBUG, "%s()\n", __FUNCTION__);
+
+    if (g_init_global_ctors_done) {
+        vma_stats_instance_remove_global_block(&g_global_stat_static);
+    }
+
     vma_shmem_stats_close();
 }
 
@@ -990,6 +997,9 @@ static void do_global_ctors_helper()
     vma_shmem_stats_open(&g_p_vlogger_level, &g_p_vlogger_details);
     *g_p_vlogger_level = g_vlogger_level;
     *g_p_vlogger_details = g_vlogger_details;
+
+    memset(&g_global_stat_static, 0, sizeof(g_global_stat_static));
+    vma_stats_instance_create_global_block(&g_global_stat_static);
 
     // Create new netlink listener
     NEW_CTOR(g_p_netlink_handler, netlink_wrapper());

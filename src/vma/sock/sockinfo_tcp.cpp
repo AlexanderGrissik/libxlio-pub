@@ -70,6 +70,8 @@
 #define si_tcp_logfunc    __log_info_func
 #define si_tcp_logfuncall __log_info_funcall
 
+extern global_stats_t g_global_stat_static;
+
 tcp_seg_pool *g_tcp_seg_pool = NULL;
 tcp_timers_collection *g_tcp_timers_collection = NULL;
 
@@ -5315,10 +5317,7 @@ tcp_seg_pool::tcp_seg_pool(int size)
         m_tcp_segs_array[i].next = &m_tcp_segs_array[i + 1];
     }
     m_p_head = &m_tcp_segs_array[0];
-    m_p_tcp_seg_stat = &m_tcp_seg_stat_static;
-    memset(m_p_tcp_seg_stat, 0, sizeof(*m_p_tcp_seg_stat));
-    vma_stats_instance_create_tcp_seg_block(m_p_tcp_seg_stat);
-    m_p_tcp_seg_stat->n_tcp_seg_pool_size = size;
+    g_global_stat_static.n_tcp_seg_pool_size = size;
 }
 
 tcp_seg_pool::~tcp_seg_pool()
@@ -5328,7 +5327,6 @@ tcp_seg_pool::~tcp_seg_pool()
 
 void tcp_seg_pool::free_tsp_resources()
 {
-    vma_stats_instance_remove_tcp_seg_block(m_p_tcp_seg_stat);
     delete[] m_tcp_segs_array;
 }
 
@@ -5349,13 +5347,13 @@ tcp_seg *tcp_seg_pool::get_tcp_segs(int amount)
     }
     if (amount) {
         // run out of segments
-        m_p_tcp_seg_stat->n_tcp_seg_pool_no_segs++;
+        g_global_stat_static.n_tcp_seg_pool_no_segs++;
         unlock();
         return NULL;
     }
     prev->next = NULL;
     m_p_head = next;
-    m_p_tcp_seg_stat->n_tcp_seg_pool_size -= orig_amount;
+    g_global_stat_static.n_tcp_seg_pool_size -= orig_amount;
     unlock();
 
     return head;
@@ -5376,7 +5374,7 @@ void tcp_seg_pool::put_tcp_segs(tcp_seg *seg_list)
     lock();
     next->next = m_p_head;
     m_p_head = seg_list;
-    m_p_tcp_seg_stat->n_tcp_seg_pool_size += i;
+    g_global_stat_static.n_tcp_seg_pool_size += i;
     unlock();
 }
 

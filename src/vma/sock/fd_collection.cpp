@@ -154,6 +154,8 @@ void fd_collection::clear()
         p_sfd_api->clean_obj();
     }
 
+    g_global_stat_static.n_pending_sockets = 0U;
+
     /* Clean up all left overs sockinfo
      */
     for (fd = 0; fd < m_n_fd_map_size; ++fd) {
@@ -553,6 +555,7 @@ int fd_collection::del_sockfd(int fd, bool b_cleanup /*=false*/)
             // This socket will be handled and destroyed now by fd_col.
             // This will be done from fd_col timer handler.
             if (m_p_sockfd_map[fd] == p_sfd_api) {
+                ++g_global_stat_static.n_pending_sockets;
                 m_p_sockfd_map[fd] = NULL;
                 m_pending_to_remove_lst.push_front(p_sfd_api);
             }

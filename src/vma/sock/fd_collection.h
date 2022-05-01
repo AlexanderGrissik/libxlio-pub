@@ -62,6 +62,8 @@ typedef std::unordered_map<pthread_t, int> offload_thread_rule_t;
     } while (0)
 #endif /* MAX_DEFINED_LOG_LEVEL */
 
+extern global_stats_t g_global_stat_static;
+
 class cq_channel_info : public cleanable_obj {
 public:
     cq_channel_info(ring *p_ring)
@@ -278,12 +280,14 @@ inline void fd_collection::reuse_sockfd(int fd, socket_fd_api *p_sfd_api_obj)
     lock();
     m_pending_to_remove_lst.erase(p_sfd_api_obj);
     m_p_sockfd_map[fd] = p_sfd_api_obj;
+    --g_global_stat_static.n_pending_sockets;
     unlock();
 }
 
 inline void fd_collection::destroy_sockfd(socket_fd_api *p_sfd_api_obj)
 {
     lock();
+    --g_global_stat_static.n_pending_sockets;
     m_pending_to_remove_lst.erase(p_sfd_api_obj);
     p_sfd_api_obj->clean_obj();
     unlock();
