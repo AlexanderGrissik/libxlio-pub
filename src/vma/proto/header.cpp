@@ -52,7 +52,6 @@ header::header()
 }
 
 header::header(const header &h)
-    : tostr()
 {
     m_ip_header_len = h.m_ip_header_len;
     m_transport_header_len = h.m_transport_header_len;

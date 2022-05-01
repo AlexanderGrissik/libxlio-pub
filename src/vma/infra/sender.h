@@ -35,14 +35,13 @@
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
-#include "vma/util/to_str.h"
 #include "vma/util/utils.h"
 #include "vma/event/event.h"
 #include "vma/proto/header.h"
 
 class event;
 
-class send_info : tostr {
+class send_info {
 public:
     send_info(iovec *iov, size_t sz)
         : m_p_iov(iov)

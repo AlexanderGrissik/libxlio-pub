@@ -31,12 +31,11 @@
  */
 
 #include "vma/ib/base/verbs_extra.h"
-#include "vma/util/to_str.h"
 
 #ifndef IB_WQE_TEMPLATE_H
 #define IB_WQE_TEMPLATE_H
 
-class wqe_send_handler : public tostr {
+class wqe_send_handler {
 public:
     wqe_send_handler();
     virtual ~wqe_send_handler();

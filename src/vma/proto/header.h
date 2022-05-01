@@ -43,7 +43,6 @@
 #include <netinet/igmp.h>
 
 #include "vma/util/vtypes.h"
-#include "vma/util/to_str.h"
 #include "L2_address.h"
 #include "vma/util/sys_vars.h"
 #include "vma/lwip/ip_addr.h"
@@ -111,7 +110,7 @@ union tx_ipv6_packet_template_t {
     uint32_t words[20]; // change in tx_hdr_template_t size may require to modify this array size
 };
 
-class header : public tostr {
+class header {
 public:
     header();
     header(const header &h);

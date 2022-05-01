@@ -37,7 +37,6 @@
 
 #include "state_machine/sm.h"
 #include "vma/util/sys_vars.h"
-#include "vma/util/to_str.h"
 #include "vma/infra/cache_subject_observer.h"
 #include "vma/infra/sender.h"
 #include "vma/event/event_handler_ibverbs.h"
@@ -54,7 +53,7 @@
 #include "vma/dev/ring.h"
 #include "vma/proto/arp.h"
 
-class neigh_key : public tostr {
+class neigh_key {
 public:
     neigh_key(ip_addr addr, net_device_val *p_ndvl)
         : m_ip_addrs(addr)
@@ -100,7 +99,7 @@ public:
 };
 } // namespace std
 
-class neigh_val : public tostr {
+class neigh_val {
 public:
     neigh_val()
         : m_trans_type(VMA_TRANSPORT_UNKNOWN)

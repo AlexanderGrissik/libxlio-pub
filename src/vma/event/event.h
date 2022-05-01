@@ -37,9 +37,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "utils/bullseye.h"
-#include "vma/util/to_str.h"
 
-class event : public tostr {
+class event {
 public:
     enum type { UNKNOWN_EVENT, SEND_EVENT, DROP_EVENT };
 

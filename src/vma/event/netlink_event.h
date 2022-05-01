@@ -33,13 +33,17 @@
 #ifndef NETLINK_EVENT_H_
 #define NETLINK_EVENT_H_
 
-#include <netlink/msg.h>
 #include "config.h"
+
+#include <netlink/msg.h>
+#include <linux/rtnetlink.h>
+
+#include <string>
+
 #include "vma/event/event.h"
 #include "vma/netlink/neigh_info.h"
 #include "vma/netlink/route_info.h"
 #include "vma/netlink/link_info.h"
-#include <linux/rtnetlink.h>
 
 class netlink_link;
 class netlink_neigh;

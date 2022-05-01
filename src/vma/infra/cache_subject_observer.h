@@ -37,6 +37,7 @@
 #include <unordered_map>
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
+#include "vma/util/to_str.h"
 #include "vma/util/vtypes.h"
 #include "vma/infra/subject_observer.h"
 #include "vma/sock/cleanable_obj.h"

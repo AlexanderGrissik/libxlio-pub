@@ -38,7 +38,6 @@
 #include <unordered_set>
 #include "utils/lock_wrapper.h"
 #include "vma/util/vtypes.h"
-#include "vma/util/to_str.h"
 #include "vma/event/event.h"
 
 class observer {

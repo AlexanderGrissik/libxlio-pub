@@ -37,7 +37,6 @@
 #include <string>
 #include <cstring>
 
-#include "vma/util/to_str.h"
 #include "vma/util/vtypes.h"
 
 /*

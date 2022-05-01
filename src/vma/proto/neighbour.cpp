@@ -541,7 +541,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
         m_sge.lkey = m_p_ring->get_tx_lkey(m_id);
         m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
 
-        neigh_logdbg("%s packet_sz=%d, payload_sz=%zd, ip_offset=%d id=%d", h->to_str().c_str(),
+        neigh_logdbg("packet_sz=%d, payload_sz=%zd, ip_offset=%d id=%d",
                      m_sge.length - h->m_transport_header_len, sz_user_data_to_copy,
                      n_ip_frag_offset, ntohs(id));
 

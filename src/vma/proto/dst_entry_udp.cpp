@@ -317,8 +317,7 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
         m_sge[1].lkey = m_p_ring->get_tx_lkey(m_id);
         m_p_send_wqe->wr_id = (uintptr_t)p_mem_buf_desc;
 
-        dst_udp_logfunc("%s packet_sz=%d, payload_sz=%d, ip_offset=%d id=%d",
-                        m_header->to_str().c_str(),
+        dst_udp_logfunc("packet_sz=%d, payload_sz=%d, ip_offset=%d id=%d",
                         m_sge[1].length - m_header->m_transport_header_len, sz_user_data_to_copy,
                         n_ip_frag_offset, ntohs(packet_id));
 
