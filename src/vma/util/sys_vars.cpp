@@ -1820,7 +1820,14 @@ void mce_sys_var::get_env_params()
     }
     if ((env_ptr = getenv(SYS_VAR_NGINX_WORKERS_NUM)) != NULL) {
         actual_nginx_workers_num = (uint32_t)atoi(env_ptr);
-        power_2_nginx_workers_num = pow(2, ceil(log(actual_nginx_workers_num) / log(2)));
+        // Round up to a power of 2 value. Assume the number doesn't exceed 32bit.
+        power_2_nginx_workers_num = actual_nginx_workers_num - 1;
+        power_2_nginx_workers_num |= power_2_nginx_workers_num >> 1;
+        power_2_nginx_workers_num |= power_2_nginx_workers_num >> 2;
+        power_2_nginx_workers_num |= power_2_nginx_workers_num >> 4;
+        power_2_nginx_workers_num |= power_2_nginx_workers_num >> 8;
+        power_2_nginx_workers_num |= power_2_nginx_workers_num >> 16;
+        power_2_nginx_workers_num++;
     }
     vlog_printf(VLOG_DEBUG, "Actual nginx workers num: %d Power of  two nginx workers num: %d\n",
                 actual_nginx_workers_num, power_2_nginx_workers_num);
