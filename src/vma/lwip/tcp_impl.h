@@ -236,13 +236,6 @@ PACK_STRUCT_END
     else (ret) = ERR_OK;                                         \
   } while (0)
 
-#define TCP_EVENT_POLL(pcb,ret)                                \
-  do {                                                         \
-    if((pcb)->poll != NULL)                                    \
-      (ret) = (pcb)->poll((pcb)->callback_arg,(pcb));          \
-    else (ret) = ERR_OK;                                       \
-  } while (0)
-
 #define TCP_EVENT_ERR(errf,arg,err)                            \
   do {                                                         \
     if((errf) != NULL)                                         \

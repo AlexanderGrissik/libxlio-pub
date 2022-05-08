@@ -760,18 +760,6 @@ tcp_slowtmr(struct tcp_pcb* pcb)
 		tcp_rst(pcb->snd_nxt, pcb->rcv_nxt, pcb->local_port, pcb->remote_port, pcb);
 	  }
 	  set_tcp_state(pcb, CLOSED);
-	} else {
-	   /* We check if we should poll the connection. */
-	  ++pcb->polltmr;
-	  if (pcb->polltmr >= pcb->pollinterval) {
-		  pcb->polltmr = 0;
-		LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: polling application\n"));
-		TCP_EVENT_POLL(pcb, err);
-		/* if err == ERR_ABRT, 'prev' is already deallocated */
-		if (err == ERR_OK) {
-		  tcp_output(pcb);
-		}
-	  }
 	}
   }
 
@@ -997,7 +985,6 @@ void tcp_pcb_init (struct tcp_pcb* pcb, u8_t prio, void *container)
 	pcb->snd_sml_snt = 0;
 	pcb->snd_sml_add = 0;
 
-	pcb->polltmr = 0;
 	pcb->tcp_timer = 0;
 	pcb->recv = tcp_recv_null;
 
@@ -1047,7 +1034,6 @@ void tcp_pcb_recycle(struct tcp_pcb* pcb)
 	pcb->tmr = tcp_ticks;
 	pcb->snd_sml_snt = 0;
 	pcb->snd_sml_add = 0;
-	pcb->polltmr = 0;
 	pcb->tcp_timer = 0;
 	pcb->rttest = 0;
 	pcb->recv = tcp_recv_null;
@@ -1245,19 +1231,6 @@ void
 tcp_accepted_pcb(struct tcp_pcb *pcb, tcp_accepted_pcb_fn accepted_pcb)
 {
   pcb->accepted_pcb = accepted_pcb;
-}
-
-/**
- * Used to specify the function that should be called periodically
- * from TCP. The interval is specified in terms of the TCP coarse
- * timer interval, which is called twice a second.
- *
- */ 
-void
-tcp_poll(struct tcp_pcb *pcb, tcp_poll_fn poll, u8_t interval)
-{
-  pcb->poll = poll;
-  pcb->pollinterval = interval;
 }
 
 /**

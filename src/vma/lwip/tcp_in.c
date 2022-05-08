@@ -1213,8 +1213,6 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
       } else {
         pcb->rtime = 0;
       }
-
-      pcb->polltmr = 0;
     } else {
       /* Out of sequence ACK, didn't really ack anything */
       pcb->acked = 0;
