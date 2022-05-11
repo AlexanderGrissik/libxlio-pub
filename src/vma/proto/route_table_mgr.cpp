@@ -116,7 +116,7 @@ route_table_mgr::~route_table_mgr()
 
 void route_table_mgr::update_tbl()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     netlink_socket_mgr::update_tbl(ROUTE_DATA_TYPE);
 
@@ -376,7 +376,7 @@ bool route_table_mgr::route_resolve(IN route_rule_table_key key, OUT route_resul
 
     g_p_rule_table_mgr->rule_resolve(key, table_id_list);
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     for (auto iter = table_id_list.begin(); iter != table_id_list.end(); ++iter) {
         if (find_route_val(rt, dst_addr, *iter, p_val)) {
             res.src = p_val->get_src_addr();
@@ -418,7 +418,7 @@ void route_table_mgr::update_entry(INOUT route_entry *p_ent, bool b_register_to_
 
     route_table_t &rt = p_ent->get_key().get_family() == AF_INET ? m_table_in4 : m_table_in6;
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (p_ent && !p_ent->is_valid()) { // if entry is found in the collection and is not valid
         rt_mgr_logdbg("route_entry is not valid-> update value");
         rule_entry *p_rr_entry = p_ent->get_rule_entry();
@@ -488,7 +488,7 @@ void route_table_mgr::new_route_event(const route_val &netlink_route_val)
     val.set_state(true);
     val.print_val();
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     route_table_t &table = val.get_family() == AF_INET ? m_table_in4 : m_table_in6;
     // Search for deleted duplicate routes
     auto iter = table.begin();
@@ -507,7 +507,7 @@ void route_table_mgr::new_route_event(const route_val &netlink_route_val)
 void route_table_mgr::del_route_event(const route_val &netlink_route_val)
 {
     route_table_t &table = netlink_route_val.get_family() == AF_INET ? m_table_in4 : m_table_in6;
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     // We cannot erase elements in the array, because this would invalide pointers
     for (auto iter = table.begin(); iter != table.end(); ++iter) {

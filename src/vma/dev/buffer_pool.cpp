@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <mutex>
 #include "buffer_pool.h"
 
 #include <stdlib.h>
@@ -151,7 +152,7 @@ void buffer_pool::free_tx_lwip_pbuf_custom(struct pbuf *p_buff)
 buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size,
                          pbuf_free_custom_fn custom_free_function, alloc_t alloc_func,
                          free_t free_func)
-    : m_lock_spin("buffer_pool")
+    : m_lock("buffer_pool")
     , m_n_buffers(0)
     , m_n_buffers_created(0)
     , m_p_head(NULL)
@@ -233,7 +234,7 @@ void buffer_pool::print_val_tbl()
 bool buffer_pool::get_buffers_thread_safe(descq_t &pDeque, ring_slave *desc_owner, size_t count,
                                           uint32_t lkey)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     mem_buf_desc_t *head;
 
@@ -282,7 +283,7 @@ return_buffers:
 
 uint32_t buffer_pool::find_lkey_by_ib_ctx_thread_safe(ib_ctx_handler *p_ib_ctx_h)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     return m_allocator.find_lkey_by_ib_ctx(p_ib_ctx_h);
 }
 
@@ -436,13 +437,13 @@ inline void buffer_pool::put_buffers(mem_buf_desc_t **buff_vec, size_t count)
 
 void buffer_pool::put_buffers_thread_safe(mem_buf_desc_t *buff_list)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     put_buffers(buff_list);
 }
 
 void buffer_pool::put_buffers_thread_safe(mem_buf_desc_t **buff_vec, size_t count)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     put_buffers(buff_vec, count);
 }
 
@@ -468,13 +469,13 @@ void buffer_pool::put_buffers(descq_t *buffers, size_t count)
 
 void buffer_pool::put_buffers_thread_safe(descq_t *buffers, size_t count)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     put_buffers(buffers, count);
 }
 
 void buffer_pool::put_buffers_after_deref_thread_safe(descq_t *pDeque)
 {
-    auto_unlocker lock(m_lock_spin);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     while (!pDeque->empty()) {
         mem_buf_desc_t *list = pDeque->get_and_pop_front();
         if (list->dec_ref_count() <= 1 && (list->lwip_pbuf.pbuf.ref-- <= 1)) {

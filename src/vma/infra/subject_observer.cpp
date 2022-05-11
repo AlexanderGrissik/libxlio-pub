@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <mutex>
 #include "vlogger/vlogger.h"
 #include "vma/infra/subject_observer.h"
 
@@ -49,7 +50,7 @@ bool subject::register_observer(IN const observer *const new_observer)
         return false;
     }
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (m_observers.count((observer *)new_observer) > 0) {
         //		sub_obs_logdbg("[%s] Observer is already registered (%p)", to_str(), new_observer);
         return false;
@@ -67,7 +68,7 @@ bool subject::unregister_observer(IN const observer *const old_observer)
         return false;
     }
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     m_observers.erase((observer *)old_observer);
     //	sub_obs_logdbg("[%s] Successfully unregistered old_observer %s",to_str(),
     // old_observer->to_str());
@@ -78,7 +79,7 @@ void subject::notify_observers(event *ev /*=NULL*/)
 {
     //	sub_obs_logdbg("[%s]", to_str());
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     for (observers_t::iterator iter = m_observers.begin(); iter != m_observers.end(); iter++) {
         if (ev) {
             (*iter)->notify_cb(ev);

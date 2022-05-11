@@ -791,7 +791,7 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wq
         attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM));
     }
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr, 0);
     send_status_handler(ret, p_send_wqe);
 }
@@ -807,7 +807,7 @@ int ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe
     attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM));
 #endif
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr, tis);
     send_status_handler(ret, p_send_wqe);
     return ret;

@@ -302,7 +302,7 @@ void net_device_table_mgr::print_val_tbl()
 
 net_device_val *net_device_table_mgr::get_net_device_val(const ip_addr &if_addr)
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     net_device_map_addr_t::iterator iter = m_net_device_map_addr.find(if_addr);
     if (iter != m_net_device_map_addr.end()) {
@@ -323,7 +323,7 @@ net_device_val *net_device_table_mgr::get_net_device_val(int if_index)
     net_device_map_index_t::iterator iter;
     net_device_val *net_dev = NULL;
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     /* Find master interface */
     for (iter = m_net_device_map_index.begin(); iter != m_net_device_map_index.end(); iter++) {

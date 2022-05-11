@@ -89,7 +89,7 @@ net_device_entry::~net_device_entry()
 
 bool net_device_entry::get_val(INOUT net_device_val *&val)
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     val = m_val;
     return is_valid();
 }
@@ -112,7 +112,7 @@ void net_device_entry::handle_event_ibverbs_cb(void *ev_data, void *ctx)
 void net_device_entry::handle_timer_expired(void *user_data)
 {
     NOT_IN_USE(user_data);
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     net_device_val *p_ndv = dynamic_cast<net_device_val *>(m_val);
     if (p_ndv) {
         if (m_bond == net_device_val::ACTIVE_BACKUP) {

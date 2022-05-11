@@ -381,7 +381,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
 
 bool ring_slave::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool force_5t)
 {
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
 
     return (flow_spec_5t.get_family() == AF_INET
                 ? m_steering_ipv4.attach_flow(flow_spec_5t, sink, force_5t)
@@ -515,7 +515,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::detach_flow(flow_tuple &flow_spec_5t, 
 
 bool ring_slave::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
 
     return (flow_spec_5t.get_family() == AF_INET ? m_steering_ipv4.detach_flow(flow_spec_5t, sink)
                                                  : m_steering_ipv6.detach_flow(flow_spec_5t, sink));

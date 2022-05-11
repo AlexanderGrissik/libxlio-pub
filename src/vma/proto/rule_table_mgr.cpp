@@ -89,7 +89,7 @@ rule_table_mgr::rule_table_mgr()
 // This function uses Netlink to get routing rules saved in kernel then saved it locally.
 void rule_table_mgr::update_tbl()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     netlink_socket_mgr::update_tbl(RULE_DATA_TYPE);
 
@@ -202,7 +202,7 @@ rule_entry *rule_table_mgr::create_new_entry(route_rule_table_key key, const obs
 void rule_table_mgr::update_entry(rule_entry *p_ent)
 {
     rr_mgr_logdbg("entry [%p]", p_ent);
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     if (p_ent && !p_ent->is_valid()) { // if entry is found in the collection and is not valid
 
@@ -285,7 +285,7 @@ bool rule_table_mgr::rule_resolve(route_rule_table_key key, std::deque<uint32_t>
 
     std::deque<rule_val *> values;
     std::deque<rule_val *> *p_values = &values;
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (find_rule_val(key, p_values)) {
         for (auto val = values.begin(); val != values.end(); ++val) {
             table_id_list.push_back((*val)->get_table_id());

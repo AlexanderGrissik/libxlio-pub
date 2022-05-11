@@ -35,6 +35,7 @@
 
 #include "ring_slave.h"
 
+#include <mutex>
 #include <unordered_map>
 
 #include "vma/dev/gro_mgr.h"
@@ -133,7 +134,7 @@ public:
     bool tls_sync_dek_supported() { return m_tls.tls_synchronize_dek; }
     xlio_tis *tls_context_setup_tx(const xlio_tls_info *info)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
         xlio_tis *tis = m_p_qp_mgr->tls_context_setup_tx(info);
         if (likely(tis != NULL)) {
@@ -155,14 +156,14 @@ public:
          * This method can be called for either RX or TX ring.
          * Locking is required for TX ring with cached=true.
          */
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         return m_p_qp_mgr->tls_create_tir(cached);
     }
     int tls_context_setup_rx(xlio_tir *tir, const xlio_tls_info *info, uint32_t next_record_tcp_sn,
                              xlio_comp_cb_t callback, void *callback_arg)
     {
         /* Protect with TX lock since we post WQEs to the send queue. */
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
         int rc =
             m_p_qp_mgr->tls_context_setup_rx(tir, info, next_record_tcp_sn, callback, callback_arg);
@@ -181,17 +182,17 @@ public:
     }
     void tls_context_resync_tx(const xlio_tls_info *info, xlio_tis *tis, bool skip_static)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         m_p_qp_mgr->tls_context_resync_tx(info, tis, skip_static);
     }
     void tls_resync_rx(xlio_tir *tir, const xlio_tls_info *info, uint32_t hw_resync_tcp_sn)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         m_p_qp_mgr->tls_resync_rx(tir, info, hw_resync_tcp_sn);
     }
     void tls_get_progress_params_rx(xlio_tir *tir, void *buf, uint32_t lkey)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         if (lkey == LKEY_USE_DEFAULT) {
             lkey = m_tx_lkey;
         }
@@ -205,18 +206,18 @@ public:
     }
     void tls_release_tis(xlio_tis *tis)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         m_p_qp_mgr->tls_release_tis(tis);
     }
     void tls_release_tir(xlio_tir *tir)
     {
         /* TIR objects are protected with TX lock */
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         m_p_qp_mgr->tls_release_tir(tir);
     }
     void tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         if (lkey == LKEY_USE_DEFAULT) {
             lkey = m_tx_lkey;
         }
@@ -225,13 +226,13 @@ public:
 #endif /* DEFINED_UTLS */
     void post_nop_fence(void)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         m_p_qp_mgr->post_nop_fence();
     }
 
     void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
     {
-        auto_unlocker lock(m_lock_ring_tx);
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
         NOT_IN_USE(id);
         m_p_qp_mgr->reset_inflight_zc_buffers_ctx(ctx);
     }

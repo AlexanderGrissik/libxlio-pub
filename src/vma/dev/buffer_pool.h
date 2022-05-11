@@ -130,7 +130,7 @@ public:
     void set_RX_TX_for_stats(bool rx);
 
 private:
-    lock_spin m_lock_spin;
+    lock_spin m_lock;
     // XXX-dummy buffer list head and count
     // to be replaced with a bucket-sorted array
 

@@ -296,7 +296,7 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
 
 net_device_val::~net_device_val()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     rings_hash_map_t::iterator ring_iter;
     while ((ring_iter = m_h_ring_map.begin()) != m_h_ring_map.end()) {
@@ -652,7 +652,7 @@ void net_device_val::set_slave_array()
 
 const slave_data_t *net_device_val::get_slave(int if_index)
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     slave_data_vector_t::iterator iter;
     for (iter = m_slaves.begin(); iter != m_slaves.end(); iter++) {
@@ -968,7 +968,7 @@ const std::string net_device_val::to_str() const
 ring *net_device_val::reserve_ring(resource_allocation_key *key)
 {
     nd_logfunc("");
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     key = ring_key_redirection_reserve(key);
     ring *the_ring = NULL;
     rings_hash_map_t::iterator ring_iter = m_h_ring_map.find(key);
@@ -1019,7 +1019,7 @@ int net_device_val::release_ring(resource_allocation_key *key)
 
     resource_allocation_key *red_key;
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     red_key = get_ring_key_redirection(key);
     ring *the_ring = NULL;
     rings_hash_map_t::iterator ring_iter = m_h_ring_map.find(red_key);
@@ -1145,7 +1145,7 @@ int net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn,
 {
     nd_logfuncall("");
     int ret_total = 0;
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
         int ret = THE_RING->poll_and_process_element_rx(p_poll_sn, pv_fd_ready_array);
@@ -1181,7 +1181,7 @@ int net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn,
 int net_device_val::global_ring_request_notification(uint64_t poll_sn)
 {
     int ret_total = 0;
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
         int ret = THE_RING->request_notification(CQT_RX, poll_sn);
@@ -1214,7 +1214,7 @@ int net_device_val::ring_drain_and_proccess()
     nd_logfuncall();
     int ret_total = 0;
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
         int ret = THE_RING->drain_and_proccess();
@@ -1233,7 +1233,7 @@ void net_device_val::ring_adapt_cq_moderation()
 {
     nd_logfuncall();
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
         THE_RING->adapt_cq_moderation();

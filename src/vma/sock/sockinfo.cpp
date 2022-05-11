@@ -266,7 +266,7 @@ int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
         m_ring_alloc_logic = ring_allocation_logic_rx(get_fd(), m_ring_alloc_log_rx, this);
 
         if (m_rx_nd_map.size()) {
-            auto_unlocker locker(m_rx_migration_lock);
+            std::lock_guard<decltype(m_rx_migration_lock)> locker(m_rx_migration_lock);
             do_rings_migration(old_key);
         }
 

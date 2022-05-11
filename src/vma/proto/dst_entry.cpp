@@ -777,7 +777,7 @@ bool dst_entry::update_ring_alloc_logic(int fd, lock_base &socket_lock,
     m_ring_alloc_logic = ring_allocation_logic_tx(fd, ring_alloc_logic, this);
 
     if (*m_ring_alloc_logic.get_key() != old_key) {
-        auto_unlocker locker(m_tx_migration_lock);
+        std::lock_guard<decltype(m_tx_migration_lock)> locker(m_tx_migration_lock);
         do_ring_migration(socket_lock, old_key);
         return true;
     }

@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <mutex>
 #include <infiniband/verbs.h>
 
 #include "utils/bullseye.h"
@@ -497,7 +498,7 @@ struct ibv_mr *ib_ctx_handler::get_mem_reg(uint32_t lkey)
 
 uint32_t ib_ctx_handler::user_mem_reg(void *addr, size_t length, uint64_t access)
 {
-    auto_unlocker lock(m_lock_umr);
+    std::lock_guard<decltype(m_lock_umr)> lock(m_lock_umr);
     uint32_t lkey;
 
     auto iter = m_user_mem_lkey_map.find(addr);

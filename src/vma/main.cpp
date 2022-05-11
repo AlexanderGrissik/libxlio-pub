@@ -982,7 +982,7 @@ static size_t calc_rx_wqe_buff_size()
 static void do_global_ctors_helper()
 {
     static lock_spin_recursive g_globals_lock;
-    auto_unlocker lock(g_globals_lock);
+    std::lock_guard<decltype(g_globals_lock)> lock(g_globals_lock);
 
     if (g_init_global_ctors_done) {
         return;

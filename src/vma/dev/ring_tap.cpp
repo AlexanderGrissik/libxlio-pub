@@ -235,7 +235,7 @@ void ring_tap::tap_destroy()
 
 bool ring_tap::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool force_5t)
 {
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
     bool ret = ring_slave::attach_flow(flow_spec_5t, sink, force_5t);
 
     if (ret && (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc())) {
@@ -256,7 +256,7 @@ bool ring_tap::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool f
 
 bool ring_tap::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 {
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
     bool ret = ring_slave::detach_flow(flow_spec_5t, sink);
 
     if (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc()) {
@@ -338,7 +338,7 @@ void ring_tap::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
     compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
                         attr & VMA_TX_PACKET_L4_CSUM);
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr);
     send_status_handler(ret, p_send_wqe);
 }
@@ -351,7 +351,7 @@ int ring_tap::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
     compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
                         attr & VMA_TX_PACKET_L4_CSUM);
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr);
     send_status_handler(ret, p_send_wqe);
     return ret;
@@ -422,7 +422,7 @@ int ring_tap::process_element_rx(void *pv_fd_ready_array)
     int ret = 0;
 
     if (m_tap_data_available) {
-        auto_unlocker lock(m_lock_ring_rx);
+        std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
         if (m_rx_pool.size() || request_more_rx_buffers()) {
             mem_buf_desc_t *buff = m_rx_pool.get_and_pop_front();
             ret = orig_os_api.read(m_tap_fd, buff->p_buffer, buff->sz_buffer);
@@ -515,7 +515,7 @@ inline void ring_tap::return_to_global_pool()
 
 void ring_tap::mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc)
 {
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
     int count = 0;
 

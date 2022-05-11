@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <mutex>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -241,7 +242,7 @@ netlink_wrapper::~netlink_wrapper()
 
 int netlink_wrapper::open_channel()
 {
-    auto_unlocker lock(m_cache_lock);
+    std::lock_guard<decltype(m_cache_lock)> lock(m_cache_lock);
     nl_logdbg("opening netlink channel");
 
     /*
@@ -333,7 +334,7 @@ int netlink_wrapper::open_channel()
 
 int netlink_wrapper::get_channel()
 {
-    auto_unlocker lock(m_cache_lock);
+    std::lock_guard<decltype(m_cache_lock)> lock(m_cache_lock);
     if (m_socket_handle) {
         return nl_socket_get_fd(m_socket_handle);
     } else {
@@ -343,7 +344,7 @@ int netlink_wrapper::get_channel()
 
 int netlink_wrapper::handle_events()
 {
-    m_cache_lock.lock();
+    std::lock_guard<decltype(m_cache_lock)> lock(m_cache_lock);
 
     nl_logfine("--->handle_events");
 
@@ -351,7 +352,6 @@ int netlink_wrapper::handle_events()
     if (!m_socket_handle) {
         nl_logerr(
             "Cannot handle events before opening the channel. please call first open_channel()");
-        m_cache_lock.unlock();
         return -1;
     }
     BULLSEYE_EXCLUDE_BLOCK_END
@@ -366,14 +366,12 @@ int netlink_wrapper::handle_events()
 
     nl_logfine("<---handle_events");
 
-    m_cache_lock.unlock();
-
     return n;
 }
 
 bool netlink_wrapper::register_event(e_netlink_event_type type, const observer *new_obs)
 {
-    auto_unlocker lock(m_subj_map_lock);
+    std::lock_guard<decltype(m_subj_map_lock)> lock(m_subj_map_lock);
     subject *sub;
     auto iter = m_subjects_map.find(type);
     if (iter == m_subjects_map.end()) {
@@ -388,7 +386,7 @@ bool netlink_wrapper::register_event(e_netlink_event_type type, const observer *
 
 bool netlink_wrapper::unregister(e_netlink_event_type type, const observer *obs)
 {
-    auto_unlocker lock(m_subj_map_lock);
+    std::lock_guard<decltype(m_subj_map_lock)> lock(m_subj_map_lock);
     if (obs == NULL) {
         return false;
     }
@@ -403,7 +401,7 @@ bool netlink_wrapper::unregister(e_netlink_event_type type, const observer *obs)
 
 int netlink_wrapper::get_neigh(const char *ipaddr, int ifindex, netlink_neigh_info *new_neigh_info)
 {
-    auto_unlocker lock(m_cache_lock);
+    std::lock_guard<decltype(m_cache_lock)> lock(m_cache_lock);
     nl_logfine("--->netlink_listener::get_neigh");
     nl_object *obj;
     rtnl_neigh *neigh;
@@ -444,14 +442,12 @@ int netlink_wrapper::get_neigh(const char *ipaddr, int ifindex, netlink_neigh_in
 
 void netlink_wrapper::neigh_timer_expired()
 {
-    m_cache_lock.lock();
+    std::lock_guard<decltype(m_cache_lock)> lock(m_cache_lock);
 
     nl_logfine("--->netlink_wrapper::neigh_timer_expired");
     nl_cache_refill(m_socket_handle, m_cache_neigh);
     notify_neigh_cache_entries();
     nl_logfine("<---netlink_wrapper::neigh_timer_expired");
-
-    m_cache_lock.unlock();
 }
 
 void netlink_wrapper::notify_neigh_cache_entries()

@@ -104,7 +104,7 @@ bool ring_bond::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool 
     bool ret = true;
     struct flow_sink_t value = {flow_spec_5t, sink};
 
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
 
     /* Map flow in local map */
     m_rx_flows.push_back(value);
@@ -122,7 +122,7 @@ bool ring_bond::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
     bool ret = true;
     struct flow_sink_t value = {flow_spec_5t, sink};
 
-    auto_unlocker lock(m_lock_ring_rx);
+    std::lock_guard<decltype(m_lock_ring_rx)> lock(m_lock_ring_rx);
 
     std::vector<struct flow_sink_t>::iterator iter;
     for (iter = m_rx_flows.begin(); iter != m_rx_flows.end(); iter++) {
@@ -364,7 +364,7 @@ mem_buf_desc_t *ring_bond::mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_
 {
     mem_buf_desc_t *ret = NULL;
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     ret = m_xmit_rings[id]->mem_buf_tx_get(id, b_block, type, n_num_mem_bufs);
 
     return ret;
@@ -377,7 +377,7 @@ int ring_bond::mem_buf_tx_release(mem_buf_desc_t *p_mem_buf_desc_list, bool b_ac
     int ret = 0;
     uint32_t i = 0;
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
     memset(buffer_per_ring, 0, sizeof(buffer_per_ring));
     ret = devide_buffers_helper(p_mem_buf_desc_list, buffer_per_ring);
@@ -415,7 +415,7 @@ void ring_bond::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)(p_send_wqe->wr_id);
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
     if (is_active_member(p_mem_buf_desc->p_desc_owner, id)) {
         m_xmit_rings[id]->send_ring_buffer(id, p_send_wqe, attr);
@@ -436,7 +436,7 @@ int ring_bond::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)(p_send_wqe->wr_id);
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
     if (is_active_member(p_mem_buf_desc->p_desc_owner, id)) {
         return m_xmit_rings[id]->send_lwip_buffer(id, p_send_wqe, attr, tis);
@@ -456,7 +456,7 @@ bool ring_bond::get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *p_
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)(p_send_wqe->wr_id);
 
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
     if (is_active_member(p_mem_buf_desc->p_desc_owner, id)) {
         return m_xmit_rings[id]->get_hw_dummy_send_support(id, p_send_wqe);
@@ -618,7 +618,7 @@ int ring_bond::request_notification(cq_type_t cq_type, uint64_t poll_sn)
 
 void ring_bond::inc_tx_retransmissions_stats(ring_user_id_t id)
 {
-    auto_unlocker lock(m_lock_ring_tx);
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     m_xmit_rings[id]->inc_tx_retransmissions_stats(id);
 }
 

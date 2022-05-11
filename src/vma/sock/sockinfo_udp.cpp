@@ -520,7 +520,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         return -1; // zero returned from orig_connect()
     }
 
-    auto_unlocker _lock(m_lock_snd);
+    std::lock_guard<decltype(m_lock_snd)> _lock(m_lock_snd);
 
     const ip_address &dst_ipaddr = connect_to.get_ip_addr();
     in_port_t dst_port = connect_to.get_in_port();
@@ -636,7 +636,7 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
         return 0;
     }
 
-    auto_unlocker _lock(m_lock_rcv);
+    std::lock_guard<decltype(m_lock_rcv)> _lock(m_lock_rcv);
     bool is_bound_modified = false;
 
     // Check & Save bind port info
@@ -694,8 +694,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         return orig_os_api.setsockopt(m_fd, __level, __optname, __optval, __optlen);
     }
 
-    auto_unlocker lock_tx(m_lock_snd);
-    auto_unlocker lock_rx(m_lock_rcv);
+    std::lock_guard<decltype(m_lock_snd)> lock_tx(m_lock_snd);
+    std::lock_guard<decltype(m_lock_rcv)> lock_rx(m_lock_rcv);
 
     int ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen);
     if (ret != SOCKOPT_PASS_TO_OS) {
@@ -1220,8 +1220,8 @@ int sockinfo_udp::getsockopt(int __level, int __optname, void *__optval, socklen
         return 0;
     }
 
-    auto_unlocker lock_tx(m_lock_snd);
-    auto_unlocker lock_rx(m_lock_rcv);
+    std::lock_guard<decltype(m_lock_snd)> lock_tx(m_lock_snd);
+    std::lock_guard<decltype(m_lock_rcv)> lock_rx(m_lock_rcv);
 
     bool supported = true;
     switch (__level) {
@@ -1812,7 +1812,7 @@ int sockinfo_udp::rx_verify_available_data()
 
     // Don't poll cq if offloaded data is ready
     if (!m_rx_pkt_ready_list.empty()) {
-        auto_unlocker locker(m_lock_rcv);
+        std::lock_guard<decltype(m_lock_rcv)> locker(m_lock_rcv);
         if (!m_rx_pkt_ready_list.empty()) {
             return m_rx_pkt_ready_list.front()->rx.sz_payload;
         }
@@ -1822,7 +1822,7 @@ int sockinfo_udp::rx_verify_available_data()
 
     if (ret == 0) {
         // Got 0, means we might have a ready packet
-        auto_unlocker locker(m_lock_rcv);
+        std::lock_guard<decltype(m_lock_rcv)> locker(m_lock_rcv);
         if (!m_rx_pkt_ready_list.empty()) {
             ret = m_rx_pkt_ready_list.front()->rx.sz_payload;
         }

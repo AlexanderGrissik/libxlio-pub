@@ -33,6 +33,7 @@
 #ifndef CACHE_SUBJECT_OBSERVER_H
 #define CACHE_SUBJECT_OBSERVER_H
 
+#include <mutex>
 #include <stdio.h>
 #include <unordered_map>
 #include "vlogger/vlogger.h"
@@ -95,7 +96,7 @@ protected:
 
     inline void set_val(IN Val &val)
     {
-        auto_unlocker lock(m_lock);
+        std::lock_guard<decltype(m_lock)> lock(m_lock);
         m_val = val;
     };
 
@@ -163,7 +164,7 @@ cache_entry_subject<Key, Val>::cache_entry_subject(
 
 template <typename Key, typename Val> int cache_entry_subject<Key, Val>::get_observers_count()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     return (m_observers.size());
 }
 
@@ -198,7 +199,7 @@ void cache_table_mgr<Key, Val>::try_to_remove_cache_entry(
 template <typename Key, typename Val> void cache_table_mgr<Key, Val>::run_garbage_collector()
 {
     __log_dbg("");
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     for (auto cache_itr = m_cache_tbl.begin(); cache_itr != m_cache_tbl.end();) {
         auto cache_itr_tmp = cache_itr;
         ++cache_itr_tmp;
@@ -246,7 +247,7 @@ bool cache_table_mgr<Key, Val>::register_observer(IN const Key &key,
 
     cache_entry_subject<Key, Val> *my_cache_entry;
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (!m_cache_tbl.count(key)) {
         // Create new entry and insert it to the table
         my_cache_entry = create_new_entry(key, new_observer);
@@ -276,7 +277,7 @@ bool cache_table_mgr<Key, Val>::unregister_observer(IN Key key,
         return false;
     }
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     typename std::unordered_map<Key, cache_entry_subject<Key, Val> *>::iterator cache_itr =
         m_cache_tbl.find(key);
@@ -306,7 +307,7 @@ cache_entry_subject<Key, Val> *cache_table_mgr<Key, Val>::get_entry(Key key)
 
 template <typename Key, typename Val> void cache_table_mgr<Key, Val>::print_tbl()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     typename std::unordered_map<Key, cache_entry_subject<Key, Val> *>::iterator cache_itr =
         m_cache_tbl.begin();
     if (cache_itr != m_cache_tbl.end()) {

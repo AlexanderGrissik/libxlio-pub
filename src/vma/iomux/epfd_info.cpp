@@ -853,13 +853,13 @@ void epfd_info::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
 void epfd_info::set_os_data_available()
 {
-    auto_unlocker locker(m_lock_poll_os);
+    std::lock_guard<decltype(m_lock_poll_os)> locker(m_lock_poll_os);
     m_b_os_data_available = true;
 }
 
 void epfd_info::register_to_internal_thread()
 {
-    auto_unlocker locker(m_lock_poll_os);
+    std::lock_guard<decltype(m_lock_poll_os)> locker(m_lock_poll_os);
     m_b_os_data_available = false;
 
     // Reassign EPOLLIN event
@@ -869,7 +869,7 @@ void epfd_info::register_to_internal_thread()
 
 bool epfd_info::get_and_unset_os_data_available()
 {
-    auto_unlocker locker(m_lock_poll_os);
+    std::lock_guard<decltype(m_lock_poll_os)> locker(m_lock_poll_os);
     bool ret = m_b_os_data_available;
     m_b_os_data_available = false;
     return ret;

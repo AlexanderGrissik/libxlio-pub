@@ -82,7 +82,7 @@ inline int neigh_eth::build_mc_neigh_val()
     neigh_logdbg("");
 
     // We need lock in any case that we change entry
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     m_state = false;
 
@@ -120,7 +120,7 @@ inline int neigh_eth::build_uc_neigh_val()
     neigh_logdbg("");
 
     // We need lock in any case that we change entry
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     if (m_val == NULL) {
         // This is the first time we are trying to allocate new val or it failed last time
@@ -286,7 +286,7 @@ void neigh_entry::clean_obj()
 int neigh_entry::send(neigh_send_info &s_info)
 {
     neigh_logdbg("");
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     // Need to copy send info
     neigh_send_data *ns_data = new neigh_send_data(&s_info);
 
@@ -302,7 +302,7 @@ int neigh_entry::send(neigh_send_info &s_info)
 void neigh_entry::empty_unsent_queue()
 {
     neigh_logdbg("");
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     while (!m_unsent_queue.empty()) {
         neigh_send_data *n_send_data = m_unsent_queue.front();
@@ -670,7 +670,7 @@ bool neigh_entry::get_peer_info(neigh_val *p_val)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (m_state) {
         neigh_logdbg("There is a valid val");
         *p_val = *m_val;
@@ -740,7 +740,7 @@ void neigh_entry::handle_neigh_event(neigh_nl_event *nl_ev)
          * else need to check that the new l2 address is equal to the old one
          * if not equal this is a remote bonding event - issue an EV_ERROR
          */
-        auto_unlocker lock(m_lock);
+        std::lock_guard<decltype(m_lock)> lock(m_lock);
         // This if and priv_handle_neigh_ha_event should be done under lock
         if (m_state_machine->get_curr_state() != ST_READY) {
             // This is new entry
@@ -1102,7 +1102,7 @@ int neigh_entry::priv_enter_init_resolution()
 // Private enter function for SOLICIT_SEND state
 int neigh_entry::priv_enter_solicit_send()
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     priv_unregister_timer();
     send_discovery_request();
@@ -1117,7 +1117,7 @@ int neigh_entry::priv_enter_addr_resolved()
 {
     neigh_logfunc("");
 
-    m_lock.lock();
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     int state = 0;
     if (!priv_get_neigh_state(state) || !priv_is_reachable(state)) {
@@ -1125,13 +1125,11 @@ int neigh_entry::priv_enter_addr_resolved()
         send_discovery_request();
         m_timer_handle = priv_register_timer_event(m_n_sysvar_neigh_wait_till_send_arp_msec, this,
                                                    ONE_SHOT_TIMER, NULL);
-        m_lock.unlock();
         return 0;
     } else {
         event_handler(EV_ARP_RESOLVED);
     }
 
-    m_lock.unlock();
     return 0;
 }
 
@@ -1140,7 +1138,7 @@ void neigh_entry::priv_enter_not_active()
 {
     neigh_logfunc("");
 
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     m_state = false;
 
@@ -1194,7 +1192,7 @@ void neigh_entry::priv_enter_error()
     // We don't want to do it under neigh lock - can cause dead lock with prepare_to_send() of dst
     notify_observers(NULL);
 
-    m_lock.lock();
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     // If unsent queue is not empty we will try to KICK START the connection, but only once
     if (!m_unsent_queue.empty() && (m_err_counter < m_n_sysvar_neigh_num_err_retries)) {
         neigh_logdbg("unsent_queue is not empty calling KICK_START");
@@ -1205,14 +1203,13 @@ void neigh_entry::priv_enter_error()
         m_err_counter = 0;
         event_handler(EV_ERROR);
     }
-    m_lock.unlock();
 }
 
 // Private enter function for READY state
 int neigh_entry::priv_enter_ready()
 {
     neigh_logfunc("");
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
 
     m_state = true;
     empty_unsent_queue();
@@ -1300,12 +1297,11 @@ void *neigh_entry::priv_register_timer_event(int timeout_msec, timer_handler *ha
                                              timer_req_type_t req_type, void *user_data)
 {
     void *_timer_handler = NULL;
-    m_lock.lock();
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     if (!is_cleaned()) {
         _timer_handler = g_p_event_handler_manager->register_timer_event(timeout_msec, handler,
                                                                          req_type, user_data);
     }
-    m_lock.unlock();
     return _timer_handler;
 }
 
@@ -1405,7 +1401,7 @@ bool neigh_eth::get_peer_info(neigh_val *p_val)
 {
     neigh_logfunc("calling neigh_eth get_peer_info");
     if (m_type == MC) {
-        auto_unlocker lock(m_lock);
+        std::lock_guard<decltype(m_lock)> lock(m_lock);
         if (m_state) {
             *p_val = *m_val;
             return true;
@@ -1428,7 +1424,7 @@ bool neigh_eth::register_observer(const observer *const new_observer)
     // In case of ETH Multicast we should change neigh_entry register_observer behavior
     if (m_type == MC) {
         if (subject::register_observer(new_observer)) {
-            auto_unlocker lock(m_lock);
+            std::lock_guard<decltype(m_lock)> lock(m_lock);
             if (!m_state) {
                 // Try to build it again
                 build_mc_neigh_val();
@@ -1470,7 +1466,7 @@ int neigh_eth::priv_enter_init_resolution()
 
 bool neigh_eth::priv_handle_neigh_is_l2_changed(address_t new_l2_address_str)
 {
-    auto_unlocker lock(m_lock);
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
     ETH_addr new_l2_address(new_l2_address_str);
     if (m_val) {
         if (m_val->get_l2_address()) {
