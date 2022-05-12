@@ -44,7 +44,6 @@
 #include "vma/lwip/opt.h"
 
 #include "vma/lwip/tcp_impl.h"
-#include "vma/lwip/stats.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -122,7 +121,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
     err_t err;
     tcp_in_data in_data;
 
-    TCP_STATS_INC(tcp.recv);
     fill_parsed_ip_hdr(p->payload, &in_data.iphdr);
 
     /* Trim pbuf. This should have been done at the netif layer,
@@ -134,8 +132,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
         || (p->tot_len < sizeof(struct tcp_hdr))) {
         /* drop short packets */
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet (%"U16_F" bytes) discarded\n", (u16_t)p->tot_len));
-        TCP_STATS_INC(tcp.lenerr);
-        TCP_STATS_INC(tcp.drop);
         pbuf_free(p);
         return;
     }
@@ -149,8 +145,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
     if(pbuf_header(p, -(hdrlen * 4))){
         /* drop short packets */
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet\n"));
-        TCP_STATS_INC(tcp.lenerr);
-        TCP_STATS_INC(tcp.drop);
         pbuf_free(p);
         return;
     }
@@ -202,7 +196,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 					/* if err == ERR_ABRT, 'pcb' is already deallocated */
 					/* drop incoming packets, because pcb is "full" */
 					LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: drop incoming packets, because pcb is \"full\"\n"));
-					TCP_STATS_INC(tcp.drop);;
 					pbuf_free(p);
 					return;
 				}
@@ -325,8 +318,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
            sender. */
         LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_input: no PCB match found, resetting.\n"));
         if (!(TCPH_FLAGS(in_data.tcphdr) & TCP_RST)) {
-            TCP_STATS_INC(tcp.proterr);
-            TCP_STATS_INC(tcp.drop);
             tcp_rst(in_data.ackno, in_data.seqno + in_data.tcplen, in_data.tcphdr->dest,
             		in_data.tcphdr->src, pcb);
         }
@@ -373,7 +364,6 @@ tcp_listen_input(struct tcp_pcb *pcb, tcp_in_data* in_data)
        SYN at a time when we have more memory available. */
     if (npcb == NULL) {
       LWIP_DEBUGF(TCP_DEBUG, ("tcp_listen_input: could not allocate PCB\n"));
-      TCP_STATS_INC(tcp.memerr);
       return;
     }
 

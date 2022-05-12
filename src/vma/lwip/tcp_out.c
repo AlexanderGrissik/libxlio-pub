@@ -41,7 +41,6 @@
 #include "vma/lwip/opt.h"
 
 #include "vma/lwip/tcp_impl.h"
-#include "vma/lwip/stats.h"
 
 #include <string.h>
 #include <errno.h>
@@ -216,7 +215,6 @@ tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u8_t flags, u32_t seqno,
   /* build TCP header */
   if (pbuf_header(p, TCP_HLEN)) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("tcp_create_segment: no room for TCP header in pbuf.\n"));
-    TCP_STATS_INC(tcp.err);
     /* Note: this call frees the input pbuf, that might cause problems. */
     tcp_tx_seg_free(pcb, seg);
     return NULL;
@@ -320,7 +318,6 @@ tcp_write_checks(struct tcp_pcb *pcb, u32_t len)
   if ((pcb->snd_queuelen >= pcb->max_unsent_len) || (pcb->snd_queuelen > TCP_SNDQUEUELEN_OVERFLOW)) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 3, ("tcp_write: too long queue %"U32_F" (max %"U32_F")\n",
       pcb->snd_queuelen, pcb->max_unsent_len));
-    TCP_STATS_INC(tcp.memerr);
     pcb->flags |= TF_NAGLEMEMERR;
     return ERR_MEM;
   }
@@ -719,7 +716,6 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags, pbuf_
   return ERR_OK;
 memerr:
   pcb->flags |= TF_NAGLEMEMERR;
-  TCP_STATS_INC(tcp.memerr);
 
   if (concat_p != NULL) {
     tcp_tx_pbuf_free(pcb, concat_p);
@@ -763,7 +759,6 @@ tcp_enqueue_flags(struct tcp_pcb *pcb, u8_t flags)
 		  ((flags & TCP_FIN) == 0)) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 3, ("tcp_enqueue_flags: too long queue %"U16_F" (max %"U16_F")\n",
                                        pcb->snd_queuelen, pcb->max_unsent_len));
-    TCP_STATS_INC(tcp.memerr);
     pcb->flags |= TF_NAGLEMEMERR;
     return ERR_MEM;
   }
@@ -796,14 +791,12 @@ tcp_enqueue_flags(struct tcp_pcb *pcb, u8_t flags)
 
   /*if (pcb->snd_buf == 0) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 3, ("tcp_enqueue_flags: no send buffer available\n"));
-    TCP_STATS_INC(tcp.memerr);
     return ERR_MEM;
   }*/ //to consider snd_buf for syn or fin, unmarked sections with SND_BUF_FOR_SYN_FIN
 
   /* Allocate pbuf with room for TCP header + options */
   if ((p = tcp_tx_pbuf_alloc(pcb, optlen, PBUF_RAM, NULL, NULL)) == NULL) {
     pcb->flags |= TF_NAGLEMEMERR;
-    TCP_STATS_INC(tcp.memerr);
     return ERR_MEM;
   }
   LWIP_ASSERT("tcp_enqueue_flags: check that first pbuf can hold optlen",
@@ -812,7 +805,6 @@ tcp_enqueue_flags(struct tcp_pcb *pcb, u8_t flags)
   /* Allocate memory for tcp_seg, and fill in fields. */
   if ((seg = tcp_create_segment(pcb, p, flags, pcb->snd_lbb, optflags)) == NULL) {
     pcb->flags |= TF_NAGLEMEMERR;
-    TCP_STATS_INC(tcp.memerr);
     tcp_tx_pbuf_free(pcb, p);
     return ERR_MEM;
   }
@@ -1902,8 +1894,6 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
     p = seg->p;
   }
 
-  TCP_STATS_INC(tcp.xmit);
-
   u16_t flags = 0;
   flags |= seg->flags & TF_SEG_OPTS_DUMMY_MSG;
   flags |= seg->flags & TF_SEG_OPTS_TSO;
@@ -1963,7 +1953,6 @@ tcp_rst(u32_t seqno, u32_t ackno, u16_t local_port, u16_t remote_port, struct tc
   tcphdr->chksum = 0;
   tcphdr->urgp = 0;
 
-  TCP_STATS_INC(tcp.xmit);
   pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
   LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_rst: seqno %"U32_F" ackno %"U32_F".\n", seqno, ackno));
@@ -2144,8 +2133,6 @@ tcp_keepalive(struct tcp_pcb *pcb)
   }
 #endif
 
-  TCP_STATS_INC(tcp.xmit);
-
   /* Send output to IP */
   pcb->ip_output(p, NULL, pcb, 0);
   tcp_tx_pbuf_free(pcb, p);
@@ -2242,8 +2229,6 @@ tcp_zero_window_probe(struct tcp_pcb *pcb)
    if (TCP_SEQ_LT(pcb->snd_nxt, snd_nxt)) {
      pcb->snd_nxt = snd_nxt;
    }
-
-  TCP_STATS_INC(tcp.xmit);
 
   /* Send output to IP */
   pcb->ip_output(p, NULL, pcb, 0);

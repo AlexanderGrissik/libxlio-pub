@@ -45,7 +45,6 @@
 #include "vma/lwip/cc.h"
 #include "vma/lwip/tcp.h"
 #include "vma/lwip/tcp_impl.h"
-#include "vma/lwip/stats.h"
 
 #include <string.h>
 #include <sys/types.h>

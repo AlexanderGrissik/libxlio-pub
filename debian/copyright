@@ -57,7 +57,6 @@ Files: src/vma/lwip/def.h
  src/vma/lwip/opt.h
  src/vma/lwip/pbuf.c
  src/vma/lwip/pbuf.h
- src/vma/lwip/stats.h
  src/vma/lwip/tcp.c
  src/vma/lwip/tcp.h
  src/vma/lwip/tcp_impl.h

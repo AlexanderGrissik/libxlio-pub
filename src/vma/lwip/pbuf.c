@@ -63,9 +63,7 @@
 
 #include "vma/lwip/opt.h"
 
-#include "vma/lwip/stats.h"
 #include "vma/lwip/pbuf.h"
-
 
 #if TCP_QUEUE_OOSEQ
 #include "vma/lwip/tcp_impl.h"

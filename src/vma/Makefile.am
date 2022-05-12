@@ -229,7 +229,6 @@ libxlio_la_SOURCES := \
 	lwip/ip_addr.h \
 	lwip/opt.h \
 	lwip/pbuf.h \
-	lwip/stats.h \
 	lwip/tcp.h \
 	lwip/tcp_impl.h \
 	\
