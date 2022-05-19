@@ -253,7 +253,9 @@ PACK_STRUCT_END
 /* This structure represents a TCP segment on the unsent, unacked and ooseq queues */
 struct tcp_seg {
   struct tcp_seg *next;    /* used when putting segments on a queue */
+  struct tcp_hdr *tcphdr;  /* the TCP header */
   struct pbuf *p;          /* buffer containing data + TCP header */
+
   u32_t seqno;
   u32_t len;               /* the TCP length of this segment should allow >64K size */
 
@@ -271,15 +273,14 @@ struct tcp_seg {
 #define TF_SEG_OPTS_NOMERGE     (u8_t)0x40U /* Don't merge with other segments */
 #define TF_SEG_OPTS_ZEROCOPY    (u8_t)TCP_WRITE_ZEROCOPY /* Use zerocopy send mode */
 
-  struct tcp_hdr *tcphdr;  /* the TCP header */
-
   /* L2+L3+TCP header for zerocopy segments, it must have enough room for options
      This should have enough space for L2 (ETH+vLAN), L3 (IPv4/6), L4 (TCP)
-     L2 = 20: (6 for aligment, so IPv4 packet is 4 bytes aligned)
+     L2 = 20: (6 for alignment, so IPv4 packet is 4 bytes aligned)
      L3 = 20: for IPv4, 40 for IPv6 (Currently NO IP options are supported)
      L4 = 40: TCP + options.
+     XLIO requires header pointer to be aligned to 4 bytes boundary.
   */
-  u32_t l2_l3_tcphdr_zc[25] __attribute__ ((aligned (16)));
+  u32_t l2_l3_tcphdr_zc[25] __attribute__ ((aligned (4)));
 };
 
 #define LWIP_IS_DUMMY_SEGMENT(seg) (seg->flags & TF_SEG_OPTS_DUMMY_MSG)
