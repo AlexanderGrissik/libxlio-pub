@@ -72,6 +72,7 @@ union l2_hdr_template_t {
     vlan_eth_hdr_template_t vlan_eth_hdr;
 };
 
+#define FRAG_EXT_HLEN   8U
 #define L2_ALIGNED_HLEN 20U
 #define UDP_HLEN        8U
 #ifndef TCP_HLEN

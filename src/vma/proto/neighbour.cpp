@@ -482,7 +482,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
             uint16_t frag_off = 0;
             if (n_num_frags) {
-                frag_off |= MORE_FRAGMENTS_FLAG;
+                frag_off |= MORE_FRAGMENTS_FLAG_IPV4;
             }
 
             if (n_ip_frag_offset == 0) {
@@ -497,7 +497,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
                 reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
             } else {
                 h->copy_l2_ip_hdr(p_pkt);
-                frag_off |= FRAGMENT_OFFSET & (n_ip_frag_offset / 8);
+                frag_off |= FRAGMENT_OFFSET_IPV4 & (n_ip_frag_offset / 8);
             }
 
             reinterpret_cast<iphdr *>(p_ip_hdr)->frag_off = htons(frag_off);
