@@ -224,6 +224,11 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
             if (protocol == IPPROTO_UDP) {
                 struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
                 l4_checksum = udp_hdr->check = 0;
+                if (!is_ipv4) {
+                    // TODO: fix bug #3079802
+                    __log_err(
+                        "Wrong transmitted UDP checksum, expect packet to drop on receiver...");
+                }
             } else if (protocol == IPPROTO_TCP) {
                 struct tcphdr *tcp_hdr = p_mem_buf_desc->tx.p_tcp_h;
                 const uint16_t *tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);

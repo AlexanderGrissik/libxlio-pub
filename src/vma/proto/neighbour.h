@@ -304,7 +304,10 @@ private:
     event_t rdma_event_mapping(struct rdma_cm_event *p_event);
     void empty_unsent_queue();
     bool post_send_packet(neigh_send_data *n_send_data);
-    bool post_send_udp(neigh_send_data *n_send_data);
+    bool post_send_udp_ipv4(neigh_send_data *n_send_data);
+    bool post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data);
+    bool post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, size_t sz_udp_payload,
+                                       size_t max_ip_payload_size);
     bool post_send_tcp(neigh_send_data *n_send_data);
 };
 

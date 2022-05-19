@@ -402,8 +402,28 @@ bool neigh_entry::post_send_packet(neigh_send_data *p_n_send_data)
     neigh_logdbg("ENTER post_send_packet protocol = %d", p_n_send_data->m_protocol);
     m_id = generate_ring_user_id(p_n_send_data->m_header);
     switch (p_n_send_data->m_protocol) {
-    case IPPROTO_UDP:
-        return (post_send_udp(p_n_send_data));
+    case IPPROTO_UDP: {
+        // Assume a single iovec. If changed - see send_data::send_data
+        size_t sz_data_payload = p_n_send_data->m_iov.iov_len;
+        if (unlikely(sz_data_payload > 65536)) {
+            neigh_logdbg("sz_data_payload=%zd exceeds max of 64KB", sz_data_payload);
+            return false;
+        }
+
+        if (get_family() == AF_INET6) {
+            // Calc udp payload size
+            size_t sz_udp_payload = sz_data_payload + sizeof(struct udphdr);
+            size_t max_ip_payload_size = ((p_n_send_data->m_mtu - IPV6_HLEN) & ~0x7);
+            if (sz_udp_payload <= max_ip_payload_size) {
+                return post_send_udp_ipv6_not_fragmented(p_n_send_data);
+            } else {
+                return post_send_udp_ipv6_fragmented(p_n_send_data, sz_udp_payload,
+                                                     max_ip_payload_size);
+            }
+        } else {
+            return post_send_udp_ipv4(p_n_send_data);
+        }
+    }
     case IPPROTO_TCP:
         return (post_send_tcp(p_n_send_data));
     default:
@@ -412,10 +432,10 @@ bool neigh_entry::post_send_packet(neigh_send_data *p_n_send_data)
     }
 }
 
-bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
+bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
 {
     // Find number of ip fragments (-> packets, buffers, buffer descs...)
-    neigh_logdbg("ENTER post_send_udp");
+    neigh_logdbg("ENTER post_send_udp_ipv4");
     int n_num_frags = 1;
     bool b_need_sw_csum = false;
 #ifdef DEFINED_SW_CSUM
@@ -428,7 +448,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
     size_t sz_data_payload = n_send_data->m_iov.iov_len;
     header *h = n_send_data->m_header;
 
-    size_t max_ip_payload_size = ((n_send_data->m_mtu - sizeof(struct iphdr)) & ~0x7);
+    size_t max_ip_payload_size = ((n_send_data->m_mtu - IP_HLEN) & ~0x7);
 
     if (sz_data_payload > 65536) {
         neigh_logdbg("sz_data_payload=%zd exceeds max of 64KB", sz_data_payload);
@@ -470,41 +490,32 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
 
         uint32_t id = 0;
         uint16_t payload_length = htons(h->m_ip_header_len + sz_ip_frag);
-        if (get_family() == AF_INET6) {
-            fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
-            // TODO: udp fragmented
-            neigh_logerr("IPv6 fragmentation currently not supported");
-            m_p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
-            errno = EINVAL;
-            return false;
-        } else {
-            fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
+        fill_hdrs<tx_ipv4_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
 
-            uint16_t frag_off = 0;
-            if (n_num_frags) {
-                frag_off |= MORE_FRAGMENTS_FLAG_IPV4;
-            }
-
-            if (n_ip_frag_offset == 0) {
-                h->copy_l2_ip_udp_hdr(p_pkt);
-                // Add count of udp header length
-                hdr_len += UDP_HLEN;
-
-                // Copy less from user data
-                sz_user_data_to_copy -= UDP_HLEN;
-
-                // Only for first fragment add the udp header
-                reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
-            } else {
-                h->copy_l2_ip_hdr(p_pkt);
-                frag_off |= FRAGMENT_OFFSET_IPV4 & (n_ip_frag_offset / 8);
-            }
-
-            reinterpret_cast<iphdr *>(p_ip_hdr)->frag_off = htons(frag_off);
-            // Update ip header specific values
-            set_ipv4_len(p_ip_hdr, payload_length);
-            id = reinterpret_cast<iphdr *>(p_ip_hdr)->id;
+        uint16_t frag_off = 0;
+        if (n_num_frags) {
+            frag_off |= MORE_FRAGMENTS_FLAG_IPV4;
         }
+
+        if (n_ip_frag_offset == 0) {
+            h->copy_l2_ip_udp_hdr(p_pkt);
+            // Add count of udp header length
+            hdr_len += UDP_HLEN;
+
+            // Copy less from user data
+            sz_user_data_to_copy -= UDP_HLEN;
+
+            // Only for first fragment add the udp header
+            reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
+        } else {
+            h->copy_l2_ip_hdr(p_pkt);
+            frag_off |= FRAGMENT_OFFSET_IPV4 & (n_ip_frag_offset / 8);
+        }
+
+        reinterpret_cast<iphdr *>(p_ip_hdr)->frag_off = htons(frag_off);
+        // Update ip header specific values
+        set_ipv4_len(p_ip_hdr, payload_length);
+        id = reinterpret_cast<iphdr *>(p_ip_hdr)->id;
 
         // Calc payload start point (after the udp header if present else just after ip header)
         uint8_t *p_payload = p_mem_buf_desc->p_buffer + h->m_transport_header_tx_offset + hdr_len;
@@ -562,6 +573,221 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
         sz_user_data_offset += sz_user_data_to_copy;
 
     } // while(n_num_frags)
+
+    return true;
+}
+
+bool neigh_entry::post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, size_t sz_udp_payload,
+                                                size_t max_ip_payload_size)
+{
+    neigh_logdbg("ENTER post_send_udp_ipv6_fragmented");
+    uint16_t max_payload_size_per_packet = max_ip_payload_size - FRAG_EXT_HLEN;
+    int n_num_frags =
+        (sz_udp_payload + max_payload_size_per_packet - 1) / max_payload_size_per_packet;
+
+    mem_buf_desc_t *p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, n_num_frags);
+    if (unlikely(p_mem_buf_desc == NULL)) {
+        neigh_logdbg("Packet dropped. not enough tx buffers");
+        return false;
+    }
+
+    tx_ipv6_hdr_template_t *p_pkt;
+    ip6_hdr *p_ip_hdr;
+    udphdr *p_udp_hdr = nullptr;
+    ip6_frag *p_frag_h;
+    mem_buf_desc_t *tmp;
+    header *h = n_send_data->m_header;
+
+    bool first_frag = true;
+    uint32_t n_ip_frag_offset = 0;
+    size_t sz_user_data_offset = 0;
+
+    // fragmentation extension header - copy it to every fragment
+    // the only field that will change here is ip6f_offlg
+    ip6_frag frag_h;
+    frag_h.ip6f_ident = 0; // TODO: dont have id here...
+    frag_h.ip6f_nxt = IPPROTO_UDP;
+    frag_h.ip6f_offlg = IP6F_MORE_FRAG;
+    frag_h.ip6f_reserved = 0;
+
+    wqe_send_handler wqe_sh;
+    vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)(VMA_TX_SW_CSUM | VMA_TX_PACKET_L3_CSUM);
+    wqe_sh.disable_hw_csum(m_send_wqe);
+
+    while (n_num_frags--) {
+        // Calc this ip datagram fragment size (include any headers)
+        size_t sz_ip_frag =
+            std::min(max_ip_payload_size, (sz_udp_payload - n_ip_frag_offset + FRAG_EXT_HLEN));
+        size_t sz_user_data_to_copy = sz_ip_frag - FRAG_EXT_HLEN;
+        size_t hdr_len = h->m_transport_header_len +
+            h->m_ip_header_len + // Add count of L2 (ipoib or mac) header length
+            FRAG_EXT_HLEN; // Add count of fragmentation header length
+
+        p_pkt = reinterpret_cast<tx_ipv6_hdr_template_t *>(p_mem_buf_desc->p_buffer);
+
+        if (first_frag) {
+            get_ipv6_hdrs_frag_ext_udp_ptr(p_pkt, p_ip_hdr, p_frag_h, p_udp_hdr);
+        } else {
+            get_ipv6_hdrs_frag_ext_ptr(p_pkt, p_ip_hdr, p_frag_h);
+        }
+
+        h->copy_l2_ip_hdr(p_pkt);
+
+        memcpy(p_frag_h, &frag_h, sizeof(ip6_frag));
+        if (n_num_frags == 0) {
+            p_frag_h->ip6f_offlg &= ~IP6F_MORE_FRAG;
+        }
+        // offset should be << 3, but need to devide by 8, so no need to change n_ip_frag_offset
+        p_frag_h->ip6f_offlg |= htons(FRAGMENT_OFFSET_IPV6 & n_ip_frag_offset);
+
+        p_ip_hdr->ip6_nxt = IPPROTO_FRAGMENT;
+        p_ip_hdr->ip6_plen = htons(sz_ip_frag);
+
+        if (first_frag) {
+            memcpy(p_udp_hdr, h->get_udp_hdr(), sizeof(udphdr));
+
+            // Add count of udp header length
+            hdr_len += UDP_HLEN;
+
+            // Copy less from user data
+            sz_user_data_to_copy -= UDP_HLEN;
+
+            // Only for first fragment add the udp header
+            p_udp_hdr->len = htons((uint16_t)sz_udp_payload);
+
+            // temporary sum of the entire payload
+            // final checksum is calculated by attr VMA_TX_PACKET_L4_CSUM
+            p_udp_hdr->check = calc_sum_of_payload(&n_send_data->m_iov, 1);
+            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM);
+        } else {
+            attr = (vma_wr_tx_packet_attr)(attr & ~VMA_TX_PACKET_L4_CSUM);
+        }
+
+        // Calc payload start point (after the udp header if present else just after ip header)
+        uint8_t *p_payload = p_mem_buf_desc->p_buffer + h->m_transport_header_tx_offset + hdr_len;
+
+        // Copy user data to our tx buffers
+        int ret = memcpy_fromiovec(p_payload, &n_send_data->m_iov, 1, sz_user_data_offset,
+                                   sz_user_data_to_copy);
+        BULLSEYE_EXCLUDE_BLOCK_START
+        if (ret != (int)sz_user_data_to_copy) {
+            neigh_logerr("memcpy_fromiovec error (sz_user_data_to_copy=%zd, ret=%d)",
+                         sz_user_data_to_copy, ret);
+            m_p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
+            errno = EINVAL;
+            return false;
+        }
+        BULLSEYE_EXCLUDE_BLOCK_END
+
+        p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
+        p_mem_buf_desc->tx.p_udp_h = p_udp_hdr;
+
+        m_sge.addr =
+            (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h->m_transport_header_tx_offset);
+        m_sge.length = sz_user_data_to_copy + hdr_len;
+        m_sge.lkey = m_p_ring->get_tx_lkey(m_id);
+        m_send_wqe.wr_id = reinterpret_cast<uintptr_t>(p_mem_buf_desc);
+
+        neigh_logdbg("packet_sz=%d, payload_sz=%zd, ip_offset=%d id=%d",
+                     m_sge.length - h->m_transport_header_len, sz_user_data_to_copy,
+                     n_ip_frag_offset, ntohl(frag_h.ip6f_ident));
+
+        tmp = p_mem_buf_desc->p_next_desc;
+        p_mem_buf_desc->p_next_desc = NULL;
+
+        // We don't check the return value of post send when we reach the HW we consider that we
+        // completed our job
+        m_p_ring->send_ring_buffer(m_id, &m_send_wqe, attr);
+
+        p_mem_buf_desc = tmp;
+
+        // Update ip frag offset position
+        n_ip_frag_offset += sz_ip_frag - FRAG_EXT_HLEN;
+
+        // Update user data start offset copy location
+        sz_user_data_offset += sz_user_data_to_copy;
+
+        first_frag = false;
+    } // while(n_num_frags)
+
+    return true;
+}
+
+bool neigh_entry::post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data)
+{
+    neigh_logdbg("ENTER post_send_udp_ipv6_not_fragmented");
+    mem_buf_desc_t *p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM);
+    if (unlikely(p_mem_buf_desc == NULL)) {
+        neigh_logdbg("Packet dropped. not enough tx buffers");
+        return false;
+    }
+
+    bool b_need_sw_csum = false;
+#ifdef DEFINED_SW_CSUM
+    b_need_sw_csum = true;
+#endif
+
+    void *p_pkt;
+    void *p_ip_hdr;
+    void *p_udp_hdr;
+
+    header *h = n_send_data->m_header;
+    size_t sz_data_payload = n_send_data->m_iov.iov_len;
+    neigh_logdbg("post_send_udp_ipv6_not_fragmented: payload_sz=%zd, scr_port=%d, dst_port=%d",
+                 sz_data_payload, ntohs(h->get_udp_hdr()->source), ntohs(h->get_udp_hdr()->dest));
+
+    size_t hdr_len = h->m_transport_header_len + h->m_ip_header_len +
+        UDP_HLEN; // Add count of L2 (ipoib or mac) header length
+    size_t sz_udp_payload = sz_data_payload + sizeof(struct udphdr);
+    uint16_t payload_length = h->m_ip_header_len + sz_udp_payload - IPV6_HLEN;
+
+    p_pkt = static_cast<void *>(p_mem_buf_desc->p_buffer);
+    h->copy_l2_ip_udp_hdr(p_pkt);
+    fill_hdrs<tx_ipv6_hdr_template_t>(p_pkt, p_ip_hdr, p_udp_hdr);
+    set_ipv6_len(p_ip_hdr, htons(payload_length));
+
+    reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
+
+    p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
+    p_mem_buf_desc->tx.p_udp_h = reinterpret_cast<udphdr *>(p_udp_hdr);
+
+    // Calc payload start point (after the udp header if present else just after ip header)
+    uint8_t *p_payload = p_mem_buf_desc->p_buffer + h->m_transport_header_tx_offset + hdr_len;
+
+    // Copy user data to our tx buffers
+    int ret = memcpy_fromiovec(p_payload, &n_send_data->m_iov, 1, 0, sz_data_payload);
+    BULLSEYE_EXCLUDE_BLOCK_START
+    if (ret != (int)sz_data_payload) {
+        neigh_logerr("memcpy_fromiovec error (sz_user_data_to_copy=%zd, ret=%d)", sz_data_payload,
+                     ret);
+        m_p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
+        errno = EINVAL;
+        return false;
+    }
+    BULLSEYE_EXCLUDE_BLOCK_END
+
+    wqe_send_handler wqe_sh;
+    vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM);
+    if (b_need_sw_csum) {
+        neigh_logdbg("post_send_udp_ipv6_not_fragmented: using SW checksum calculation");
+        attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_SW_CSUM);
+        wqe_sh.disable_hw_csum(m_send_wqe);
+    } else {
+        wqe_sh.enable_hw_csum(m_send_wqe);
+    }
+
+    m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h->m_transport_header_tx_offset);
+    m_sge.length = sz_data_payload + hdr_len;
+    m_sge.lkey = m_p_ring->get_tx_lkey(m_id);
+    m_send_wqe.wr_id = reinterpret_cast<uintptr_t>(p_mem_buf_desc);
+
+    uint32_t id = reinterpret_cast<ip6_hdr *>(p_ip_hdr)->ip6_flow;
+    neigh_logdbg("packet_sz=%d, payload_sz=%zd, id=%d", m_sge.length - h->m_transport_header_len,
+                 sz_data_payload, ntohl(id));
+
+    // We don't check the return value of post send when we reach the HW we consider that we
+    // completed our job
+    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, attr);
 
     return true;
 }

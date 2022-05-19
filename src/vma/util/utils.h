@@ -571,4 +571,38 @@ static inline bool is_ilog2(unsigned int x)
     return (1 >= __builtin_popcount(x));
 }
 
+inline uint16_t calc_sum_of_payload(const iovec *p_iov, const ssize_t sz_iov)
+{
+    uint32_t sum = 0;
+    bool prev_iov_unaligned = false;
+
+    for (ssize_t i = 0; i < sz_iov; i++) {
+        size_t iov_len = p_iov[i].iov_len;
+        uint16_t *iov_data = reinterpret_cast<uint16_t *>(p_iov[i].iov_base);
+
+        // alignment to 16-bits, since checksum is calculated per each 16-bits
+        if (prev_iov_unaligned) {
+            sum += ((*iov_data) & htons(0xFF00)) << 8;
+            iov_data =
+                reinterpret_cast<uint16_t *>(reinterpret_cast<u_int8_t *>(p_iov[i].iov_base) + 1);
+            iov_len -= 1;
+        }
+
+        while (iov_len > 1) {
+            sum += *iov_data++;
+            iov_len -= 2;
+        }
+
+        if ((prev_iov_unaligned = (iov_len > 0))) {
+            sum += ((*iov_data) & htons(0xFF00));
+        }
+    }
+
+    while (sum >> 16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+
+    return static_cast<uint16_t>(sum);
+}
+
 #endif

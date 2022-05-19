@@ -59,7 +59,7 @@ protected:
     size_t m_n_tx_ip_id;
 
 private:
-    inline uint16_t gen_packet_id()
+    inline uint16_t gen_packet_id_ip4()
     {
         uint16_t packet_id = (m_sysvar_thread_mode > THREAD_MODE_SINGLE)
             ? atomic_fetch_and_inc(&m_a_tx_ip_id)
@@ -77,6 +77,12 @@ private:
     inline ssize_t fast_send_not_fragmented(const iovec *p_iov, const ssize_t sz_iov,
                                             vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                             ssize_t sz_data_payload);
+    inline bool fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
+                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          size_t sz_udp_payload, int n_num_frags);
+    inline bool fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
+                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          size_t sz_udp_payload, int n_num_frags);
     ssize_t fast_send_fragmented(const iovec *p_iov, const ssize_t sz_iov,
                                  vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                  ssize_t sz_data_payload);

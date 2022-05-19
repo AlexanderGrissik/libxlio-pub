@@ -234,6 +234,22 @@ template <typename T> inline void fill_hdrs(const void *pkt, void *&ip_hdr, void
     NOT_IN_USE(tcp_udp_hdr);
 }
 
+inline void get_ipv6_hdrs_frag_ext_ptr(tx_ipv6_hdr_template_t *pkt, ip6_hdr *&ip_hdr,
+                                       ip6_frag *&frag_ext_hdr)
+{
+    // Assuming ip packets contains only a single extension header
+    // which is the fragmentation header
+    ip_hdr = &(pkt->m_ip_hdr);
+    frag_ext_hdr = reinterpret_cast<ip6_frag *>(reinterpret_cast<uint8_t *>(ip_hdr) + IPV6_HLEN);
+}
+
+inline void get_ipv6_hdrs_frag_ext_udp_ptr(tx_ipv6_hdr_template_t *pkt, ip6_hdr *&ip_hdr,
+                                           ip6_frag *&frag_ext_hdr, udphdr *&udp_hdr)
+{
+    get_ipv6_hdrs_frag_ext_ptr(pkt, ip_hdr, frag_ext_hdr);
+    udp_hdr = reinterpret_cast<udphdr *>(reinterpret_cast<uint8_t *>(frag_ext_hdr) + FRAG_EXT_HLEN);
+}
+
 inline void copy_l2_hdr_words(uint32_t *to_words, uint32_t *from_words)
 {
     to_words[0] = from_words[0]; // dummy(16) + l2(16) (mac / dummy)
