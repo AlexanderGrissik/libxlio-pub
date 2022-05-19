@@ -81,6 +81,8 @@ unsigned short compute_ip_checksum(const ip6_hdr *p_ip_h);
 unsigned short compute_tcp_checksum(const struct iphdr *p_iphdr, const uint16_t *p_ip_payload,
                                     uint16_t hdr_len);
 
+unsigned short compute_ipv6_udp_frag_checksum(const ip6_hdr *ipv6, udphdr *udp);
+
 /**
  * Get tcp checksum: given IPv6 header and tcp segment
  */

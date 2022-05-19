@@ -234,6 +234,14 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
                     l4_checksum = compute_tcp_checksum(ipv6, tcp_hdr_buf, 0U);
                 }
                 tcp_hdr->check = l4_checksum;
+            } else if (protocol == IPPROTO_FRAGMENT) {
+                if (!is_ipv4) {
+                    // l4 SW checksum is enabled ONLY for IPv6 fragmented UDP packets
+                    // sum for payload is done in dst_entry_udp since it requires the entire payload
+                    // and it is stored in udp_hdr->check
+                    struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
+                    l4_checksum = udp_hdr->check = compute_ipv6_udp_frag_checksum(ipv6, udp_hdr);
+                }
             }
         }
         __log_entry_func("SW checksum calculation: L3 = %d, L4 = %d", l3_checksum, l4_checksum);
@@ -324,6 +332,26 @@ unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload
     uint16_t tcpLen = ntohs(ipv6->ip6_plen) - ext_hdr_len;
     uint32_t sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
     return compute_tcp_payload_checksum(payload, tcpLen, sum);
+}
+
+/*
+ * UDP checksum is mandatory for IPv6, see calculation in RFC 2460.
+ * data sum is placed temporary in udp->check field.
+ * after checksum calculation - this field will be updated.
+ * */
+unsigned short compute_ipv6_udp_frag_checksum(const ip6_hdr *ipv6, udphdr *udp)
+{
+    uint32_t sum = udp->check;
+    sum += compute_pseudo_header(ipv6, IPPROTO_UDP, ntohs(udp->len));
+    sum += udp->source + udp->dest + udp->len;
+
+    // Fold 32-bit sum to 16 bits: add carrier to result
+    while (sum >> 16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+
+    sum = ~sum;
+    return static_cast<unsigned short>(sum);
 }
 
 unsigned short compute_udp_payload_checksum_rx(const struct udphdr *udphdrp,
