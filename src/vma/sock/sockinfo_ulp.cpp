@@ -105,7 +105,7 @@ struct xlio_tls_api {
     int (*EVP_EncryptFinal_ex)(EVP_CIPHER_CTX *, unsigned char *, int *);
 };
 
-static struct xlio_tls_api *g_tls_api = NULL;
+static struct xlio_tls_api *g_tls_api = nullptr;
 static struct xlio_tls_api s_tls_api;
 
 template <typename T> static void dlsym_handle(T &ptr, const char *name, void *handle)
@@ -186,7 +186,7 @@ int sockinfo_tcp_ulp_tls::attach(sockinfo_tcp *sock)
     }
 
     ops = new sockinfo_tcp_ops_tls(sock);
-    if (unlikely(ops == NULL)) {
+    if (unlikely(!ops)) {
         errno = ENOMEM;
         return -1;
     }
@@ -229,13 +229,13 @@ public:
         m_record_number = record_number;
         m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_TAG_LEN;
         m_p_buf = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
-        if (likely(m_p_buf != NULL)) {
+        if (likely(m_p_buf)) {
             m_p_buf->p_buffer[0] = 0x17;
             m_p_buf->p_buffer[1] = 0x3;
             m_p_buf->p_buffer[2] = 0x3;
             m_p_buf->p_buffer[3] = 0;
             m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN;
-            if (iv != NULL) {
+            if (iv) {
                 m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
                 m_size += TLS_RECORD_IV_LEN;
                 memcpy(&m_p_buf->p_buffer[5], iv, TLS_RECORD_IV_LEN);
@@ -250,7 +250,7 @@ public:
          * Because of batching, buffers can be freed after their socket
          * is closed. Therefore, we cannot return m_p_buf to the socket.
          */
-        if (likely(m_p_buf != NULL)) {
+        if (likely(m_p_buf)) {
             m_p_tx_ring->mem_buf_desc_return_single_to_owner_tx(m_p_buf);
         }
     }
@@ -325,23 +325,23 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock)
     memset(&m_tls_info_tx, 0, sizeof(m_tls_info_tx));
     memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
 
-    m_p_tis = NULL;
+    m_p_tis = nullptr;
     m_is_tls_tx = false;
     m_is_tls_rx = false;
     m_expected_seqno = 0;
     m_next_recno_tx = 0;
 
-    m_p_tir = NULL;
-    m_p_evp_cipher = NULL;
-    m_p_cipher_ctx = NULL;
+    m_p_tir = nullptr;
+    m_p_evp_cipher = nullptr;
+    m_p_cipher_ctx = nullptr;
     m_next_recno_rx = 0;
     m_rx_offset = 0;
     m_rx_rec_len = 0;
     m_rx_rec_rcvd = 0;
     m_rx_sm = TLS_RX_SM_HEADER;
-    m_refused_data = NULL;
-    m_rx_rule = NULL;
-    m_rx_psv_buf = NULL;
+    m_refused_data = nullptr;
+    m_rx_rule = nullptr;
+    m_rx_psv_buf = nullptr;
     m_rx_resync_recno = 0;
     m_tls_rec_overhead = 0;
 }
@@ -352,24 +352,24 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
 
     if (m_is_tls_tx) {
         m_p_tx_ring->tls_release_tis(m_p_tis);
-        m_p_tis = NULL;
+        m_p_tis = nullptr;
     }
     if (m_is_tls_rx) {
         tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp::rx_drop_lwip_cb);
-        if (m_rx_rule != NULL) {
+        if (m_rx_rule) {
             delete m_rx_rule;
-            m_rx_rule = NULL;
+            m_rx_rule = nullptr;
         }
         m_p_tx_ring->tls_release_tir(m_p_tir);
-        m_p_tir = NULL;
-        if (m_p_cipher_ctx != NULL) {
+        m_p_tir = nullptr;
+        if (m_p_cipher_ctx) {
             g_tls_api->EVP_CIPHER_CTX_free(reinterpret_cast<EVP_CIPHER_CTX *>(m_p_cipher_ctx));
-            m_p_cipher_ctx = NULL;
+            m_p_cipher_ctx = nullptr;
         }
-        while (m_refused_data != NULL) {
+        while (m_refused_data) {
             struct pbuf *p = m_refused_data;
             m_refused_data = p->next;
-            p->next = NULL;
+            p->next = nullptr;
             /* Free ZC buffers as RX buffers, further this is handled. */
             m_p_sock->tcp_rx_mem_buf_free(reinterpret_cast<mem_buf_desc_t *>(p));
         }
@@ -413,7 +413,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
         return -1;
     }
 
-    if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_128) || __optval == NULL)) {
+    if (unlikely(__optlen < sizeof(tls12_crypto_info_aes_gcm_128) || !__optval)) {
         errno = EINVAL;
         return -1;
     }
@@ -440,12 +440,12 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
             errno = ENOPROTOOPT;
             return -1;
         }
-        if (unlikely(g_tls_api == NULL)) {
+        if (unlikely(!g_tls_api)) {
             si_ulp_logdbg("OpenSSL symbols aren't found, cannot support TLS RX offload.");
             errno = ENOPROTOOPT;
             return -1;
         }
-        if (unlikely(m_p_rx_ring == NULL)) {
+        if (unlikely(!m_p_rx_ring)) {
             si_ulp_logdbg("Cannot determine RX ring, TLS RX offload is impossible.");
             errno = ENOPROTOOPT;
             return -1;
@@ -525,7 +525,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
         m_p_tis = m_p_tx_ring->tls_context_setup_tx(&m_tls_info_tx);
         /* We don't need key for TX anymore */
         memset(m_tls_info_tx.key, 0, keylen);
-        if (unlikely(m_p_tis == NULL)) {
+        if (unlikely(!m_p_tis)) {
             errno = ENOPROTOOPT;
             return -1;
         }
@@ -533,7 +533,7 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
         m_p_sock->m_p_socket_stats->tls_tx_offload = true;
     } else {
         m_p_cipher_ctx = (void *)g_tls_api->EVP_CIPHER_CTX_new();
-        if (m_p_cipher_ctx == NULL) {
+        if (unlikely(!m_p_cipher_ctx)) {
             si_ulp_logdbg("OpenSSL initialization failed.");
             errno = ENOPROTOOPT;
             return -1;
@@ -549,23 +549,23 @@ int sockinfo_tcp_ops_tls::setsockopt(int __level, int __optname, const void *__o
         m_p_tir = m_p_tx_ring->tls_create_tir(true) ?: m_p_rx_ring->tls_create_tir(false);
 
         m_p_sock->lock_tcp_con();
-        if (m_p_tir != NULL) {
+        if (m_p_tir) {
             err_t err = tls_rx_consume_ready_packets();
             if (unlikely(err != ERR_OK)) {
                 si_ulp_logdbg("Cannot consume ready packets, TLS RX offload will likely fail.");
             }
         }
 
-        if (m_p_tir != NULL) {
+        if (m_p_tir) {
             uint32_t next_seqno_rx = m_p_sock->get_next_tcp_seqno_rx();
             int rc = m_p_tx_ring->tls_context_setup_rx(m_p_tir, &m_tls_info_rx, next_seqno_rx,
                                                        &rx_comp_callback, this);
             if (unlikely(rc != 0)) {
                 m_p_tx_ring->tls_release_tir(m_p_tir);
-                m_p_tir = NULL;
+                m_p_tir = nullptr;
             }
         }
-        if (unlikely(m_p_tir == NULL)) {
+        if (unlikely(!m_p_tir)) {
             si_ulp_logdbg("TLS RX offload setup failed");
             m_is_tls_rx = false;
             m_p_sock->unlock_tcp_con();
@@ -681,13 +681,13 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
             }
 
             rec = new tls_record(m_p_sock, m_p_sock->get_next_tcp_seqno(), m_next_recno_tx,
-                                 is_tx_tls13() ? NULL : m_tls_info_tx.iv);
-            if (unlikely(rec == NULL || rec->m_p_buf == NULL)) {
+                                 is_tx_tls13() ? nullptr : m_tls_info_tx.iv);
+            if (unlikely(!rec || !rec->m_p_buf)) {
                 if (ret == 0) {
                     errno = ENOMEM;
                     ret = -1;
                 }
-                if (rec != NULL) {
+                if (rec) {
                     rec->put();
                 }
                 goto done;
@@ -700,7 +700,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
             }
 
             /* Control sendmsg() support */
-            if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr != NULL) {
+            if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr) {
                 struct msghdr *__msg = (struct msghdr *)tx_arg.attr.msg.hdr;
                 struct cmsghdr *cmsg;
                 if (__msg->msg_controllen != 0) {
@@ -793,7 +793,7 @@ done:
 
 int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr)
 {
-    if (m_is_tls_tx && seg != NULL && p->type != PBUF_RAM) {
+    if (m_is_tls_tx && seg && p->type != PBUF_RAM) {
         if (seg->len != 0) {
             if (unlikely(seg->seqno != m_expected_seqno)) {
                 uint64_t recno_be64;
@@ -802,9 +802,9 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
 
                 /* For zerocopy the 1st pbuf is always a TCP header and the pbuf is on stack */
                 assert(p->type == PBUF_STACK); /* TCP header pbuf */
-                assert(p->next != NULL && p->next->desc.attr == PBUF_DESC_MDESC);
+                assert(p->next && p->next->desc.attr == PBUF_DESC_MDESC);
                 tls_record *rec = dynamic_cast<tls_record *>((mem_desc *)p->next->desc.mdesc);
-                if (unlikely(rec == NULL)) {
+                if (unlikely(!rec)) {
                     return -1;
                 }
 
@@ -916,14 +916,14 @@ void sockinfo_tcp_ops_tls::copy_by_offset(uint8_t *dst, uint32_t offset, uint32_
 
     /* Skip leading buffers */
     if (unlikely(pdesc->lwip_pbuf.pbuf.len <= offset)) {
-        while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.len <= offset) {
+        while (pdesc && pdesc->lwip_pbuf.pbuf.len <= offset) {
             offset -= pdesc->lwip_pbuf.pbuf.len;
             pdesc = *(++iter);
         }
     }
 
     /* Copy */
-    while (likely(pdesc != NULL) && len > 0) {
+    while (likely(pdesc) && len > 0) {
         uint32_t buflen = std::min<uint32_t>(pdesc->lwip_pbuf.pbuf.len - offset, len);
 
         memcpy(dst, (uint8_t *)pdesc->lwip_pbuf.pbuf.payload + offset, buflen);
@@ -944,19 +944,19 @@ uint16_t sockinfo_tcp_ops_tls::offset_to_host16(uint32_t offset)
 
     /* Skip leading buffers */
     if (unlikely(pdesc->lwip_pbuf.pbuf.len <= offset)) {
-        while (pdesc != NULL && pdesc->lwip_pbuf.pbuf.len <= offset) {
+        while (pdesc && pdesc->lwip_pbuf.pbuf.len <= offset) {
             offset -= pdesc->lwip_pbuf.pbuf.len;
             pdesc = *(++iter);
         }
     }
 
-    if (likely(pdesc != NULL)) {
+    if (likely(pdesc)) {
         res = (uint16_t)((uint8_t *)pdesc->lwip_pbuf.pbuf.payload)[offset] << 8U;
         ++offset;
         if (unlikely(offset >= pdesc->lwip_pbuf.pbuf.len)) {
             offset = 0;
             pdesc = *(++iter);
-            if (unlikely(pdesc == NULL)) {
+            if (unlikely(!pdesc)) {
                 return 0;
             }
         }
@@ -975,7 +975,7 @@ int sockinfo_tcp_ops_tls::tls_rx_decrypt(struct pbuf *plist)
     int ret;
 
     tls_ctx = (EVP_CIPHER_CTX *)m_p_cipher_ctx;
-    assert(tls_ctx != NULL);
+    assert(tls_ctx);
     ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
     if (unlikely(!ret)) {
         return TLS_DECRYPT_INTERNAL;
@@ -1058,7 +1058,7 @@ int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
     int ret;
 
     tls_ctx = (EVP_CIPHER_CTX *)m_p_cipher_ctx;
-    assert(tls_ctx != NULL);
+    assert(tls_ctx);
     ret = g_tls_api->EVP_CIPHER_CTX_reset(tls_ctx);
     if (unlikely(!ret)) {
         return TLS_DECRYPT_INTERNAL;
@@ -1104,7 +1104,7 @@ int sockinfo_tcp_ops_tls::tls_rx_encrypt(struct pbuf *plist)
         return TLS_DECRYPT_INTERNAL;
     }
 
-    for (p = plist; p != NULL; p = p->next) {
+    for (p = plist; p; p = p->next) {
         if (((mem_buf_desc_t *)p)->rx.tls_decrypted != TLS_RX_DECRYPTED) {
             /* This is partially encrypted record, stop here. */
             return 0;
@@ -1135,7 +1135,7 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
     }
 
     m_rx_rec_rcvd += p->tot_len;
-    while (p != NULL) {
+    while (p) {
         mem_buf_desc_t *pdesc = reinterpret_cast<mem_buf_desc_t *>(p);
         struct pbuf *ptmp = p->next;
 
@@ -1144,12 +1144,12 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
         }
         pdesc->rx.n_frags = 1;
         p->tot_len = p->len;
-        p->next = NULL;
+        p->next = nullptr;
         m_rx_bufs.push_back(pdesc);
         p = ptmp;
     }
 
-    if (unlikely(resync_requested && m_rx_psv_buf == NULL)) {
+    if (unlikely(resync_requested && !m_rx_psv_buf)) {
         m_rx_psv_buf = m_p_sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
         m_rx_psv_buf->lwip_pbuf.pbuf.payload =
             (void *)(((uintptr_t)m_rx_psv_buf->p_buffer + 63U) >> 6U << 6U);
@@ -1162,7 +1162,7 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
         }
     }
 
-    if (unlikely(m_refused_data != NULL)) {
+    if (unlikely(m_refused_data)) {
         err =
             sockinfo_tcp::rx_lwip_cb((void *)m_p_sock, m_p_sock->get_pcb(), m_refused_data, ERR_OK);
         if (unlikely(err != ERR_OK)) {
@@ -1173,7 +1173,7 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
              */
             return ERR_OK;
         }
-        m_refused_data = NULL;
+        m_refused_data = nullptr;
     }
 
 check_single_record:
@@ -1199,8 +1199,8 @@ check_single_record:
 
     auto iter = m_rx_bufs.begin();
     struct pbuf *pi;
-    struct pbuf *pres = NULL;
-    struct pbuf *ptmp = NULL;
+    struct pbuf *pres = nullptr;
+    struct pbuf *ptmp = nullptr;
     uint32_t offset = m_rx_offset + TLS_RECORD_HDR_LEN + (is_rx_tls13() ? 0 : TLS_RECORD_IV_LEN);
     uint32_t remain = m_rx_rec_len - m_tls_rec_overhead;
     unsigned bufs_nr = 0;
@@ -1219,7 +1219,7 @@ check_single_record:
         }
     }
     while (remain > 0) {
-        if (unlikely(pdesc == NULL)) {
+        if (unlikely(!pdesc)) {
             /* TODO Handle this situation, buffers chain is broken. */
             break;
         }
@@ -1230,12 +1230,13 @@ check_single_record:
             goto next_buffer;
         }
 
-        ptmp = sockinfo_tcp::tcp_tx_pbuf_alloc(m_p_sock->get_pcb(), PBUF_ZEROCOPY, NULL, NULL);
+        ptmp =
+            sockinfo_tcp::tcp_tx_pbuf_alloc(m_p_sock->get_pcb(), PBUF_ZEROCOPY, nullptr, nullptr);
         ptmp->len = ptmp->tot_len = std::min<uint32_t>(pi->len - offset, remain);
         ptmp->payload = (void *)((uint8_t *)pi->payload + offset);
-        ptmp->next = NULL;
-        ((mem_buf_desc_t *)ptmp)->p_next_desc = NULL;
-        ((mem_buf_desc_t *)ptmp)->p_prev_desc = NULL;
+        ptmp->next = nullptr;
+        ((mem_buf_desc_t *)ptmp)->p_next_desc = nullptr;
+        ((mem_buf_desc_t *)ptmp)->p_prev_desc = nullptr;
         ((mem_buf_desc_t *)ptmp)->m_flags = 0;
         ((mem_buf_desc_t *)ptmp)->rx.tls_type = tls_type;
         tls_decrypted = ((mem_buf_desc_t *)pi)->rx.tls_decrypted;
@@ -1244,7 +1245,7 @@ check_single_record:
         ++bufs_nr;
         decrypted_nr += !!(tls_decrypted == TLS_RX_DECRYPTED);
 
-        if (pres == NULL) {
+        if (!pres) {
             pres = ptmp;
         } else {
             /* XXX Complexity of building pres list is O(N^2). */
@@ -1313,21 +1314,21 @@ check_single_record:
         return ERR_OK;
     }
 
-    if (is_rx_tls13() && likely(ptmp != NULL)) {
+    if (is_rx_tls13() && likely(ptmp)) {
         /* ptmp is the last buffer in 'pres' list at this point. */
         tls_type = ((uint8_t *)ptmp->payload)[ptmp->len - 1];
         --ptmp->len;
         if (unlikely(ptmp->len == 0)) {
             ptmp = pres;
-            while (ptmp != NULL && ptmp->next != NULL) {
+            while (ptmp && ptmp->next) {
                 if (ptmp->next->len == 0) {
                     m_p_sock->tcp_rx_mem_buf_free(reinterpret_cast<mem_buf_desc_t *>(ptmp->next));
-                    ptmp->next = NULL;
+                    ptmp->next = nullptr;
                 }
                 ptmp = ptmp->next;
             }
         }
-        for (ptmp = pres; ptmp != NULL; ptmp = ptmp->next) {
+        for (ptmp = pres; ptmp; ptmp = ptmp->next) {
             --ptmp->tot_len;
             ((mem_buf_desc_t *)ptmp)->rx.tls_type = tls_type;
         }
@@ -1355,7 +1356,7 @@ check_single_record:
     while (m_rx_rec_len > 0) {
         if (unlikely(m_rx_bufs.empty())) {
             /* TODO Handle broken buffers chain. */
-            pdesc = NULL;
+            pdesc = nullptr;
             break;
         }
         pdesc = m_rx_bufs.front();
@@ -1376,7 +1377,7 @@ check_single_record:
     m_rx_rec_rcvd -= m_rx_rec_len;
 
     m_rx_sm = TLS_RX_SM_HEADER;
-    if (pdesc != NULL && err == ERR_OK) {
+    if (pdesc && err == ERR_OK) {
         /* Check for other complete records in the last buffer. */
         goto check_single_record;
     }
@@ -1389,7 +1390,7 @@ err_t sockinfo_tcp_ops_tls::rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct p
     sockinfo_tcp *conn = (sockinfo_tcp *)arg;
     sockinfo_tcp_ops *ops = conn->get_ops();
 
-    if (likely(p != NULL && err == ERR_OK)) {
+    if (likely(p && err == ERR_OK)) {
         return ops->recv(p);
     }
     return sockinfo_tcp::rx_lwip_cb(arg, tpcb, p, err);
@@ -1412,7 +1413,7 @@ void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
 {
     sockinfo_tcp_ops_tls *utls = reinterpret_cast<sockinfo_tcp_ops_tls *>(arg);
 
-    if (utls->m_rx_psv_buf != NULL) {
+    if (utls->m_rx_psv_buf) {
         /* Resync flow, GET_PSV is completed. */
         struct xlio_tls_progress_params *params =
             (struct xlio_tls_progress_params *)utls->m_rx_psv_buf->lwip_pbuf.pbuf.payload;
@@ -1427,12 +1428,12 @@ void sockinfo_tcp_ops_tls::rx_comp_callback(void *arg)
             /* TODO Investigate this case. It isn't described in PRM. */
         }
         utls->m_p_tx_ring->mem_buf_desc_return_single_to_owner_tx(utls->m_rx_psv_buf);
-        utls->m_rx_psv_buf = NULL;
-    } else if (utls->m_rx_rule == NULL) {
+        utls->m_rx_psv_buf = nullptr;
+    } else if (!utls->m_rx_rule) {
         /* Initial setup flow. */
         const flow_tuple_with_local_if &tuple = utls->m_p_sock->get_flow_tuple();
         utls->m_rx_rule = utls->m_p_rx_ring->tls_rx_create_rule(tuple, utls->m_p_tir);
-        if (utls->m_rx_rule == NULL) {
+        if (!utls->m_rx_rule) {
             vlog_printf(VLOG_ERROR, "TLS rule failed for %s\n", tuple.to_str().c_str());
         }
     }
