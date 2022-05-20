@@ -1067,7 +1067,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
 {
     srdr_logdbg_entry("fd=%d, level=%d, optname=%d", __fd, __level, __optname);
 
-    if (__fd == -1 && __level == SOL_SOCKET && __optname == SO_XLIO_GET_API && __optlen &&
+    if (__fd == -2 && __level == SOL_SOCKET && __optname == SO_XLIO_GET_API && __optlen &&
         *__optlen >= sizeof(struct xlio_api_t *)) {
         static struct xlio_api_t *xlio_api = NULL;
 
@@ -1079,6 +1079,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             xlio_api = new struct xlio_api_t();
 
             memset(xlio_api, 0, sizeof(struct xlio_api_t));
+            xlio_api->magic = XLIO_MAGIC_NUMBER;
             xlio_api->cap_mask = 0;
             SET_EXTRA_API(register_recv_callback, vma_register_recv_callback,
                           XLIO_EXTRA_API_REGISTER_RECV_CALLBACK);
@@ -1111,6 +1112,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
         }
 
         *((xlio_api_t **)__optval) = xlio_api;
+        *__optlen = sizeof(struct xlio_api_t *);
         return 0;
     }
 
