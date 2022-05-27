@@ -57,13 +57,13 @@ extern "C" {
 /** This is the aligned version of ip6_addr_t,
     used as local variable, on the stack, etc. */
 typedef union ip6_addr {
-  u64_t addr[2];
+    u64_t addr[2];
 } ip6_addr_t;
 
 /* This is the aligned version of ip_addr_t,
    used as local variable, on the stack, etc. */
 typedef union ip4_addr {
-  u32_t addr;
+    u32_t addr;
 } ip4_addr_t;
 
 /** ip_addr_t uses a struct for convenience only, so that the same defines can
@@ -101,9 +101,8 @@ static inline bool ip_addr_isany(const void *addr, bool is_ipv6)
     const u64_t *addr_64_view = (const u64_t *)addr;
     const u32_t *addr_32_view = (const u32_t *)addr;
 
-    return is_ipv6 ?
-        unlikely(addr_64_view[0] == 0ULL) && likely(addr_64_view[1] == 0ULL) :
-        unlikely(addr_32_view[0] == 0UL);
+    return is_ipv6 ? unlikely(addr_64_view[0] == 0ULL) && likely(addr_64_view[1] == 0ULL)
+                   : unlikely(addr_32_view[0] == 0UL);
 }
 
 #ifdef __cplusplus

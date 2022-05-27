@@ -35,17 +35,16 @@
 
 #if TCP_CC_ALGO_MOD
 
-static void	none_cc_conn_init(struct tcp_pcb *pcb);
+static void none_cc_conn_init(struct tcp_pcb *pcb);
 
 struct cc_algo none_cc_algo = {
-		.name = "none_cc",
-		.conn_init = none_cc_conn_init,
+    .name = "none_cc",
+    .conn_init = none_cc_conn_init,
 };
 
-static void
-none_cc_conn_init(struct tcp_pcb *pcb)
+static void none_cc_conn_init(struct tcp_pcb *pcb)
 {
-	pcb->cwnd = UINT32_MAX;
+    pcb->cwnd = UINT32_MAX;
 }
 
-#endif //TCP_CC_ALGO_MOD
+#endif // TCP_CC_ALGO_MOD

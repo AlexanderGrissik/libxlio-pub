@@ -87,45 +87,45 @@
 
 inline void cc_init(struct tcp_pcb *pcb)
 {
-	if (pcb->cc_algo->init != NULL) {
-		pcb->cc_algo->init(pcb);
-	}
+    if (pcb->cc_algo->init != NULL) {
+        pcb->cc_algo->init(pcb);
+    }
 }
 
 inline void cc_destroy(struct tcp_pcb *pcb)
 {
-	if (pcb->cc_algo->destroy != NULL) {
-		pcb->cc_algo->destroy(pcb);
-	}
+    if (pcb->cc_algo->destroy != NULL) {
+        pcb->cc_algo->destroy(pcb);
+    }
 }
 
 inline void cc_ack_received(struct tcp_pcb *pcb, uint16_t type)
 {
-	if (pcb->cc_algo->ack_received != NULL) {
-		pcb->cc_algo->ack_received(pcb, type);
-	}
+    if (pcb->cc_algo->ack_received != NULL) {
+        pcb->cc_algo->ack_received(pcb, type);
+    }
 }
 
 inline void cc_conn_init(struct tcp_pcb *pcb)
 {
-	if (pcb->cc_algo->conn_init != NULL) {
-		pcb->cc_algo->conn_init(pcb);
-	}
+    if (pcb->cc_algo->conn_init != NULL) {
+        pcb->cc_algo->conn_init(pcb);
+    }
 }
 
 inline void cc_cong_signal(struct tcp_pcb *pcb, uint32_t type)
 {
 
-	if (pcb->cc_algo->cong_signal != NULL) {
-		pcb->cc_algo->cong_signal(pcb, type);
-	}
+    if (pcb->cc_algo->cong_signal != NULL) {
+        pcb->cc_algo->cong_signal(pcb, type);
+    }
 }
 
 inline void cc_post_recovery(struct tcp_pcb *pcb)
 {
-	if (pcb->cc_algo->post_recovery != NULL) {
-		pcb->cc_algo->post_recovery(pcb);
-	}
+    if (pcb->cc_algo->post_recovery != NULL) {
+        pcb->cc_algo->post_recovery(pcb);
+    }
 }
 
-#endif //TCP_CC_ALGO_MOD
+#endif // TCP_CC_ALGO_MOD
