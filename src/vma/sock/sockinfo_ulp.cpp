@@ -54,6 +54,12 @@ sockinfo_tcp_ops::sockinfo_tcp_ops(sockinfo_tcp *sock)
     m_p_sock = sock;
 }
 
+/*inline*/
+ring *sockinfo_tcp_ops::get_tx_ring(void)
+{
+    return m_p_sock->get_tx_ring();
+}
+
 /*virtual*/
 int sockinfo_tcp_ops::setsockopt(int __level, int __optname, const void *__optval,
                                  socklen_t __optlen)
@@ -216,32 +222,43 @@ enum {
     TLS_13_RECORD_OVERHEAD = TLS_RECORD_HDR_LEN + 1U + TLS_RECORD_TAG_LEN,
     /* If possible, we won't produce TLS records smaller that this value. */
     TLS_RECORD_SMALLEST = 256U,
+    TLS_RECORD_MAX = 16384U,
+    /* Block size which is enough to hold TLS header/trailer for zerocopy records. */
+    TLS_ZC_BLOCK = 32U,
 };
 
 class tls_record : public mem_desc {
 public:
-    tls_record(sockinfo_tcp *sock, uint32_t seqno, uint64_t record_number, uint8_t *iv)
+    tls_record(sockinfo_tcp_ops_tls *tls_sock, uint32_t seqno, uint64_t record_number, uint8_t *iv,
+               mem_desc *zc_owner)
     {
-        m_p_tx_ring = sock->get_tx_ring();
+        m_p_tx_ring = tls_sock->get_tx_ring();
         /* Allocate record with a taken reference. */
         atomic_set(&m_ref, 1);
         m_seqno = seqno;
         m_record_number = record_number;
         m_size = TLS_RECORD_HDR_LEN + TLS_RECORD_TAG_LEN;
-        m_p_buf = sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
+        m_p_data = nullptr;
+        tls_sock->get_record_buf(m_p_buf, m_p_data, zc_owner != nullptr);
         if (likely(m_p_buf)) {
-            m_p_buf->p_buffer[0] = 0x17;
-            m_p_buf->p_buffer[1] = 0x3;
-            m_p_buf->p_buffer[2] = 0x3;
-            m_p_buf->p_buffer[3] = 0;
-            m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN;
             if (iv) {
-                m_p_buf->p_buffer[4] = TLS_RECORD_TAG_LEN + TLS_RECORD_IV_LEN;
                 m_size += TLS_RECORD_IV_LEN;
-                memcpy(&m_p_buf->p_buffer[5], iv, TLS_RECORD_IV_LEN);
+                memcpy(&m_p_data[5], iv, TLS_RECORD_IV_LEN);
+            } else {
+                /* For TLS1.3 we need to add a room for the inner type field. */
+                m_size += 1;
             }
+            m_p_data[0] = 0x17;
+            m_p_data[1] = 0x3;
+            m_p_data[2] = 0x3;
+            m_p_data[3] = 0;
+            m_p_data[4] = m_size - TLS_RECORD_HDR_LEN;
         }
-        /* TODO Make a pool of preallocated records with inited header. */
+        m_p_zc_owner = zc_owner;
+        if (m_p_zc_owner) {
+            m_p_zc_owner->get();
+        }
+        m_p_zc_data = nullptr;
     }
 
     ~tls_record()
@@ -252,6 +269,9 @@ public:
          */
         if (likely(m_p_buf)) {
             m_p_tx_ring->mem_buf_desc_return_single_to_owner_tx(m_p_buf);
+        }
+        if (m_p_zc_owner) {
+            m_p_zc_owner->put();
         }
     }
 
@@ -268,18 +288,25 @@ public:
 
     uint32_t get_lkey(mem_buf_desc_t *desc, ib_ctx_handler *ib_ctx, void *addr, size_t len)
     {
-        NOT_IN_USE(desc);
-        NOT_IN_USE(ib_ctx);
-        NOT_IN_USE(addr);
-        NOT_IN_USE(len);
-        return LKEY_USE_DEFAULT;
+        const uintptr_t uaddr = (uintptr_t)addr;
+        const uintptr_t ubuf = (uintptr_t)m_p_buf->p_buffer;
+
+        if (ubuf <= uaddr && uaddr < ubuf + m_p_buf->sz_buffer) {
+            return LKEY_USE_DEFAULT;
+        } else {
+            return m_p_zc_owner->get_lkey(desc, ib_ctx, addr, len);
+        }
     }
 
     inline size_t append_data(void *data, size_t len)
     {
         len = std::min(len, avail_space());
         if (len > 0) {
-            memcpy(m_p_buf->p_buffer + m_size - TLS_RECORD_TAG_LEN, data, len);
+            if (m_p_zc_owner) {
+                m_p_zc_data = reinterpret_cast<uint8_t *>(data);
+            } else {
+                memcpy(m_p_data + m_size - TLS_RECORD_TAG_LEN, data, len);
+            }
             m_size += len;
             set_length();
         }
@@ -289,18 +316,54 @@ public:
     inline size_t avail_space(void)
     {
         /* Don't produce records larger than 16KB according to the protocol. */
-        return std::min(m_p_buf->sz_buffer, (size_t)16384) - m_size;
+        size_t max_len = m_p_zc_owner ? (size_t)TLS_RECORD_MAX
+                                      : std::min<size_t>(m_p_buf->sz_buffer, TLS_RECORD_MAX);
+
+        return max_len - m_size;
     }
 
-    inline void set_type(uint8_t type) { m_p_buf->p_buffer[0] = type; }
+    inline void set_type(uint8_t type, bool is_tls13)
+    {
+        if (is_tls13) {
+            unsigned offset =
+                m_p_zc_owner ? (unsigned)TLS_RECORD_HDR_LEN : (m_size - TLS_RECORD_TAG_LEN - 1U);
+            m_p_data[offset] = type;
+        } else {
+            m_p_data[0] = type;
+        }
+    }
+
+    inline void fill_iov(struct iovec *iov, size_t iov_max, bool is_tls13)
+    {
+        if (m_p_zc_owner) {
+            /*
+             * For zerocopy case we create 3 scatter-gather elements in this order:
+             * [0] TLS header which includes IV for TLS 1.2
+             * [1] Payload
+             * [2] Trailer which contains TAG and TLS 1.3 type if applicable
+             */
+            assert(iov_max >= 3);
+            (void)iov_max;
+            iov[0].iov_base = m_p_data;
+            iov[0].iov_len = TLS_RECORD_HDR_LEN + (is_tls13 ? 0 : TLS_RECORD_IV_LEN);
+            iov[1].iov_base = m_p_zc_data;
+            iov[1].iov_len =
+                m_size - (is_tls13 ? TLS_13_RECORD_OVERHEAD + 1 : TLS_12_RECORD_OVERHEAD);
+            iov[2].iov_base = m_p_data + iov[0].iov_len;
+            iov[2].iov_len = TLS_RECORD_TAG_LEN + !!is_tls13;
+        } else {
+            iov[0].iov_base = m_p_data;
+            iov[0].iov_len = m_size;
+        }
+    }
 
 private:
     inline void set_length(void)
     {
         uint16_t len = m_size - TLS_RECORD_HDR_LEN;
 
-        m_p_buf->p_buffer[3] = len >> 8UL;
-        m_p_buf->p_buffer[4] = len & 0xff;
+        m_p_data[3] = len >> 8UL;
+        m_p_data[4] = len & 0xff;
     }
 
 public:
@@ -309,6 +372,9 @@ public:
     uint64_t m_record_number;
     size_t m_size;
     mem_buf_desc_t *m_p_buf;
+    uint8_t *m_p_data;
+    uint8_t *m_p_zc_data;
+    mem_desc *m_p_zc_owner;
     ring *m_p_tx_ring;
 };
 
@@ -325,9 +391,13 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock)
     memset(&m_tls_info_tx, 0, sizeof(m_tls_info_tx));
     memset(&m_tls_info_rx, 0, sizeof(m_tls_info_rx));
 
-    m_p_tis = nullptr;
     m_is_tls_tx = false;
     m_is_tls_rx = false;
+    m_tls_rec_overhead = 0;
+
+    m_p_tis = nullptr;
+    m_zc_stor = nullptr;
+    m_zc_stor_offset = 0;
     m_expected_seqno = 0;
     m_next_recno_tx = 0;
 
@@ -343,7 +413,6 @@ sockinfo_tcp_ops_tls::sockinfo_tcp_ops_tls(sockinfo_tcp *sock)
     m_rx_rule = nullptr;
     m_rx_psv_buf = nullptr;
     m_rx_resync_recno = 0;
-    m_tls_rec_overhead = 0;
 }
 
 sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
@@ -353,6 +422,13 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
     if (m_is_tls_tx) {
         m_p_tx_ring->tls_release_tis(m_p_tis);
         m_p_tis = nullptr;
+        if (m_zc_stor) {
+            unsigned extra_ref = (m_zc_stor->sz_buffer - m_zc_stor_offset) / TLS_ZC_BLOCK;
+            assert(m_zc_stor->lwip_pbuf.pbuf.ref > extra_ref);
+            m_zc_stor->lwip_pbuf.pbuf.ref -= extra_ref; /* XXX Potential race! */
+            m_p_sock->get_tx_ring()->mem_buf_desc_return_single_to_owner_tx(m_zc_stor);
+            m_zc_stor = nullptr;
+        }
     }
     if (m_is_tls_rx) {
         tcp_recv(m_p_sock->get_pcb(), sockinfo_tcp::rx_drop_lwip_cb);
@@ -390,6 +466,39 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
                 pdesc = m_rx_bufs.get_and_pop_front();
                 m_p_sock->tcp_rx_mem_buf_free(pdesc);
             }
+        }
+    }
+}
+
+void sockinfo_tcp_ops_tls::get_record_buf(mem_buf_desc_t *&buf, uint8_t *&data, bool is_zerocopy)
+{
+    if (!is_zerocopy) {
+        buf = m_p_sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
+        if (buf) {
+            data = buf->p_buffer;
+        }
+        return;
+    }
+    /*
+     * Zerocopy path. We use a TX buffer to distribute 32 bytes blocks across multiple zerocopy
+     * TLS records. In such a way we optimize buffers/memory usage (since zerocopy TLS record
+     * requires 29 bytes to hold the header/trailer). Also this improves locality and MTT cache
+     * miss rate.
+     */
+    if (!m_zc_stor) {
+        m_zc_stor = m_p_sock->tcp_tx_mem_buf_alloc(PBUF_RAM);
+        m_zc_stor_offset = 0;
+        if (likely(m_zc_stor)) {
+            m_zc_stor->lwip_pbuf.pbuf.ref += m_zc_stor->sz_buffer / TLS_ZC_BLOCK;
+        }
+    }
+    buf = m_zc_stor;
+    if (m_zc_stor) {
+        data = m_zc_stor->p_buffer + m_zc_stor_offset;
+        m_zc_stor_offset += TLS_ZC_BLOCK;
+        if (m_zc_stor_offset + TLS_ZC_BLOCK > m_zc_stor->sz_buffer) {
+            m_p_sock->get_tx_ring()->mem_buf_desc_return_single_to_owner_tx(m_zc_stor);
+            m_zc_stor = nullptr;
         }
     }
 }
@@ -629,12 +738,13 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 
     vma_tx_call_attr_t tls_arg;
     struct iovec *p_iov;
-    struct iovec tls_iov[1];
+    struct iovec tls_iov[3];
     uint64_t last_recno;
     ssize_t ret;
     size_t pos;
     int errno_save;
     bool block_this_run;
+    bool is_zerocopy = tx_arg.attr.msg.flags & MSG_ZEROCOPY;
     uint8_t tls_type = 0x17;
 
     if (!m_is_tls_tx) {
@@ -644,16 +754,29 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
     errno_save = errno;
     block_this_run = BLOCK_THIS_RUN(m_p_sock->is_blocking(), tx_arg.attr.msg.flags);
 
-    tls_arg.opcode = TX_FILE; /* XXX Not to use hugepage zerocopy path */
+    tls_arg.opcode = TX_FILE; /* Not to use hugepage zerocopy path */
     tls_arg.attr.msg.flags = MSG_ZEROCOPY;
     tls_arg.vma_flags = TX_FLAG_NO_PARTIAL_WRITE;
     tls_arg.attr.msg.iov = tls_iov;
-    tls_arg.attr.msg.sz_iov = 1;
+    tls_arg.attr.msg.sz_iov = is_zerocopy ? 3 : 1;
     tls_arg.priv.attr = PBUF_DESC_MDESC;
 
     p_iov = tx_arg.attr.msg.iov;
     last_recno = m_next_recno_tx;
     ret = 0;
+
+    /* Control sendmsg() support */
+    if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr) {
+        struct msghdr *__msg = (struct msghdr *)tx_arg.attr.msg.hdr;
+        struct cmsghdr *cmsg;
+        if (__msg->msg_controllen != 0) {
+            for (cmsg = CMSG_FIRSTHDR(__msg); cmsg; cmsg = CMSG_NXTHDR(__msg, cmsg)) {
+                if (cmsg->cmsg_level == SOL_TLS && cmsg->cmsg_type == TLS_SET_RECORD_TYPE) {
+                    tls_type = *CMSG_DATA(cmsg);
+                }
+            }
+        }
+    }
 
     for (ssize_t i = 0; i < tx_arg.attr.msg.sz_iov; ++i) {
         pos = 0;
@@ -669,10 +792,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
              */
             if (!block_this_run && sndbuf < TLS_RECORD_SMALLEST &&
                 (sndbuf < m_tls_rec_overhead || (sndbuf - m_tls_rec_overhead) < tosend)) {
-                /*
-                 * We don't want to create too small TLS records
-                 * when we do partial write.
-                 */
+                /* We don't want to create too small TLS records when we do partial write. */
                 if (ret == 0) {
                     errno = EAGAIN;
                     ret = -1;
@@ -680,8 +800,10 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 goto done;
             }
 
-            rec = new tls_record(m_p_sock, m_p_sock->get_next_tcp_seqno(), m_next_recno_tx,
-                                 is_tx_tls13() ? nullptr : m_tls_info_tx.iv);
+            rec = new tls_record(
+                this, m_p_sock->get_next_tcp_seqno(), m_next_recno_tx,
+                is_tx_tls13() ? nullptr : m_tls_info_tx.iv,
+                is_zerocopy ? reinterpret_cast<mem_desc *>(tx_arg.priv.mdesc) : nullptr);
             if (unlikely(!rec || !rec->m_p_buf)) {
                 if (ret == 0) {
                     errno = ENOMEM;
@@ -693,26 +815,12 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 goto done;
             }
             ++m_next_recno_tx;
-            /* Prepare unique explicit_nonce for the next TLS1.2 record.
-               TLS1.3 always uses the initial IV.*/
+            /*
+             * Prepare unique explicit_nonce for the next TLS1.2 record.
+             * TLS1.3 always uses the initial IV.
+             */
             if (!is_tx_tls13()) {
                 ++m_tls_info_tx.iv64;
-            }
-
-            /* Control sendmsg() support */
-            if (tx_arg.opcode == TX_SENDMSG && tx_arg.attr.msg.hdr) {
-                struct msghdr *__msg = (struct msghdr *)tx_arg.attr.msg.hdr;
-                struct cmsghdr *cmsg;
-                if (__msg->msg_controllen != 0) {
-                    for (cmsg = CMSG_FIRSTHDR(__msg); cmsg; cmsg = CMSG_NXTHDR(__msg, cmsg)) {
-                        if (cmsg->cmsg_level == SOL_TLS && cmsg->cmsg_type == TLS_SET_RECORD_TYPE) {
-                            tls_type = *CMSG_DATA(cmsg);
-                            if (!is_tx_tls13()) {
-                                rec->set_type(tls_type);
-                            }
-                        }
-                    }
-                }
             }
 
             if (!block_this_run) {
@@ -720,19 +828,11 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 tosend = std::min(tosend, sndbuf - m_tls_rec_overhead);
             }
             tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
-            /*
-             * Set type for TLS1.3. Replace the last payload byte
-             * with the type if there is no room for 1 extra byte.
-             */
-            if (is_tx_tls13() && rec->append_data(&tls_type, 1) == 0) {
-                assert(tosend > 0);
-                --tosend;
-                rec->m_p_buf->p_buffer[rec->m_size - TLS_RECORD_TAG_LEN - 1] = tls_type;
-            }
+            /* Set type after all data, because for TLS1.3 it is in the tail. */
+            rec->set_type(tls_type, is_tx_tls13());
+            rec->fill_iov(tls_arg.attr.msg.iov, ARRAY_SIZE(tls_iov), is_tx_tls13());
+            tls_arg.priv.mdesc = reinterpret_cast<void *>(rec);
             pos += tosend;
-            tls_arg.attr.msg.iov[0].iov_base = rec->m_p_buf->p_buffer;
-            tls_arg.attr.msg.iov[0].iov_len = rec->m_size;
-            tls_arg.priv.mdesc = (void *)rec;
 
         retry:
             ret2 = m_p_sock->tcp_tx(tls_arg);
@@ -796,9 +896,6 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
     if (m_is_tls_tx && seg && p->type != PBUF_RAM) {
         if (seg->len != 0) {
             if (unlikely(seg->seqno != m_expected_seqno)) {
-                uint64_t recno_be64;
-                unsigned mss = m_p_sock->get_mss();
-                bool skip_static;
 
                 /* For zerocopy the 1st pbuf is always a TCP header and the pbuf is on stack */
                 assert(p->type == PBUF_STACK); /* TCP header pbuf */
@@ -811,35 +908,65 @@ int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_s
                 si_ulp_logdbg("TX resync flow: record_number=%lu seqno%u", rec->m_record_number,
                               seg->seqno);
 
-                recno_be64 = htobe64(rec->m_record_number);
-                skip_static = !memcmp(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
+                uint8_t *addr = rec->m_p_data;
+                uint64_t recno_be64 = htobe64(rec->m_record_number);
+                bool skip_static =
+                    !memcmp(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
+                bool is_zerocopy = rec->m_p_zc_owner != nullptr;
+                unsigned mss = m_p_sock->get_mss();
+                uint32_t totlen = seg->seqno - rec->m_seqno;
+                uint32_t lkey = LKEY_USE_DEFAULT;
+
                 if (!skip_static) {
                     memcpy(m_tls_info_tx.rec_seq, &recno_be64, TLS_AES_GCM_REC_SEQ_LEN);
                 }
                 m_p_tx_ring->tls_context_resync_tx(&m_tls_info_tx, m_p_tis, skip_static);
 
-                uint8_t *addr = rec->m_p_buf->p_buffer;
-                uint32_t nr = (seg->seqno - rec->m_seqno + mss - 1) / mss;
-                uint32_t len;
-                uint32_t lkey = LKEY_USE_DEFAULT;
-
-                if (nr == 0) {
+                if (totlen == 0) {
                     m_p_tx_ring->post_nop_fence();
-                }
-                for (uint32_t i = 0; i < nr; ++i) {
-                    len = (i == nr - 1) ? (seg->seqno - rec->m_seqno) % mss : mss;
-                    if (len == 0) {
-                        len = mss;
+                } else {
+                    bool b_fence = true;
+                    uint32_t hdrlen;
+                    uint32_t taillen = 0;
+                    uint8_t *addr_tail;
+
+                    if (is_zerocopy) {
+                        hdrlen = std::min<uint32_t>(
+                            TLS_RECORD_HDR_LEN + (is_tx_tls13() ? 0 : TLS_RECORD_IV_LEN), totlen);
+                        taillen = TLS_RECORD_TAG_LEN + !!is_tx_tls13();
+                        /* Determine the trailer portion to be resend. */
+                        taillen = std::max<uint32_t>(totlen + taillen, rec->m_size) - rec->m_size;
+                        m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, hdrlen,
+                                                          LKEY_USE_DEFAULT, true);
+                        addr_tail = addr + hdrlen;
+                        addr = rec->m_p_zc_data;
+                        totlen = totlen - hdrlen - taillen; /* Remaining ZC part. */
+                        lkey = rec->get_lkey(reinterpret_cast<mem_buf_desc_t *>(p),
+                                             m_p_sock->get_ctx(), addr, totlen);
+                        b_fence = false;
                     }
-                    m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey, (i == 0));
-                    addr += mss;
+
+                    while (totlen > 0) {
+                        uint32_t len = std::min(totlen, mss);
+                        m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr, len, lkey,
+                                                          b_fence);
+                        totlen -= len;
+                        addr += len;
+                        b_fence = false;
+                    }
+
+                    if (is_zerocopy && taillen) {
+                        m_p_tx_ring->tls_tx_post_dump_wqe(m_p_tis, (void *)addr_tail, taillen,
+                                                          LKEY_USE_DEFAULT, false);
+                    }
                 }
 
                 m_expected_seqno = seg->seqno;
 
                 /* Statistics */
                 ++m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync;
-                m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync_replay += !!nr;
+                m_p_sock->m_p_socket_stats->tls_counters.n_tls_tx_resync_replay +=
+                    (seg->seqno != rec->m_seqno);
             }
             m_expected_seqno += seg->len;
             attr.tis = m_p_tis;

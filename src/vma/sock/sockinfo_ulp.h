@@ -59,6 +59,8 @@ public:
     sockinfo_tcp_ops(sockinfo_tcp *sock);
     virtual ~sockinfo_tcp_ops() {}
 
+    inline ring *get_tx_ring(void);
+
     virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
     virtual ssize_t tx(vma_tx_call_attr_t &tx_arg);
     virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
@@ -98,6 +100,8 @@ public:
     ssize_t tx(vma_tx_call_attr_t &tx_arg);
     int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
     bool handle_send_ret(ssize_t ret, struct tcp_seg *seg);
+
+    void get_record_buf(mem_buf_desc_t *&buf, uint8_t *&data, bool is_zerocopy);
 
 private:
     inline bool is_tx_tls13(void) { return m_tls_info_tx.tls_version == TLS_1_3_VERSION; }
@@ -161,15 +165,19 @@ private:
     struct xlio_tls_info m_tls_info_tx;
     struct xlio_tls_info m_tls_info_rx;
 
+    /* Whether offload is configured. */
+    bool m_is_tls_tx;
+    bool m_is_tls_rx;
     /* TLS record overhead (header + trailer). Different across versions. */
     uint32_t m_tls_rec_overhead;
 
     /* TX specific fields */
     xlio_tis *m_p_tis;
 
-    /* Whether offload is configured. */
-    bool m_is_tls_tx;
-    bool m_is_tls_rx;
+    /* A buffer to keep multiple headers for zerocopy TLS records. */
+    mem_buf_desc_t *m_zc_stor;
+    /* Offset of the next free chunk in the buffer to be allocated for a zerocopy record. */
+    uint32_t m_zc_stor_offset;
     /* TX flow expects in-order TCP segments. */
     uint32_t m_expected_seqno;
     /* Track TX record number for TX resync flow. */
