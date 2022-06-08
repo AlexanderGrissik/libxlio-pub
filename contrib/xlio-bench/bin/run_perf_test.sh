@@ -23,7 +23,7 @@ run_test() {
 
     # assuming that this script is executed on benchmark server:
     echo "-- Rsync workspace directory to $BULK_CLIENT_MHOST"
-    sudo rsync --delete --exclude run -a "$WORKSPACE" "root@$BULK_CLIENT_MHOST:$WORKSPACE/.."
+    sudo rsync --delete --exclude run -a "$WORKSPACE" "root@$BULK_CLIENT_MHOST:$(dirname "$WORKSPACE")"
 
     echo "-- tuning benchmark client $BULK_CLIENT_MHOST"
     sudo ssh "root@$BULK_CLIENT_MHOST" "sudo $BASEDIR/lib/tune-server.sh"
@@ -46,6 +46,16 @@ elif [[ "$TEST_SUITE" == "medium" ]]; then
     echo "-- sleeping 10 seconds for cleanup"
     sleep 10
     run_test cps-medium
+elif [[ "$TEST_SUITE" == "long" ]]; then
+    run_test rps-long
+    echo "-- sleeping 10 seconds for cleanup"
+    sleep 10
+    run_test cps-long
+elif [[ "$TEST_SUITE" == "extra long" ]]; then
+    run_test rps-extra-long
+    echo "-- sleeping 10 seconds for cleanup"
+    sleep 10
+    run_test cps-extra-long
 fi
 
 sleep 5
