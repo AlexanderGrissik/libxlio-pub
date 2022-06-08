@@ -1,3 +1,13 @@
+Version 1.3.1-1:
+Date + Time 2022-06-08
+=============================================================
+Added:
+        - RM #2982776 DEK cache and Modify
+        - RM #2982776 Adding pending sockets statistics
+        - RM #3077408 Make xlio_get_api not interfering with vma_get_api
+Fixed:
+        - RM #3077676 fix calc of max_udp_payload_size
+
 Version 1.3.0-1:
 Date + Time 2022-05-20
 =============================================================
