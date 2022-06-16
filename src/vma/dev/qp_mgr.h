@@ -88,7 +88,7 @@ typedef void (*xlio_comp_cb_t)(void *);
  * by the qm_mgr.
  *
  * NOTE:
- * The idea here is to use the rmda_cma_id object to manage the QP
+ * The idea here is to use the rdma_cma_id object to manage the QP
  * all we need is to rdma_resolve_addr() so we have the correct pkey in the cma_id object
  * the rest is a simple transition of the QP states that is hidden inside the rdma_cm
  *

@@ -33,18 +33,17 @@
 #ifndef FD_COLLECTION_H
 #define FD_COLLECTION_H
 
-#include <map>
-#include <rdma/rdma_cma.h>
-#include "vlogger/vlogger.h"
-#include "utils/lock_wrapper.h"
-#include "vma/iomux/epfd_info.h"
-
-#include "vma/sock/socket_fd_api.h"
-#include "vma/event/timer_handler.h"
-#include "vma/event/event_handler_manager.h"
-#include <vma/sock/cleanable_obj.h>
-#include "vma/dev/ring_tap.h"
 #include <stack>
+#include <unordered_map>
+
+#include "vlogger/vlogger.h"
+#include "vma/dev/ring_tap.h"
+#include "vma/event/event_handler_manager.h"
+#include "vma/event/timer_handler.h"
+#include "vma/sock/cleanable_obj.h"
+#include "vma/sock/socket_fd_api.h"
+#include "vma/iomux/epfd_info.h"
+#include "utils/lock_wrapper.h"
 
 typedef vma_list_t<socket_fd_api, socket_fd_api::pendig_to_remove_node_offset> sock_fd_api_list_t;
 typedef vma_list_t<epfd_info, epfd_info::epfd_info_node_offset> epfd_info_list_t;
