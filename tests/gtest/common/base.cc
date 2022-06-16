@@ -93,6 +93,8 @@ test_base::test_base()
                   &(((struct sockaddr_in6 *)&bogus_addr)->sin6_addr));
     }
 
+    def_gw_exists = gtest_conf.def_gw_exists;
+
     m_efd_signal = 0;
     m_efd = eventfd(m_efd_signal, 0);
 

@@ -41,6 +41,7 @@ make_opt="-j${NPROC}"
 
 if [ $(command -v timeout >/dev/null 2>&1 && echo $?) ]; then
     timeout_exe="timeout -s SIGKILL 20m"
+    timeout_exe_short="timeout -s SIGKILL 5m"
 fi
 
 trap "on_exit" INT TERM ILL KILL FPE SEGV ALRM

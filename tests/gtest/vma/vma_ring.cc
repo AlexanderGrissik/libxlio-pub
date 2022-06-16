@@ -194,6 +194,7 @@ TEST_F(vma_ring, ti_8)
     EXPECT_LE(0, ring_fd);
 
     close(fd);
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 TEST_F(vma_ring, ti_9)
@@ -247,6 +248,7 @@ TEST_F(vma_ring, ti_10)
     EXPECT_LE(0, ring_fd);
 
     close(fd);
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 TEST_F(vma_ring, ti_11)
@@ -258,6 +260,8 @@ TEST_F(vma_ring, ti_11)
     int fd;
     char opt_val[100];
     socklen_t opt_len;
+
+    SKIP_TRUE(def_gw_exists, "No Default Gateway");
 
     SKIP_TRUE(sys_rootuser(), "This test requires root permission");
 
@@ -308,6 +312,7 @@ TEST_F(vma_ring, ti_11)
     EXPECT_TRUE(ring_fd_bind_opt == ring_fd_connect);
 
     close(fd);
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 TEST_F(vma_ring, ti_12)
@@ -319,6 +324,8 @@ TEST_F(vma_ring, ti_12)
     int fd;
     char opt_val[100];
     socklen_t opt_len;
+
+    SKIP_TRUE(def_gw_exists, "No Default Gateway");
 
     SKIP_TRUE(sys_rootuser(), "This test requires root permission");
 
@@ -369,6 +376,7 @@ TEST_F(vma_ring, ti_12)
     EXPECT_TRUE(ring_fd_bind == ring_fd_connect);
 
     close(fd);
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 #endif /* EXTRA_API_ENABLED */

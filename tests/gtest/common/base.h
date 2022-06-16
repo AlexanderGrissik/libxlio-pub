@@ -58,6 +58,7 @@ protected:
     sockaddr_store_t server_addr;
     sockaddr_store_t remote_addr;
     sockaddr_store_t bogus_addr;
+    bool def_gw_exists;
     static uint16_t m_port;
     static int m_family;
 
