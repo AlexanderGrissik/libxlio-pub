@@ -229,9 +229,9 @@ const char *to_str(MODE option, const OPT (&options)[N])
     const char *to_str(mode_t option) { return option_x::to_str(option, options); }
 
 #define AUTO_ON_OFF_IMPL                                                                           \
-    {AUTO, "auto", {"auto", NULL, NULL}}, {ON, "on", {"on", "enabled", NULL}},                     \
+    {AUTO, "Auto", {"auto", NULL, NULL}}, {ON, "Enabled", {"on", "enabled", NULL}},                \
     {                                                                                              \
-        OFF, "off", { "off", "disabled", NULL }                                                    \
+        OFF, "Disabled", { "off", "disabled", NULL }                                               \
     }
 
 template <typename MODE> struct option_t {
@@ -247,7 +247,7 @@ OPTION_FROM_TO_STR_IMPL
 
 namespace option_strq {
 static option_t<mode_t> options[] = {AUTO_ON_OFF_IMPL,
-                                     {REGULAR_RQ, "regular_rq", {"regular_rq", NULL, NULL}}};
+                                     {REGULAR_RQ, "Regular RQ", {"regular_rq", NULL, NULL}}};
 OPTION_FROM_TO_STR_IMPL
 } // namespace option_strq
 
