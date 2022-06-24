@@ -207,8 +207,9 @@ TEST_F(tcp_connect, ti_4_rto_racing)
         barrier_fork(pid, true);
 
         int retries = 2;
-        while (connect_fn(server_addr, fns, 2) > 0 || --retries > 0)
+        while (connect_fn(server_addr, fns, 2) > 0 || --retries > 0) {
             ;
+        }
 
         ASSERT_EQ(0, wait_fork(pid));
 
@@ -222,7 +223,7 @@ TEST_F(tcp_connect, ti_4_rto_racing)
  *    Multiple connect on the same socket
  * @details
  */
-TEST_F(tcp_connect, ti_5_multi_connect)
+TEST_F(tcp_connect, DISABLED_ti_5_multi_connect)
 {
     int fd = tcp_base::sock_create();
     ASSERT_LE(0, fd);
