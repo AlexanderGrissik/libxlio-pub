@@ -544,6 +544,7 @@ bool neigh_entry::post_send_udp(neigh_send_data *n_send_data)
         neigh_logdbg("packet_sz=%d, payload_sz=%zd, ip_offset=%d id=%d",
                      m_sge.length - h->m_transport_header_len, sz_user_data_to_copy,
                      n_ip_frag_offset, ntohs(id));
+        NOT_IN_USE(id); // Fix unused-but-set error when bebug logs are disabled
 
         tmp = p_mem_buf_desc->p_next_desc;
         p_mem_buf_desc->p_next_desc = NULL;
