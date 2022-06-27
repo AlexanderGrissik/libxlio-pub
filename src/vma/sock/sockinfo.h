@@ -161,7 +161,13 @@ public:
     sockinfo(int fd, int domain);
     virtual ~sockinfo();
 
-    enum sockinfo_state { SOCKINFO_OPENED, SOCKINFO_CLOSING, SOCKINFO_CLOSED, SOCKINFO_DESTROYING };
+    enum sockinfo_state {
+        SOCKINFO_UNDEFINED,
+        SOCKINFO_OPENED,
+        SOCKINFO_CLOSING,
+        SOCKINFO_CLOSED,
+        SOCKINFO_DESTROYING
+    };
 
 #ifdef DEFINED_NGINX
     virtual void copy_sockopt_fork(const socket_fd_api *copy_from);
