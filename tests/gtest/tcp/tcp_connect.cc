@@ -223,7 +223,7 @@ TEST_F(tcp_connect, ti_4_rto_racing)
  *    Multiple connect on the same socket
  * @details
  */
-TEST_F(tcp_connect, DISABLED_ti_5_multi_connect)
+TEST_F(tcp_connect, ti_5_multi_connect)
 {
     int fd = tcp_base::sock_create();
     ASSERT_LE(0, fd);
@@ -289,9 +289,14 @@ TEST_F(tcp_connect, DISABLED_ti_5_multi_connect)
         rc = -1;
         fd = tcp_base::sock_create();
         if (fd > 0) {
-            rc = connect(fd, reinterpret_cast<const sockaddr *>(&server_addr), sizeof(server_addr));
-            if (rc != 0) {
-                log_trace("Final connected errno: %d\n", errno);
+            rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+            EXPECT_EQ(0, rc);
+            if (rc == 0) {
+                rc = connect(fd, reinterpret_cast<const sockaddr *>(&server_addr),
+                             sizeof(server_addr));
+                if (rc != 0) {
+                    log_trace("Final connected errno: %d\n", errno);
+                }
             }
             close(fd);
         }
