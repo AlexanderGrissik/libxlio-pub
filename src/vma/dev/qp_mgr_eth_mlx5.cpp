@@ -1515,4 +1515,24 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
     }
 }
 
+void qp_mgr_eth_mlx5::reset_inflight_zc_buffers_ctx(void *ctx)
+{
+    sq_wqe_prop *p = m_sq_wqe_prop_last;
+    sq_wqe_prop *prev;
+    if (p) {
+        unsigned p_i = p - m_sq_wqe_idx_to_prop;
+        if (p_i == m_sq_wqe_prop_last_signalled) {
+            return;
+        }
+        do {
+            mem_buf_desc_t *desc = (mem_buf_desc_t *)p->wr_id;
+            if (desc && desc->tx.zc.ctx == ctx) {
+                desc->tx.zc.ctx = nullptr;
+            }
+            prev = p;
+            p = p->next;
+        } while (p && is_sq_wqe_prop_valid(p, prev));
+    }
+}
+
 #endif /* DEFINED_DIRECT_VERBS */

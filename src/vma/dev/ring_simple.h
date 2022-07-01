@@ -229,6 +229,13 @@ public:
         m_p_qp_mgr->post_nop_fence();
     }
 
+    void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
+    {
+        auto_unlocker lock(m_lock_ring_tx);
+        NOT_IN_USE(id);
+        m_p_qp_mgr->reset_inflight_zc_buffers_ctx(ctx);
+    }
+
     friend class cq_mgr;
     friend class cq_mgr_mlx5;
     friend class cq_mgr_mlx5_strq;

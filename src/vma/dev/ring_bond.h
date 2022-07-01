@@ -109,6 +109,11 @@ public:
     virtual void slave_create(int if_index) = 0;
     virtual void slave_destroy(int if_index);
 
+    void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
+    {
+        m_xmit_rings[id]->reset_inflight_zc_buffers_ctx(id, ctx);
+    }
+
 protected:
     void update_cap(ring_slave *slave = NULL);
     void update_rx_channel_fds();

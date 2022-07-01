@@ -547,6 +547,10 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 
     return_reuse_buffers_postponed();
 
+    if (m_b_zc && m_p_connected_dst_entry) {
+        m_p_connected_dst_entry->reset_inflight_zc_buffers_ctx(this);
+    }
+
     /* According to "UNIX Network Programming" third edition,
      * setting SO_LINGER with timeout 0 prior to calling close()
      * will cause the normal termination sequence not to be initiated.

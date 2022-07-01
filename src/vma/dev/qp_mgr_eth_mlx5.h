@@ -140,6 +140,8 @@ public:
     void put_dek(std::unique_ptr<dpcp::dek> &&dek_obj);
 #endif
 
+    void reset_inflight_zc_buffers_ctx(void *ctx);
+
 protected:
     void post_recv_buffer_rq(mem_buf_desc_t *p_mem_buf_desc);
     void trigger_completion_for_all_sent_packets();

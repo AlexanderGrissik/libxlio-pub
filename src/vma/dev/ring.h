@@ -211,6 +211,12 @@ public:
 #endif /* DEFINED_UTLS */
     virtual void post_nop_fence(void) {}
 
+    virtual void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
+    {
+        NOT_IN_USE(id);
+        NOT_IN_USE(ctx);
+    }
+
 protected:
     inline void set_parent(ring *parent) { m_parent = (parent ? parent : this); }
     inline void set_if_index(int if_index) { m_if_index = if_index; }

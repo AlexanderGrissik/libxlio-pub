@@ -191,6 +191,8 @@ public:
 #endif /* DEFINED_UTLS */
     virtual void post_nop_fence(void) {}
 
+    virtual void reset_inflight_zc_buffers_ctx(void *ctx) { NOT_IN_USE(ctx); }
+
 protected:
     struct ibv_qp *m_qp;
     uint64_t *m_rq_wqe_idx_to_wrid;

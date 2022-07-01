@@ -121,6 +121,11 @@ public:
     uint8_t get_tos() const { return m_tos; }
     uint8_t get_ttl_hop_limit() const { return m_ttl; }
 
+    void reset_inflight_zc_buffers_ctx(void *ctx)
+    {
+        m_p_ring->reset_inflight_zc_buffers_ctx(m_id, ctx);
+    }
+
 protected:
     ip_address m_dst_ip;
     in_port_t m_dst_port;
