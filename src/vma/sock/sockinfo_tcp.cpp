@@ -5123,7 +5123,7 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
                 mem_buf_desc_t *p_prev_desc = (mem_buf_desc_t *)p_buff;
                 p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
                 p_desc->tx.zc.id = p_prev_desc->tx.zc.id;
-                p_desc->tx.zc.count = 1;
+                p_desc->tx.zc.count = p_prev_desc->tx.zc.count;
                 p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
                 p_desc->tx.zc.ctx = p_prev_desc->tx.zc.ctx;
                 p_desc->tx.zc.callback = tcp_tx_zc_callback;
