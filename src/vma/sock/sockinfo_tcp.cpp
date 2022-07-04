@@ -1025,10 +1025,14 @@ retry_is_ready:
                 goto err;
             }
             if (unlikely(g_b_exit)) {
-                ret = -1;
-                errno = EINTR;
-                si_tcp_logdbg("returning with: EINTR");
-                goto err;
+                if (total_tx > 0) {
+                    goto done;
+                } else {
+                    ret = -1;
+                    errno = EINTR;
+                    si_tcp_logdbg("returning with: EINTR");
+                    goto err;
+                }
             }
 
             err = tcp_write(&m_pcb, tx_ptr, tx_size, apiflags, &tx_arg.priv);
