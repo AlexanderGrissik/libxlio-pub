@@ -261,7 +261,7 @@ char *sprintf_sockaddr(char *buf, int buflen, const struct sockaddr *_addr, sock
 
 bool handle_close(int fd, bool cleanup, bool passthrough)
 {
-    bool is_closable = true;
+    bool to_close_now = true;
     bool is_for_udp_pool = false;
     srdr_logfunc("Cleanup fd=%d", fd);
 
@@ -275,22 +275,18 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 
         socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
         if (sockfd) {
-            sockfd->m_is_closable = !passthrough;
+            sockfd->m_is_closable = !passthrough && sockfd->is_incoming();
+            /*
+             * Don't call close() syscall for incoming sockets, because such a TCP socket can
+             * exist after closing and be reused. In this case, keep shadow socket alive until
+             * the socket is destroyed.
+             */
+            to_close_now = !sockfd->m_is_closable;
 #if defined(DEFINED_NGINX)
             // save this value before pointer is destructed
             is_for_udp_pool = sockfd->m_is_for_socket_pool;
 #endif
             g_p_fd_collection->del_sockfd(fd, cleanup);
-            /*
-             * Don't call close() syscall for socket's descriptor,
-             * because TCP socket can exist after closing and
-             * be reused. Keep shadow socket alive until socket
-             * is destroyed.
-             * We mustn't close shadow socket in socket's destructor
-             * in case of passthrough, because the descriptor is
-             * still in use for syscalls.
-             */
-            is_closable = passthrough;
         }
         if (fd_collection_get_epfd(fd)) {
             g_p_fd_collection->del_epfd(fd, cleanup);
@@ -299,14 +295,14 @@ bool handle_close(int fd, bool cleanup, bool passthrough)
 #if defined(DEFINED_NGINX)
         if (is_for_udp_pool) {
             g_p_fd_collection->push_socket_pool(sockfd);
-            is_closable = false;
+            to_close_now = false;
         }
 #else
         NOT_IN_USE(is_for_udp_pool);
 #endif
     }
 
-    return is_closable;
+    return to_close_now;
 }
 
 #if defined(DEFINED_NGINX)

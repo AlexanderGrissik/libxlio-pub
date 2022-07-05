@@ -192,6 +192,8 @@ public:
     virtual void set_immediate_os_sample();
     virtual void unset_immediate_os_sample();
 
+    virtual bool is_outgoing() { return false; }
+    virtual bool is_incoming() { return false; }
     virtual bool is_closable() { return true; }
 
 #if defined(DEFINED_NGINX)

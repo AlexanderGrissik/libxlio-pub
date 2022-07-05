@@ -253,7 +253,8 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     m_ops = m_ops_tcp = new sockinfo_tcp_ops(this);
     assert(m_ops != NULL); /* XXX */
 
-    is_attached = false; // For socket reuse
+    m_b_incoming = false;
+    m_b_attached = false; // For socket reuse
 
     m_accepted_conns.set_id("sockinfo_tcp (%p), fd = %d : m_accepted_conns", this, m_fd);
     m_rx_pkt_ready_list.set_id("sockinfo_tcp (%p), fd = %d : m_rx_pkt_ready_list", this, m_fd);
@@ -3030,6 +3031,7 @@ sockinfo_tcp *sockinfo_tcp::accept_clone()
     si->lock_tcp_con();
 
     si->m_parent = this;
+    si->m_b_incoming = true;
 
     si->m_sock_state = TCP_SOCK_BOUND;
     si->setPassthrough(false);
@@ -3157,9 +3159,9 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
 
     /* if attach failed, we should continue getting traffic through the listen socket */
     // todo register as 3-tuple rule for the case the listener is gone?
-    if (!new_sock->is_attached) {
+    if (!new_sock->m_b_attached) {
         new_sock->attach_as_uc_receiver(role_t(NULL), true);
-        new_sock->is_attached = true;
+        new_sock->m_b_attached = true;
     }
 
     if (new_sock->m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE) {
@@ -3314,13 +3316,16 @@ err_t sockinfo_tcp::syn_received_timewait_cb(void *arg, struct tcp_pcb *newpcb)
 {
     sockinfo_tcp *listen_sock = (sockinfo_tcp *)((arg));
 
-    if (!listen_sock || !newpcb) {
+    if (unlikely(!listen_sock || !newpcb)) {
         return ERR_VAL;
     }
 
     sockinfo_tcp *new_sock = (sockinfo_tcp *)((newpcb->my_container));
 
     ASSERT_LOCKED(new_sock->m_tcp_con_lock);
+    if (unlikely(!new_sock->is_incoming())) {
+        return ERR_VAL;
+    }
 
     /*
      * We reuse socket, so remove ULP. Currently there is no interface to

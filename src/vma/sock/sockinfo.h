@@ -193,7 +193,6 @@ public:
     virtual void statistics_print(vlog_levels_t log_level = VLOG_DEBUG);
     uint32_t get_flow_tag_val() { return m_flow_tag_id; }
     inline in_protocol_t get_protocol(void) { return m_protocol; }
-    virtual bool is_outgoing(void) { return false; }
 
     void socket_stats_init(void);
 
