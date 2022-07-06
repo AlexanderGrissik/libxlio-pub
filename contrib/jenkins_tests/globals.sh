@@ -31,12 +31,7 @@ tidy_dir=${WORKSPACE}/${prefix}/tidy
 prj_lib=libxlio.so
 prj_service=xliod
 
-NPROC=$(grep processor /proc/cpuinfo|wc -l)
-if [ $NPROC -lt 64 ]; then
-    NPROC=$(($NPROC / 2 + 1))
-else
-    NPROC=32
-fi
+NPROC=8
 make_opt="-j${NPROC}"
 
 if [ $(command -v timeout >/dev/null 2>&1 && echo $?) ]; then

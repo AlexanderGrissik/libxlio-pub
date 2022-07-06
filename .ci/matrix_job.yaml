@@ -11,8 +11,8 @@ kubernetes:
   cloud: swx-k8s-spray
   nodeSelector: 'beta.kubernetes.io/os=linux'
 
-  # limits: '{memory: 7Gi, cpu: 7000m}'
-  # requests: '{memory: 7Gi, cpu: 7000m}'
+  limits: '{memory: 8Gi, cpu: 8000m}'
+  requests: '{memory: 8Gi, cpu: 8000m}'
 
 volumes:
   - {mountPath: /hpc/local/bin, hostPath: /hpc/local/bin}
