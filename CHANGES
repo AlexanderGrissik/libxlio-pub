@@ -1,3 +1,14 @@
+Version 1.3.3-1:
+Date + Time 2022-07-06
+=============================================================
+Fixed:
+        - RM #3100949 Fix SYN retransmits for blocking connect()
+        - RM #2398936 Fix send zerocopy split operation
+        - RM #2678393 Fix return value on partial write when SIGINT is handled
+        - RM #2678856 Close all but incoming TCP sockets immediately on close()
+        - RM #3113450 Fix race between socket close and ZC completion callback
+        - RM #3130360 Fix destructor of cq_strides_cache
+
 Version 1.3.2-1:
 Date + Time 2022-06-25
 =============================================================
