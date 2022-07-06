@@ -73,7 +73,7 @@ cq_strides_cache::cq_strides_cache(ring_slave *owner_ring)
 
 cq_strides_cache::~cq_strides_cache()
 {
-    while (_block_vec_used-- > 1U) {
+    while (_block_vec_used-- > 0U) {
         g_buffer_pool_rx_stride->put_buffers_thread_safe(_block_vec[_block_vec_used].data(),
                                                          _block_vec[_block_vec_used].size());
     }
