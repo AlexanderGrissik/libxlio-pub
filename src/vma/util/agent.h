@@ -62,7 +62,7 @@ typedef enum { AGENT_INACTIVE, AGENT_ACTIVE, AGENT_CLOSED } agent_state_t;
 typedef void (*agent_cb_t)(void *arg);
 
 /**
- * @struct agent_msg_t
+ * @struct agent_callback_t
  * @brief Callback queue element.
  *
  * This structure describes function call that is

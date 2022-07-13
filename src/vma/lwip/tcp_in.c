@@ -175,6 +175,8 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 			in_data.inseg.len = p->tot_len;
 			in_data.inseg.p = p;
 			in_data.inseg.tcphdr = in_data.tcphdr;
+            in_data.inseg.seqno = in_data.seqno;
+            in_data.inseg.flags = 0;
 
 			in_data.recv_data = NULL;
 			in_data.recv_flags = 0;
@@ -1543,6 +1545,8 @@ tcp_receive(struct tcp_pcb *pcb, tcp_in_data* in_data)
         /* We get here if the incoming segment is out-of-sequence. */
         tcp_send_empty_ack(pcb);
 #if TCP_QUEUE_OOSEQ
+        /* Suppress coverity warning of uninit array during tcp_seg_copy(). */
+        memset(in_data->inseg.l2_l3_tcphdr_zc, 0, sizeof(in_data->inseg.l2_l3_tcphdr_zc));
         /* We queue the segment on the ->ooseq queue. */
         if (pcb->ooseq == NULL) {
           pcb->ooseq = tcp_seg_copy(pcb, &in_data->inseg);

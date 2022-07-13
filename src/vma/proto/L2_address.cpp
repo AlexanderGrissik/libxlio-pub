@@ -76,7 +76,7 @@ bool L2_address::compare(L2_address const &other) const
 
 const std::string ETH_addr::to_str() const
 {
-    char s[100];
+    char s[100] = "";
     if (m_len > 0) {
         sprintf(s, ETH_HW_ADDR_PRINT_FMT, ETH_HW_ADDR_PRINT_ADDR(m_p_raw_address));
     }
