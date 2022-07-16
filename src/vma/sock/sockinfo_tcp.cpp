@@ -2679,6 +2679,11 @@ int sockinfo_tcp::prepareListen()
         return 1; // passthrough
     }
 
+    if (unlikely(is_incoming())) {
+        errno = EINVAL;
+        return -1;
+    }
+
 #if defined(DEFINED_NGINX)
     if (safe_mce_sys().actual_nginx_workers_num > 0) {
         if (m_sock_state == TCP_SOCK_LISTEN_READY) {
@@ -2694,7 +2699,7 @@ int sockinfo_tcp::prepareListen()
     addr.set_sa_family(m_family);
     addr_len = addr.get_socklen();
     if (m_sock_state != TCP_SOCK_BOUND) {
-        /*It is legal application  behavior, listen was called without bind,
+        /* It is legal application behavior, listen was called without bind,
          * therefore need to call for bind() to get a random port from the OS
          */
         si_tcp_logdbg("listen was called without bind - calling for bind");
