@@ -136,11 +136,12 @@ public:
 
     virtual void clean_obj();
 
-    void setPassthrough(bool _isPassthrough = true)
+    void setPassthrough(bool _isPassthrough)
     {
         m_sock_offload = _isPassthrough ? TCP_SOCK_PASSTHROUGH : TCP_SOCK_LWIP;
         m_p_socket_stats->b_is_offloaded = !_isPassthrough;
     }
+    void setPassthrough() { setPassthrough(true); }
     bool isPassthrough() { return m_sock_offload == TCP_SOCK_PASSTHROUGH; }
 
     int prepareListen();
