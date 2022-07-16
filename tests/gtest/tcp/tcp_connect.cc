@@ -456,3 +456,83 @@ TEST_F(tcp_connect, mapped_ipv4_connect_v6only)
         close(fd);
     }
 }
+
+/**
+ * @test tcp_connect.ti_6_incoming_conn
+ * @brief
+ *    Test API compliance for an incoming connection socket.
+ * @details
+ */
+TEST_F(tcp_connect, ti_6_incoming_conn)
+{
+    int rc = EOK;
+    int pid = fork();
+
+    if (0 == pid) { /* I am the child, client */
+        barrier_fork(pid);
+
+        int fd = tcp_base::sock_create();
+        ASSERT_LE(0, fd);
+
+        rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
+        ASSERT_EQ(0, rc);
+
+        rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        ASSERT_EQ(0, rc);
+
+        peer_wait(fd);
+
+        close(fd);
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { /* I am the parent, server */
+        int l_fd = tcp_base::sock_create();
+        ASSERT_LE(0, l_fd);
+
+        rc = bind(l_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        ASSERT_EQ(0, rc);
+
+        rc = listen(l_fd, 5);
+        ASSERT_EQ(0, rc);
+
+        barrier_fork(pid);
+
+        struct sockaddr_storage peer_addr;
+        socklen_t socklen = sizeof(peer_addr);
+        int fd = accept(l_fd, (struct sockaddr *)&peer_addr, &socklen);
+        ASSERT_LE(0, fd);
+        log_trace("Accepted connection: fd=%d from %s\n", fd,
+                  sys_addr2str((struct sockaddr *)&peer_addr));
+
+        // Try to bind accepted socket, expect EINVAL
+        rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        ASSERT_EQ(-1, rc);
+        ASSERT_EQ(EINVAL, errno);
+
+        // Try to listen on accepted socket, expect EINVAL
+        rc = listen(fd, 5);
+        ASSERT_EQ(-1, rc);
+        ASSERT_EQ(EINVAL, errno);
+
+        // Try to connect on accepted socket, expect EISCONN
+        rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        ASSERT_EQ(-1, rc);
+        ASSERT_EQ(EISCONN, errno);
+
+        // Set TCP_CORK option
+        int optval = 1;
+        rc = setsockopt(fd, IPPROTO_TCP, TCP_CORK, &optval, sizeof(optval));
+        ASSERT_EQ(0, rc);
+
+        // Set TCP_LINGER2 option which is not supported by XLIO
+        rc = setsockopt(fd, IPPROTO_TCP, TCP_LINGER2, &optval, sizeof(optval));
+        ASSERT_TRUE(0 == rc || errno == ENOPROTOOPT);
+
+        close(l_fd);
+        close(fd);
+
+        ASSERT_EQ(0, wait_fork(pid));
+    }
+}
