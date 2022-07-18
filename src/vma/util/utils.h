@@ -89,6 +89,8 @@ unsigned short compute_ipv6_udp_frag_checksum(const ip6_hdr *ipv6, udphdr *udp);
 unsigned short compute_tcp_checksum(const ip6_hdr *p_iphdr, const uint16_t *p_ip_payload,
                                     uint16_t ext_hdr_len);
 
+unsigned short compute_udp_checksum_tx(const ip6_hdr *ipv6, const uint16_t *payload, udphdr *udp);
+
 /**
  * get udp checksum: given IP header and UDP datagram (assume checksum field in UDP header contains
  * zero) matches RFC 793

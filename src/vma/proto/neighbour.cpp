@@ -767,7 +767,8 @@ bool neigh_entry::post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data
     BULLSEYE_EXCLUDE_BLOCK_END
 
     wqe_send_handler wqe_sh;
-    vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM);
+    vma_wr_tx_packet_attr attr =
+        (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L4_CSUM | VMA_TX_PACKET_L3_CSUM);
     if (b_need_sw_csum) {
         neigh_logdbg("post_send_udp_ipv6_not_fragmented: using SW checksum calculation");
         attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_SW_CSUM);

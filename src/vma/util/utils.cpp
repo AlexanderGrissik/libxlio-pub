@@ -222,13 +222,15 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
 
         if (l4_csum) {
             if (protocol == IPPROTO_UDP) {
+                // UDP Checksum for IPv4 is not mandatory, so we set it to 0.
+                // Should not get here for inline wqe flow - udp payload is not avail here.
                 struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
-                l4_checksum = udp_hdr->check = 0;
+                udp_hdr->check = 0;
                 if (!is_ipv4) {
-                    // TODO: fix bug #3079802
-                    __log_err(
-                        "Wrong transmitted UDP checksum, expect packet to drop on receiver...");
+                    const uint16_t *udp_hdr_buf = reinterpret_cast<const uint16_t *>(udp_hdr);
+                    udp_hdr->check = compute_udp_checksum_tx(ipv6, udp_hdr_buf, udp_hdr);
                 }
+                l4_checksum = udp_hdr->check;
             } else if (protocol == IPPROTO_TCP) {
                 struct tcphdr *tcp_hdr = p_mem_buf_desc->tx.p_tcp_h;
                 const uint16_t *tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
@@ -303,8 +305,8 @@ static uint32_t compute_pseudo_header(const ip6_hdr *ipv6, uint16_t proto, uint1
  *
  * This code borrows from other places and their ideas.
  * */
-static unsigned short compute_tcp_payload_checksum(const uint16_t *payload, uint16_t payload_len,
-                                                   uint32_t sum)
+static unsigned short compute_payload_checksum(const uint16_t *payload, uint16_t payload_len,
+                                               uint32_t sum)
 {
     while (payload_len > 1) {
         sum += *payload++;
@@ -328,7 +330,7 @@ unsigned short compute_tcp_checksum(const iphdr *ipv4, const uint16_t *payload, 
 {
     uint16_t tcpLen = ntohs(ipv4->tot_len) - hdr_len;
     uint32_t sum = compute_pseudo_header(ipv4, IPPROTO_TCP, tcpLen);
-    return compute_tcp_payload_checksum(payload, tcpLen, sum);
+    return compute_payload_checksum(payload, tcpLen, sum);
 }
 
 unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload,
@@ -336,7 +338,14 @@ unsigned short compute_tcp_checksum(const ip6_hdr *ipv6, const uint16_t *payload
 {
     uint16_t tcpLen = ntohs(ipv6->ip6_plen) - ext_hdr_len;
     uint32_t sum = compute_pseudo_header(ipv6, IPPROTO_TCP, tcpLen);
-    return compute_tcp_payload_checksum(payload, tcpLen, sum);
+    return compute_payload_checksum(payload, tcpLen, sum);
+}
+
+unsigned short compute_udp_checksum_tx(const ip6_hdr *ipv6, const uint16_t *payload, udphdr *udp)
+{
+    uint16_t ipLen = ntohs(ipv6->ip6_plen);
+    uint32_t sum = compute_pseudo_header(ipv6, IPPROTO_UDP, ntohs(udp->len));
+    return compute_payload_checksum(payload, ipLen, sum);
 }
 
 /*
