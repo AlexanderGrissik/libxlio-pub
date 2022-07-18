@@ -54,14 +54,17 @@ public:
 
 class neigh_send_info : public send_info {
 public:
-    neigh_send_info(iovec *iov, size_t sz, header *hdr, uint8_t proto, uint32_t mtu, uint8_t tos)
+    neigh_send_info(iovec *iov, size_t sz, header *hdr, uint8_t proto, uint32_t mtu, uint8_t tos,
+                    uint32_t packet_id)
         : send_info(iov, sz)
         , m_p_header(hdr)
         , m_mtu(mtu)
+        , m_packet_id(packet_id)
         , m_tos(tos)
         , m_protocol(proto) {};
     header *m_p_header;
     uint32_t m_mtu;
+    uint32_t m_packet_id; // Used for IPv6 only
     uint8_t m_tos;
     uint8_t m_protocol;
 };
@@ -79,6 +82,7 @@ public:
         : send_data((const send_info *)nsi)
         , m_header(nsi->m_p_header->copy())
         , m_mtu(nsi->m_mtu)
+        , m_packet_id(nsi->m_packet_id)
         , m_tos(nsi->m_tos)
         , m_protocol(nsi->m_protocol) {};
 
@@ -91,6 +95,7 @@ public:
 
     header *m_header;
     uint32_t m_mtu;
+    uint32_t m_packet_id;
     uint8_t m_tos;
     uint8_t m_protocol;
 };

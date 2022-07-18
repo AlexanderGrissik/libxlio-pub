@@ -547,14 +547,12 @@ void dst_entry_udp::init_sge()
     m_sge[0].lkey = m_p_ring->get_tx_lkey(m_id);
 }
 
-ssize_t dst_entry_udp::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_t packet_id)
+ssize_t dst_entry_udp::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint32_t packet_id)
 {
     m_header_neigh->init();
     m_header_neigh->configure_udp_header(m_dst_port, m_src_port);
 
-    packet_id = (m_sysvar_thread_mode > THREAD_MODE_SINGLE) ? atomic_fetch_and_inc(&m_a_tx_ip_id)
-                                                            : m_n_tx_ip_id++;
-    packet_id = htons(packet_id);
+    packet_id = (get_sa_family() == AF_INET6) ? gen_packet_id_ip6() : gen_packet_id_ip4();
 
     return (dst_entry::pass_buff_to_neigh(p_iov, sz_iov, packet_id));
 }

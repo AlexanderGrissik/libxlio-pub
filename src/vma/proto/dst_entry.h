@@ -188,7 +188,7 @@ protected:
     virtual bool resolve_neigh();
     virtual bool resolve_ring();
     virtual bool release_ring();
-    virtual ssize_t pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_t packet_id = 0);
+    virtual ssize_t pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint32_t packet_id = 0);
     virtual void configure_ip_header(header *h, uint16_t packet_id = 0);
     virtual void configure_headers() { conf_hdrs_and_snd_wqe(); };
     bool conf_hdrs_and_snd_wqe();

@@ -605,7 +605,7 @@ bool neigh_entry::post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, si
     // fragmentation extension header - copy it to every fragment
     // the only field that will change here is ip6f_offlg
     ip6_frag frag_h;
-    frag_h.ip6f_ident = 0; // TODO: dont have id here...
+    frag_h.ip6f_ident = n_send_data->m_packet_id;
     frag_h.ip6f_nxt = IPPROTO_UDP;
     frag_h.ip6f_offlg = IP6F_MORE_FRAG;
     frag_h.ip6f_reserved = 0;

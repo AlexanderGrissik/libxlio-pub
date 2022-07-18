@@ -54,7 +54,7 @@ protected:
     virtual ibv_sge *get_sge_lst_4_not_inline_send() { return &m_sge[1]; };
     virtual void configure_headers();
     virtual void init_sge();
-    virtual ssize_t pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_t packet_id = 0);
+    virtual ssize_t pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint32_t packet_id = 0);
     atomic_t m_a_tx_ip_id;
     size_t m_n_tx_ip_id;
 

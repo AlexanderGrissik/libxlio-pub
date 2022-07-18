@@ -684,17 +684,19 @@ uint16_t dst_entry::get_dst_port()
     return m_dst_port;
 }
 
-ssize_t dst_entry::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint16_t packet_id)
+ssize_t dst_entry::pass_buff_to_neigh(const iovec *p_iov, size_t sz_iov, uint32_t packet_id)
 {
     ssize_t ret_val = 0;
 
     dst_logdbg("");
 
-    configure_ip_header(m_header_neigh, packet_id);
+    // For IPv4 - packet_id will be taken from header
+    // For IPv6 - packet_id will be taken from neigh_send_info
+    configure_ip_header(m_header_neigh, (uint16_t)(packet_id & 0xffff));
 
     if (m_p_neigh_entry) {
         neigh_send_info n_send_info(const_cast<iovec *>(p_iov), sz_iov, m_header_neigh,
-                                    get_protocol_type(), get_route_mtu(), m_tos);
+                                    get_protocol_type(), get_route_mtu(), m_tos, packet_id);
         ret_val = m_p_neigh_entry->send(n_send_info);
     }
 
