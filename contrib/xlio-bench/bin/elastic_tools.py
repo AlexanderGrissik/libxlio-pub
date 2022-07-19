@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch
 from datetime import datetime
 
 
-ELASTIC_HOST = "dev-r-vrt-018.mtr.labs.mlnx"
+ELASTIC_HOST = "r-elk.mtr.labs.mlnx"
 INDEX = "xlio_perf"
 
 elastic = Elasticsearch([

@@ -32,7 +32,7 @@ pr_id = os.environ.get("ghprbPullId", os.environ.get("PR_ID"))  # get Github PR 
 # source_branch = os.environ.get("ghprbSourceBranch")
 set_as_baseline = os.environ.get("SET_AS_BASELINE", "false")
 set_as_baseline = strtobool(set_as_baseline) == 1  # converting string value from Jenkins to bool
-dashboard_url = "http://dev-r-vrt-018.mtr.labs.mlnx:5601/s/xlio/app/visualize#/edit/{dashboard_id}?_a=(query:(language:kuery,query:'{query}'))"
+dashboard_url = "http://r-elk.mtr.labs.mlnx/s/xlio/app/visualize#/edit/{dashboard_id}?_a=(query:(language:kuery,query:'{query}'))"
 dashboards = {
     "rps": {
         "88c498f0-484d-11ec-bf01-8162e9e81821": ("RPS per payload", "type:rps and (benchmark_id:{benchmark_id} or is_baseline:true)"),
