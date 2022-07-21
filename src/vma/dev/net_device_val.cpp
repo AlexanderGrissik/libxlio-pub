@@ -40,7 +40,7 @@
 #include <linux/if_tun.h>
 #include <sys/epoll.h>
 #include <netlink/route/link/vlan.h>
-
+#include <algorithm>
 #include <sstream>
 
 #include "utils/bullseye.h"
@@ -223,7 +223,7 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
 
     /* Valid interface should have at least one IP address */
     set_ip_array();
-    if (m_ip.empty()) {
+    if (m_ipv4.empty() && m_ipv6.empty()) {
         return;
     }
 
@@ -236,8 +236,7 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
         m_bond = NO_BOND;
     }
 
-    nd_logdbg("Check interface '%s' (index=%d addr=%s flags=%X)", get_ifname(), get_if_idx(),
-              get_local_addr().to_str().c_str(), get_flags());
+    nd_logdbg("Check interface '%s' (index=%d flags=%X)", get_ifname(), get_if_idx(), get_flags());
 
     valid = false;
     ib_ctx = g_p_ib_ctx_handler_collection->get_ib_ctx(get_ifname_link());
@@ -326,13 +325,6 @@ net_device_val::~net_device_val()
     for (; slave != m_slaves.end(); ++slave) {
         delete *slave;
     }
-    m_slaves.clear();
-
-    ip_data_vector_t::iterator ip = m_ip.begin();
-    for (; ip != m_ip.end(); ++ip) {
-        delete *ip;
-    }
-    m_ip.clear();
 }
 
 void net_device_val::set_ip_array()
@@ -386,7 +378,6 @@ void net_device_val::set_ip_array()
             int nl_attrlen;
             struct ifaddrmsg *nl_msgdata;
             struct rtattr *nl_attr;
-            ip_data_t *p_val = NULL;
 
             nl_msgdata = (struct ifaddrmsg *)NLMSG_DATA(nl_msg);
 
@@ -396,27 +387,31 @@ void net_device_val::set_ip_array()
                 nl_attr = (struct rtattr *)IFA_RTA(nl_msgdata);
                 nl_attrlen = IFA_PAYLOAD(nl_msg);
 
-                p_val = new ip_data_t;
+                std::unique_ptr<ip_data> p_val(new ip_data);
                 p_val->flags = nl_msgdata->ifa_flags;
                 p_val->prefixlen = nl_msgdata->ifa_prefixlen;
+                p_val->scope = nl_msgdata->ifa_scope;
                 while (RTA_OK(nl_attr, nl_attrlen)) {
-                    char *nl_attrdata = (char *)RTA_DATA(nl_attr);
+                    char *nl_attrdata = reinterpret_cast<char *>(RTA_DATA(nl_attr));
 
-                    switch (nl_attr->rta_type) {
-                    case IFA_ADDRESS:
+                    if (nl_attr->rta_type == IFA_ADDRESS) {
                         if (nl_msgdata->ifa_family == AF_INET) {
-                            p_val->local_addr = ip_addr(*reinterpret_cast<in_addr *>(nl_attrdata));
+                            p_val->local_addr =
+                                ip_address(*reinterpret_cast<in_addr *>(nl_attrdata));
                         } else {
-                            p_val->local_addr = ip_addr(*reinterpret_cast<in6_addr *>(nl_attrdata));
+                            p_val->local_addr =
+                                ip_address(*reinterpret_cast<in6_addr *>(nl_attrdata));
                         }
-                        break;
-                    default:
                         break;
                     }
                     nl_attr = RTA_NEXT(nl_attr, nl_attrlen);
                 }
 
-                m_ip.push_back(p_val);
+                if (nl_msgdata->ifa_family == AF_INET) {
+                    m_ipv4.emplace_back(std::move(p_val));
+                } else {
+                    m_ipv6.emplace_back(std::move(p_val));
+                }
             }
 
             /* Check if it is the last message */
@@ -429,6 +424,32 @@ void net_device_val::set_ip_array()
 
 ret:
     orig_os_api.close(fd);
+
+    print_ips();
+}
+
+void net_device_val::print_ips()
+{
+    if (g_vlogger_level < VLOG_DEBUG) {
+        return;
+    }
+
+    auto print_arr = [this](const ip_data_vector_t &vec, sa_family_t family) {
+        if (vec.empty()) {
+            return;
+        }
+
+        VLOG_PRINTF_INFO(VLOG_DEBUG, "IF %s %s:", get_ifname(), sa_family2str(family).c_str());
+
+        for (const auto &ipdata : vec) {
+            VLOG_PRINTF_INFO(VLOG_DEBUG, "\t%s/%" PRIu8 " scope: %" PRIu8 " flags: %d",
+                             ipdata->local_addr.to_str(family).c_str(), ipdata->prefixlen,
+                             ipdata->scope, ipdata->flags);
+        }
+    };
+
+    print_arr(m_ipv4, AF_INET);
+    print_arr(m_ipv6, AF_INET6);
 }
 
 const std::string net_device_val::to_str_ex() const
@@ -514,11 +535,17 @@ void net_device_val::print_val()
 {
     nd_logdbg("%s", to_str_ex().c_str());
 
-    nd_logdbg("  ip list: %s", (m_ip.empty() ? "empty " : ""));
-    for (size_t i = 0; i < m_ip.size(); i++) {
-        nd_logdbg("    inet: %s/%d flags: 0x%X", m_ip[i]->local_addr.to_str().c_str(),
-                  m_ip[i]->prefixlen, m_ip[i]->flags);
-    }
+    nd_logdbg("  IPv4 list: %s", (m_ipv4.empty() ? "empty " : ""));
+    std::for_each(m_ipv4.begin(), m_ipv4.end(), [this](const std::unique_ptr<ip_data> &ip) {
+        nd_logdbg("    inet: %s/%d flags: 0x%X scope: 0x%x", ip->local_addr.to_str(AF_INET).c_str(),
+                  ip->prefixlen, ip->flags, ip->scope);
+    });
+
+    nd_logdbg("  IPv6 list: %s", (m_ipv6.empty() ? "empty " : ""));
+    std::for_each(m_ipv6.begin(), m_ipv6.end(), [this](const std::unique_ptr<ip_data> &ip) {
+        nd_logdbg("    inet6: %s/%d flags: 0x%X scope: 0x%x",
+                  ip->local_addr.to_str(AF_INET6).c_str(), ip->prefixlen, ip->flags, ip->scope);
+    });
 
     nd_logdbg("  slave list: %s", (m_slaves.empty() ? "empty " : ""));
     for (size_t i = 0; i < m_slaves.size(); i++) {

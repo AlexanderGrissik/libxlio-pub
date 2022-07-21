@@ -112,10 +112,6 @@ dst_entry::~dst_entry()
         m_p_ring = NULL;
     }
 
-    if (m_p_net_dev_entry && m_p_net_dev_val) {
-        g_p_net_device_table_mgr->unregister_observer(m_p_net_dev_val->get_local_addr(), this);
-    }
-
     if (m_p_send_wqe_handler) {
         delete m_p_send_wqe_handler;
         m_p_send_wqe_handler = NULL;
@@ -167,12 +163,18 @@ void dst_entry::set_src_addr()
 {
     if (!m_route_src_ip.is_anyaddr()) {
         m_pkt_src_ip = m_route_src_ip;
+        dst_logfunc("Selected source address (bind/routing_src): %s",
+                    m_pkt_src_ip.to_str(get_sa_family()).c_str());
     } else if (m_p_rt_val && !m_p_rt_val->get_src_addr().is_anyaddr()) {
         m_pkt_src_ip = m_p_rt_val->get_src_addr();
-    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr().is_anyaddr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
+        dst_logfunc("Selected source address (rt_val): %s",
+                    m_pkt_src_ip.to_str(get_sa_family()).c_str());
+    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr(get_sa_family()).is_anyaddr()) {
+        m_pkt_src_ip = m_p_net_dev_val->get_local_addr(get_sa_family());
+        dst_logfunc("Selected source address: %s", m_pkt_src_ip.to_str(get_sa_family()).c_str());
     } else {
         m_pkt_src_ip = in6addr_any;
+        dst_logfunc("Selected source address: any");
     }
 }
 
@@ -192,7 +194,7 @@ bool dst_entry::update_net_dev_val()
     }
 
     if (m_p_net_dev_val != new_nd_val) {
-        dst_logdbg("updating net_device");
+        dst_logdbg("updating net_device, new-if_name: %s", new_nd_val->get_ifname());
 
         if (m_p_neigh_entry) {
             ip_address dst_addr = m_dst_ip;

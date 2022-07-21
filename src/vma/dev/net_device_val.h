@@ -37,12 +37,12 @@
 #include <vector>
 #include <unordered_map>
 #include <sstream>
+#include <memory>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "utils/lock_wrapper.h"
 #include "vma/util/sys_vars.h"
-#include "vma/util/ip_address.h"
 #include "vma/event/event_handler_ibverbs.h"
 #include "vma/event/event_handler_rdma_cm.h"
 #include "vma/dev/ib_ctx_handler.h"
@@ -150,19 +150,21 @@ typedef struct slave_data {
 
 typedef std::vector<slave_data_t *> slave_data_vector_t;
 
-typedef struct ip_data {
+class ip_data {
+public:
+    ip_address local_addr;
     int flags;
-    ip_addr local_addr;
     uint8_t prefixlen;
+    uint8_t scope;
     ip_data()
         : flags(0)
-        , local_addr(INADDR_ANY)
         , prefixlen(0)
+        , scope(0)
     {
     }
-} ip_data_t;
+};
 
-typedef std::vector<ip_data_t *> ip_data_vector_t;
+typedef std::vector<std::unique_ptr<ip_data>> ip_data_vector_t;
 
 #define VMA_DEFAULT_ENGRESS_MAP_PRIO (0)
 typedef std::unordered_map<uint32_t, uint32_t> tc_class_priority_map;
@@ -211,7 +213,15 @@ public:
     {
         memcpy(m_l2_bc_addr, addr, std::min(sizeof(m_l2_bc_addr), size));
     }
-    void set_ip_array();
+    inline const ip_data_vector_t &get_ip_array(sa_family_t family) const
+    {
+        return (family == AF_INET ? m_ipv4 : m_ipv6);
+    }
+
+    inline ip_address get_local_addr(sa_family_t family)
+    {
+        return get_ip_array(family)[0]->local_addr;
+    } // Valid object must have at least one address
 
     inline int get_type() { return m_type; }
     inline int get_if_idx() { return m_if_idx; }
@@ -220,11 +230,10 @@ public:
     inline const char *get_ifname() const { return m_name.c_str(); }
     inline const char *get_ifname_link() const { return m_base_name; }
     inline uint8_t *get_l2_if_addr() { return m_l2_if_addr; }
-    const ip_data_vector_t &get_ip_array() const { return m_ip; }
     const slave_data_vector_t &get_slave_array() const { return m_slaves; }
     const slave_data_t *get_slave(int if_index);
-
     void print_val();
+    void set_ip_array();
 
     ring *reserve_ring(resource_allocation_key *); // create if not exists
     int release_ring(resource_allocation_key *); // delete from m_hash if ref_cnt == 0
@@ -234,10 +243,7 @@ public:
     inline void set_transport_type(transport_type_t value) { m_transport_type = value; }
     transport_type_t get_transport_type() const { return m_transport_type; }
     bool update_active_backup_slaves();
-    ip_addr get_local_addr()
-    {
-        return m_ip[0]->local_addr;
-    } // Valid object must have at least one address
+
     int global_ring_poll_and_process_element(uint64_t *p_poll_sn, void *pv_fd_ready_array = NULL);
     int global_ring_request_notification(uint64_t poll_sn);
     int ring_drain_and_proccess();
@@ -295,8 +301,10 @@ private:
     uint8_t m_l2_if_addr[20]; /* hardware L2 interface address */
     uint8_t m_l2_bc_addr[20]; /* hardware L2 broadcast address */
 
-    /* See: RFC 3549 2.3.3.2. */
-    ip_data_vector_t m_ip; /* vector of ip addresses */
+    /* See: RFC 3549 2.3.3.2. Linux Netlink as an IP Services Protocol */
+
+    ip_data_vector_t m_ipv4; /* Vector of IPv4 addresses */
+    ip_data_vector_t m_ipv6; /* Vector of IPv6 addresses */
 
     std::string m_name; /* container for ifname */
     char m_base_name[IFNAMSIZ]; /* base name of device basing ifname */

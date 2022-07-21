@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <sys/epoll.h>
+#include <algorithm>
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
@@ -162,7 +163,8 @@ void net_device_table_mgr::free_ndtm_resources()
         delete itr->second;
         m_net_device_map_index.erase(itr);
     }
-    m_net_device_map_addr.clear();
+    m_net_device_map_addr_v4.clear();
+    m_net_device_map_addr_v6.clear();
 
     m_lock.unlock();
 }
@@ -263,10 +265,18 @@ void net_device_table_mgr::update_tbl()
                     set_max_mtu(p_net_device_val->get_mtu());
                 }
 
-                const ip_data_vector_t &ip = p_net_device_val->get_ip_array();
-                for (size_t i = 0; i < ip.size(); i++) {
-                    m_net_device_map_addr[ip[i]->local_addr] = p_net_device_val;
-                }
+                const ip_data_vector_t &ipvec_v4 = p_net_device_val->get_ip_array(AF_INET);
+                std::for_each(ipvec_v4.begin(), ipvec_v4.end(),
+                              [this, p_net_device_val](const std::unique_ptr<ip_data> &ip) {
+                                  m_net_device_map_addr_v4[ip->local_addr] = p_net_device_val;
+                              });
+
+                const ip_data_vector_t &ipvec_v6 = p_net_device_val->get_ip_array(AF_INET6);
+                std::for_each(ipvec_v6.begin(), ipvec_v6.end(),
+                              [this, p_net_device_val](const std::unique_ptr<ip_data> &ip) {
+                                  m_net_device_map_addr_v6[ip->local_addr] = p_net_device_val;
+                              });
+
                 m_net_device_map_index[p_net_device_val->get_if_idx()] = p_net_device_val;
             }
 
@@ -304,8 +314,11 @@ net_device_val *net_device_table_mgr::get_net_device_val(const ip_addr &if_addr)
 {
     std::lock_guard<decltype(m_lock)> lock(m_lock);
 
-    net_device_map_addr_t::iterator iter = m_net_device_map_addr.find(if_addr);
-    if (iter != m_net_device_map_addr.end()) {
+    net_device_map_addr &net_device_map =
+        (if_addr.get_family() == AF_INET ? m_net_device_map_addr_v4 : m_net_device_map_addr_v6);
+
+    net_device_map_addr::iterator iter = net_device_map.find(if_addr);
+    if (iter != net_device_map.end()) {
         net_device_val *net_dev = iter->second;
         ndtm_logdbg("Found %s for addr: %s", net_dev->to_str().c_str(), if_addr.to_str().c_str());
         if (net_dev->get_state() == net_device_val::INVALID) {
@@ -386,21 +399,18 @@ net_device_entry *net_device_table_mgr::create_new_entry(ip_addr if_addr, const 
     return NULL;
 }
 
-local_ip_list_t net_device_table_mgr::get_ip_list(int if_index)
+void net_device_table_mgr::get_ip_list(local_ip_list_t &ip_list, sa_family_t family, int if_index)
 {
-    net_device_map_index_t::iterator iter;
-    local_ip_list_t ip_list;
-    size_t i;
-
     m_lock.lock();
 
-    iter = (if_index > 0 ? m_net_device_map_index.find(if_index) : m_net_device_map_index.begin());
+    net_device_map_index_t::iterator iter =
+        (if_index > 0 ? m_net_device_map_index.find(if_index) : m_net_device_map_index.begin());
 
     for (; iter != m_net_device_map_index.end(); iter++) {
         net_device_val *p_ndev = iter->second;
-        const ip_data_vector_t &ip = p_ndev->get_ip_array();
-        for (i = 0; i < ip.size(); i++) {
-            ip_list.push_back(*ip[i]);
+        const ip_data_vector_t &ip = p_ndev->get_ip_array(family);
+        for (size_t i = 0; i < ip.size(); i++) {
+            ip_list.emplace_back(*ip[i].get());
         }
         if (if_index > 0) {
             break;
@@ -408,8 +418,6 @@ local_ip_list_t net_device_table_mgr::get_ip_list(int if_index)
     }
 
     m_lock.unlock();
-
-    return ip_list;
 }
 
 int net_device_table_mgr::global_ring_poll_and_process_element(uint64_t *p_poll_sn,

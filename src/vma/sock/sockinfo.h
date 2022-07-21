@@ -227,6 +227,7 @@ public:
 
 private:
     int fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit);
+    bool attach_as_uc_receiver_anyip(sa_family_t family, role_t role, bool skip_rules);
 
 protected:
     bool m_b_blocking;

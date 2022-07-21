@@ -138,12 +138,12 @@ void route_table_mgr::rt_mgr_update_source_ip(route_table_t &table)
         // try to get src ip from net_dev list of the interface
         int longest_prefix = -1;
         ip_address correct_src;
-        local_ip_list_t lip_list = g_p_net_device_table_mgr->get_ip_list(val.get_if_index());
+        local_ip_list_t lip_list;
+        g_p_net_device_table_mgr->get_ip_list(lip_list, val.get_family(), val.get_if_index());
         if (!lip_list.empty()) {
             for (auto lip_iter = lip_list.begin(); lip_list.end() != lip_iter; ++lip_iter) {
-                const ip_data_t &ip = *lip_iter;
-                if (val.get_family() == ip.local_addr.get_family() &&
-                    val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen,
+                const ip_data &ip = *lip_iter;
+                if (val.get_dst_addr().is_equal_with_prefix(ip.local_addr, ip.prefixlen,
                                                             val.get_family())) {
                     // found a match in routing table
                     if (ip.prefixlen > longest_prefix) {
@@ -185,12 +185,13 @@ void route_table_mgr::rt_mgr_update_source_ip(route_table_t &table)
                     if (!p_val_dst->get_src_addr().is_anyaddr()) {
                         val.set_src_addr(p_val_dst->get_src_addr());
                     } else if (&val == p_val_dst) { // gateway of the entry lead to same entry
-                        local_ip_list_t lip_offloaded_list =
-                            g_p_net_device_table_mgr->get_ip_list(val.get_if_index());
+                        local_ip_list_t lip_offloaded_list;
+                        g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, val.get_family(),
+                                                              val.get_if_index());
                         for (auto lip_iter = lip_offloaded_list.begin();
                              lip_offloaded_list.end() != lip_iter; ++lip_iter) {
-                            const ip_data_t &ip = *lip_iter;
-                            if (ip_addr(val.get_gw_addr(), val.get_family()) == ip.local_addr) {
+                            const ip_data &ip = *lip_iter;
+                            if (val.get_gw_addr() == ip.local_addr) {
                                 val.set_gw(ip_address::any_addr());
                                 val.set_src_addr(ip.local_addr);
                                 break;
@@ -354,8 +355,9 @@ bool route_table_mgr::find_route_val(route_table_t &table, const ip_address &dst
     }
     if (correct_route_val) {
         p_val = correct_route_val;
-        rt_mgr_logdbg("dst addr '%s' -> route val: %s", dst.to_str(p_val->get_family()).c_str(),
-                      p_val->to_str().c_str());
+        rt_mgr_logdbg("dst addr '%s' -> route val: %s, if_name: %s",
+                      dst.to_str(p_val->get_family()).c_str(), p_val->to_str().c_str(),
+                      p_val->get_if_name());
         return true;
     }
 

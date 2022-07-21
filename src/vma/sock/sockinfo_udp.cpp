@@ -881,10 +881,12 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             }
 
             if (mreqn.imr_ifindex) {
-                local_ip_list_t lip_offloaded_list =
-                    g_p_net_device_table_mgr->get_ip_list(mreqn.imr_ifindex);
+                local_ip_list_t lip_offloaded_list;
+                g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, AF_INET,
+                                                      mreqn.imr_ifindex);
                 if (!lip_offloaded_list.empty()) {
-                    mreqn.imr_address.s_addr = lip_offloaded_list.front().local_addr.get_in_addr();
+                    mreqn.imr_address.s_addr =
+                        lip_offloaded_list.front().get().local_addr.get_in_addr();
                 } else {
                     ip_addr src_addr {0};
                     if (get_ip_addr_from_ifindex(mreqn.imr_ifindex, src_addr) == 0) {
@@ -992,11 +994,12 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 if (__optlen >= sizeof(struct ip_mreqn)) {
                     struct ip_mreqn *p_mreqn = (struct ip_mreqn *)__optval;
                     if (p_mreqn->imr_ifindex) {
-                        local_ip_list_t lip_offloaded_list =
-                            g_p_net_device_table_mgr->get_ip_list(p_mreqn->imr_ifindex);
+                        local_ip_list_t lip_offloaded_list;
+                        g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, AF_INET,
+                                                              p_mreqn->imr_ifindex);
                         if (!lip_offloaded_list.empty()) {
                             mreqprm.imr_interface.s_addr =
-                                lip_offloaded_list.front().local_addr.get_in_addr();
+                                lip_offloaded_list.front().get().local_addr.get_in_addr();
                         } else {
                             ip_addr src_addr {0};
                             if (get_ip_addr_from_ifindex(p_mreqn->imr_ifindex, src_addr) == 0) {

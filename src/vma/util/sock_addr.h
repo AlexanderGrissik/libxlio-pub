@@ -54,6 +54,23 @@ static inline in_port_t get_sa_port(const struct sockaddr *addr)
                 : reinterpret_cast<const struct sockaddr_in6 *>(addr)->sin6_port);
 }
 
+static inline const std::string &sa_family2str(sa_family_t family)
+{
+    static const std::string fa_inet("INET");
+    static const std::string fa_inet6("INET6");
+    static const std::string unknown("UNKNOWN");
+
+    if (family == AF_INET) {
+        return fa_inet;
+    }
+
+    if (family == AF_INET6) {
+        return fa_inet6;
+    }
+
+    return unknown;
+}
+
 static inline std::string sockport2str(const struct sockaddr *addr)
 {
     return std::to_string(ntohs(get_sa_port(addr)));

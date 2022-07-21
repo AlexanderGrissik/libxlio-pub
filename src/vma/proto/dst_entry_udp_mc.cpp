@@ -56,6 +56,14 @@ dst_entry_udp_mc::dst_entry_udp_mc(const sock_addr &dst, uint16_t src_port,
 dst_entry_udp_mc::~dst_entry_udp_mc()
 {
     dst_udp_mc_logdbg("%s", to_str().c_str());
+
+    if (m_p_net_dev_entry && m_p_net_dev_val) {
+        // Registered in: dst_entry_udp_mc::resolve_net_dev
+        // With: g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()),
+        //                                                   this, &net_dev_entry).
+        g_p_net_device_table_mgr->unregister_observer(
+            ip_addr(m_p_net_dev_val->get_local_addr(AF_INET), AF_INET), this);
+    }
 }
 
 void dst_entry_udp_mc::set_src_addr()
@@ -66,8 +74,8 @@ void dst_entry_udp_mc::set_src_addr()
         m_pkt_src_ip = m_mc_tx_if_ip;
     } else if (m_p_rt_val && !m_p_rt_val->get_src_addr().is_anyaddr()) {
         m_pkt_src_ip = m_p_rt_val->get_src_addr();
-    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr().is_anyaddr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr();
+    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr(AF_INET).is_anyaddr()) {
+        m_pkt_src_ip = m_p_net_dev_val->get_local_addr(AF_INET);
     } else {
         m_pkt_src_ip = in6addr_any;
     }

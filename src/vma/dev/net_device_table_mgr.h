@@ -46,9 +46,9 @@
 #include "net_device_val.h"
 #include "net_device_entry.h"
 
-typedef std::unordered_map<ip_addr, net_device_val *> net_device_map_addr_t;
+typedef std::unordered_map<ip_address, net_device_val *> net_device_map_addr;
 typedef std::unordered_map<int, net_device_val *> net_device_map_index_t;
-typedef std::list<ip_data_t> local_ip_list_t;
+typedef std::list<std::reference_wrapper<const ip_data>> local_ip_list_t;
 
 class net_device_table_mgr : public cache_table_mgr<ip_addr, net_device_val *>, public observer {
 public:
@@ -64,7 +64,8 @@ public:
     net_device_val *get_net_device_val(const ip_addr &if_addr);
     net_device_val *get_net_device_val(int if_index);
 
-    local_ip_list_t get_ip_list(int if_index = 0); // return list of the table_mgr managed ips
+    // return list of the table_mgr managed ips by family
+    void get_ip_list(local_ip_list_t &iplist, sa_family_t family, int if_index = 0);
 
     /**
      * Arm ALL the managed CQ's notification channel
@@ -114,7 +115,8 @@ private:
 
     lock_mutex m_lock;
     ts_conversion_mode_t m_time_conversion_mode;
-    net_device_map_addr_t m_net_device_map_addr;
+    net_device_map_addr m_net_device_map_addr_v4;
+    net_device_map_addr m_net_device_map_addr_v6;
     net_device_map_index_t m_net_device_map_index;
     int m_num_devices;
 
