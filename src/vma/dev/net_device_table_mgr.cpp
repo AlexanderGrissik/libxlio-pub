@@ -66,7 +66,7 @@ net_device_table_mgr *g_p_net_device_table_mgr = NULL;
 enum net_device_table_mgr_timers { RING_PROGRESS_ENGINE_TIMER, RING_ADAPT_CQ_MODERATION_TIMER };
 
 net_device_table_mgr::net_device_table_mgr()
-    : cache_table_mgr<ip_addr, net_device_val *>("net_device_table_mgr")
+    : cache_table_mgr<int, net_device_val *>("net_device_table_mgr")
     , m_lock("net_device_table_mgr")
     , m_time_conversion_mode(TS_CONVERSION_MODE_DISABLE)
 {
@@ -386,15 +386,15 @@ out:
     return net_dev;
 }
 
-net_device_entry *net_device_table_mgr::create_new_entry(ip_addr if_addr, const observer *obs)
+net_device_entry *net_device_table_mgr::create_new_entry(int if_index, const observer *obs)
 {
     ndtm_logdbg("");
     NOT_IN_USE(obs);
 
-    net_device_val *p_ndv = get_net_device_val(if_addr);
+    net_device_val *p_ndv = get_net_device_val(if_index);
 
     if (p_ndv) {
-        return new net_device_entry(if_addr, p_ndv);
+        return new net_device_entry(if_index, p_ndv);
     }
     return NULL;
 }

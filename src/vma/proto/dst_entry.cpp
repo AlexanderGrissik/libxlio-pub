@@ -194,7 +194,8 @@ bool dst_entry::update_net_dev_val()
     }
 
     if (m_p_net_dev_val != new_nd_val) {
-        dst_logdbg("updating net_device, new-if_name: %s", new_nd_val->get_ifname());
+        dst_logdbg("updating net_device, new-if_name: %s",
+                   new_nd_val ? new_nd_val->get_ifname() : "N/A");
 
         if (m_p_neigh_entry) {
             ip_address dst_addr = m_dst_ip;

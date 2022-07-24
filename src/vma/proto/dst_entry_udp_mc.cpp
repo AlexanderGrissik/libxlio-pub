@@ -61,8 +61,10 @@ dst_entry_udp_mc::~dst_entry_udp_mc()
         // Registered in: dst_entry_udp_mc::resolve_net_dev
         // With: g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()),
         //                                                   this, &net_dev_entry).
-        g_p_net_device_table_mgr->unregister_observer(
-            ip_addr(m_p_net_dev_val->get_local_addr(AF_INET), AF_INET), this);
+        if (!g_p_net_device_table_mgr->unregister_observer(m_p_net_dev_val->get_if_idx(), this)) {
+            dst_udp_mc_logwarn("Failed to unregister observer (dst_entry_udp_mc) for if_index %d",
+                               m_p_net_dev_val->get_if_idx());
+        }
     }
 }
 
@@ -86,13 +88,22 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
 {
     NOT_IN_USE(is_connect);
     bool ret_val = false;
-    cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
+    cache_entry_subject<int, net_device_val *> *net_dev_entry = NULL;
 
     if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc(AF_INET)) {
-        if (m_p_net_dev_entry == NULL &&
-            g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()), this,
-                                                        &net_dev_entry)) {
-            m_p_net_dev_entry = dynamic_cast<net_device_entry *>(net_dev_entry);
+        if (m_p_net_dev_entry == NULL) {
+            net_device_val *mc_net_dev =
+                g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_mc_tx_if_ip.get_in_addr()));
+            if (mc_net_dev) {
+                if (g_p_net_device_table_mgr->register_observer(mc_net_dev->get_if_idx(), this,
+                                                                &net_dev_entry)) {
+                    m_p_net_dev_entry = dynamic_cast<net_device_entry *>(net_dev_entry);
+                } else {
+                    dst_udp_mc_logwarn(
+                        "Failed to register observer (dst_entry_udp_mc) for if_index %d",
+                        mc_net_dev->get_if_idx());
+                }
+            }
         }
         if (m_p_net_dev_entry) {
             m_p_net_dev_entry->get_val(m_p_net_dev_val);

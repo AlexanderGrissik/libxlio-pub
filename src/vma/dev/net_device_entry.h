@@ -41,13 +41,13 @@
 #define MAX_CMA_ID_BIND_TRIAL_COUNT   10
 #define CMA_ID_BIND_TIMER_PERIOD_MSEC 100
 
-class net_device_entry : public cache_entry_subject<ip_addr, net_device_val *>,
+class net_device_entry : public cache_entry_subject<int, net_device_val *>,
                          public event_handler_ibverbs,
                          public timer_handler {
 public:
     friend class net_device_table_mgr;
 
-    net_device_entry(const ip_addr &if_addr, net_device_val *ndv);
+    net_device_entry(int if_index, net_device_val *ndv);
     virtual ~net_device_entry();
 
     bool get_val(INOUT net_device_val *&val);

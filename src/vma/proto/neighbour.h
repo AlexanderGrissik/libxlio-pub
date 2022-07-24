@@ -88,6 +88,11 @@ private:
     net_device_val *m_p_net_dev_val;
 };
 
+inline std::string to_string_val(const neigh_key &k)
+{
+    return k.to_str();
+}
+
 namespace std {
 template <> class hash<neigh_key> {
 public:

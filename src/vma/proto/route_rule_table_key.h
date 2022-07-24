@@ -85,6 +85,11 @@ private:
     uint8_t m_tos;
 };
 
+inline std::string to_string_val(const route_rule_table_key &k)
+{
+    return k.to_str();
+}
+
 namespace std {
 template <> class hash<route_rule_table_key> {
 public:

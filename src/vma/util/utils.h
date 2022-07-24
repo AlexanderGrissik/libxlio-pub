@@ -317,6 +317,11 @@ int validate_tso(int if_index);
  */
 int validate_lro(int if_index);
 
+inline std::string to_string_val(const int &k)
+{
+    return std::to_string(k);
+}
+
 static inline int get_procname(int pid, char *proc, size_t size)
 {
     char app_full_name[PATH_MAX] = {0};

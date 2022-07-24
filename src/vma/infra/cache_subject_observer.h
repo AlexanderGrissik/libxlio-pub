@@ -253,11 +253,11 @@ bool cache_table_mgr<Key, Val>::register_observer(IN const Key &key,
         my_cache_entry = create_new_entry(key, new_observer);
         if (!my_cache_entry) {
             __log_dbg("Failed to allocate new cache_entry_subject with Key = %s",
-                      key.to_str().c_str());
+                      to_string_val(key).c_str());
             return false;
         }
         m_cache_tbl[key] = my_cache_entry;
-        __log_dbg("Created new cache_entry Key = %s", key.to_str().c_str());
+        __log_dbg("Created new cache_entry Key = %s", to_string_val(key).c_str());
     } else {
         my_cache_entry = m_cache_tbl[key];
     }
@@ -283,7 +283,7 @@ bool cache_table_mgr<Key, Val>::unregister_observer(IN Key key,
         m_cache_tbl.find(key);
     if (cache_itr == m_cache_tbl.end()) {
         __log_dbg("Couldn't unregister observer, the cache_entry (Key = %s) doesn't exist",
-                  key.to_str().c_str());
+                  to_string_val(key).c_str());
         return false;
     }
 

@@ -42,6 +42,7 @@
 #include <arpa/inet.h>
 
 #include "utils/lock_wrapper.h"
+#include "vma/util/utils.h"
 #include "vma/util/sys_vars.h"
 #include "vma/event/event_handler_ibverbs.h"
 #include "vma/event/event_handler_rdma_cm.h"

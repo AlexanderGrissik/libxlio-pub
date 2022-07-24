@@ -31,6 +31,7 @@
  */
 
 #include "vma/util/ip_address.h"
+#include "vma/dev/net_device_val.h"
 #include "vma/dev/net_device_entry.h"
 #include "vma/dev/net_device_table_mgr.h"
 #include "rule_entry.h"
@@ -44,7 +45,8 @@
 #undef __INFO__
 #define __INFO__ to_str().c_str()
 
-#define rt_entry_logdbg __log_info_dbg
+#define rt_entry_logdbg  __log_info_dbg
+#define rt_entry_logwarn __log_info_warn
 
 route_entry::route_entry(route_rule_table_key rtk)
     : cache_entry_subject<route_rule_table_key, route_val *>(rtk)
@@ -88,32 +90,18 @@ void route_entry::set_val(IN route_val *&val)
 
 void route_entry::register_to_net_device()
 {
-    local_ip_list_t lip_offloaded_list;
-    g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_val->get_family(),
-                                          m_val->get_if_index());
-
-    if (lip_offloaded_list.empty()) {
-        rt_entry_logdbg("No matched net device for %s interface", m_val->get_if_name());
-        m_b_offloaded_net_dev = false;
+    cache_entry_subject<int, net_device_val *> *net_dev_entry = NULL;
+    if (g_p_net_device_table_mgr->register_observer(m_val->get_if_index(), this, &net_dev_entry)) {
+        rt_entry_logdbg("route_entry [%p] is registered to an offloaded device", this);
+        m_p_net_dev_entry = (net_device_entry *)net_dev_entry;
+        m_p_net_dev_entry->get_val(m_p_net_dev_val);
+        m_b_offloaded_net_dev = true;
     } else {
-        // This src-addr used not only to register the event but also to get the device
-        // through this process.
-        ip_addr src_addr(lip_offloaded_list.front().get().local_addr, m_val->get_family());
-        rt_entry_logdbg("register to net device with src_addr %s, if_name %s",
-                        src_addr.to_str().c_str(), m_val->get_if_name());
-
-        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
-        if (g_p_net_device_table_mgr->register_observer(src_addr, this, &net_dev_entry)) {
-            rt_entry_logdbg("route_entry [%p] is registered to an offloaded device", this);
-            m_p_net_dev_entry = (net_device_entry *)net_dev_entry;
-            m_p_net_dev_entry->get_val(m_p_net_dev_val);
-            m_b_offloaded_net_dev = true;
-        } else {
-            rt_entry_logdbg("route_entry [%p] tried to register to non-offloaded device ---> "
-                            "registration failed",
-                            this);
-            m_b_offloaded_net_dev = false;
-        }
+        // We try to register also non-offloaded devices -> this log should be dbg.
+        rt_entry_logdbg("route_entry [%p] tried to register to non-offloaded device ---> "
+                        "registration failed, if_index: %d",
+                        this, m_val->get_if_index());
+        m_b_offloaded_net_dev = false;
     }
 }
 
@@ -125,10 +113,10 @@ void route_entry::unregister_to_net_device()
     }
 
     if (m_p_net_dev_val) {
-        ip_addr src_addr(m_p_net_dev_val->get_local_addr(m_val->get_family()), m_val->get_family());
-        rt_entry_logdbg("unregister from net device with src_addr %s", src_addr.to_str().c_str());
-        if (!g_p_net_device_table_mgr->unregister_observer(src_addr, this)) {
-            rt_entry_logdbg("ERROR: failed to unregister from net_device_entry");
+        rt_entry_logdbg("unregister from net device idx %d", m_p_net_dev_val->get_if_idx());
+        if (!g_p_net_device_table_mgr->unregister_observer(m_p_net_dev_val->get_if_idx(), this)) {
+            rt_entry_logwarn("Failed to unregister net_device_entry (route_entry) if_index %d",
+                             m_p_net_dev_val->get_if_idx());
         }
     }
 

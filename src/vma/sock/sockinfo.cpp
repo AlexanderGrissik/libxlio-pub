@@ -841,10 +841,13 @@ net_device_resources_t *sockinfo::create_nd_resources(const ip_addr &ip_local)
         nd_resources.p_ring = NULL;
 
         BULLSEYE_EXCLUDE_BLOCK_START
-        cache_entry_subject<ip_addr, net_device_val *> *net_dev_entry = NULL;
-        if (!g_p_net_device_table_mgr->register_observer(ip_local, &m_rx_nd_observer,
+        cache_entry_subject<int, net_device_val *> *net_dev_entry = NULL;
+        net_device_val *net_dev = g_p_net_device_table_mgr->get_net_device_val(ip_local);
+        if (!net_dev ||
+            !g_p_net_device_table_mgr->register_observer(net_dev->get_if_idx(), &m_rx_nd_observer,
                                                          &net_dev_entry)) {
-            si_logdbg("Failed registering as observer for local ip %s", ip_local.to_str().c_str());
+            si_logwarn("Failed to register observer for local ip %s, if_index %d",
+                       ip_local.to_str().c_str(), (net_dev ? net_dev->get_if_idx() : -1));
             goto err;
         }
         nd_resources.p_nde = (net_device_entry *)net_dev_entry;
@@ -939,8 +942,10 @@ bool sockinfo::destroy_nd_resources(const ip_addr &ip_local)
         lock_rx_q();
 
         // Release observer reference
-        if (!g_p_net_device_table_mgr->unregister_observer(ip_local, &m_rx_nd_observer)) {
-            si_logerr("Failed registering as observer for lip %s", ip_local.to_str().c_str());
+        if (!g_p_net_device_table_mgr->unregister_observer(p_nd_resources->p_ndv->get_if_idx(),
+                                                           &m_rx_nd_observer)) {
+            si_logwarn("Failed to unregister observer (nd_resource) for if_index %d",
+                       p_nd_resources->p_ndv->get_if_idx());
             return false;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
