@@ -2529,13 +2529,17 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
             m_conn_state = TCP_CONN_FAILED;
         }
 
+        // The errno is set inside wait_for_conn_ready_blocking
+        // Following closing procedures may change/nullify errno, but this is not
+        // the errno that we should return to the application, so we keep it.
+        int keep_errno = errno;
         tcp_close(&m_pcb);
 
         destructor_helper();
         unlock_tcp_con();
         si_tcp_logdbg("Blocking connect error, m_sock_state=%d", static_cast<int>(m_sock_state));
 
-        // The errno is set inside wait_for_conn_ready_blocking
+        errno = keep_errno;
         return -1;
     }
 

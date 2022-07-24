@@ -146,20 +146,28 @@ TEST_F(tcp_connect, ti_4_rto_racing)
     if (0 == pid) { /* I am the child */
         int lfd = tcp_base::sock_create();
         ASSERT_LE(0, lfd);
+        if (lfd > 0) {
+            int rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+            EXPECT_EQ(0, rc);
+            if (rc == 0) {
+                rc = listen(lfd, 1024);
+                EXPECT_EQ(0, rc);
+                if (rc == 0) {
+                    barrier_fork(pid, true);
 
-        int rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-        ASSERT_EQ(0, rc);
+                    int fd = accept(lfd, nullptr, nullptr);
+                    EXPECT_LE(0, fd);
+                    if (fd > 0) {
+                        // Force RST on close -> Prevent socket to enter TIME_WAIT without XLIO.
+                        struct linger sl = {1, 0};
+                        setsockopt(fd, SOL_SOCKET, SO_LINGER, &sl, sizeof(sl));
+                        close(fd);
+                    }
+                }
+            }
 
-        rc = listen(lfd, 1024);
-        ASSERT_EQ(0, rc);
-
-        barrier_fork(pid, true);
-
-        int fd = accept(lfd, nullptr, nullptr);
-        ASSERT_LE(0, fd);
-
-        close(fd);
-        close(lfd);
+            close(lfd);
+        }
 
         // This exit is very important, otherwise the fork
         // keeps running and may duplicate other tests.
@@ -215,6 +223,8 @@ TEST_F(tcp_connect, ti_4_rto_racing)
 
         std::for_each(std::begin(fns), std::end(fns), [](int fd) { EXPECT_EQ(0, close(fd)); });
     }
+
+    sleep(1U); // XLIO timers to clean fd.
 }
 
 /**
@@ -245,17 +255,24 @@ TEST_F(tcp_connect, ti_5_multi_connect)
 
     if (0 == pid) { /* I am the child */
         rc = -1;
-        int lfd = tcp_base::sock_create(AF_INET, true);
+        int lfd = tcp_base::sock_create(m_family, true);
+        ASSERT_LE(0, lfd);
         if (lfd > 0) {
             rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+            EXPECT_EQ(0, rc);
             if (rc != 0) {
                 log_trace("Bind errno: %d\n", errno);
             } else {
                 rc = listen(lfd, 1024);
+                EXPECT_EQ(0, rc);
                 if (rc == 0) {
                     barrier_fork(pid, true);
                     fd = accept(lfd, nullptr, nullptr);
+                    EXPECT_LE(0, lfd);
                     if (fd > 0) {
+                        // Force RST on close -> Prevent socket to enter TIME_WAIT without XLIO.
+                        struct linger sl = {1, 0};
+                        setsockopt(fd, SOL_SOCKET, SO_LINGER, &sl, sizeof(sl));
                         close(fd);
                     }
                 } else {
@@ -280,26 +297,26 @@ TEST_F(tcp_connect, ti_5_multi_connect)
         EXPECT_TRUE(0 == rc || errno == ECONNABORTED);
         if (rc != 0) {
             log_trace("Connected errno: %d\n", errno);
-        }
 
-        rc = close(fd);
-        EXPECT_EQ(0, rc);
-
-        // Get the child process out of the accept.
-        rc = -1;
-        fd = tcp_base::sock_create();
-        if (fd > 0) {
-            rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+            rc = close(fd);
             EXPECT_EQ(0, rc);
-            if (rc == 0) {
-                rc = connect(fd, reinterpret_cast<const sockaddr *>(&server_addr),
-                             sizeof(server_addr));
-                if (rc != 0) {
-                    log_trace("Final connected errno: %d\n", errno);
+
+            // Get the child process out of the accept.
+            fd = tcp_base::sock_create();
+            if (fd > 0) {
+                rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+                EXPECT_EQ(0, rc);
+                if (rc == 0) {
+                    rc = connect(fd, reinterpret_cast<const sockaddr *>(&server_addr),
+                                 sizeof(server_addr));
+                    if (rc != 0) {
+                        log_trace("Final connected errno: %d\n", errno);
+                    }
                 }
             }
-            close(fd);
         }
+
+        close(fd);
 
         if (0 != rc) {
             kill(pid, SIGKILL);
