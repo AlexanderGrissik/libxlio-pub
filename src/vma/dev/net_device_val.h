@@ -225,7 +225,7 @@ public:
     } // Valid object must have at least one address
 
     inline int get_type() { return m_type; }
-    inline int get_if_idx() { return m_if_idx; }
+    inline int get_if_idx() const { return m_if_idx; }
     inline int get_flags() { return m_flags; }
     inline int get_mtu() { return m_mtu; }
     inline const char *get_ifname() const { return m_name.c_str(); }
@@ -233,6 +233,9 @@ public:
     inline uint8_t *get_l2_if_addr() { return m_l2_if_addr; }
     const slave_data_vector_t &get_slave_array() const { return m_slaves; }
     const slave_data_t *get_slave(int if_index);
+    bool ipv6_optimistic_dad() const { return m_ipv6_optimistic_dad; }
+    bool ipv6_use_optimistic() const { return m_ipv6_use_optimistic; }
+    int ipv6_use_tempaddr() const { return m_ipv6_use_tempaddr; }
     void print_val();
     void set_ip_array();
 
@@ -309,6 +312,9 @@ private:
 
     std::string m_name; /* container for ifname */
     char m_base_name[IFNAMSIZ]; /* base name of device basing ifname */
+    bool m_ipv6_optimistic_dad = false;
+    bool m_ipv6_use_optimistic = false;
+    int m_ipv6_use_tempaddr = 0;
 };
 
 class net_device_val_eth : public net_device_val {

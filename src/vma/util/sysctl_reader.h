@@ -104,6 +104,8 @@ public:
         get_igmp_max_membership(true);
         get_igmp_max_source_membership(true);
         get_ipv6_bindv6only(true);
+        get_ipv6_conf_all_optimistic_dad(true);
+        get_ipv6_conf_all_use_optimistic(true);
     }
 
     int get_tcp_max_syn_backlog(bool update = false)
@@ -252,6 +254,81 @@ public:
             if (0 > val) {
                 vlog_printf(VLOG_WARNING, "failed to read bindv6only value\n");
             }
+        }
+        return val;
+    }
+
+    int get_ipv6_conf_all_optimistic_dad(bool update = false)
+    {
+        static int val;
+        if (update) {
+            val = read_file_to_int("/proc/sys/net/ipv6/conf/all/optimistic_dad", 0, VLOG_DEBUG);
+            if (0 > val) {
+                vlog_printf(VLOG_DEBUG, "failed to read ipv6/conf/all/optimistic_dad value\n");
+            }
+        }
+        return val;
+    }
+
+    int get_ipv6_conf_all_use_optimistic(bool update = false)
+    {
+        static int val;
+        if (update) {
+            val = read_file_to_int("/proc/sys/net/ipv6/conf/all/use_optimistic", 0, VLOG_DEBUG);
+            if (0 > val) {
+                vlog_printf(VLOG_DEBUG, "failed to read ipv6/conf/all/use_optimistic value\n");
+            }
+        }
+        return val;
+    }
+
+    int get_ipv6_if_optimistic_dad(const char *if_name)
+    {
+        if (!if_name) {
+            vlog_printf(VLOG_DEBUG, "get_ipv6_if_optimistic_dad if_name is null\n");
+            return 0;
+        }
+
+        std::string conf_name = "/proc/sys/net/ipv6/conf/";
+        conf_name += if_name;
+        conf_name += "/optimistic_dad";
+        int val = read_file_to_int(conf_name.c_str(), 0, VLOG_DEBUG);
+        if (0 > val) {
+            vlog_printf(VLOG_DEBUG, "failed to read ipv6/conf/%s/optimistic_dad value\n", if_name);
+        }
+        return val;
+    }
+
+    int get_ipv6_if_use_optimistic(const char *if_name)
+    {
+        if (!if_name) {
+            vlog_printf(VLOG_DEBUG, "get_ipv6_if_use_optimistic if_name is null\n");
+            return 0;
+        }
+
+        std::string conf_name = "/proc/sys/net/ipv6/conf/";
+        conf_name += if_name;
+        conf_name += "/use_optimistic";
+        int val = read_file_to_int(conf_name.c_str(), 0, VLOG_DEBUG);
+        if (0 > val) {
+            vlog_printf(VLOG_DEBUG, "failed to read ipv6/conf/%s/use_optimistic value\n", if_name);
+        }
+        return val;
+    }
+
+    int get_ipv6_if_use_tempaddr(const char *if_name)
+    {
+        if (!if_name) {
+            vlog_printf(VLOG_DEBUG, "get_ipv6_if_use_tempaddr if_name is null\n");
+            return 0;
+        }
+
+        std::string conf_name = "/proc/sys/net/ipv6/conf/";
+        conf_name += if_name;
+        conf_name += "/use_tempaddr";
+        int val = read_file_to_int(conf_name.c_str(), 0, VLOG_DEBUG);
+        if (0 > val) {
+            vlog_printf(VLOG_DEBUG, "failed to read ipv6/conf/%s/use_tempaddr value\n", if_name);
         }
         return val;
     }

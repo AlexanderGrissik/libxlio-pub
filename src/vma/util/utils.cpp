@@ -537,13 +537,13 @@ int priv_read_file(const char *path, char *buf, size_t size,
     return len;
 }
 
-int read_file_to_int(const char *path, int default_value)
+int read_file_to_int(const char *path, int default_value, vlog_levels_t log_level)
 {
     char buf[25];
-    int rc = priv_safe_read_file(path, buf, sizeof buf);
+    int rc = priv_safe_read_file(path, buf, sizeof buf, log_level);
     if (rc < 0) {
-        __log_warn("ERROR while getting int from from file %s, we'll use default %d", path,
-                   default_value);
+        VLOG_PRINTF(log_level, "ERROR while getting int from from file %s, we'll use default %d",
+                    path, default_value);
     }
     return (rc < 0) ? default_value : atoi(buf);
 }
@@ -746,6 +746,64 @@ int get_ip_addr_from_ifname(const char *ifname, ip_addr &addr, sa_family_t famil
         return -1;
     }
     return get_ip_addr_from_ifindex(ifindex, addr, family);
+}
+
+uint16_t ipv6_addr_type_scope(const ip_address &addr, uint8_t &scope)
+{
+    uint16_t up16 = ntohs(reinterpret_cast<const uint16_t *>(&addr.get_in6_addr())[0]);
+
+    // Consider all addresses with the first three bits different of 000 and 111 as unicasts.
+    if ((up16 & 0xE000) != 0U && (up16 & 0xE000) != 0xE000) {
+        scope = IPV6_ADDR_SCOPE_GLOBAL;
+        return IPV6_ADDR_UNICAST;
+    }
+
+    if ((up16 & 0xFF00) == 0xFF00) { // Multicast, addr-select 3.1
+        // scope = ipv6_addr_scope2type(IPV6_ADDR_MC_SCOPE(addr));
+        __log_err("IPv6 TODO fix");
+        return IPV6_ADDR_MULTICAST;
+    }
+
+    if ((up16 & 0xFFC0) == 0xFE80) { // addr-select 3.1
+        scope = IPV6_ADDR_SCOPE_LINKLOCAL;
+        return (IPV6_ADDR_LINKLOCAL | IPV6_ADDR_UNICAST);
+    }
+
+    if ((up16 & 0xFFC0) == 0xFEC0) { // addr-select 3.1
+        scope = IPV6_ADDR_SCOPE_SITELOCAL;
+        return (IPV6_ADDR_SITELOCAL | IPV6_ADDR_UNICAST);
+    }
+
+    if ((up16 & 0xFE00) == 0xFC00) { // RFC 4193
+        scope = IPV6_ADDR_SCOPE_GLOBAL;
+        return IPV6_ADDR_UNICAST;
+    }
+
+    const uint32_t *addr32 = reinterpret_cast<const uint32_t *>(&addr.get_in6_addr());
+    if ((addr32[0] | addr32[1]) == 0) {
+        if (addr32[2] == 0) {
+            if (addr32[3] == 0) {
+                scope = 0U;
+                return IPV6_ADDR_ANY;
+            }
+
+            if (addr32[3] == 0x01000000) { // 0x01000000 = htonl(0x00000001)
+                scope = IPV6_ADDR_SCOPE_LINKLOCAL;
+                return (IPV6_ADDR_LOOPBACK | IPV6_ADDR_UNICAST); // addr-select 3.4
+            }
+
+            scope = IPV6_ADDR_SCOPE_GLOBAL;
+            return (IPV6_ADDR_COMPATv4 | IPV6_ADDR_UNICAST); // addr-select 3.3
+        }
+
+        if (addr32[2] == 0xffff0000) { // 0xffff0000 = htonl(0x0000ffff)
+            scope = IPV6_ADDR_SCOPE_GLOBAL;
+            return IPV6_ADDR_MAPPED; // addr-select 3.3
+        }
+    }
+
+    scope = IPV6_ADDR_SCOPE_GLOBAL;
+    return IPV6_ADDR_UNICAST; // addr-select 3.4
 }
 
 uint16_t get_vlan_id_from_ifname(const char *ifname)

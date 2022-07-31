@@ -672,6 +672,8 @@ void sockinfo_tcp::create_dst_entry()
         if (!m_so_bindtodevice_ip.is_anyaddr()) {
             m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
         }
+
+        m_p_connected_dst_entry->set_src_sel_prefs(m_src_sel_flags);
     }
 }
 

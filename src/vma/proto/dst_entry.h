@@ -114,6 +114,7 @@ public:
     {
         return m_header->set_vlan_pcp(get_priority_by_tc_class(pcp));
     }
+    inline void set_src_sel_prefs(uint8_t sel_flags) { m_src_sel_prefs = sel_flags; }
     inline ring *get_ring() { return m_p_ring; }
     inline ib_ctx_handler *get_ctx() { return m_p_ring->get_ctx(m_id); }
     inline sa_family_t get_sa_family() { return m_family; }
@@ -172,6 +173,7 @@ protected:
     uint16_t m_src_port;
     bool m_b_is_offloaded;
     bool m_b_force_os;
+    uint8_t m_src_sel_prefs;
 
     virtual transport_t get_transport(const sock_addr &to) = 0;
     virtual uint8_t get_protocol_type() const = 0;
@@ -196,7 +198,7 @@ protected:
     virtual void init_sge() {};
     bool alloc_transport_dep_res();
     bool alloc_neigh_val(transport_type_t tranport);
-
+    bool get_routing_addr_sel_src(ip_address &out_ip) const;
     void do_ring_migration(lock_base &socket_lock, resource_allocation_key &old_key);
     inline void set_tx_buff_list_pending(bool is_pending = true)
     {

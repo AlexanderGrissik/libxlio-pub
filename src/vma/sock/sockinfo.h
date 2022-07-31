@@ -237,6 +237,7 @@ protected:
     bool m_b_zc;
     uint8_t m_n_tsing_flags;
     in_protocol_t m_protocol;
+    uint8_t m_src_sel_flags;
 
     lock_spin_recursive m_lock_rcv;
     lock_mutex m_lock_snd;
@@ -391,6 +392,8 @@ protected:
     void push_descs_rx_ready(descq_t *cache);
     void reuse_descs(descq_t *reuseq, ring *p_ring = NULL);
     int set_sockopt_prio(__const void *__optval, socklen_t __optlen);
+    bool ipv6_set_addr_sel_pref(int val);
+    int ipv6_get_addr_sel_pref();
 
     virtual void handle_ip_pktinfo(struct cmsg_state *cm_state) = 0;
     inline void handle_recv_timestamping(struct cmsg_state *cm_state);
@@ -594,6 +597,10 @@ protected:
             return "SO_XLIO_FLOW_TAG";
         case SO_XLIO_SHUTDOWN_RX:
             return "SO_XLIO_SHUTDOWN_RX";
+        case IPV6_V6ONLY:
+            return "IPV6_V6ONLY";
+        case IPV6_ADDR_PREFERENCES:
+            return "IPV6_ADDR_PREFERENCES";
         default:
             break;
         }

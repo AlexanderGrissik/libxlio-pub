@@ -35,6 +35,7 @@
 #include "vma/proto/rule_table_mgr.h"
 #include "vma/proto/route_table_mgr.h"
 #include "vma/util/utils.h"
+#include "vma/dev/src_addr_selector.h"
 
 #define MODULE_NAME "dst"
 
@@ -157,6 +158,7 @@ void dst_entry::init_members()
     m_max_ip_payload_size = 0;
     m_max_udp_payload_size = 0;
     m_b_force_os = false;
+    m_src_sel_prefs = 0U;
 }
 
 void dst_entry::set_src_addr()
@@ -169,13 +171,34 @@ void dst_entry::set_src_addr()
         m_pkt_src_ip = m_p_rt_val->get_src_addr();
         dst_logfunc("Selected source address (rt_val): %s",
                     m_pkt_src_ip.to_str(get_sa_family()).c_str());
-    } else if (m_p_net_dev_val && !m_p_net_dev_val->get_local_addr(get_sa_family()).is_anyaddr()) {
-        m_pkt_src_ip = m_p_net_dev_val->get_local_addr(get_sa_family());
-        dst_logfunc("Selected source address: %s", m_pkt_src_ip.to_str(get_sa_family()).c_str());
     } else {
-        m_pkt_src_ip = in6addr_any;
-        dst_logfunc("Selected source address: any");
+        const ip_data *src_addr = nullptr;
+        if (m_p_net_dev_val) {
+            src_addr = src_addr_selector::select_ip_src_addr(*m_p_net_dev_val, get_dst_addr(),
+                                                             m_src_sel_prefs, get_sa_family());
+        }
+
+        if (src_addr) {
+            m_pkt_src_ip = src_addr->local_addr;
+            dst_logfunc("Selected source address: %s",
+                        m_pkt_src_ip.to_str(get_sa_family()).c_str());
+        } else {
+            m_pkt_src_ip = in6addr_any;
+            dst_logfunc("Selected source address: any (net_dev=%p)", m_p_net_dev_val);
+        }
     }
+}
+
+bool dst_entry::get_routing_addr_sel_src(ip_address &out_ip) const
+{
+    if (m_p_rt_val) {
+        // For AF_INET we keep the legacy source selection logic which uses modified routing src
+        out_ip =
+            (m_family == AF_INET ? m_p_rt_val->get_src_addr() : m_p_rt_val->get_cfg_src_addr());
+        return !out_ip.is_anyaddr();
+    }
+
+    return false;
 }
 
 bool dst_entry::update_net_dev_val()
@@ -284,6 +307,10 @@ bool dst_entry::resolve_net_dev(bool is_connect)
                     !p_rt_val->get_src_addr().is_anyaddr()) {
                     g_p_route_table_mgr->unregister_observer(rtk, this);
                     m_route_src_ip = p_rt_val->get_src_addr();
+
+                    dst_logfunc("Chaning m_route_src_ip to %s",
+                                m_route_src_ip.to_str(m_family).c_str());
+
                     route_rule_table_key new_rtk(m_dst_ip, m_route_src_ip, m_family, m_tos);
                     if (g_p_route_table_mgr->register_observer(new_rtk, this, &p_ces)) {
                         m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);

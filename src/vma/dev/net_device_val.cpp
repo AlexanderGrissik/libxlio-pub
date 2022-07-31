@@ -272,6 +272,12 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
                    get_ifname(), get_mtu(), safe_mce_sys().mtu);
     }
 
+    m_ipv6_optimistic_dad =
+        (sysctl_reader_t::instance().get_ipv6_if_optimistic_dad(get_ifname()) != 0);
+    m_ipv6_use_optimistic =
+        (sysctl_reader_t::instance().get_ipv6_if_use_optimistic(get_ifname()) != 0);
+    m_ipv6_use_tempaddr = sysctl_reader_t::instance().get_ipv6_if_use_tempaddr(get_ifname());
+
     /* Set interface state after all verifications */
     if (m_flags & IFF_RUNNING) {
         m_state = RUNNING;

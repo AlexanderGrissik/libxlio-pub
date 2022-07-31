@@ -195,7 +195,7 @@ inline int priv_safe_try_read_file(const char *path, char *buf, size_t size)
  * upon failure print error
  * @return int value (atoi) of the file content, or 'default_value' upon failure
  */
-int read_file_to_int(const char *path, int default_value);
+int read_file_to_int(const char *path, int default_value, vlog_levels_t log_level = VLOG_ERROR);
 
 /**
  * Get port number from interface name
@@ -375,6 +375,15 @@ inline void create_multicast_mac_from_ip(unsigned char *mc_mac, const ip_address
         mc_mac[4] = ip.s6_addr[14];
         mc_mac[5] = ip.s6_addr[15];
     }
+}
+
+// @scope Returns the scope of the address.
+// @return The type of the address. @see ip_address
+uint16_t ipv6_addr_type_scope(const ip_address &addr, uint8_t &scope);
+
+inline bool ipv6_is_addr_type_preferred(uint16_t type)
+{
+    return ((type & (IPV6_ADDR_MAPPED | IPV6_ADDR_COMPATv4 | IPV6_ADDR_LOOPBACK)) != 0);
 }
 
 static inline void create_mgid_from_ipv4_mc_ip(uint8_t *mgid, uint16_t pkey, uint32_t ip)

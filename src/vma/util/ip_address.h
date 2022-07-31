@@ -38,6 +38,35 @@
 #include <string>
 #include "vma/util/vtypes.h"
 
+// RH 7.6 does not support this flag
+#ifndef IPV6_ADDR_PREFERENCES
+// RFC5014: Source address selection
+#define IPV6_ADDR_PREFERENCES 72
+#endif
+
+#define IPV6_ADDR_ANY       0x0000U
+#define IPV6_ADDR_UNICAST   0x0001U
+#define IPV6_ADDR_MULTICAST 0x0002U
+#define IPV6_ADDR_LOOPBACK  0x0010U
+#define IPV6_ADDR_LINKLOCAL 0x0020U
+#define IPV6_ADDR_SITELOCAL 0x0040U
+#define IPV6_ADDR_COMPATv4  0x0080U
+#define IPV6_ADDR_MAPPED    0x1000U
+
+#define IPV6_ADDR_SCOPE_NODELOCAL 0x01
+#define IPV6_ADDR_SCOPE_LINKLOCAL 0x02
+#define IPV6_ADDR_SCOPE_SITELOCAL 0x05
+#define IPV6_ADDR_SCOPE_ORGLOCAL  0x08
+#define IPV6_ADDR_SCOPE_GLOBAL    0x0e
+
+#define IPV6_PREFER_SRC_COA            0x0004
+#define IPV6_PREFER_SRC_TMP            0x0001
+#define IPV6_PREFER_SRC_PUBLIC         0x0002
+#define IPV6_PREFER_SRC_PUBTMP_DEFAULT 0x0100
+#define IPV6_PREFER_SRC_HOME           0x0400
+#define IPV6_PREFER_SRC_CGA            0x0008
+#define IPV6_PREFER_SRC_NONCGA         0x0800
+
 // This class must be compatible with sock_addr (see sock_addr.h) and should not contain any member
 // except IPv4/IPv6 union and must now have virtual methods.
 // Class ip_addr is an extension to this class (see below) which allows more members and vtable.
@@ -135,6 +164,21 @@ public:
                     ((ntohll(m_ip6_64[1]) >> prefix) == (ntohll(ip.m_ip6_64[1]) >> prefix));
             }
         }
+    }
+
+    uint8_t get_max_equal_prefix(const ip_address &ip) const
+    {
+        uint64_t xb = m_ip6_64[0] ^ ip.m_ip6_64[0];
+        if (xb) {
+            return static_cast<uint8_t>(ntohll(__builtin_ctzl(xb)));
+        }
+
+        xb = m_ip6_64[1] ^ ip.m_ip6_64[1];
+        if (xb) {
+            return 64 + static_cast<uint8_t>(ntohll(__builtin_ctzl(xb)));
+        }
+
+        return 128;
     }
 
     bool operator==(const ip_address &ip) const

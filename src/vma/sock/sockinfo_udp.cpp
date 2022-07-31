@@ -602,6 +602,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     if (!m_so_bindtodevice_ip.is_anyaddr()) {
         m_p_connected_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
     }
+    m_p_connected_dst_entry->set_src_sel_prefs(m_src_sel_flags);
     m_p_connected_dst_entry->prepare_to_send(m_so_ratelimit, false, true);
 
     return 0;
@@ -880,6 +881,14 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 memcpy(&mreqn.imr_address, __optval, sizeof(struct in_addr));
             }
 
+            // The aplication may pass here ip-address or an interface index.
+            // If ip-address is passed we suppose that this is the source IP without
+            // even any checks that this IP exists.
+            // If index is passed we take the first IPv4 address of the interface.
+            // However, Kernel Differentiate between src-addr and outgoing-if.
+            // Also, in Kernel, the address selection is not the first one,
+            // see p_route_output_key_hash_rcu -> inet_select_addr.
+
             if (mreqn.imr_ifindex) {
                 local_ip_list_t lip_offloaded_list;
                 g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, AF_INET,
@@ -997,6 +1006,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                         local_ip_list_t lip_offloaded_list;
                         g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, AF_INET,
                                                               p_mreqn->imr_ifindex);
+
+                        // See comment inside IP_MULTICAST_IF regarding address selection.
+
                         if (!lip_offloaded_list.empty()) {
                             mreqprm.imr_interface.s_addr =
                                 lip_offloaded_list.front().get().local_addr.get_in_addr();
@@ -1733,6 +1745,9 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 if (!m_so_bindtodevice_ip.is_anyaddr()) {
                     p_dst_entry->set_so_bindtodevice_addr(m_so_bindtodevice_ip);
                 }
+
+                p_dst_entry->set_src_sel_prefs(m_src_sel_flags);
+
                 // Save new dst_entry in map
                 m_dst_entry_map[dst] = p_dst_entry;
                 /* ADD logging

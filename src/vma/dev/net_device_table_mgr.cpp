@@ -597,14 +597,13 @@ void net_device_table_mgr::global_ring_wakeup()
     errno = errno_tmp;
 }
 
-void net_device_table_mgr::set_max_mtu(uint32_t mtu)
+void net_device_table_mgr::get_net_devices(local_dev_vector &vec)
 {
-    m_max_mtu = mtu;
-}
-
-uint32_t net_device_table_mgr::get_max_mtu()
-{
-    return m_max_mtu;
+    std::lock_guard<decltype(m_lock)> lock(m_lock);
+    vec.reserve(vec.size() + m_net_device_map_index.size());
+    for (auto iter : m_net_device_map_index) {
+        vec.emplace_back(*iter.second);
+    }
 }
 
 void net_device_table_mgr::del_link_event(const netlink_link_info *info)

@@ -49,6 +49,7 @@
 typedef std::unordered_map<ip_address, net_device_val *> net_device_map_addr;
 typedef std::unordered_map<int, net_device_val *> net_device_map_index_t;
 typedef std::list<std::reference_wrapper<const ip_data>> local_ip_list_t;
+typedef std::vector<std::reference_wrapper<const net_device_val>> local_dev_vector;
 
 class net_device_table_mgr : public cache_table_mgr<int, net_device_val *>, public observer {
 public:
@@ -102,16 +103,18 @@ public:
 
     void handle_timer_expired(void *user_data);
 
-    uint32_t get_max_mtu();
+    uint32_t get_max_mtu() const { return m_max_mtu; }
 
     inline ts_conversion_mode_t get_ctx_time_conversion_mode() { return m_time_conversion_mode; };
+
+    void get_net_devices(local_dev_vector &vec);
 
 private:
     void del_link_event(const netlink_link_info *info);
     void new_link_event(const netlink_link_info *info);
 
     void free_ndtm_resources();
-    void set_max_mtu(uint32_t);
+    void set_max_mtu(uint32_t mtu) { m_max_mtu = mtu; }
 
     lock_mutex m_lock;
     ts_conversion_mode_t m_time_conversion_mode;

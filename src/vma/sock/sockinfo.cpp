@@ -68,6 +68,7 @@ sockinfo::sockinfo(int fd, int domain)
     , m_b_zc(false)
     , m_n_tsing_flags(0)
     , m_protocol(PROTO_UNDEFINED)
+    , m_src_sel_flags(0U)
     , m_lock_rcv(MODULE_NAME "::m_lock_rcv")
     , m_lock_snd(MODULE_NAME "::m_lock_snd")
     , m_state(SOCKINFO_OPENED)
@@ -338,6 +339,7 @@ int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
 
 int sockinfo::setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen)
 {
+    size_t expected_len = 0U;
     int ret = SOCKOPT_PASS_TO_OS;
 
     if (__level == SOL_SOCKET) {
@@ -524,20 +526,34 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
     } else if (__level == IPPROTO_IPV6) {
         switch (__optname) {
         case IPV6_V6ONLY:
-            if (__optval && __optlen == sizeof(int)) {
+            ret = SOCKOPT_NO_VMA_SUPPORT;
+            expected_len = sizeof(int);
+            if (__optval && __optlen == expected_len) {
                 m_is_ipv6only = (*reinterpret_cast<const int *>(__optval) != 0);
                 ret = SOCKOPT_HANDLE_BY_OS;
                 si_logdbg("IPV6_V6ONLY, set to %d", m_is_ipv6only ? 1 : 0);
-            } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
-                errno = EINVAL;
-                si_logdbg("IPV6_V6ONLY, invalid value/length arguments. "
-                          " val %p, len %zu, expected-len %zu",
-                          __optval, static_cast<size_t>(__optlen), sizeof(int));
             }
             break;
+        case IPV6_ADDR_PREFERENCES:
+            ret = SOCKOPT_NO_VMA_SUPPORT;
+            expected_len = sizeof(int);
+            if (__optval && __optlen == expected_len) {
+                int val = *reinterpret_cast<const int *>(__optval);
+                if (ipv6_set_addr_sel_pref(val)) {
+                    ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+                    si_logdbg("IPV6_ADDR_PREFERENCES, val %d, src-sel-flags %" PRIu8, val,
+                              m_src_sel_flags);
+                }
+            }
         default:
             break;
+        }
+
+        if (ret == SOCKOPT_NO_VMA_SUPPORT) {
+            errno = EINVAL;
+            si_logdbg("%s, invalid value/length arguments. val %p, len %zu, expected-len %zu",
+                      setsockopt_so_opt_to_str(__optname), __optval, static_cast<size_t>(__optlen),
+                      expected_len);
         }
     }
 
@@ -545,9 +561,85 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
     return ret;
 }
 
+bool sockinfo::ipv6_set_addr_sel_pref(int val)
+{
+    unsigned int pref = 0;
+    unsigned int prefmask = ~0;
+
+    // Check PUBLIC/TMP/PUBTMP_DEFAULT conflicts
+    int check_mask =
+        (IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_TMP | IPV6_PREFER_SRC_PUBTMP_DEFAULT);
+    switch (val & check_mask) {
+    case IPV6_PREFER_SRC_PUBLIC:
+        pref |= IPV6_PREFER_SRC_PUBLIC;
+        prefmask &= ~(IPV6_PREFER_SRC_TMP);
+        break;
+    case IPV6_PREFER_SRC_TMP:
+        pref |= IPV6_PREFER_SRC_TMP;
+        prefmask &= ~(IPV6_PREFER_SRC_PUBLIC);
+        break;
+    case IPV6_PREFER_SRC_PUBTMP_DEFAULT:
+        prefmask &= ~(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_TMP);
+        break;
+    case 0:
+        break;
+    default:
+        return false;
+    }
+
+    // Check HOME/COA conflicts
+    check_mask = (IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_COA);
+    switch (val & check_mask) {
+    case IPV6_PREFER_SRC_HOME:
+        prefmask &= ~IPV6_PREFER_SRC_COA;
+        break;
+    case IPV6_PREFER_SRC_COA:
+        pref |= IPV6_PREFER_SRC_COA;
+        break;
+    case 0:
+        break;
+    default:
+        return false;
+    }
+
+    // Check CGA/NONCGA conflicts
+    check_mask = (IPV6_PREFER_SRC_CGA | IPV6_PREFER_SRC_NONCGA);
+    switch (val & check_mask) {
+    case IPV6_PREFER_SRC_CGA:
+    case IPV6_PREFER_SRC_NONCGA:
+    case 0:
+        break;
+    default:
+        return false;
+    }
+
+    m_src_sel_flags = static_cast<uint8_t>((m_src_sel_flags & prefmask) | pref);
+    return true;
+}
+
+int sockinfo::ipv6_get_addr_sel_pref()
+{
+    int val = static_cast<int>(m_src_sel_flags);
+
+    if (!(m_src_sel_flags & (IPV6_PREFER_SRC_TMP | IPV6_PREFER_SRC_PUBLIC))) {
+        val |= IPV6_PREFER_SRC_PUBTMP_DEFAULT;
+    }
+
+    if (!(m_src_sel_flags & IPV6_PREFER_SRC_COA)) {
+        val |= IPV6_PREFER_SRC_HOME;
+    }
+
+    return val;
+}
+
 int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen)
 {
+    size_t expected_len = 0;
     int ret = -1;
+    if (!__optlen || !__optval) {
+        errno = EINVAL;
+        return ret;
+    }
 
     switch (__level) {
     case SOL_SOCKET:
@@ -589,26 +681,39 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
             break;
         }
         break;
-    case IPPROTO_IPV6:
+    case IPPROTO_IPV6: {
         switch (__optname) {
         case IPV6_V6ONLY:
-            if (__optval && __optlen && *__optlen == sizeof(int)) {
+            ret = SOCKOPT_NO_VMA_SUPPORT;
+            expected_len = sizeof(int);
+            if (*__optlen == expected_len) {
                 *reinterpret_cast<int *>(__optval) = (m_is_ipv6only ? 1 : 0);
                 ret = 0;
                 si_logerr("IPV6_V6ONLY, value is %d", m_is_ipv6only ? 1 : 0);
-            } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
-                errno = EINVAL;
-                si_logdbg("IPV6_V6ONLY, invalid value/length arguments. "
-                          " val %p, len %p,%zu, expected-len %zu",
-                          __optval, __optlen, __optlen ? static_cast<size_t>(*__optlen) : 0,
-                          sizeof(int));
             }
             break;
+        case IPV6_ADDR_PREFERENCES:
+            ret = SOCKOPT_NO_VMA_SUPPORT;
+            expected_len = sizeof(int);
+            if (*__optlen == expected_len) {
+                int *valptr = reinterpret_cast<int *>(__optval);
+                *valptr = ipv6_get_addr_sel_pref();
+                ret = 0;
+                si_logerr("IPV6_ADDR_PREFERENCES, value is %d", *valptr);
+            }
         default:
             break;
         }
+
+        if (ret == SOCKOPT_NO_VMA_SUPPORT) {
+            errno = EINVAL;
+            si_logdbg("%s, invalid value/length arguments. val %p, len %zu, expected-len %zu",
+                      setsockopt_so_opt_to_str(__optname), __optval, static_cast<size_t>(*__optlen),
+                      expected_len);
+        }
+
         break;
+    }
     default:
         break;
     }

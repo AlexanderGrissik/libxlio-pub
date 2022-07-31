@@ -25,6 +25,7 @@
 # export ADRSEL_XLIO_PATH=kernel
 # export ADRSEL_IP_TOOL_OPTIMISTIC_PATH=ip
 # export ADRSEL_TEST_CASE=all
+# sudo -E ./run_test_addr_select.sh
 
 CLT_PY="udp_client_1s.py"
 SRV_PY="udp_server_1s.py"
@@ -352,7 +353,7 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "13" ]; then
 	echo "[CASE] Mixed Link-Local interfaces"
 	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF2 $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 $SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF1
+	timeout -s SIGKILL 15s env LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 $SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF1
 	echo "$(clear_server)"
 fi
 

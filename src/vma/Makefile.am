@@ -85,6 +85,7 @@ libxlio_la_SOURCES := \
 	dev/net_device_entry.cpp \
 	dev/net_device_table_mgr.cpp \
 	dev/wqe_send_handler.cpp \
+	dev/src_addr_selector.cpp \
 	dev/ring.cpp \
 	dev/ring_bond.cpp \
 	dev/ring_slave.cpp \
@@ -186,6 +187,7 @@ libxlio_la_SOURCES := \
 	dev/rfs_rule.h \
 	dev/rfs_rule_ibv.h \
 	dev/rfs_rule_dpcp.h \
+	dev/src_addr_selector.h \
 	dev/ring.h \
 	dev/ring_bond.h \
 	dev/ring_slave.h \
