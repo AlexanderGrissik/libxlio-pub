@@ -148,9 +148,9 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_d
             // temporary sum of the entire payload
             // final checksum is calculated by attr VMA_TX_PACKET_L4_CSUM
             p_udp_hdr->check = calc_sum_of_payload(p_iov, sz_iov);
-            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_CSUM);
+            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
         } else {
-            attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_CSUM));
+            attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
         }
 
         // Calc payload start point (after the udp header if present else just after ip header)
@@ -238,9 +238,9 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
     set_tx_buff_list_pending(false);
 
     // Check if inline is possible
-    // SW checksum is not possible in this case since headers and data are not contiguous in memory.
+    // Skip inlining in case of L4 SW checksum because headers and data are not contiguous in memory
     if ((sz_iov == 1) && ((sz_data_payload + m_header->m_total_hdr_len) < m_max_inline) &&
-        !is_set(attr, VMA_TX_SW_CSUM)) {
+        !is_set(attr, VMA_TX_SW_L4_CSUM)) {
         m_p_send_wqe = &m_inline_send_wqe;
 
         m_header->get_udp_hdr()->len = htons((uint16_t)sz_udp_payload);

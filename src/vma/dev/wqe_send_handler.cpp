@@ -51,7 +51,6 @@ void wqe_send_handler::init_not_inline_wqe(vma_ibv_send_wr &wqe_to_init, struct 
                                            uint32_t num_sge)
 {
     init_wqe(wqe_to_init, sge_list, num_sge);
-    enable_hw_csum(wqe_to_init);
 }
 
 void wqe_send_handler::init_wqe(vma_ibv_send_wr &wqe_to_init, struct ibv_sge *sge_list,

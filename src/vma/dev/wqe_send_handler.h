@@ -52,20 +52,6 @@ public:
         return last_opcode;
     }
 
-#ifndef DEFINED_SW_CSUM
-    inline void enable_hw_csum(vma_ibv_send_wr &send_wqe)
-    {
-        vma_send_wr_send_flags(send_wqe) |= VMA_IBV_SEND_IP_CSUM;
-    }
-    inline void disable_hw_csum(vma_ibv_send_wr &send_wqe)
-    {
-        vma_send_wr_send_flags(send_wqe) &= ~VMA_IBV_SEND_IP_CSUM;
-    }
-#else
-    inline void enable_hw_csum(vma_ibv_send_wr &) {}
-    inline void disable_hw_csum(vma_ibv_send_wr &) {}
-#endif
-
     inline void enable_tso(vma_ibv_send_wr &wr, void *hdr, uint16_t hdr_sz, uint16_t mss)
     {
         vma_send_wr_opcode(wr) = VMA_IBV_WR_TSO;

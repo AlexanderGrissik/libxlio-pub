@@ -437,10 +437,6 @@ bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
     // Find number of ip fragments (-> packets, buffers, buffer descs...)
     neigh_logdbg("ENTER post_send_udp_ipv4");
     int n_num_frags = 1;
-    bool b_need_sw_csum = false;
-#ifdef DEFINED_SW_CSUM
-    b_need_sw_csum = true;
-#endif
     mem_buf_desc_t *p_mem_buf_desc, *tmp = NULL;
     void *p_pkt;
     void *p_ip_hdr;
@@ -460,7 +456,6 @@ bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
 
     // Usually max inline < MTU!
     if (sz_udp_payload > max_ip_payload_size) {
-        b_need_sw_csum = true;
         n_num_frags = (sz_udp_payload + max_ip_payload_size - 1) / max_ip_payload_size;
     }
 
@@ -533,16 +528,6 @@ bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
         }
         BULLSEYE_EXCLUDE_BLOCK_END
 
-        wqe_send_handler wqe_sh;
-        vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM);
-        if (b_need_sw_csum) {
-            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_SW_CSUM);
-            wqe_sh.disable_hw_csum(m_send_wqe);
-        } else {
-            neigh_logdbg("using HW checksum calculation");
-            wqe_sh.enable_hw_csum(m_send_wqe);
-        }
-
         p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = reinterpret_cast<udphdr *>(p_udp_hdr);
 
@@ -562,7 +547,7 @@ bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
 
         // We don't check the return value of post send when we reach the HW we consider that we
         // completed our job
-        m_p_ring->send_ring_buffer(m_id, &m_send_wqe, attr);
+        m_p_ring->send_ring_buffer(m_id, &m_send_wqe, VMA_TX_PACKET_L3_CSUM);
 
         p_mem_buf_desc = tmp;
 
@@ -611,8 +596,7 @@ bool neigh_entry::post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, si
     frag_h.ip6f_reserved = 0;
 
     wqe_send_handler wqe_sh;
-    vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)(VMA_TX_SW_CSUM | VMA_TX_PACKET_L3_CSUM);
-    wqe_sh.disable_hw_csum(m_send_wqe);
+    vma_wr_tx_packet_attr attr = VMA_TX_PACKET_L3_CSUM;
 
     while (n_num_frags--) {
         // Calc this ip datagram fragment size (include any headers)
@@ -658,9 +642,9 @@ bool neigh_entry::post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, si
             // temporary sum of the entire payload
             // final checksum is calculated by attr VMA_TX_PACKET_L4_CSUM
             p_udp_hdr->check = calc_sum_of_payload(&n_send_data->m_iov, 1);
-            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM);
+            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
         } else {
-            attr = (vma_wr_tx_packet_attr)(attr & ~VMA_TX_PACKET_L4_CSUM);
+            attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
         }
 
         // Calc payload start point (after the udp header if present else just after ip header)
@@ -722,11 +706,6 @@ bool neigh_entry::post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data
         return false;
     }
 
-    bool b_need_sw_csum = false;
-#ifdef DEFINED_SW_CSUM
-    b_need_sw_csum = true;
-#endif
-
     void *p_pkt;
     void *p_ip_hdr;
     void *p_udp_hdr;
@@ -769,13 +748,6 @@ bool neigh_entry::post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data
     wqe_send_handler wqe_sh;
     vma_wr_tx_packet_attr attr =
         (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L4_CSUM | VMA_TX_PACKET_L3_CSUM);
-    if (b_need_sw_csum) {
-        neigh_logdbg("post_send_udp_ipv6_not_fragmented: using SW checksum calculation");
-        attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_SW_CSUM);
-        wqe_sh.disable_hw_csum(m_send_wqe);
-    } else {
-        wqe_sh.enable_hw_csum(m_send_wqe);
-    }
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h->m_transport_header_tx_offset);
     m_sge.length = sz_data_payload + hdr_len;
@@ -801,9 +773,6 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     mem_buf_desc_t *p_mem_buf_desc;
     size_t total_packet_len = 0;
     header *h = p_data->m_header;
-
-    wqe_send_handler wqe_sh;
-    wqe_sh.enable_hw_csum(m_send_wqe);
 
     p_mem_buf_desc = m_p_ring->mem_buf_tx_get(m_id, false, PBUF_RAM, 1);
 

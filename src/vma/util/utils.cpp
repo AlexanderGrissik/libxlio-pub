@@ -205,25 +205,23 @@ void print_roce_lag_warnings(const char *interface, char *disable_path /* = NULL
 
 void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_csum)
 {
-    if (l3_csum) {
-        unsigned short l3_checksum = -1, l4_checksum = -1;
-        uint8_t protocol;
+    unsigned short l3_checksum = -1, l4_checksum = -1;
+
+    if (l3_csum || l4_csum) {
         struct iphdr *ipv4 = p_mem_buf_desc->tx.p_ip4_h;
-        struct ip6_hdr *ipv6 = p_mem_buf_desc->tx.p_ip6_h;
         bool is_ipv4 = (ipv4->version == 4);
 
-        if (is_ipv4) {
+        if (l3_csum && is_ipv4) {
+            __log_dbg("Should not get here - IP checksum should be calculated by HW...");
             ipv4->check = 0;
             ipv4->check = l3_checksum = compute_ip_checksum(ipv4);
-            protocol = ipv4->protocol;
-        } else {
-            protocol = ipv6->ip6_nxt;
         }
 
         if (l4_csum) {
+            struct ip6_hdr *ipv6 = p_mem_buf_desc->tx.p_ip6_h;
+            uint8_t protocol = (is_ipv4) ? ipv4->protocol : ipv6->ip6_nxt;
             if (protocol == IPPROTO_UDP) {
                 // UDP Checksum for IPv4 is not mandatory, so we set it to 0.
-                // Should not get here for inline wqe flow - udp payload is not avail here.
                 struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
                 udp_hdr->check = 0;
                 if (!is_ipv4) {
@@ -232,6 +230,7 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
                 }
                 l4_checksum = udp_hdr->check;
             } else if (protocol == IPPROTO_TCP) {
+                __log_dbg("Should not get here - TCP checksum should be calculated by HW...");
                 struct tcphdr *tcp_hdr = p_mem_buf_desc->tx.p_tcp_h;
                 const uint16_t *tcp_hdr_buf = reinterpret_cast<const uint16_t *>(tcp_hdr);
                 tcp_hdr->check = 0;
@@ -249,10 +248,13 @@ void compute_tx_checksum(mem_buf_desc_t *p_mem_buf_desc, bool l3_csum, bool l4_c
                     struct udphdr *udp_hdr = p_mem_buf_desc->tx.p_udp_h;
                     l4_checksum = udp_hdr->check = compute_ipv6_udp_frag_checksum(ipv6, udp_hdr);
                 }
+            } else {
+                __log_err("Could not calculate L4 SW checksum. next protocol: %d", protocol);
             }
         }
-        __log_entry_func("SW checksum calculation: L3 = %d, L4 = %d", l3_checksum, l4_checksum);
     }
+
+    __log_entry_func("SW checksum calculation: L3 = %d, L4 = %d", l3_checksum, l4_checksum);
 }
 
 unsigned short compute_ip_checksum(const uint16_t *p_data, size_t sz_count)

@@ -72,7 +72,7 @@ typedef enum vma_wr_tx_packet_attr {
     /* blocking send operation */
     VMA_TX_PACKET_BLOCK = (1 << 8),
     /* Force SW checksum */
-    VMA_TX_SW_CSUM = (1 << 9),
+    VMA_TX_SW_L4_CSUM = (1 << 9),
 } vma_wr_tx_packet_attr;
 
 static inline bool is_set(vma_wr_tx_packet_attr state_, vma_wr_tx_packet_attr tx_mode_)

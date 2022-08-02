@@ -781,14 +781,10 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wq
 {
     NOT_IN_USE(id);
 
-#ifdef DEFINED_SW_CSUM
-    {
-#else
-    if (attr & VMA_TX_SW_CSUM) {
-#endif
+    if (attr & VMA_TX_SW_L4_CSUM) {
         compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
                             attr & VMA_TX_PACKET_L4_CSUM);
-        attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM));
+        attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM));
     }
 
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
@@ -800,13 +796,6 @@ int ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe
                                   vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     NOT_IN_USE(id);
-
-#ifdef DEFINED_SW_CSUM
-    compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
-                        attr & VMA_TX_PACKET_L4_CSUM);
-    attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM));
-#endif
-
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr, tis);
     send_status_handler(ret, p_send_wqe);
