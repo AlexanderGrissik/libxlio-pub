@@ -176,38 +176,32 @@ void sockinfo::socket_stats_init(void)
 
 void sockinfo::set_blocking(bool is_blocked)
 {
-    if (is_blocked) {
-        si_logdbg("set socket to blocked mode");
-        m_b_blocking = true;
-    } else {
-        si_logdbg("set socket to non-blocking mode");
-        m_b_blocking = false;
-    }
-
-    // Update statistics info
+    si_logdbg("set socket to %s mode", is_blocked ? "blocked" : "non-blocking");
+    m_b_blocking = is_blocked;
     m_p_socket_stats->b_blocking = m_b_blocking;
 }
 
 int sockinfo::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
 {
+    int rc = 0;
+
+    // Avoid fcntl(2) syscall if shadow socket is not present.
+    bexit = !is_shadow_socket_present();
+
     switch (__cmd) {
-    case F_SETFL: {
+    case F_SETFL: // Set file status flags.
         si_logdbg("cmd=F_SETFL, arg=%#lx", __arg);
-        if (__arg & O_NONBLOCK) {
-            set_blocking(false);
-        } else {
-            set_blocking(true);
-        }
-    } break;
-    case F_GETFL: /* Get file status flags.   */
+        set_blocking(!(__arg & O_NONBLOCK));
+        break;
+    case F_GETFL: // Get file status flags.
         si_logfunc("cmd=F_GETFL, arg=%#x", __arg);
+        rc = O_NONBLOCK * !m_b_blocking;
         break;
 
-    case F_GETFD: /* Get file descriptor flags.  */
+    case F_GETFD: // Get file descriptor flags.
         si_logfunc("cmd=F_GETFD, arg=%#x", __arg);
         break;
-
-    case F_SETFD: /* Set file descriptor flags.  */
+    case F_SETFD: // Set file descriptor flags.
         si_logfunc("cmd=F_SETFD, arg=%#x", __arg);
         break;
 
@@ -218,20 +212,24 @@ int sockinfo::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
         buf[sizeof(buf) - 1] = '\0';
 
         VLOG_PRINTF_INFO(safe_mce_sys().exception_handling.get_log_severity(), "%s", buf);
-        int rc = handle_exception_flow();
+        rc = handle_exception_flow();
         switch (rc) {
+        case 0:
+            if (!is_shadow_socket_present()) {
+                errno = ENOTSUP;
+                rc = -1;
+            }
+            break;
         case -1:
             bexit = true;
-            return rc;
+            break;
         case -2:
             bexit = true;
             vma_throw_object_with_msg(vma_unsupported_api, buf);
         }
         break;
     }
-
-    bexit = false;
-    return 0;
+    return rc;
 }
 
 int sockinfo::fcntl(int __cmd, unsigned long int __arg)
@@ -304,28 +302,24 @@ int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
 
 int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
 {
-
     int *p_arg = (int *)__arg;
+    int rc = 0;
+    bool supported = false;
 
     switch (__request) {
-    case FIONBIO: {
+    case FIONBIO:
         si_logdbg("request=FIONBIO, arg=%d", *p_arg);
-        if (*p_arg) {
-            set_blocking(false);
-        } else {
-            set_blocking(true);
-        }
-    } break;
-
-    case FIONREAD: {
+        set_blocking(!(*p_arg));
+        supported = true;
+        break;
+    case FIONREAD:
         si_logfunc("request=FIONREAD, arg=%d", *p_arg);
-        int ret = rx_verify_available_data();
-        if (ret >= 0) {
-            *p_arg = ret;
+        rc = rx_verify_available_data();
+        if (rc >= 0) {
+            *p_arg = rc;
             return 0;
         }
-        return ret;
-    } break;
+        return rc;
     case SIOCGIFVLAN: /* prevent error print */
         break;
     default:
@@ -335,7 +329,7 @@ int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
         buf[sizeof(buf) - 1] = '\0';
 
         VLOG_PRINTF_INFO(safe_mce_sys().exception_handling.get_log_severity(), "%s", buf);
-        int rc = handle_exception_flow();
+        rc = handle_exception_flow();
         switch (rc) {
         case -1:
             return rc;
@@ -343,6 +337,12 @@ int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
             vma_throw_object_with_msg(vma_unsupported_api, buf);
         }
         break;
+    }
+
+    if (!is_shadow_socket_present()) {
+        // Avoid ioctl(2) syscall is shadow socket is not present.
+        errno = supported ? errno : ENOTSUP;
+        return supported ? rc : -1;
     }
 
     si_logdbg("going to OS for ioctl request=%lu, flags=%#lx", __request, __arg);

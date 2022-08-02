@@ -3855,29 +3855,14 @@ int sockinfo_tcp::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
 {
     switch (__cmd) {
     case F_SETFL: /* Set file status flags. */
-    {
         si_tcp_logdbg("cmd=F_SETFL, arg=%#lx", __arg);
-        if (__arg & O_NONBLOCK) {
-            set_blocking(false);
-        } else {
-            set_blocking(true);
-        }
-
+        set_blocking(!(__arg & O_NONBLOCK));
         bexit = true;
-
         return 0;
-    } break;
     case F_GETFL: /* Get file status flags. */
-    {
         si_tcp_logdbg("cmd=F_GETFL");
-        if (m_b_blocking) {
-            bexit = true;
-            return 0;
-        } else {
-            bexit = true;
-            return O_NONBLOCK;
-        }
-    } break;
+        bexit = true;
+        return O_NONBLOCK * !m_b_blocking;
     default:
         break;
     }
@@ -3925,15 +3910,10 @@ int sockinfo_tcp::ioctl(unsigned long int __request, unsigned long int __arg)
     int *p_arg = (int *)__arg;
 
     switch (__request) {
-    case FIONBIO: {
+    case FIONBIO:
         si_tcp_logdbg("request=FIONBIO, arg=%d", *p_arg);
-        if (*p_arg) {
-            set_blocking(false);
-        } else {
-            set_blocking(true);
-        }
+        set_blocking(!(*p_arg));
         return 0;
-    } break;
     default:
         break;
     }
