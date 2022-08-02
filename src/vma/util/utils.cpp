@@ -1063,14 +1063,6 @@ bool check_bond_roce_lag_exist(OUT char *bond_roce_lag_path, int sz, IN const ch
     NOT_IN_USE(sz);
     NOT_IN_USE(slave_name);
     return true;
-#else
-    char sys_res[1024] = {0};
-    snprintf(bond_roce_lag_path, sz, BONDING_ROCE_LAG_FILE, slave_name);
-    if (priv_read_file(bond_roce_lag_path, sys_res, 1024, VLOG_FUNC) > 0) {
-        if (strtol(sys_res, NULL, 10) > 0 && errno != ERANGE) {
-            return true;
-        }
-    }
 #endif
 
     return false;
@@ -1254,23 +1246,6 @@ bool get_interface_oper_state(IN const char *interface_name, OUT char *curr_stat
     }
     return true;
 }
-
-#if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
-// NOTE RAW_QP_PRIVLIGES_PARAM_FILE does not exist on upstream drivers
-int validate_raw_qp_privliges()
-{
-    // RAW_QP_PRIVLIGES_PARAM_FILE: "/sys/module/ib_uverbs/parameters/disable_raw_qp_enforcement"
-    char raw_qp_privliges_value = 0;
-    if (priv_read_file((const char *)RAW_QP_PRIVLIGES_PARAM_FILE, &raw_qp_privliges_value, 1,
-                       VLOG_DEBUG) <= 0) {
-        return -1;
-    }
-    if (raw_qp_privliges_value != '1') {
-        return 0;
-    }
-    return 1;
-}
-#endif /* DEFINED_VERBS_VERSION */
 
 bool validate_user_has_cap_net_raw_privliges()
 {

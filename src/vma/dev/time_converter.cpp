@@ -60,7 +60,6 @@ uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
 #ifdef DEFINED_IBV_CQ_TIMESTAMP
     int rval;
 
-    // Checking if ibv_exp_query_device() is valid
     vma_ibv_device_attr_ex device_attr;
     memset(&device_attr, 0, sizeof(device_attr));
     device_attr.comp_mask = VMA_IBV_DEVICE_ATTR_HCA_CORE_CLOCK;
@@ -74,7 +73,6 @@ uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
         dev_status |= VMA_QUERY_DEVICE_SUPPORTED;
     }
 
-    // Checking if ibv_exp_query_values() is valid
     vma_ts_values queried_values;
     memset(&queried_values, 0, sizeof(queried_values));
     queried_values.comp_mask = VMA_IBV_VALUES_MASK_RAW_CLOCK;

@@ -1659,34 +1659,7 @@ bool net_device_val::verify_qp_creation(const char *ifname, enum ibv_qp_type qp_
                   ifname, errno, strerror(errno));
 
         int err = errno; // verify_raw_qp_privliges can overwrite errno so keep it before the call
-#if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
-        if (validate_raw_qp_privliges() == 0) {
-            // MLNX_OFED raw_qp_privliges file exist with bad value
-            vlog_printf(VLOG_WARNING,
-                        "**************************************************************************"
-                        "*****************************\n");
-            vlog_printf(VLOG_WARNING, "* Interface %s will not be offloaded.\n", ifname);
-            vlog_printf(VLOG_WARNING,
-                        "* Working in this mode might causes " PRODUCT_NAME
-                        " malfunction over Ethernet/InfiniBand interfaces\n");
-            vlog_printf(VLOG_WARNING,
-                        "* WARNING: the following steps will restart your network interface!\n");
-            vlog_printf(VLOG_WARNING,
-                        "* 1. \"echo options ib_uverbs disable_raw_qp_enforcement=1 > "
-                        "/etc/modprobe.d/ib_uverbs.conf\"\n");
-            vlog_printf(
-                VLOG_WARNING,
-                "* 2. Restart openibd or rdma service depending on your system configuration\n");
-            vlog_printf(
-                VLOG_WARNING,
-                "* Read the RAW_PACKET QP root access enforcement section in the " PRODUCT_NAME
-                "'s User Manual for more information\n");
-            vlog_printf(VLOG_WARNING,
-                        "**************************************************************************"
-                        "****************************\n");
-        } else
-#endif /* DEFINED_VERBS_VERSION */
-            if (validate_user_has_cap_net_raw_privliges() == 0 || err == EPERM) {
+        if (validate_user_has_cap_net_raw_privliges() == 0 || err == EPERM) {
             vlog_printf(VLOG_WARNING,
                         "**************************************************************************"
                         "*****************************\n");

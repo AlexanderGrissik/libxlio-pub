@@ -293,10 +293,6 @@ bool check_netvsc_device_exist(const char *ifname);
 bool get_netvsc_slave(IN const char *ifname, OUT char *slave_name, OUT unsigned int &slave_flags);
 bool get_interface_oper_state(IN const char *interface_name, OUT char *slaves_list, IN int sz);
 
-#if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
-int validate_raw_qp_privliges();
-#endif /* DEFINED_VERBS_VERSION */
-
 bool validate_user_has_cap_net_raw_privliges();
 
 size_t default_huge_page_size(void);

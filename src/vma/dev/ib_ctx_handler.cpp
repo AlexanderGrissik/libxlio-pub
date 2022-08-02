@@ -440,17 +440,7 @@ uint32_t ib_ctx_handler::mem_reg(void *addr, size_t length, uint64_t access)
     struct ibv_mr *mr = NULL;
     uint32_t lkey = (uint32_t)(-1);
 
-#ifdef DEFINED_IBV_EXP_ACCESS_ALLOCATE_MR
-    struct ibv_exp_reg_mr_in in;
-    memset(&in, 0, sizeof(in));
-    in.exp_access = access;
-    in.addr = addr;
-    in.length = length;
-    in.pd = m_p_ibv_pd;
-    mr = ibv_exp_reg_mr(&in);
-#else
     mr = ibv_reg_mr(m_p_ibv_pd, addr, length, access);
-#endif
     VALGRIND_MAKE_MEM_DEFINED(mr, sizeof(ibv_mr));
     if (NULL == mr) {
         ibch_logerr("failed registering a memory region "
