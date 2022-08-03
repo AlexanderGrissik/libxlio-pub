@@ -37,14 +37,10 @@
 
 #include <infiniband/verbs.h>
 
-#if (DEFINED_DIRECT_VERBS == 2)
-#include <infiniband/mlx5_hw.h>
-#include "vma/ib/mlx5/ib_mlx5_hw.h"
-#elif (DEFINED_DIRECT_VERBS == 3)
+#if (DEFINED_DIRECT_VERBS == 3)
 extern "C" {
 #include <infiniband/mlx5dv.h>
 }
-#include "vma/ib/mlx5/ib_mlx5_dv.h"
 #else
 #error "Unsupported Direct VERBS parameter"
 #endif
