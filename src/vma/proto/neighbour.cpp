@@ -188,7 +188,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
 
     ring_alloc_logic_attr ring_attr(safe_mce_sys().ring_allocation_logic_tx);
     m_ring_allocation_logic = ring_allocation_logic_tx(
-        m_p_dev->get_local_addr(key.get_ip_addr().get_family()), ring_attr, this);
+        m_p_dev->get_ip_array(key.get_ip_addr().get_family())[0]->local_addr, ring_attr, this);
 
     if (is_init_resources) {
         m_p_ring = m_p_dev->reserve_ring(m_ring_allocation_logic.get_key());
@@ -1640,7 +1640,7 @@ bool neigh_eth::send_arp_request(bool is_broadcast)
 
     eth_arp_hdr *p_arphdr = (eth_arp_hdr *)(p_mem_buf_desc->p_buffer +
                                             h.m_transport_header_tx_offset + h.m_total_hdr_len);
-    set_eth_arp_hdr(p_arphdr, m_p_dev->get_local_addr(AF_INET).get_in_addr(),
+    set_eth_arp_hdr(p_arphdr, m_p_dev->get_ip_array(AF_INET)[0]->local_addr.get_in_addr(),
                     get_key().get_in_addr(), m_p_dev->get_l2_address()->get_address(), peer_mac);
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h.m_transport_header_tx_offset);

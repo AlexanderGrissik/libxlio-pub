@@ -30,8 +30,14 @@
  * SOFTWARE.
  */
 
+#include <cinttypes>
 #include "src_addr_selector.h"
 #include "net_device_table_mgr.h"
+#include "vlogger/vlogger.h"
+
+#define MODULE_NAME "src_sel"
+
+#define src_sel_logfunc __log_func
 
 bool ipv6_source_addr_score::use_optimistic_addr() const
 {
@@ -150,6 +156,8 @@ void ipv6_source_addr_score::do_compare(ipv6_source_addr_score &&another,
 
         if (this_score < another_score) { // another is bigger.
             *this = another;
+            src_sel_logfunc("Next selected address, %s, %s", m_dev->get_ifname(),
+                            m_ip->local_addr.to_str(AF_INET6).c_str());
             return;
         }
     }
@@ -163,11 +171,13 @@ void src_addr_selector::ipv6_select_saddr_by_dev(const net_device_val &dev,
     for (const auto &ip_addr : ip_arr) {
         // Skip Tentative non-optimistic addresses.
         if ((ip_addr->flags & IFA_F_TENTATIVE) && !(ip_addr->flags & IFA_F_OPTIMISTIC)) {
+            src_sel_logfunc("Tentative addr skipped: %s", ip_addr->local_addr.to_str(AF_INET6));
             continue;
         }
 
         // Sanity check for illegal configuration.
         if (ip_addr->local_addr.is_mc(AF_INET6) || ip_addr->local_addr.is_anyaddr()) {
+            src_sel_logfunc("Illegal addr skipped: %s", ip_addr->local_addr.to_str(AF_INET6));
             continue;
         }
 
@@ -192,6 +202,9 @@ const ip_data *src_addr_selector::select_ip_src_addr(const net_device_val &dst_d
 const ip_data *src_addr_selector::ipv6_select_saddr(const net_device_val &dst_dev,
                                                     const ip_address &dst_addr, uint8_t flags)
 {
+    src_sel_logfunc("Selecting IPv6 address for: %s, %s, flags: %" PRIu8, dst_dev.get_ifname(),
+                    dst_addr.to_str(AF_INET6).c_str(), flags);
+
     // Use only outgoing-if for multicast and link-local/loopback dst addresses.
     bool dst_net_dev_only = false;
     if (dst_addr.is_mc(AF_INET6)) {

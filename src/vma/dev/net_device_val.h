@@ -216,13 +216,9 @@ public:
     }
     inline const ip_data_vector_t &get_ip_array(sa_family_t family) const
     {
+        // Valid object must have at least one address for one of families
         return (family == AF_INET ? m_ipv4 : m_ipv6);
     }
-
-    inline ip_address get_local_addr(sa_family_t family)
-    {
-        return get_ip_array(family)[0]->local_addr;
-    } // Valid object must have at least one address
 
     inline int get_type() { return m_type; }
     inline int get_if_idx() const { return m_if_idx; }
@@ -293,7 +289,7 @@ private:
     resource_allocation_key *ring_key_redirection_reserve(resource_allocation_key *key);
     resource_allocation_key *get_ring_key_redirection(resource_allocation_key *key);
     void ring_key_redirection_release(resource_allocation_key *key);
-
+    void print_ips();
     bool get_up_and_active_slaves(bool *up_and_active_slaves, size_t size);
 
     /* See: RFC 3549 2.3.3.1. */

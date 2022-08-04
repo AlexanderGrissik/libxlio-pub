@@ -165,10 +165,9 @@ void dst_entry::set_src_addr()
 {
     if (!m_route_src_ip.is_anyaddr()) {
         m_pkt_src_ip = m_route_src_ip;
-        dst_logfunc("Selected source address (bind/routing_src): %s",
+        dst_logfunc("Selected source address (bind): %s",
                     m_pkt_src_ip.to_str(get_sa_family()).c_str());
-    } else if (m_p_rt_val && !m_p_rt_val->get_src_addr().is_anyaddr()) {
-        m_pkt_src_ip = m_p_rt_val->get_src_addr();
+    } else if (get_routing_addr_sel_src(m_pkt_src_ip)) {
         dst_logfunc("Selected source address (rt_val): %s",
                     m_pkt_src_ip.to_str(get_sa_family()).c_str());
     } else {
@@ -297,11 +296,17 @@ bool dst_entry::resolve_net_dev(bool is_connect)
     if (!m_p_rt_entry) {
         m_route_src_ip = m_bound_ip;
         route_rule_table_key rtk(m_dst_ip, m_route_src_ip, m_family, m_tos);
+        dst_logfunc("Fetching rt_entry %s", m_route_src_ip.to_str(m_family).c_str());
         if (g_p_route_table_mgr->register_observer(rtk, this, &p_ces)) {
             // In case this is the first time we trying to resolve route entry,
             // means that register_observer was run
             m_p_rt_entry = dynamic_cast<route_entry *>(p_ces);
-            if (is_connect && m_route_src_ip.is_anyaddr()) {
+
+            // Routing entry src-addr is used for src-addr selection algorithm and not
+            // as a key for matching routing rules. Moreover, this can be a forcefully
+            // set src addr by XLIO. We keep this logic for IPv4 only for backward compliancy.
+            if (m_family == AF_INET && is_connect && m_route_src_ip.is_anyaddr()) {
+                dst_logfunc("Checking rt_entry src addr");
                 route_val *p_rt_val = NULL;
                 if (m_p_rt_entry && m_p_rt_entry->get_val(p_rt_val) &&
                     !p_rt_val->get_src_addr().is_anyaddr()) {

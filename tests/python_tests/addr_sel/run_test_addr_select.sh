@@ -135,9 +135,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "1" ]; then
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:1::2:2/64 dev $IF1
 	sleep 4
-	LD_PRELOAD=$XLIO_PATH python2 $SRV_PATH inet6 2001:1::2:1 $PORT 2001:1::2:1 &
+	python2 $SRV_PATH inet6 2001:1::2:1 $PORT 2001:1::2:1 &
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::2:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::2:1 $PORT
 	ip -6 addr del 2001:1::2:1/64 dev $IF1
 	ip -6 addr del 2001:1::2:2/64 dev $IF1
 fi
@@ -145,9 +145,9 @@ fi
 # Prefer smaller scope address, Dst-Local → Src-Local
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "2" ]; then
 	echo "[CASE] Rule 2: Prefer appropriate scope"
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL1%$IF1 $PORT $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL1%$IF1 $PORT $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 $SRV_LINKLOCAL1%$IF1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 $SRV_LINKLOCAL1%$IF1 $PORT
 	echo "$(clear_server)"
 fi
 
@@ -160,9 +160,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "3" ]; then
 	route -6 add 2001:1::/64 dev $IF1
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr add 2001:1::2:1/128 dev $IF1 optimistic
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr del 2001:1::2:1/128 dev $IF1
 	route -6 del 2001:1::/64 dev $IF1
 	ip -6 addr del 2001:2::2:1/64 dev $IF2
@@ -173,13 +173,13 @@ fi
 
 # Avoid deprecated addresses
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "4" ]; then
-	echo "[CASE] Rule 3: Avoid deprecated addresses"
+	echo "[CASE] Rule 4: Avoid deprecated addresses"
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:1::2:2/64 dev $IF1 preferred_lft 0
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	ip -6 addr del 2001:1::2:1/64 dev $IF1
 	ip -6 addr del 2001:1::2:2/64 dev $IF1
 	echo "$(clear_server)"
@@ -187,9 +187,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "4" ]; then
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:1::2:2/64 dev $IF1
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:2 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:2 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	ip -6 addr del 2001:1::2:1/64 dev $IF1
 	ip -6 addr del 2001:1::2:2/64 dev $IF1
 	echo "$(clear_server)"
@@ -205,9 +205,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "5" ]; then
 	sudo route -A inet6 add 2001:1::1:1/128 dev $IF2
 	sudo ip -6 neigh add 2001:1::1:1 lladdr b8:ce:f6:8e:45:07 dev $IF2
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	sudo ip -6 neigh del 2001:1::1:1 lladdr b8:ce:f6:8e:45:07 dev $IF2
 	sudo route -A inet6 del 2001:1::1:1/128 dev $IF2
 	ip -6 addr del 2001:2::2:1/64 dev $IF2
@@ -221,9 +221,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "6" ]; then
 	sudo route -A inet6 add 2001:1::/64 dev $IF1
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	ip -6 addr del 2001:2::2:1/64 dev $IF2
 	sudo route -A inet6 del 2001:1::/64 dev $IF1
 	echo "$(clear_server)"
@@ -236,9 +236,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "7" ]; then
 	ip -6 addr add 2009:1::1:1/64 dev $IF1 # Unrelated Address
 	sudo route -A inet6 add 2001:1::1:1/128 dev $IF1
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2009:1::1:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2009:1::1:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	sudo route -A inet6 del 2001:1::1:1/128 dev $IF1
 	ip -6 addr del 2009:1::1:1/64 dev $IF1
 	ip -6 addr del 2001:1::1:10/64 dev $IF2
@@ -251,9 +251,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "8" ]; then
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
 	ip -6 addr add 2001:1::1:2/64 dev $IF1 # Duplicate IP as on the server
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:2::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	ip -6 addr del 2001:1::1:2/64 dev $IF1
 	ip -6 addr del 2001:2::2:1/64 dev $IF2
 	echo "$(clear_server)"
@@ -266,9 +266,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "9" ]; then
 	sudo ip -6 addr add 2001:1::2:11/64 dev $IF1
 	sudo ip addrlabel add prefix 2001:1::1:0/112 dev $IF1 label 20
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::1:10 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::1:10 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	sudo ip addrlabel del prefix 2001:1::1:0/112 dev $IF1 label 20
 	sudo ip -6 addr del 2001:1::1:10/64 dev $IF1
 	sudo ip -6 addr del 2001:1::2:11/64 dev $IF1
@@ -277,9 +277,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "9" ]; then
 	sudo ip -6 addr add 2001:1::1:10/64 dev $IF1
 	sudo ip -6 addr add 2001:1::2:11/64 dev $IF1
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:11 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:11 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	sudo ip -6 addr del 2001:1::1:10/64 dev $IF1
 	sudo ip -6 addr del 2001:1::2:11/64 dev $IF1
 	echo "$(clear_server)"
@@ -296,9 +296,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "10" ]; then
 	sudo ip -6 addr add 2001:1::2:2/66 dev $IF1
 	sudo ip -6 addr add 2099:1::2:3/64 dev $IF1
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:2 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:2 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	sudo ip -6 addr del 2099:1::2:3/64 dev $IF1
 	sudo ip -6 addr del 2001:1::2:2/66 dev $IF1
 	sudo ip -6 addr del 2001:1::2:1/65 dev $IF1
@@ -315,9 +315,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "11" ]; then
 	route -6 add 2001:1::/64 dev $IF1
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr add 2001:1::2:1/128 dev $IF1 optimistic
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr del 2001:1::2:1/128 dev $IF1
 	route -6 del 2001:1::/64 dev $IF1
 	ip -6 addr del 2001:2::2:1/64 dev $IF2
@@ -337,9 +337,9 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "12" ]; then
 	sysctl -w net.ipv6.conf.$IF1.use_optimistic=1
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr add 2001:1::2:2/64 dev $IF1 optimistic
 	sleep 4
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::2:1 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
-	LD_PRELOAD=$XLIO_PATH python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
 	$IP_TOOL_OPTIMISTIC_PATH -6 addr del 2001:1::2:2/64 dev $IF1
 	ip -6 addr del 2001:1::2:1/64 dev $IF1
 	sysctl -w net.ipv6.conf.$IF1.optimistic_dad=0
@@ -351,7 +351,7 @@ fi
 # Mixed Link-Local interfaces
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "13" ]; then
 	echo "[CASE] Mixed Link-Local interfaces"
-	ssh $SRV_HOST 'sudo '"LD_PRELOAD=$XLIO_PATH"' python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF2 $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF2 $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
 	timeout -s SIGKILL 15s env LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 $SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF1
 	echo "$(clear_server)"
