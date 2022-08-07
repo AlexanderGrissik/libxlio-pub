@@ -171,13 +171,15 @@ void src_addr_selector::ipv6_select_saddr_by_dev(const net_device_val &dev,
     for (const auto &ip_addr : ip_arr) {
         // Skip Tentative non-optimistic addresses.
         if ((ip_addr->flags & IFA_F_TENTATIVE) && !(ip_addr->flags & IFA_F_OPTIMISTIC)) {
-            src_sel_logfunc("Tentative addr skipped: %s", ip_addr->local_addr.to_str(AF_INET6));
+            src_sel_logfunc("Tentative addr skipped: %s",
+                            ip_addr->local_addr.to_str(AF_INET6).c_str());
             continue;
         }
 
         // Sanity check for illegal configuration.
         if (ip_addr->local_addr.is_mc(AF_INET6) || ip_addr->local_addr.is_anyaddr()) {
-            src_sel_logfunc("Illegal addr skipped: %s", ip_addr->local_addr.to_str(AF_INET6));
+            src_sel_logfunc("Illegal addr skipped: %s",
+                            ip_addr->local_addr.to_str(AF_INET6).c_str());
             continue;
         }
 

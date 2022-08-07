@@ -4,10 +4,10 @@ import fcntl, os, sys
 import time
 from collections import deque
 
-ARG_LEN = 5
+ARG_LEN = 4
 argc = len(sys.argv)
 if (argc < ARG_LEN):
-    print "Needs ", x - 1, " arguments [family, dst-addr, dst-port, send-sleep-sec]"
+    print "Needs ", x - 1, " arguments [family, dst-addr, dst-port, [src-addr]]"
     exit
 
 myFamily = AF_INET
@@ -17,22 +17,26 @@ if (myFamilyStr == "inet6"):
 
 myDstHost = sys.argv[2]
 myDstPort = int(sys.argv[3])
-mySleepSec = int(sys.argv[4])
+
+mySrcAddr = ""
+if (argc > ARG_LEN):
+    mySrcAddr = sys.argv[4]
 
 sock = socket(myFamily, SOCK_STREAM) # create a UDP socket
+
+if (mySrcAddr != ""):
+    addrinfo_src = getaddrinfo(mySrcAddr, myDstPort, myFamily, SOCK_STREAM)
+    rc = sock.bind(addrinfo_src[0][4])
+    print "Client Binding to: ", addrinfo_src[0][4], " rc:", rc
 
 addrinfo = getaddrinfo(myDstHost, myDstPort, myFamily, SOCK_STREAM)
 print "Connecting to: ", addrinfo[0][4]
 sock.connect(addrinfo[0][4])
 
-print "Sending 1"
-bytes = sock.send("hello1hello1____")
+bytes = sock.send("hello")
 print "Sent ", bytes, " bytes"
 
-time.sleep(mySleepSec)
-
-print "Sending 2"
-bytes = sock.send("hello2hello2____")
-print "Sent ", bytes, " bytes"
+bytes = sock.recv(16)
+print "Received ", len(bytes), " bytes: ", bytes
 
 sock.close()

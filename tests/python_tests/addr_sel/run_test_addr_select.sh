@@ -9,6 +9,9 @@
 #     inet6 2001:2::1:1/64
 #     inet6 Link-Local
 #
+# For TCP add:
+# sudo route -A inet6 add 2009:1::1:1/128 dev Interface1
+
 # CLT_PY and SRV_PY must exist in the same location as this script
 # and be accessible from SRV_HOST.
 #
@@ -24,8 +27,11 @@
 # export ADRSEL_ERR_PATH=/tmp/err.txt
 # export ADRSEL_XLIO_PATH=kernel
 # export ADRSEL_IP_TOOL_OPTIMISTIC_PATH=ip
+# export ADRSEL_TCP=0
 # export ADRSEL_TEST_CASE=all
 # sudo -E ./run_test_addr_select.sh
+
+#set -x
 
 CLT_PY="udp_client_1s.py"
 SRV_PY="udp_server_1s.py"
@@ -38,10 +44,15 @@ OUT_PATH=$5
 ERR_PATH=$6
 XLIO_PATH=$7
 IP_TOOL_OPTIMISTIC_PATH=$8
-TEST_CASE=$9
-
+TCP=$9
+TEST_CASE=${10}
+echo $TEST_CASE
 if [[ -z "$TEST_CASE" ]]; then
 	TEST_CASE=$ADRSEL_TEST_CASE
+fi
+
+if [[ -z "$TCP" ]]; then
+	TCP=$ADRSEL_TCP
 fi
 
 if [[ -z "$IP_TOOL_OPTIMISTIC_PATH" ]]; then
@@ -80,11 +91,16 @@ if [[ -z "$SRV_HOST" ]]; then
 fi
 
 if [ "$XLIO_PATH" = "kernel" ]; then
-  XLIO_PATH=
+	XLIO_PATH=
 fi
 
 if [ "$TEST_CASE" = "all" ]; then
-  TEST_CASE=
+	TEST_CASE=
+fi
+
+if [ "$TCP" = "1" ]; then
+	CLT_PY="tcp_client_1s.py"
+	SRV_PY="tcp_server_1s.py"
 fi
 
 CLT_SRV_PATH=$(realpath $0)
@@ -131,11 +147,11 @@ sysctl -w net.ipv6.conf.$IF1.use_optimistic=0
 
 # Prefer same address - Run from same host / Prefer Global scope Dst-Global → Src-Global
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "1" ]; then
-	echo "[CASE] Rule 1: Prefer same address"
+	echo "[CASE 1] Rule 1: Prefer same address"
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:1::2:2/64 dev $IF1
 	sleep 4
-	python2 $SRV_PATH inet6 2001:1::2:1 $PORT 2001:1::2:1 &
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/srv_xlio.log python2 $SRV_PATH inet6 2001:1::2:1 $PORT 2001:1::2:1 &
 	sleep 1
 	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::2:1 $PORT
 	ip -6 addr del 2001:1::2:1/64 dev $IF1
@@ -144,7 +160,7 @@ fi
 
 # Prefer smaller scope address, Dst-Local → Src-Local
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "2" ]; then
-	echo "[CASE] Rule 2: Prefer appropriate scope"
+	echo "[CASE 2] Rule 2: Prefer appropriate scope"
 	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL1%$IF1 $PORT $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
 	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 $SRV_LINKLOCAL1%$IF1 $PORT
@@ -153,7 +169,7 @@ fi
 
 # Avoid Optimistic addresses if use_optimistic=0
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "3" ]; then
-	echo "[CASE] Rule 3: Avoid optimistic if use_optimistic=0"
+	echo "[CASE 3] Rule 3: Avoid optimistic if use_optimistic=0"
 	sysctl -w net.ipv6.conf.$IF1.optimistic_dad=1
 	sysctl -w net.ipv6.conf.$IF1.dad_transmits=1000
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
@@ -173,7 +189,7 @@ fi
 
 # Avoid deprecated addresses
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "4" ]; then
-	echo "[CASE] Rule 4: Avoid deprecated addresses"
+	echo "[CASE 4] Rule 4: Avoid deprecated addresses"
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:1::2:2/64 dev $IF1 preferred_lft 0
 	sleep 4
@@ -199,7 +215,7 @@ fi
 
 # Prefer outgoing interface (1)
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "5" ]; then
-	echo "[CASE] Rule 5: Prefer outgoing interface (1)"
+	echo "[CASE 5] Rule 5: Prefer outgoing interface (1)"
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
 	sudo route -A inet6 add 2001:1::1:1/128 dev $IF2
@@ -217,7 +233,7 @@ fi
 
 # Selecting non outgoing interface
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "6" ]; then
-	echo "[CASE] Rule 5: Selecting non outgoing interface"
+	echo "[CASE 6] Rule 5: Selecting non outgoing interface"
 	sudo route -A inet6 add 2001:1::/64 dev $IF1
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
 	sleep 4
@@ -231,7 +247,7 @@ fi
 
 # Prefer outgoing interface (2)
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "7" ]; then
-	echo "[CASE] Rule 5: Prefer outgoing interface (2)"
+	echo "[CASE 7] Rule 5: Prefer outgoing interface (2)"
 	ip -6 addr add 2001:1::1:10/64 dev $IF2
 	ip -6 addr add 2009:1::1:1/64 dev $IF1 # Unrelated Address
 	sudo route -A inet6 add 2001:1::1:1/128 dev $IF1
@@ -247,7 +263,7 @@ fi
 
 # Skip tentative
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "8" ]; then
-	echo "[CASE] Skip tentative"
+	echo "[CASE 8] Skip tentative"
 	ip -6 addr add 2001:2::2:1/64 dev $IF2
 	ip -6 addr add 2001:1::1:2/64 dev $IF1 # Duplicate IP as on the server
 	sleep 4
@@ -261,7 +277,7 @@ fi
 
 # Prefer matching label
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "9" ]; then
-	echo "[CASE] Rule 6: Prefer matching label"
+	echo "[CASE 9] Rule 6: Prefer matching label"
 	sudo ip -6 addr add 2001:1::1:10/64 dev $IF1
 	sudo ip -6 addr add 2001:1::2:11/64 dev $IF1
 	sudo ip addrlabel add prefix 2001:1::1:0/112 dev $IF1 label 20
@@ -291,7 +307,7 @@ fi
 
 # Prefer longer prefix
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "10" ]; then
-	echo "[CASE] Rule 8: Prefer longer prefix"
+	echo "[CASE 10] Rule 8: Prefer longer prefix"
 	sudo ip -6 addr add 2001:1::2:1/65 dev $IF1
 	sudo ip -6 addr add 2001:1::2:2/66 dev $IF1
 	sudo ip -6 addr add 2099:1::2:3/64 dev $IF1
@@ -307,7 +323,7 @@ fi
 
 # Use Optimistic Address (use_optimistic=1)
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "11" ]; then
-	echo "[CASE] Use optimistic if use_optimistic=1"
+	echo "[CASE 11] Use optimistic if use_optimistic=1"
 	sysctl -w net.ipv6.conf.$IF1.optimistic_dad=1
 	sysctl -w net.ipv6.conf.$IF1.dad_transmits=1000
 	sysctl -w net.ipv6.conf.$IF1.use_optimistic=1
@@ -329,7 +345,7 @@ fi
 
 # Prefer non-optimistic Address (use_optimistic=1)
 if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "12" ]; then
-	echo "[CASE] Rule 9: Prefer non-optimistic Address"
+	echo "[CASE 12] Rule 9: Prefer non-optimistic Address"
 	ip -6 addr add 2001:1::2:1/64 dev $IF1
 	sleep 4
 	sysctl -w net.ipv6.conf.$IF1.optimistic_dad=1
@@ -349,8 +365,8 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "12" ]; then
 fi
 
 # Mixed Link-Local interfaces
-if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "13" ]; then
-	echo "[CASE] Mixed Link-Local interfaces"
+if [ "$TCP" != "1" ] && [[ (-z "$TEST_CASE" || "$TEST_CASE" = "13" )]]; then
+	echo "[CASE 13] Mixed Link-Local interfaces"
 	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 '"$SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF2 $CLT_LINKLOCAL1%$IF1"' >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
 	sleep 1
 	timeout -s SIGKILL 15s env LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 $SRV_LINKLOCAL2%$IF2 $PORT $CLT_LINKLOCAL1%$IF1

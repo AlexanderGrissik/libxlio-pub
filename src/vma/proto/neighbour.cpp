@@ -41,6 +41,7 @@
 #include "vma/proto/neighbour.h"
 #include "vma/proto/neighbour_table_mgr.h"
 #include "vma/dev/wqe_send_handler.h"
+#include "vma/dev/src_addr_selector.h"
 
 // This include should be after vma includes
 #include <netinet/tcp.h>
@@ -186,9 +187,40 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
         neigh_logpanic("get_net_dev return NULL");
     }
 
+    /* Verify if neigh is local (loopback).
+     * Also setup source address with proper address family.
+     * RFC4861 suggests to use link-local address for NDP.
+     *
+     * For correct ARP src address selection refer to:
+     * https://sysctl-explorer.net/net/ipv4/arp_announce/
+     */
+    const ip_data_vector_t &ipvec = m_p_dev->get_ip_array(get_family());
+    for (size_t i = 0; i < ipvec.size(); i++) {
+        // This check always fails for IPv4
+        if (*reinterpret_cast<uint64_t *>(&m_src_addr) == g_ipv6_link_local_prefix) {
+            // We found IPv6 link-local address, stop here. See RFC4861.
+            m_src_addr = ipvec[i]->local_addr;
+            break;
+        }
+
+        if (ipvec[i]->local_addr == get_dst_addr()) {
+            neigh_logdbg("This is loopback neigh");
+            m_is_loopback = true;
+            m_src_addr = ipvec[i]->local_addr;
+            break;
+        }
+    };
+
+    if (m_src_addr.is_anyaddr()) {
+        const ip_data *src_addr =
+            src_addr_selector::select_ip_src_addr(*m_p_dev, get_dst_addr(), 0U, get_family());
+        if (src_addr) {
+            m_src_addr = src_addr->local_addr;
+        }
+    }
+
     ring_alloc_logic_attr ring_attr(safe_mce_sys().ring_allocation_logic_tx);
-    m_ring_allocation_logic = ring_allocation_logic_tx(
-        m_p_dev->get_ip_array(key.get_ip_addr().get_family())[0]->local_addr, ring_attr, this);
+    m_ring_allocation_logic = ring_allocation_logic_tx(m_src_addr, ring_attr, this);
 
     if (is_init_resources) {
         m_p_ring = m_p_dev->reserve_ring(m_ring_allocation_logic.get_key());
@@ -201,29 +233,6 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
 
     memset(&m_send_wqe, 0, sizeof(m_send_wqe));
     memset(&m_sge, 0, sizeof(m_sge));
-
-    /* Verify if neigh is local (loopback).
-     * Also setup source address with proper address family.
-     *
-     * TODO RFC4861 suggests to use link-local address for NDP. If it's not present, we should
-     * choose source address taking into account subnet prefix and the destination address.
-     */
-    const ip_data_vector_t &ipvec = m_p_dev->get_ip_array(get_family());
-    for (size_t i = 0; i < ipvec.size(); i++) {
-        m_src_addr = ipvec[i]->local_addr;
-
-        // This check always fails for IPv4
-        if (*reinterpret_cast<uint64_t *>(&m_src_addr) == g_ipv6_link_local_prefix) {
-            // We found IPv6 link-local address, stop here. See RFC4861.
-            break;
-        }
-
-        if (ipvec[i]->local_addr == get_dst_addr()) {
-            neigh_logdbg("This is loopback neigh");
-            m_is_loopback = true;
-            break;
-        }
-    };
 
     neigh_logdbg("Created new neigh_entry, if_name: %s", m_p_dev->get_ifname());
 }
@@ -1640,8 +1649,8 @@ bool neigh_eth::send_arp_request(bool is_broadcast)
 
     eth_arp_hdr *p_arphdr = (eth_arp_hdr *)(p_mem_buf_desc->p_buffer +
                                             h.m_transport_header_tx_offset + h.m_total_hdr_len);
-    set_eth_arp_hdr(p_arphdr, m_p_dev->get_ip_array(AF_INET)[0]->local_addr.get_in_addr(),
-                    get_key().get_in_addr(), m_p_dev->get_l2_address()->get_address(), peer_mac);
+    set_eth_arp_hdr(p_arphdr, m_src_addr.get_in_addr(), get_key().get_in_addr(),
+                    m_p_dev->get_l2_address()->get_address(), peer_mac);
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h.m_transport_header_tx_offset);
     m_sge.length = sizeof(eth_arp_hdr) + h.m_total_hdr_len;

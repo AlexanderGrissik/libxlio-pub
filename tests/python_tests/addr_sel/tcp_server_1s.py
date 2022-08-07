@@ -1,15 +1,14 @@
 #!/usr/bin/python
+
 from socket import *
 import fcntl, os, sys
 import time
 from collections import deque
 
-BACKLOG=10
-
-ARG_LEN = 4
+ARG_LEN = 5
 argc = len(sys.argv)
 if (argc < ARG_LEN):
-    print "Needs ", x - 1, " arguments [family, bind-addr, bind-port]"
+    print "Needs ", x - 1, " arguments [family, bind-addr, bind-port, expected-src-addr]"
     exit
 
 myFamily = AF_INET
@@ -19,23 +18,26 @@ if (myFamilyStr == "inet6"):
 
 myHost = sys.argv[2]
 myPort = int(sys.argv[3])
+myExpectedAddr = sys.argv[4]
 
 addrinfo = getaddrinfo(myHost, myPort, myFamily, SOCK_STREAM)
 
-listensock = socket(myFamily, SOCK_STREAM) # create a UDP socket
-listensock.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
+lissock = socket(myFamily, SOCK_STREAM) # create a TCP socket
+lissock.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
 print "Binding to: ", addrinfo[0][4]
-listensock.bind(addrinfo[0][4])
-listensock.listen(BACKLOG)
+lissock.bind(addrinfo[0][4])
+lissock.listen(10);
 
-sock, addr = listensock.accept()
+sock, src_addr = lissock.accept()
 
-print "Waiting in recv 1 ..."
+print "Waiting in recvfrom ..."
 bytes = sock.recv(16)
 print "Received ", len(bytes), " bytes: ", bytes
 
-print "Waiting in recv 2 ..."
-bytes = sock.recv(16)
-print "Received ", len(bytes), " bytes: ", bytes
+print "Debug Received src_addr: ", src_addr[0]
+if (myExpectedAddr != src_addr[0]):
+    print "Unexpected received src_addr: ", src_addr[0]
+
+sock.send("Greetings")
 
 sock.close()

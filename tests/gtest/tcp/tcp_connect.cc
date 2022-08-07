@@ -145,7 +145,7 @@ TEST_F(tcp_connect, ti_4_rto_racing)
 
     if (0 == pid) { /* I am the child */
         int lfd = tcp_base::sock_create();
-        ASSERT_LE(0, lfd);
+        EXPECT_LE(0, lfd);
         if (lfd > 0) {
             int rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
             EXPECT_EQ(0, rc);
@@ -249,14 +249,14 @@ TEST_F(tcp_connect, ti_5_multi_connect)
 
     // Failing connect
     rc = connect(fd, reinterpret_cast<const sockaddr *>(&server_addr), sizeof(server_addr));
-    ASSERT_NE(0, rc);
+    EXPECT_NE(0, rc);
 
     int pid = fork();
 
     if (0 == pid) { /* I am the child */
         rc = -1;
         int lfd = tcp_base::sock_create(m_family, true);
-        ASSERT_LE(0, lfd);
+        EXPECT_LE(0, lfd);
         if (lfd > 0) {
             rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
             EXPECT_EQ(0, rc);
