@@ -75,18 +75,20 @@ void dst_entry_udp::configure_headers()
     dst_entry::configure_headers();
 }
 
-inline bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc,
-                                                     const iovec *p_iov, const ssize_t sz_iov,
-                                                     vma_wr_tx_packet_attr attr,
-                                                     size_t sz_udp_payload, int n_num_frags)
+// Static function to server both neigh (slow) path and dst_entry (fast) path
+bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
+                                              const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                              size_t sz_udp_payload, int n_num_frags,
+                                              vma_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
+                                              ibv_sge *p_sge, header *p_header,
+                                              uint16_t max_ip_payload_size, ring *p_ring,
+                                              uint32_t packet_id)
 {
     tx_ipv6_hdr_template_t *p_pkt;
     ip6_hdr *p_ip_hdr;
     udphdr *p_udp_hdr = nullptr;
     ip6_frag *p_frag_h;
     mem_buf_desc_t *tmp;
-    m_p_send_wqe = &m_fragmented_send_wqe;
-    uint32_t packet_id = gen_packet_id_ip6();
 
     bool first_frag = true;
     uint32_t n_ip_frag_offset = 0;
@@ -102,39 +104,19 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_d
 
     while (n_num_frags--) {
         // Calc this ip datagram fragment size (include any headers)
-        size_t sz_ip_frag = std::min((size_t)(m_max_ip_payload_size),
+        size_t sz_ip_frag = std::min((size_t)(max_ip_payload_size),
                                      (sz_udp_payload - n_ip_frag_offset + FRAG_EXT_HLEN));
         size_t sz_user_data_to_copy = sz_ip_frag - FRAG_EXT_HLEN;
-        size_t hdr_len = m_header->m_transport_header_len +
-            m_header->m_ip_header_len + // Add count of L2 (ipoib or mac) header length
+        size_t hdr_len = p_header->m_transport_header_len +
+            p_header->m_ip_header_len + // Add count of L2 (ipoib or mac) header length
             FRAG_EXT_HLEN; // Add count of fragmentation header length
 
-        if (m_n_sysvar_tx_prefetch_bytes) {
-            prefetch_range(p_mem_buf_desc->p_buffer + m_header->m_transport_header_tx_offset,
-                           std::min(sz_ip_frag, (size_t)m_n_sysvar_tx_prefetch_bytes));
-        }
-
         p_pkt = reinterpret_cast<tx_ipv6_hdr_template_t *>(p_mem_buf_desc->p_buffer);
+        p_header->copy_l2_ip_hdr(p_pkt);
+
         if (first_frag) {
             get_ipv6_hdrs_frag_ext_udp_ptr(p_pkt, p_ip_hdr, p_frag_h, p_udp_hdr);
-        } else {
-            get_ipv6_hdrs_frag_ext_ptr(p_pkt, p_ip_hdr, p_frag_h);
-        }
-
-        m_header->copy_l2_ip_hdr(p_pkt);
-
-        memcpy(p_frag_h, &frag_h, sizeof(ip6_frag));
-        if (n_num_frags == 0) {
-            p_frag_h->ip6f_offlg &= ~IP6F_MORE_FRAG;
-        }
-        // offset should be << 3, but need to devide by 8, so no need to change n_ip_frag_offset
-        p_frag_h->ip6f_offlg |= htons(FRAGMENT_OFFSET_IPV6 & n_ip_frag_offset);
-
-        p_ip_hdr->ip6_nxt = IPPROTO_FRAGMENT;
-        p_ip_hdr->ip6_plen = htons(sz_ip_frag);
-
-        if (first_frag) {
-            memcpy(p_udp_hdr, m_header->get_udp_hdr(), sizeof(udphdr));
+            memcpy(p_udp_hdr, p_header->get_udp_hdr(), sizeof(udphdr));
 
             // Add count of udp header length
             hdr_len += UDP_HLEN;
@@ -150,21 +132,32 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_d
             p_udp_hdr->check = calc_sum_of_payload(p_iov, sz_iov);
             attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
         } else {
+            get_ipv6_hdrs_frag_ext_ptr(p_pkt, p_ip_hdr, p_frag_h);
             attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
         }
 
+        memcpy(p_frag_h, &frag_h, sizeof(ip6_frag));
+        if (n_num_frags == 0) {
+            p_frag_h->ip6f_offlg &= ~IP6F_MORE_FRAG;
+        }
+        // offset should be << 3, but need to devide by 8, so no need to change n_ip_frag_offset
+        p_frag_h->ip6f_offlg |= htons(FRAGMENT_OFFSET_IPV6 & n_ip_frag_offset);
+
+        p_ip_hdr->ip6_nxt = IPPROTO_FRAGMENT;
+        p_ip_hdr->ip6_plen = htons(sz_ip_frag);
+
         // Calc payload start point (after the udp header if present else just after ip header)
         uint8_t *p_payload =
-            p_mem_buf_desc->p_buffer + m_header->m_transport_header_tx_offset + hdr_len;
+            p_mem_buf_desc->p_buffer + p_header->m_transport_header_tx_offset + hdr_len;
 
         // Copy user data to our tx buffers
         int ret =
             memcpy_fromiovec(p_payload, p_iov, sz_iov, sz_user_data_offset, sz_user_data_to_copy);
         BULLSEYE_EXCLUDE_BLOCK_START
         if (ret != (int)sz_user_data_to_copy) {
-            dst_udp_logerr("memcpy_fromiovec error (sz_user_data_to_copy=%lu, ret=%d)",
-                           sz_user_data_to_copy, ret);
-            m_p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
+            vlog_printf(VLOG_ERROR, "memcpy_fromiovec error (sz_user_data_to_copy=%zu, ret=%d)\n",
+                        sz_user_data_to_copy, ret);
+            p_ring->mem_buf_tx_release(p_mem_buf_desc, true);
             return false;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
@@ -172,22 +165,22 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_d
         p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
         p_mem_buf_desc->tx.p_udp_h = p_udp_hdr;
 
-        m_sge[1].addr =
-            (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)m_header->m_transport_header_tx_offset);
-        m_sge[1].length = sz_user_data_to_copy + hdr_len;
-        m_sge[1].lkey = m_p_ring->get_tx_lkey(m_id);
-        m_p_send_wqe->wr_id = (uintptr_t)p_mem_buf_desc;
+        p_sge[0].addr =
+            (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)p_header->m_transport_header_tx_offset);
+        p_sge[0].length = sz_user_data_to_copy + hdr_len;
+        p_sge[0].lkey = p_ring->get_tx_lkey(user_id);
+        p_send_wqe->wr_id = (uintptr_t)p_mem_buf_desc;
 
-        dst_udp_logfunc("packet_sz=%d, payload_sz=%d, ip_offset=%d id=%d",
-                        m_sge[1].length - m_header->m_transport_header_len, sz_user_data_to_copy,
-                        n_ip_frag_offset, ntohl(packet_id));
+        vlog_printf(VLOG_DEBUG, "packet_sz=%d, payload_sz=%zu, ip_offset=%u id=%u\n",
+                    p_sge[0].length - p_header->m_transport_header_len, sz_user_data_to_copy,
+                    n_ip_frag_offset, ntohl(packet_id));
 
         tmp = p_mem_buf_desc->p_next_desc;
         p_mem_buf_desc->p_next_desc = NULL;
 
         // We don't check the return valuse of post send when we reach the HW we consider that we
         // completed our job
-        send_ring_buffer(m_id, m_p_send_wqe, attr);
+        p_ring->send_ring_buffer(user_id, p_send_wqe, attr);
 
         p_mem_buf_desc = tmp;
 
@@ -466,8 +459,10 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
 
     bool ret;
     if (is_ipv6) {
-        ret = fast_send_fragmented_ipv6(p_mem_buf_desc, p_iov, sz_iov, attr, sz_udp_payload,
-                                        n_num_frags);
+        ret = dst_entry_udp::fast_send_fragmented_ipv6(
+            p_mem_buf_desc, p_iov, sz_iov, attr, sz_udp_payload, n_num_frags,
+            &m_fragmented_send_wqe, m_id, &m_sge[1], m_header, m_max_ip_payload_size, m_p_ring,
+            gen_packet_id_ip6());
     } else {
         ret = fast_send_fragmented_ipv4(p_mem_buf_desc, p_iov, sz_iov, attr, sz_udp_payload,
                                         n_num_frags);

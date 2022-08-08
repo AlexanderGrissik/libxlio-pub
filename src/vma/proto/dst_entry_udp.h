@@ -45,6 +45,13 @@ public:
     ssize_t slow_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr,
                       struct xlio_rate_limit_t &rate_limit, int flags = 0, socket_fd_api *sock = 0,
                       tx_call_t call_type = TX_UNDEF);
+    static bool fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
+                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          size_t sz_udp_payload, int n_num_frags,
+                                          vma_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
+                                          ibv_sge *p_sge, header *p_header,
+                                          uint16_t max_ip_payload_size, ring *p_ring,
+                                          uint32_t pakcet_id);
 
 protected:
     virtual transport_t get_transport(const sock_addr &to);
