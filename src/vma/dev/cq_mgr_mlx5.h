@@ -63,7 +63,6 @@ public:
 
     virtual int drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id = NULL);
     virtual int poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *pv_fd_ready_array = NULL);
-    virtual int poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst);
 
     virtual int poll_and_process_element_tx(uint64_t *p_cq_poll_sn);
     int poll_and_process_error_element_tx(struct vma_mlx5_cqe *cqe, uint64_t *p_cq_poll_sn);
@@ -80,7 +79,6 @@ protected:
     qp_mgr_eth_mlx5 *m_qp;
     vma_ib_mlx5_cq_t m_mlx5_cq;
     mem_buf_desc_t *m_rx_hot_buffer;
-    const bool m_b_sysvar_enable_socketxtreme;
 
     inline struct vma_mlx5_cqe *check_cqe(void);
     virtual mem_buf_desc_t *poll(enum buff_status_e &status);

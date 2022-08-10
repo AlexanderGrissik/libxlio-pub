@@ -575,7 +575,6 @@ mem_buf_desc_t *cq_mgr::process_cq_element_rx(vma_ibv_wc *p_wce)
         // CQ
         p_mem_buf_desc->rx.is_vma_thr = false;
         p_mem_buf_desc->rx.context = this;
-        p_mem_buf_desc->rx.socketxtreme_polled = false;
 
         // this is not a deadcode if timestamping is defined in verbs API
         // coverity[dead_error_condition]
@@ -756,13 +755,6 @@ int cq_mgr::poll_and_process_element_tx(uint64_t *p_cq_poll_sn)
     return ret;
 }
 
-int cq_mgr::poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst)
-{
-    NOT_IN_USE(p_desc_lst);
-    cq_logerr("SocketXtreme mode is supported by mlx5 cq manager only");
-    return 0;
-}
-
 bool cq_mgr::reclaim_recv_buffers(mem_buf_desc_t *rx_reuse_lst)
 {
     if (m_rx_buffs_rdy_for_free_head) {
@@ -839,8 +831,6 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
      * Internal thread:
      *   Frequency of real polling can be controlled by
      *   VMA_PROGRESS_ENGINE_INTERVAL and VMA_PROGRESS_ENGINE_WCE_MAX.
-     * socketxtreme:
-     *   User does socketxtreme_poll()
      * Cleanup:
      *   QP down logic to release rx buffers should force polling to do this.
      *   Not null argument indicates one.

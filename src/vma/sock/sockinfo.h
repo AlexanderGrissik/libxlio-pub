@@ -308,15 +308,6 @@ protected:
     /* Last memory descriptor with zcopy operation method */
     mem_buf_desc_t *m_last_zcdesc;
 
-    struct {
-        /* Track internal events to return in socketxtreme_poll()
-         * Current design support single event for socket at a particular time
-         */
-        struct ring_ec ec;
-        struct xlio_socketxtreme_completion_t *completion;
-        struct xlio_buff_t *last_buff_lst;
-    } m_socketxtreme;
-
     // Callback function pointer to support VMA extra API (xlio_extra.h)
     xlio_recv_callback_t m_rx_callback;
     void *m_rx_callback_context; // user context
@@ -407,38 +398,10 @@ protected:
     int os_wait_sock_rx_epfd(epoll_event *ep_events, int maxevents);
     virtual bool try_un_offloading(); // un-offload the socket if possible
 
-    virtual inline void do_wakeup()
-    {
-        if (!is_socketxtreme()) {
-            wakeup_pipe::do_wakeup();
-        }
-    }
-
     bool is_shadow_socket_present() { return m_fd >= 0 && m_fd != m_rx_epfd; }
-    inline bool is_socketxtreme() { return (m_p_rx_ring && m_p_rx_ring->is_socketxtreme()); }
 
     inline void set_events(uint64_t events)
     {
-        static int enable_socketxtreme = safe_mce_sys().enable_socketxtreme;
-
-        if (enable_socketxtreme && m_state == SOCKINFO_OPENED) {
-            /* Collect all events if rx ring is enabled */
-            if (is_socketxtreme()) {
-                if (m_socketxtreme.completion) {
-                    if (!m_socketxtreme.completion->events) {
-                        m_socketxtreme.completion->user_data = (uint64_t)m_fd_context;
-                    }
-                    m_socketxtreme.completion->events |= events;
-                } else {
-                    if (!m_socketxtreme.ec.completion.events) {
-                        m_socketxtreme.ec.completion.user_data = (uint64_t)m_fd_context;
-                        m_p_rx_ring->put_ec(&m_socketxtreme.ec);
-                    }
-                    m_socketxtreme.ec.completion.events |= events;
-                }
-            }
-        }
-
         socket_fd_api::notify_epoll_context((uint32_t)events);
     }
 

@@ -118,8 +118,6 @@ gtest_SOURCES = \
 	udp/udp_rfs.cc \
 	\
 	vma/vma_base.cc \
-	vma/vma_ring.cc \
-	vma/vma_poll.cc \
 	vma/vma_sockopt.cc \
 	vma/vma_send_zc.cc \
 	vma/vma_recvfrom_zcopy.cc \

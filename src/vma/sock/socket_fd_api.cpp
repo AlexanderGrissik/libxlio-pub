@@ -311,12 +311,6 @@ int socket_fd_api::recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet
     return -1;
 }
 
-int socket_fd_api::free_buffs(uint16_t len)
-{
-    NOT_IN_USE(len);
-    return -1;
-}
-
 int socket_fd_api::add_epoll_context(epfd_info *epfd)
 {
     if (!m_econtext) {

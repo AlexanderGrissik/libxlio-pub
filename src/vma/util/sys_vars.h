@@ -460,7 +460,6 @@ public:
     internal_thread_tcp_timer_handling_t internal_thread_tcp_timer_handling;
     bool handle_bf;
 
-    bool enable_socketxtreme;
     option_3::mode_t enable_tso;
     option_3::mode_t enable_lro;
     option_strq::mode_t enable_strq_env;
@@ -654,8 +653,7 @@ extern mce_sys_var &safe_mce_sys();
 #define SYS_VAR_SPEC_PARAM1      "XLIO_SPEC_PARAM1"
 #define SYS_VAR_SPEC_PARAM2      "XLIO_SPEC_PARAM2"
 
-#define SYS_VAR_SOCKETXTREME "XLIO_SOCKETXTREME"
-#define SYS_VAR_TSO          "XLIO_TSO"
+#define SYS_VAR_TSO "XLIO_TSO"
 #ifdef DEFINED_UTLS
 #define SYS_VAR_UTLS_RX                        "XLIO_UTLS_RX"
 #define SYS_VAR_UTLS_TX                        "XLIO_UTLS_TX"
@@ -842,7 +840,6 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_CQ_ADAPTIVE_MODERATION_DISABLED (0)
 #define MCE_MIN_CQ_POLL_BATCH               (1)
 #define MCE_MAX_CQ_POLL_BATCH               (128)
-#define MCE_DEFAULT_SOCKETXTREME            (false)
 #define MCE_DEFAULT_TSO                     (option_3::AUTO)
 #ifdef DEFINED_UTLS
 #define MCE_DEFAULT_UTLS_RX                        (false)
