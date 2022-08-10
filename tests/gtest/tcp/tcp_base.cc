@@ -77,6 +77,23 @@ err:
     return (-1);
 }
 
+int tcp_base::sock_create(sa_family_t family, bool reuse_addr, int timeout_sec)
+{
+    int fd = sock_create(family, reuse_addr);
+    if (fd >= 0) {
+        struct timeval tv;
+        tv.tv_sec = timeout_sec;
+        tv.tv_usec = 0;
+        int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        if (rc != 0) {
+            close(fd);
+            return -1;
+        }
+    }
+
+    return fd;
+}
+
 int tcp_base::sock_create_nb(void)
 {
     int rc;

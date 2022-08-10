@@ -71,6 +71,11 @@ test_base::test_base()
         memcpy(&server_addr, &gtest_conf.server_addr, sizeof(server_addr));
     }
 
+    memcpy(&client_addr_mapped_ipv4, &gtest_conf.client_addr_mapped_ipv4,
+           sizeof(client_addr_mapped_ipv4));
+    memcpy(&server_addr_mapped_ipv4, &gtest_conf.server_addr_mapped_ipv4,
+           sizeof(server_addr_mapped_ipv4));
+
     if (((struct sockaddr *)&gtest_conf.remote_addr)->sa_family != m_family) {
         memset(&remote_addr, 0, sizeof(remote_addr));
         ((struct sockaddr *)&remote_addr)->sa_family = m_family;
@@ -119,6 +124,12 @@ void test_base::init()
 
 void test_base::cleanup()
 {
+}
+
+bool test_base::is_mapped_ipv4_set() const
+{
+    return (client_addr_mapped_ipv4.addr.sin_addr.s_addr != 0 &&
+            server_addr_mapped_ipv4.addr.sin_addr.s_addr != 0);
 }
 
 bool test_base::barrier()

@@ -120,6 +120,30 @@ public:
     struct sockaddr *get_p_sa() { return &u_sa.m_sa; }
     const struct sockaddr *get_p_sa() const { return &u_sa.m_sa; }
 
+    void get_sa_conv(struct sockaddr *sa, socklen_t &size, sa_family_t out_family) const
+    {
+        // Support for IPv6 mapped IPv4
+        if (unlikely(out_family == AF_INET6 && get_sa_family() == AF_INET)) {
+            if (likely(size >= sizeof(sockaddr_in6))) {
+                sockaddr_in6 *sa6 = reinterpret_cast<sockaddr_in6 *>(sa);
+                sa6->sin6_flowinfo = 0U;
+                sa6->sin6_scope_id = 0U;
+                sa6->sin6_family = AF_INET6;
+                sa6->sin6_port = get_in_port();
+
+                get_ip_addr().to_mapped_ipv4(*reinterpret_cast<ip_address *>(&(sa6->sin6_addr)));
+            } else {
+                memset(sa, 0, size);
+            }
+            size = sizeof(sockaddr_in6);
+        } else {
+            if (size) {
+                get_sa(sa, size);
+            }
+            size = get_socklen();
+        }
+    }
+
     void get_sa(struct sockaddr *sa, socklen_t size) const
     {
         memcpy(sa, &u_sa.m_sa, std::min<size_t>(get_socklen(), size));

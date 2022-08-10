@@ -4669,11 +4669,9 @@ int sockinfo_tcp::getpeername(sockaddr *__name, socklen_t *__namelen)
             return -1;
         }
 
-        if (*__namelen) {
-            m_connected.get_sa(__name, *__namelen);
-        }
-
-        *__namelen = m_connected.get_socklen();
+        si_tcp_logfunc("m_connected: %s, family: %u", m_connected.to_str_ip_port(true).c_str(),
+                       static_cast<unsigned int>(m_family));
+        m_connected.get_sa_conv(__name, *__namelen, m_family);
     }
 
     return 0;

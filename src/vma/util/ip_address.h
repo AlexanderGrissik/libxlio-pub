@@ -218,6 +218,14 @@ public:
         return _hash(m_ip6_64[0] ^ m_ip6_64[1]);
     }
 
+    void to_mapped_ipv4(ip_address &out) const
+    {
+        out = any_addr();
+        uint16_t *addr_ptr = reinterpret_cast<uint16_t *>(&out.m_ip6);
+        addr_ptr[5] = 0xFFFFU;
+        memcpy(addr_ptr + 6, &m_ip4, sizeof(m_ip4));
+    }
+
     static const ip_address &any_addr()
     {
         static ip_address s_any_addr(in6addr_any);

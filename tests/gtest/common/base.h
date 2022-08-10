@@ -33,6 +33,25 @@
 #ifndef TESTS_GTEST_COMMON_BASE_H_
 #define TESTS_GTEST_COMMON_BASE_H_
 
+#define DO_WHILE0(x)                                                                               \
+    do {                                                                                           \
+        x                                                                                          \
+    } while (0)
+
+#define EXPECT_LE_ERRNO(val1, val2)                                                                \
+    DO_WHILE0(EXPECT_LE((val1), (val2));                                                           \
+              if (val1 > val2) { log_trace("Failed. errno = %d\n", errno); })
+
+#define EXPECT_EQ_ERRNO(val1, val2)                                                                \
+    DO_WHILE0(EXPECT_EQ((val1), (val2));                                                           \
+              if (val1 != val2) { log_trace("Failed. errno = %d\n", errno); })
+
+#define EXPECT_EQ_MAPPED_IPV4(addr6, sin_addr)                                                     \
+    DO_WHILE0(EXPECT_EQ(AF_INET6, (addr6).sin6_family);                                            \
+              const uint32_t *addrp = reinterpret_cast<const uint32_t *>(&(addr6).sin6_addr);      \
+              EXPECT_EQ(0U, addrp[0]); EXPECT_EQ(0U, addrp[1]);                                    \
+              EXPECT_EQ(0xFFFFU, ntohl(addrp[2])); EXPECT_EQ(sin_addr, addrp[3]);)
+
 /**
  * Base class for tests
  */
@@ -53,11 +72,14 @@ protected:
     bool barrier();
     void barrier_fork(int pid, bool sync_parent = false);
     bool child_fork_exit() { return m_break_signal; }
+    bool is_mapped_ipv4_set() const;
 
     sockaddr_store_t client_addr;
     sockaddr_store_t server_addr;
     sockaddr_store_t remote_addr;
     sockaddr_store_t bogus_addr;
+    sockaddr_store_t client_addr_mapped_ipv4;
+    sockaddr_store_t server_addr_mapped_ipv4;
     bool def_gw_exists;
     static uint16_t m_port;
     static int m_family;
