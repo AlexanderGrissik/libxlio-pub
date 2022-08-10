@@ -608,8 +608,9 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     return 0;
 }
 
-int sockinfo_udp::getsockname(struct sockaddr *__name, socklen_t *__namelen)
+int sockinfo_udp::getsockname(struct sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4)
 {
+    NOT_IN_USE(conv_mapped_ipv4);
     si_udp_logdbg("");
 
     if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {

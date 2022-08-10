@@ -4620,7 +4620,7 @@ int sockinfo_tcp::getsockopt(int __level, int __optname, void *__optval, socklen
     return ret;
 }
 
-int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen)
+int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen, bool handle_mapped_ipv4)
 {
     __log_info_func("");
 
@@ -4637,11 +4637,15 @@ int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen)
             return -1;
         }
 
-        if (*__namelen) {
-            m_bound.get_sa(__name, *__namelen);
-        }
+        if (handle_mapped_ipv4) {
+            m_bound.get_sa_conv(__name, *__namelen, m_family);
+        } else {
+            if (*__namelen) {
+                m_bound.get_sa(__name, *__namelen);
+            }
 
-        *__namelen = m_bound.get_socklen();
+            *__namelen = m_bound.get_socklen();
+        }
     }
 
     return 0;

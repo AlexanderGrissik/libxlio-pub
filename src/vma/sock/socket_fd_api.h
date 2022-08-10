@@ -167,7 +167,7 @@ public:
 
     virtual int connect(const sockaddr *__to, socklen_t __tolen);
 
-    virtual int getsockname(sockaddr *__name, socklen_t *__namelen);
+    virtual int getsockname(sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4 = false);
     virtual int getpeername(sockaddr *__name, socklen_t *__namelen);
 
     virtual int setsockopt(int __level, int __optname, __const void *__optval, socklen_t __optlen);
