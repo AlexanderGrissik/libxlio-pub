@@ -6,7 +6,6 @@ EXTRA_DIST = \
 	async-echo-client \
 	benchmarking_test \
 	connect-disconnect \
-	extra_api_tests \
 	functionality \
 	listen \
 	low_pps_tcp_send_test \

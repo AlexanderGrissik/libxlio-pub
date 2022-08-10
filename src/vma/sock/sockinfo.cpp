@@ -87,8 +87,6 @@ sockinfo::sockinfo(int fd, int domain)
     , m_ring_alloc_log_rx(safe_mce_sys().ring_allocation_logic_rx)
     , m_ring_alloc_log_tx(safe_mce_sys().ring_allocation_logic_tx)
     , m_pcp(0)
-    , m_rx_callback(NULL)
-    , m_rx_callback_context(NULL)
     , m_fd_context((void *)((uintptr_t)m_fd))
     , m_flow_tag_id(0)
     , m_flow_tag_enabled(false)
@@ -1847,13 +1845,6 @@ void sockinfo::destructor_helper()
         delete m_p_connected_dst_entry;
     }
     m_p_connected_dst_entry = NULL;
-}
-
-int sockinfo::register_callback(xlio_recv_callback_t callback, void *context)
-{
-    m_rx_callback = callback;
-    m_rx_callback_context = context;
-    return 0;
 }
 
 int sockinfo::modify_ratelimit(dst_entry *p_dst_entry, struct xlio_rate_limit_t &rate_limit)

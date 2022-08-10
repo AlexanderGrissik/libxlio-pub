@@ -308,9 +308,6 @@ protected:
     /* Last memory descriptor with zcopy operation method */
     mem_buf_desc_t *m_last_zcdesc;
 
-    // Callback function pointer to support VMA extra API (xlio_extra.h)
-    xlio_recv_callback_t m_rx_callback;
-    void *m_rx_callback_context; // user context
     struct xlio_rate_limit_t m_so_ratelimit;
     void *m_fd_context; // Context data stored with socket
     uint32_t m_flow_tag_id; // Flow Tag for this socket
@@ -347,7 +344,6 @@ protected:
     virtual void post_deqeue(bool release_buff) = 0;
 
     virtual int zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags) = 0;
-    int register_callback(xlio_recv_callback_t callback, void *context);
 
     virtual size_t handle_msg_trunc(size_t total_rx, size_t payload_size, int in_flags,
                                     int *p_out_flags);

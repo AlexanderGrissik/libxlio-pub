@@ -416,21 +416,6 @@ int init_child_process_for_nginx()
 // extended API functions
 //-----------------------------------------------------------------------------
 
-extern "C" int vma_register_recv_callback(int __fd, xlio_recv_callback_t __callback,
-                                          void *__context)
-{
-    srdr_logfunc_entry("fd=%d", __fd);
-
-    socket_fd_api *p_socket_object = NULL;
-    p_socket_object = fd_collection_get_sockfd(__fd);
-    if (p_socket_object) {
-        p_socket_object->register_callback(__callback, __context);
-        return 0;
-    }
-    errno = EINVAL;
-    return -1;
-}
-
 extern "C" int vma_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *__flags,
                                   struct sockaddr *__from, socklen_t *__fromlen)
 {
@@ -931,8 +916,6 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             memset(xlio_api, 0, sizeof(struct xlio_api_t));
             xlio_api->magic = XLIO_MAGIC_NUMBER;
             xlio_api->cap_mask = 0;
-            SET_EXTRA_API(register_recv_callback, vma_register_recv_callback,
-                          XLIO_EXTRA_API_REGISTER_RECV_CALLBACK);
             SET_EXTRA_API(recvfrom_zcopy, vma_recvfrom_zcopy, XLIO_EXTRA_API_RECVFROM_ZCOPY);
             SET_EXTRA_API(recvfrom_zcopy_free_packets, vma_recvfrom_zcopy_free_packets,
                           XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS);

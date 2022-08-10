@@ -1860,69 +1860,24 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
         p_curr_desc = p_curr_desc->p_next_desc;
     }
 
-    xlio_recv_callback_retval_t callback_retval = XLIO_PACKET_RECV;
+    conn->m_rx_pkt_ready_list.push_back(p_first_desc);
+    conn->m_n_rx_pkt_ready_list_count++;
+    conn->m_rx_ready_byte_count += p->tot_len;
+    conn->m_p_socket_stats->n_rx_ready_byte_count += p->tot_len;
+    conn->m_p_socket_stats->n_rx_ready_pkt_count++;
+    conn->m_p_socket_stats->counters.n_rx_ready_pkt_max =
+        std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_pkt_count,
+                 conn->m_p_socket_stats->counters.n_rx_ready_pkt_max);
+    conn->m_p_socket_stats->counters.n_rx_ready_byte_max =
+        std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_byte_count,
+                 conn->m_p_socket_stats->counters.n_rx_ready_byte_max);
 
-    if (conn->m_rx_callback && !conn->m_vma_thr && !conn->m_n_rx_pkt_ready_list_count) {
-        mem_buf_desc_t *tmp;
-        xlio_info_t pkt_info;
-        int nr_frags = 0;
+    // notify io_mux
+    NOTIFY_ON_EVENTS(conn, EPOLLIN);
+    io_mux_call::update_fd_array(conn->m_iomux_ready_fd_array, conn->m_fd);
 
-        pkt_info.struct_sz = sizeof(pkt_info);
-        pkt_info.packet_id = (void *)p_first_desc;
-        pkt_info.src = p_first_desc->rx.src.get_p_sa();
-        pkt_info.dst = p_first_desc->rx.dst.get_p_sa();
-        pkt_info.socket_ready_queue_pkt_count = conn->m_p_socket_stats->n_rx_ready_pkt_count;
-        pkt_info.socket_ready_queue_byte_count = conn->m_p_socket_stats->n_rx_ready_byte_count;
-
-        if (conn->m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
-            pkt_info.hw_timestamp = p_first_desc->rx.timestamps.hw;
-        }
-        if (p_first_desc->rx.timestamps.sw.tv_sec) {
-            pkt_info.sw_timestamp = p_first_desc->rx.timestamps.sw;
-        }
-
-        // fill io vector array with data buffer pointers
-        iovec iov[p_first_desc->rx.n_frags];
-        nr_frags = 0;
-        for (tmp = p_first_desc; tmp; tmp = tmp->p_next_desc) {
-            iov[nr_frags++] = tmp->rx.frag;
-        }
-
-        // call user callback
-        callback_retval =
-            conn->m_rx_callback(conn->m_fd, nr_frags, iov, &pkt_info, conn->m_rx_callback_context);
-    }
-
-    if (callback_retval == XLIO_PACKET_DROP) {
-        conn->m_rx_cb_dropped_list.push_back(p_first_desc);
-
-        // In ZERO COPY case we let the user's application manage the ready queue
-    } else {
-        if (callback_retval == XLIO_PACKET_RECV) {
-            // Save rx packet info in our ready list
-            conn->m_rx_pkt_ready_list.push_back(p_first_desc);
-            conn->m_n_rx_pkt_ready_list_count++;
-            conn->m_rx_ready_byte_count += p->tot_len;
-            conn->m_p_socket_stats->n_rx_ready_byte_count += p->tot_len;
-            conn->m_p_socket_stats->n_rx_ready_pkt_count++;
-            conn->m_p_socket_stats->counters.n_rx_ready_pkt_max =
-                std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_pkt_count,
-                         conn->m_p_socket_stats->counters.n_rx_ready_pkt_max);
-            conn->m_p_socket_stats->counters.n_rx_ready_byte_max =
-                std::max((uint32_t)conn->m_p_socket_stats->n_rx_ready_byte_count,
-                         conn->m_p_socket_stats->counters.n_rx_ready_byte_max);
-        }
-        // notify io_mux
-        NOTIFY_ON_EVENTS(conn, EPOLLIN);
-        io_mux_call::update_fd_array(conn->m_iomux_ready_fd_array, conn->m_fd);
-
-        if (callback_retval != XLIO_PACKET_HOLD) {
-            // OLG: Now we should wakeup all threads that are sleeping on this socket.
-            conn->do_wakeup();
-        } else {
-            conn->m_p_socket_stats->n_rx_zcopy_pkt_count++;
-        }
-    }
+    // OLG: Now we should wakeup all threads that are sleeping on this socket.
+    conn->do_wakeup();
 
     /*
      * RCVBUFF Accounting: tcp_recved here(stream into the 'internal' buffer) only if the user
@@ -1930,12 +1885,8 @@ err_t sockinfo_tcp::rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, e
      */
     rcv_buffer_space = std::max(
         0, conn->m_rcvbuff_max - conn->m_rcvbuff_current - (int)conn->m_pcb.rcv_wnd_max_desired);
-    if (callback_retval == XLIO_PACKET_DROP) {
-        bytes_to_tcp_recved = (int)p->tot_len;
-    } else {
-        bytes_to_tcp_recved = std::min(rcv_buffer_space, (int)p->tot_len);
-        conn->m_rcvbuff_current += p->tot_len;
-    }
+    bytes_to_tcp_recved = std::min(rcv_buffer_space, (int)p->tot_len);
+    conn->m_rcvbuff_current += p->tot_len;
 
     if (likely(bytes_to_tcp_recved > 0)) {
         tcp_recved(&(conn->m_pcb), bytes_to_tcp_recved);

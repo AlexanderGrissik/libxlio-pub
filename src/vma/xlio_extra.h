@@ -68,21 +68,6 @@ enum { CMSG_XLIO_IOCTL_USER_ALLOC = 2900 };
  */
 #define XLIO_MAGIC_NUMBER (0x4f494c584144564eULL)
 
-/*
- * Return values for the receive packet notify callback function
- */
-typedef enum {
-    XLIO_PACKET_DROP, /* The library will drop the received packet and recycle
-                        the buffer if no other socket needs it */
-
-    XLIO_PACKET_RECV, /* The library will queue the received packet on this socket ready queue.
-                        The application will read it with the usual recv socket APIs */
-
-    XLIO_PACKET_HOLD /* Application will handle the queuing of the received packet. The application
-                       must return the descriptor to the library using the free packet function
-           But not in the context of XLIO's callback itself. */
-} xlio_recv_callback_retval_t;
-
 /**
  * @brief Pass this structure as an argument into getsockopt() with @ref SO_XLIO_PD
  * 	to get protection domain information from ring used for current socket.
@@ -207,7 +192,6 @@ struct xlio_ring_alloc_logic_attr {
 };
 
 enum {
-    XLIO_EXTRA_API_REGISTER_RECV_CALLBACK = (1 << 0),
     XLIO_EXTRA_API_RECVFROM_ZCOPY = (1 << 1),
     XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS = (1 << 2),
     XLIO_EXTRA_API_ADD_CONF_RULE = (1 << 3),
@@ -217,40 +201,6 @@ enum {
     XLIO_EXTRA_API_DUMP_FD_STATS = (1 << 11),
     XLIO_EXTRA_API_IOCTL = (1 << 12),
 };
-
-/**
- *
- * Notification callback for incoming packet on socket
- * @param fd Socket's file descriptor which this packet refers to
- * @param iov iovector structure array point holding the packet
- *            received data buffer pointers and size of each buffer
- * @param iov_sz Size of iov array
- * @param xlio_info Additional information on the packet and socket
- * @param context User-defined value provided during callback
- *                registration for each socket
- *
- *   This callback function should be registered by the library calling
- * register_recv_callback() in the extended API. It can be unregistered by
- * setting a NULL function pointer. The library will call the callback to notify
- * of new incoming packets after the IP & UDP header processing and before
- * they are queued in the socket's receive queue.
- *   Context of the callback will always be from one of the user's application
- * threads when calling the following socket APIs: select, poll, epoll, recv,
- * recvfrom, recvmsg, read, readv.
- *
- * Notes:
- * - The application can call all of the Socket APIs control and send from
- *   within the callback context.
- * - Packet loss might occur depending on the applications behavior in the
- *   callback context.
- * - Parameters `iov' and `xlio_info' are only valid until callback context
- *   is returned to the library. User should copy these structures for later use
- *   if working with zero copy logic.
- */
-typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_iov,
-                                                            struct iovec iov[],
-                                                            struct xlio_info_t *xlio_info,
-                                                            void *context);
 
 /**
  * XLIO Extended Socket API
@@ -269,18 +219,6 @@ struct __attribute__((packed)) xlio_api_t {
      * Order of fields in this structure should not be changed to keep abi compatibility.
      */
     uint64_t cap_mask;
-
-    /**
-     * Register a received packet notification callback.
-     *
-     * @param s Socket file descriptor.
-     * @param callback Callback function.
-     * @param context user contex for callback function.
-     * @return 0 - success, -1 - error
-     *
-     * errno is set to: EINVAL - not offloaded socket
-     */
-    int (*register_recv_callback)(int s, xlio_recv_callback_t callback, void *context);
 
     /**
      * Zero-copy revcfrom implementation.

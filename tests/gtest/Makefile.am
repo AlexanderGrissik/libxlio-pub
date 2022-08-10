@@ -120,7 +120,6 @@ gtest_SOURCES = \
 	vma/vma_base.cc \
 	vma/vma_sockopt.cc \
 	vma/vma_send_zc.cc \
-	vma/vma_recvfrom_zcopy.cc \
 	vma/vma_ioctl.cc \
 	\
 	vmad/vmad_base.cc \

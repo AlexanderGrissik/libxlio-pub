@@ -823,10 +823,6 @@ int set_mcgroups_fromfile(char *mcg_filename)
 	return 0;
 }
 
-#ifdef  USING_EXTRA_API
-extern xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context);
-#endif
-
 /* returns the new socket fd
  or exit with error code */
 int prepare_socket(struct sockaddr_in* p_addr)
@@ -959,18 +955,6 @@ int prepare_socket(struct sockaddr_in* p_addr)
 			}
 		}
 	}
-
-#ifdef  USING_EXTRA_API
-	if (user_params.is_vmarxfiltercb && xlio_api) {
-		// Try to register application with VMA's special receive notification callback logic
-		if (xlio_api->register_recv_callback(fd, myapp_vma_recv_pkt_filter_callback, &fd) < 0) {
-			log_err("xlio_api->register_recv_callback failed. Try running without option 'vmarxfiltercb'");
-		}
-		else {
-			log_dbg("xlio_api->register_recv_callback successful registered");
-		}
-	}
-#endif
 
 	return fd;
 }
@@ -1120,72 +1104,6 @@ void warmup()
 		}
 	}
 }
-
-#ifdef  USING_EXTRA_API
-xlio_recv_callback_retval_t myapp_vma_recv_pkt_filter_callback(
-	int fd, size_t iov_sz, struct iovec iov[], struct xlio_info_t* vma_info, void *context)
-{
-	if (iov_sz) {};
-	if (context) {};
-
-	// Check info structure version
-	if (vma_info->struct_sz < sizeof(struct xlio_info_t)) {
-		log_msg("info struct is not something we can handle so un-register the application's callback function");
-		xlio_api->register_recv_callback(fd, NULL, &fd);
-		return XLIO_PACKET_RECV;
-	}
-
-	int recvsize     = iov[0].iov_len;
-	uint8_t* recvbuf = iov[0].iov_base;
-	if (user_params.enable_hw_time && !vma_info->hw_timestamp.tv_sec) {
-		log_err("hw_timstamp is enables but hw not found");
-	}
-	if (!user_params.enable_hw_time && vma_info->hw_timestamp.tv_sec) {
-		log_err("hw_timstamp is disabled but hw found");
-	}
-/*
-	if ("rule to check if packet should be dropped")
-		return XLIO_PACKET_DROP;
-*/
-
-/*
-	if ("Do we support zero copy logic?") {
-		// Application must duplicate the iov' & 'vma_info' parameters for later usage
-		struct iovec* my_iov = calloc(iov_sz, sizeof(struct iovec));
-		memcpy(my_iov, iov, sizeof(struct iovec)*iov_sz);
-		myapp_queue_task_new_rcv_pkt(my_iov, iov_sz, vma_info->pkt_desc_id);
-		return XLIO_PACKET_HOLD;
-	}
-*/
-	/* This does the server_recev_then_send all in the callback */
-	if (user_params.mode != MODE_BRIDGE) {
-		if (recvbuf[1] != CLIENT_MASK) {
-			if (user_params.mc_loop_disable)
-				log_err("got != CLIENT_MASK");
-			return XLIO_PACKET_DROP;
-		}
-		recvbuf[1] = SERVER_MASK;
-	}
-	if (!user_params.stream_mode) {
-		/* get source addr to reply to */
-		struct sockaddr_in sendto_addr = fds_array[fd]->addr;
-		if (!fds_array[fd]->is_multicast) {
-			/* In unicast case reply to sender*/
-			/* XXX msg_sendto() is IPv4 specific */
-			if (vma_info->src->sa_family == AF_INET)
-				sendto_addr.sin_addr = ((struct sockaddr_in *)vma_info->src)->sin_addr;
-		}
-		msg_sendto(fd, recvbuf, recvsize, &sendto_addr);
-	}
-
-	packet_counter++;
-	if ((user_params.packetrate_stats_print_ratio > 0) && ((packet_counter % user_params.packetrate_stats_print_ratio) == 0)) {
-		print_activity_info(packet_counter);
-	}
-
-	return XLIO_PACKET_DROP;
-}
-#endif
 
 /*
 ** Check that msg arrived from CLIENT and not a loop from a server
