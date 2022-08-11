@@ -19,17 +19,27 @@ rm -rf $test_dir
 mkdir -p $test_dir
 cd $test_dir
 
+test_app="sockperf"
+
+# Download sockperf to use verifier
 do_cmd "wget -O sockperf_v2.zip https://github.com/Mellanox/sockperf/archive/sockperf_v2.zip && unzip sockperf_v2.zip && mv sockperf-sockperf_v2 sockperf"
 cd sockperf
 
-./autogen.sh
-./configure --prefix=$PWD/install CPPFLAGS="-I${install_dir}/include"
-make install
-test_app="$PWD/install/bin/sockperf"
+# This unit requires sockperf so check for existence
+if [ $(command -v ${tool_app} >/dev/null 2>&1 || echo $?) ]; then
+    set +e
+    ./autogen.sh
+    ./configure --prefix=$PWD/install CPPFLAGS="-I${install_dir}/include"
+    make install
+    test_app="$PWD/install/bin/sockperf"
+    set -e
 
-if [ $(command -v $test_app >/dev/null 2>&1 || echo $?) ]; then
-	echo can not find $test_app
-	exit 1
+    if [ $(command -v ${test_app} >/dev/null 2>&1 || echo $?) ]; then
+        echo "[SKIP] $test_app does not exist"
+        exit 1
+    fi
+else
+    test_app="$(command -v ${test_app})"
 fi
 
 test_ip_list=""
