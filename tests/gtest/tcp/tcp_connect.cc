@@ -173,8 +173,8 @@ TEST_F(tcp_connect, ti_4_rto_racing)
         // keeps running and may duplicate other tests.
         exit(testing::Test::HasFailure());
     } else { /* I am the parent */
-        auto connect_fn = [](const sockaddr_store_t &server_addr_in, std::list<int> &fns,
-                             int rts) -> int {
+        auto connect_fn = [this](const sockaddr_store_t &server_addr_in, std::list<int> &fns,
+                                 int rts) -> int {
             int fd = tcp_base::sock_create();
             EXPECT_LE(0, fd);
             if (fd <= 0) {

@@ -465,8 +465,7 @@ protected:
         size_t payload_size = pdesc->rx.sz_payload;
 
         if (__from && __fromlen) {
-            pdesc->rx.src.get_sa(__from, *__fromlen);
-            *__fromlen = pdesc->rx.src.get_socklen();
+            pdesc->rx.src.get_sa_conv(__from, *__fromlen, m_family);
         }
 
         if (in_flags & MSG_XLIO_ZCOPY) {

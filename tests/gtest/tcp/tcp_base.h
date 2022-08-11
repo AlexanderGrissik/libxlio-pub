@@ -36,16 +36,14 @@
 /**
  * TCP Base class for tests
  */
-class tcp_base : virtual public testing::Test, virtual public test_base {
+class tcp_base : public testing::Test, public test_base {
 public:
-    static int sock_create(void);
-    static int sock_create(sa_family_t family, bool reuse_addr = false);
-    static int sock_create(sa_family_t family, bool reuse_addr, int timeout_sec);
-    static int sock_create_nb(void);
+    virtual int sock_create_reuse(sa_family_t family, bool reuse_addr) override;
 
 protected:
-    virtual void SetUp();
-    virtual void TearDown();
+    virtual void SetUp() override;
+    virtual void TearDown() override;
+
     void peer_wait(int fd)
     {
         char keep_alive_check = 1;

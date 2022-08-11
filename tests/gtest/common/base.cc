@@ -132,6 +132,51 @@ bool test_base::is_mapped_ipv4_set() const
             server_addr_mapped_ipv4.addr.sin_addr.s_addr != 0);
 }
 
+int test_base::set_socket_rcv_timeout(int fd, int timeout_sec)
+{
+    struct timeval tv;
+    tv.tv_sec = timeout_sec;
+    tv.tv_usec = 0;
+    return setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+}
+
+int test_base::sock_create()
+{
+    return sock_create_reuse(m_family, false);
+}
+
+int test_base::sock_create(sa_family_t family, bool reuse_addr, int timeout_sec)
+{
+    int fd = sock_create_reuse(family, reuse_addr);
+    if (fd >= 0 && 0 != set_socket_rcv_timeout(fd, timeout_sec)) {
+        close(fd);
+        fd = -1;
+    }
+
+    return fd;
+}
+
+int test_base::sock_create_nb()
+{
+    int fd = sock_create_reuse(m_family, false);
+    if (fd < 0) {
+        return fd;
+    }
+
+    int rc = test_base::sock_noblock(fd);
+    if (rc < 0) {
+        log_error("failed sock_noblock() %s\n", strerror(errno));
+        goto err;
+    }
+
+    return fd;
+
+err:
+    close(fd);
+
+    return (-1);
+}
+
 bool test_base::barrier()
 {
     int ret = pthread_barrier_wait(&m_barrier);

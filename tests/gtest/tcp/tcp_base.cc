@@ -46,12 +46,7 @@ void tcp_base::TearDown()
 {
 }
 
-int tcp_base::sock_create(void)
-{
-    return sock_create(m_family, false);
-}
-
-int tcp_base::sock_create(sa_family_t family, bool reuse_addr)
+int tcp_base::sock_create_reuse(sa_family_t family, bool reuse_addr)
 {
     int rc;
     int fd;
@@ -66,55 +61,6 @@ int tcp_base::sock_create(sa_family_t family, bool reuse_addr)
     rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
     if (rc < 0) {
         log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
-        goto err;
-    }
-
-    return fd;
-
-err:
-    close(fd);
-
-    return (-1);
-}
-
-int tcp_base::sock_create(sa_family_t family, bool reuse_addr, int timeout_sec)
-{
-    int fd = sock_create(family, reuse_addr);
-    if (fd >= 0) {
-        struct timeval tv;
-        tv.tv_sec = timeout_sec;
-        tv.tv_usec = 0;
-        int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-        if (rc != 0) {
-            close(fd);
-            return -1;
-        }
-    }
-
-    return fd;
-}
-
-int tcp_base::sock_create_nb(void)
-{
-    int rc;
-    int fd;
-    int opt_val = 0;
-
-    fd = socket(m_family, SOCK_STREAM, IPPROTO_IP);
-    if (fd < 0) {
-        log_error("failed socket() %s\n", strerror(errno));
-        goto err;
-    }
-
-    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-    if (rc < 0) {
-        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
-        goto err;
-    }
-
-    rc = test_base::sock_noblock(fd);
-    if (rc < 0) {
-        log_error("failed sock_noblock() %s\n", strerror(errno));
         goto err;
     }
 

@@ -114,6 +114,7 @@ gtest_SOURCES = \
 	udp/udp_socket.cc \
 	udp/udp_bind.cc \
 	udp/udp_connect.cc \
+	udp/udp_recv.cc \
 	udp/udp_send.cc \
 	udp/udp_sendto.cc \
 	udp/udp_rfs.cc \

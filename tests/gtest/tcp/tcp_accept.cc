@@ -127,17 +127,18 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
                                                   client_addr_mapped_ipv4.addr.sin_addr.s_addr);
 
-                            socklen = sizeof(peer_addr);
-                            memset(&peer_addr, 0, socklen);
-                            getpeername(fd, ppeer, &socklen);
+                            auto clear_sockaddr = [&socklen, &peer_addr]() {
+                                socklen = sizeof(peer_addr);
+                                memset(&peer_addr, 0, socklen);
+                            };
 
+                            clear_sockaddr();
+                            getpeername(fd, ppeer, &socklen);
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
                                                   client_addr_mapped_ipv4.addr.sin_addr.s_addr);
 
-                            socklen = sizeof(peer_addr);
-                            memset(&peer_addr, 0, socklen);
+                            clear_sockaddr();
                             getsockname(fd, ppeer, &socklen);
-
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
                                                   server_addr_mapped_ipv4.addr.sin_addr.s_addr);
 

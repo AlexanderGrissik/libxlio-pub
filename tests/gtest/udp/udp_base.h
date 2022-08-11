@@ -38,13 +38,11 @@
  */
 class udp_base : public testing::Test, public test_base {
 public:
-    static int sock_create(void);
-    static int sock_create(sa_family_t family, bool reuse_addr = false);
-    static int sock_create_nb(void);
+    virtual int sock_create_reuse(sa_family_t family, bool reuse_addr) override;
 
 protected:
-    virtual void SetUp();
-    virtual void TearDown();
+    virtual void SetUp() override;
+    virtual void TearDown() override;
 };
 
 #endif /* TESTS_GTEST_UDP_BASE_H_ */

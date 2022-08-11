@@ -52,11 +52,32 @@
               EXPECT_EQ(0U, addrp[0]); EXPECT_EQ(0U, addrp[1]);                                    \
               EXPECT_EQ(0xFFFFU, ntohl(addrp[2])); EXPECT_EQ(sin_addr, addrp[3]);)
 
+#define EXPECT_EQ_IPV6(addr6_1, addr6_2)                                                           \
+    DO_WHILE0(EXPECT_EQ((addr6_1).sin6_family, (addr6_2).sin6_family);                             \
+              const uint64_t *addrp1 = reinterpret_cast<const uint64_t *>(&(addr6_1).sin6_addr);   \
+              const uint64_t *addrp2 = reinterpret_cast<const uint64_t *>(&(addr6_2).sin6_addr);   \
+              EXPECT_EQ(addrp1[0], addrp2[0]); EXPECT_EQ(addrp1[1], addrp2[1]);)
 /**
  * Base class for tests
  */
 class test_base {
 public:
+    virtual int sock_create_reuse(sa_family_t family, bool reuse_addr)
+    {
+        (void)(family);
+        (void)(reuse_addr);
+        return -1;
+    };
+
+    int sock_create(sa_family_t family, bool reuse_addr = false)
+    {
+        return sock_create_reuse(family, reuse_addr);
+    }
+
+    int sock_create();
+    int sock_create_nb();
+    int sock_create(sa_family_t family, bool reuse_addr, int timeout_sec);
+
     static int sock_noblock(int fd);
     static int event_wait(struct epoll_event *event);
     static int wait_fork(int pid);
@@ -66,13 +87,14 @@ protected:
     test_base();
     virtual ~test_base();
 
-protected:
     virtual void cleanup();
     virtual void init();
     bool barrier();
     void barrier_fork(int pid, bool sync_parent = false);
     bool child_fork_exit() { return m_break_signal; }
     bool is_mapped_ipv4_set() const;
+
+    static int set_socket_rcv_timeout(int fd, int timeout_sec);
 
     sockaddr_store_t client_addr;
     sockaddr_store_t server_addr;
