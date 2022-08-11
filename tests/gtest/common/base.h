@@ -48,7 +48,7 @@
 
 #define EXPECT_EQ_MAPPED_IPV4(addr6, sin_addr)                                                     \
     DO_WHILE0(EXPECT_EQ(AF_INET6, (addr6).sin6_family);                                            \
-              const uint32_t *addrp = reinterpret_cast<const uint32_t *>(&(addr6).sin6_addr);      \
+              const in_addr_t *addrp = reinterpret_cast<const in_addr_t *>(&(addr6).sin6_addr);    \
               EXPECT_EQ(0U, addrp[0]); EXPECT_EQ(0U, addrp[1]);                                    \
               EXPECT_EQ(0xFFFFU, ntohl(addrp[2])); EXPECT_EQ(sin_addr, addrp[3]);)
 
@@ -57,6 +57,9 @@
               const uint64_t *addrp1 = reinterpret_cast<const uint64_t *>(&(addr6_1).sin6_addr);   \
               const uint64_t *addrp2 = reinterpret_cast<const uint64_t *>(&(addr6_2).sin6_addr);   \
               EXPECT_EQ(addrp1[0], addrp2[0]); EXPECT_EQ(addrp1[1], addrp2[1]);)
+
+#define SOCK_STR(x) sockaddr2str(reinterpret_cast<const sockaddr *>(&x), sizeof(x)).c_str()
+
 /**
  * Base class for tests
  */
@@ -95,13 +98,14 @@ protected:
     bool is_mapped_ipv4_set() const;
 
     static int set_socket_rcv_timeout(int fd, int timeout_sec);
+    static void ipv4_to_mapped(sockaddr_store_t &inout);
 
     sockaddr_store_t client_addr;
     sockaddr_store_t server_addr;
     sockaddr_store_t remote_addr;
     sockaddr_store_t bogus_addr;
-    sockaddr_store_t client_addr_mapped_ipv4;
-    sockaddr_store_t server_addr_mapped_ipv4;
+    sockaddr_store_t client_addr_mapped_ipv4; // Regular IPv4 address for mapped-ipv4 tests.
+    sockaddr_store_t server_addr_mapped_ipv4; // Regular IPv4 address for mapped-ipv4 tests.
     bool def_gw_exists;
     static uint16_t m_port;
     static int m_family;

@@ -117,9 +117,9 @@ TEST_F(udp_send, ti_3)
     int rc = EOK;
     int fd;
     char buf[65528] = "hello";
-    size_t max_possible_size = (client_addr.addr.sin_family == AF_INET ? 65507 : 65527);
+    size_t max_possible_size = (client_addr.addr.sa_family == AF_INET ? 65507 : 65527);
 
-    SKIP_TRUE((client_addr.addr.sin_family == AF_INET),
+    SKIP_TRUE((client_addr.addr.sa_family == AF_INET),
               "IPv6 Fragmentation is currently unsupported");
 
     fd = udp_base::sock_create();
@@ -277,7 +277,7 @@ TEST_F(udp_send, mapped_ipv4_send)
             sockaddr_store_t &cl_server_t =
                 (family == AF_INET ? server_addr_mapped_ipv4 : server_addr);
 
-            struct sockaddr *sr_addr = reinterpret_cast<struct sockaddr *>(&cl_server_t);
+            struct sockaddr *sr_addr = &cl_server_t.addr;
 
             barrier_fork(pid);
 
@@ -319,9 +319,7 @@ TEST_F(udp_send, mapped_ipv4_send)
                 any_addr.addr6.sin6_family = AF_INET6;
                 any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
 
-                const struct sockaddr *addr = reinterpret_cast<struct sockaddr *>(&any_addr);
-
-                int rc = bind(fd, addr, sizeof(sockaddr_store_t));
+                int rc = bind(fd, &any_addr.addr, sizeof(sockaddr_store_t));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
                     barrier_fork(pid);

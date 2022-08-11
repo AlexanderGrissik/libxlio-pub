@@ -41,8 +41,8 @@
 class udp_bind : public udp_base {
 public:
     udp_bind()
-        : m_src_port(server_addr.addr.sin_family == AF_INET ? server_addr.addr.sin_port
-                                                            : server_addr.addr6.sin6_port)
+        : m_src_port(server_addr.addr.sa_family == AF_INET ? server_addr.addr4.sin_port
+                                                           : server_addr.addr6.sin6_port)
         , m_addr_all_ipv4(AF_INET, &ip_address::any_addr().get_in4_addr(), m_src_port)
         , m_addr_all_ipv6(AF_INET6, &ip_address::any_addr().get_in6_addr(), m_src_port)
     {
@@ -297,4 +297,133 @@ TEST_F(udp_bind, bind_IP6_4_dual_stack_reuse_addr)
     EXPECT_EQ(0, bind_all4());
 
     EXPECT_TRUE(close_ipv4_ipv6_sockets());
+}
+
+/**
+ * @test udp_bind.mapped_ipv4_bind_recv
+ * @brief
+ *    IPv6 mapped IPv4 bounded receiver
+ *
+ * @details
+ */
+TEST_F(udp_bind, mapped_ipv4_bind_recv)
+{
+    if (!is_mapped_ipv4_set()) {
+        return;
+    }
+
+    int pid = fork();
+
+    if (0 == pid) { // Child
+        barrier_fork(pid);
+
+        int fd = udp_base::sock_create(AF_INET, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                rc = connect(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    log_trace("Established connection: fd=%d to %s from %s\n", fd,
+                              SOCK_STR(server_addr_mapped_ipv4), SOCK_STR(client_addr_mapped_ipv4));
+
+                    char buffer[8] = {0};
+                    rc = send(fd, buffer, sizeof(buffer), 0);
+                    EXPECT_EQ_ERRNO(8, rc);
+                }
+            }
+
+            close(fd);
+        }
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { // Parent
+        int fd = udp_base::sock_create(AF_INET6, false, 10);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
+            sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;
+            ipv4_to_mapped(client_ipv4);
+            ipv4_to_mapped(server_ipv4);
+
+            int rc = bind(fd, &server_ipv4.addr, sizeof(server_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                barrier_fork(pid);
+
+                char buffer[8] = {0};
+                rc = recv(fd, buffer, sizeof(buffer), 0);
+                EXPECT_EQ_ERRNO(8, rc);
+            }
+
+            close(fd);
+        }
+
+        EXPECT_EQ(0, wait_fork(pid));
+    }
+}
+
+/**
+ * @test udp_bind.mapped_ipv4_bind_send
+ * @brief
+ *    IPv6 mapped IPv4 bounded sender
+ *
+ * @details
+ */
+TEST_F(udp_bind, mapped_ipv4_bind_send)
+{
+    if (!is_mapped_ipv4_set()) {
+        return;
+    }
+
+    int pid = fork();
+
+    if (0 == pid) { // Child
+        barrier_fork(pid);
+
+        int fd = udp_base::sock_create(AF_INET6, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
+            sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;
+            ipv4_to_mapped(client_ipv4);
+            ipv4_to_mapped(server_ipv4);
+
+            int rc = bind(fd, &client_ipv4.addr, sizeof(client_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                char buffer[8] = {0};
+                rc = sendto(fd, buffer, sizeof(buffer), 0, &server_ipv4.addr, sizeof(server_ipv4));
+                EXPECT_EQ_ERRNO(8, rc);
+            }
+
+            close(fd);
+        }
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { // Parent
+        int fd = udp_base::sock_create(AF_INET, false, 10);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                barrier_fork(pid);
+
+                char buffer[8] = {0};
+                rc = recv(fd, buffer, sizeof(buffer), 0);
+                EXPECT_EQ_ERRNO(8, rc);
+            }
+
+            close(fd);
+        }
+
+        EXPECT_EQ(0, wait_fork(pid));
+    }
 }

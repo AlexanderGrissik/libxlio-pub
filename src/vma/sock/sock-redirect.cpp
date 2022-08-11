@@ -1282,7 +1282,7 @@ extern "C" EXPORT_SYMBOL int getsockname(int __fd, struct sockaddr *__name, sock
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
-        ret = p_socket_object->getsockname(__name, __namelen, true);
+        ret = p_socket_object->getsockname(__name, __namelen);
 
         if (safe_mce_sys().trigger_dummy_send_getsockname) {
             char buf[264] = {0};

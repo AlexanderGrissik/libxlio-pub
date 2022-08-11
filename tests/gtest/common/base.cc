@@ -128,8 +128,19 @@ void test_base::cleanup()
 
 bool test_base::is_mapped_ipv4_set() const
 {
-    return (client_addr_mapped_ipv4.addr.sin_addr.s_addr != 0 &&
-            server_addr_mapped_ipv4.addr.sin_addr.s_addr != 0);
+    return (client_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0 &&
+            server_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0);
+}
+
+void test_base::ipv4_to_mapped(sockaddr_store_t &inout)
+{
+    in_port_t port = inout.addr4.sin_port;
+    in_addr addr = inout.addr4.sin_addr;
+    memset(&inout, 0, sizeof(inout));
+    inout.addr6.sin6_family = AF_INET6;
+    inout.addr6.sin6_port = port;
+    reinterpret_cast<uint16_t *>(&inout.addr6.sin6_addr)[5] = 0xFFFFU;
+    reinterpret_cast<in_addr *>(&inout.addr6.sin6_addr)[3] = addr;
 }
 
 int test_base::set_socket_rcv_timeout(int fd, int timeout_sec)

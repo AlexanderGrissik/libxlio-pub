@@ -451,7 +451,7 @@ int sockinfo_udp::bind_no_os()
     sock_addr addr;
     socklen_t addr_len = addr.get_socklen();
 
-    int ret = getsockname((struct sockaddr *)addr.get_p_sa(), &addr_len);
+    int ret = getsockname(addr.get_p_sa(), &addr_len);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (ret) {
         si_udp_logdbg("getsockname failed (ret=%d %m)", ret);
@@ -460,7 +460,8 @@ int sockinfo_udp::bind_no_os()
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // save the bound info and then attach to offload flows
-    on_sockname_change((struct sockaddr *)addr.get_p_sa(), addr_len);
+    addr.strip_mapped_ipv4();
+    on_sockname_change(addr.get_p_sa(), addr_len);
     si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true).c_str());
     dst_entry_map_t::iterator dst_entry_iter = m_dst_entry_map.begin();
     while (dst_entry_iter != m_dst_entry_map.end()) {
@@ -548,7 +549,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     sock_addr addr;
     socklen_t addr_len = addr.get_socklen();
 
-    ret = getsockname((struct sockaddr *)addr.get_p_sa(), &addr_len);
+    ret = getsockname(addr.get_p_sa(), &addr_len);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (ret) {
         si_udp_logerr("getsockname failed (ret=%d %m)", ret);
@@ -557,7 +558,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     m_is_connected = true; // will inspect for SRC
-    on_sockname_change((struct sockaddr *)addr.get_p_sa(), addr_len);
+    on_sockname_change(addr.get_p_sa(), addr_len);
 
     si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true).c_str());
     in_port_t src_port = m_bound.get_in_port();
@@ -608,9 +609,8 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     return 0;
 }
 
-int sockinfo_udp::getsockname(struct sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4)
+int sockinfo_udp::getsockname(struct sockaddr *__name, socklen_t *__namelen)
 {
-    NOT_IN_USE(conv_mapped_ipv4);
     si_udp_logdbg("");
 
     if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit)) {
@@ -1411,6 +1411,7 @@ wait:
      * We (probably) do not have a ready packet.
      * Wait for RX to become ready.
      */
+    si_udp_logfunc("rx_wait: %d", m_fd);
     rx_wait_ret = rx_wait(m_b_blocking && !(in_flags & MSG_DONTWAIT));
 
     m_lock_rcv.lock();
@@ -1670,7 +1671,8 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
     TAKE_T_TX_START;
 #endif
     if (__dst != NULL) {
-        sock_addr_mapped dst(__dst, __dstlen);
+        sock_addr dst(__dst, __dstlen);
+        dst.strip_mapped_ipv4();
 
         if (unlikely(__dstlen < sizeof(struct sockaddr_in))) {
             si_udp_logdbg("going to os, dstlen < sizeof(struct sockaddr_in), dstlen = %d",
@@ -1683,7 +1685,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
             goto tx_packet_to_os;
         }
 
-        if (unlikely(get_sa_port(__dst) == 0)) {
+        if (unlikely(get_sa_port(__dst, __dstlen) == 0)) {
             si_udp_logdbg("to->sin_port == 0 (tx-ing to os)");
             goto tx_packet_to_os;
         }

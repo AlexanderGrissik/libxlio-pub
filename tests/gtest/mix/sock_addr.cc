@@ -101,8 +101,10 @@ TEST_F(sock_addr_test, sock_addr_getters)
     EXPECT_EQ(AF_INET, get_sa_family(reinterpret_cast<sockaddr *>(&sockaddr4_temp)));
     EXPECT_EQ(AF_INET6, get_sa_family(reinterpret_cast<sockaddr *>(&sockaddr6_temp)));
 
-    EXPECT_EQ(m_sockaddr4_1.sin_port, get_sa_port(reinterpret_cast<sockaddr *>(&sockaddr4_temp)));
-    EXPECT_EQ(m_sockaddr6_1.sin6_port, get_sa_port(reinterpret_cast<sockaddr *>(&sockaddr6_temp)));
+    EXPECT_EQ(m_sockaddr4_1.sin_port,
+              get_sa_port(reinterpret_cast<sockaddr *>(&sockaddr4_temp), sizeof(sockaddr4_temp)));
+    EXPECT_EQ(m_sockaddr6_1.sin6_port,
+              get_sa_port(reinterpret_cast<sockaddr *>(&sockaddr6_temp), sizeof(sockaddr6_temp)));
 
     EXPECT_EQ(AF_INET, sa1_4.get_sa_family());
     EXPECT_EQ(AF_INET6, sa1_6.get_sa_family());
@@ -174,10 +176,12 @@ TEST_F(sock_addr_test, sock_addr_strings)
     sock_addr sa1_4(reinterpret_cast<const sockaddr *>(&m_sockaddr4_1), SOCKLEN4);
     sock_addr sa1_6(reinterpret_cast<const sockaddr *>(&m_sockaddr6_1), SOCKLEN6);
 
-    EXPECT_TRUE(sa1_4.to_str_ip_port() ==
-                sockaddr2str(reinterpret_cast<const sockaddr *>(&m_sockaddr4_1)));
-    EXPECT_TRUE(sa1_6.to_str_ip_port() ==
-                sockaddr2str(reinterpret_cast<const sockaddr *>(&m_sockaddr6_1)));
+    EXPECT_TRUE(
+        sa1_4.to_str_ip_port() ==
+        sockaddr2str(reinterpret_cast<const sockaddr *>(&m_sockaddr4_1), sizeof(m_sockaddr4_1)));
+    EXPECT_TRUE(
+        sa1_6.to_str_ip_port() ==
+        sockaddr2str(reinterpret_cast<const sockaddr *>(&m_sockaddr6_1), sizeof(m_sockaddr6_1)));
 
     EXPECT_TRUE(sa1_4.to_str_port() == std::to_string(ntohs(m_sockaddr4_1.sin_port)));
     EXPECT_TRUE(sa1_6.to_str_port() == std::to_string(ntohs(m_sockaddr6_1.sin6_port)));

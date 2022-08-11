@@ -1710,7 +1710,7 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
         if (target_family == TRANS_VMA) {
             flow_tuple_with_local_if flow_key(addr.get_ip_addr(), addr.get_in_port(),
                                               m_connected.get_ip_addr(), m_connected.get_in_port(),
-                                              m_protocol, m_connected.get_sa_family(), if_addr);
+                                              m_protocol, addr.get_sa_family(), if_addr);
             ret = ret && attach_receiver(flow_key);
         }
     } else {

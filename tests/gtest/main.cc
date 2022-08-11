@@ -89,8 +89,8 @@ static int _def_config(void)
 static void set_def_remote_address()
 {
     gtest_conf.def_gw_exists = sys_gateway((struct sockaddr *)&gtest_conf.remote_addr,
-                                           gtest_conf.server_addr.addr.sin_family);
-    if (gtest_conf.server_addr.addr.sin_family == AF_INET6) {
+                                           gtest_conf.server_addr.addr.sa_family);
+    if (gtest_conf.server_addr.addr.sa_family == AF_INET6) {
         if (!gtest_conf.def_gw_exists) {
             sys_str2addr("::[8888]", (struct sockaddr *)&gtest_conf.remote_addr, true);
         } else {
@@ -116,10 +116,10 @@ static int _set_config(int argc, char **argv)
         switch (op) {
         case 'm':
         case 'a': {
-            struct sockaddr *cl_addr = reinterpret_cast<struct sockaddr *>(
-                op == 'a' ? &gtest_conf.client_addr : &gtest_conf.client_addr_mapped_ipv4);
-            struct sockaddr *sr_addr = reinterpret_cast<struct sockaddr *>(
-                op == 'a' ? &gtest_conf.server_addr : &gtest_conf.server_addr_mapped_ipv4);
+            struct sockaddr *cl_addr = (op == 'a' ? &gtest_conf.client_addr.addr
+                                                  : &gtest_conf.client_addr_mapped_ipv4.addr);
+            struct sockaddr *sr_addr = (op == 'a' ? &gtest_conf.server_addr.addr
+                                                  : &gtest_conf.server_addr_mapped_ipv4.addr);
 
             char *token1 = NULL;
             char *token2 = NULL;
@@ -241,8 +241,8 @@ static int _set_config(int argc, char **argv)
         log_info("remote ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.remote_addr));
         log_info("port: %d\n", gtest_conf.port);
 
-        if (gtest_conf.client_addr_mapped_ipv4.addr.sin_addr.s_addr != 0U &&
-            gtest_conf.server_addr_mapped_ipv4.addr.sin_addr.s_addr != 0U) {
+        if (gtest_conf.client_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0U &&
+            gtest_conf.server_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0U) {
             log_info("client ip for mapped-ipv4: %s\n",
                      sys_addr2str((struct sockaddr *)&gtest_conf.client_addr_mapped_ipv4));
             log_info("server ip for mapped-ipv4: %s\n",

@@ -84,7 +84,7 @@ public:
     int bind_no_os();
     int bind(const struct sockaddr *__addr, socklen_t __addrlen);
     int connect(const struct sockaddr *__to, socklen_t __tolen);
-    virtual int getsockname(sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4 = false);
+    virtual int getsockname(sockaddr *__name, socklen_t *__namelen);
     int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
     int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
 

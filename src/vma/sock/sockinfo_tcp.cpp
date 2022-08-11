@@ -2555,11 +2555,9 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 {
     si_tcp_logfuncall("");
 
-    sock_addr addr(__addr, __addrlen);
-    socklen_t addr_len = addr.get_socklen();
     int ret = 0;
 
-    si_tcp_logdbg("to %s", addr.to_str_ip_port(true).c_str());
+    si_tcp_logdbg("to %s", sockaddr2str(__addr, __addrlen, true).c_str());
 
     if (m_sock_state == TCP_SOCK_BOUND) {
         si_tcp_logfuncall("already bounded");
@@ -2576,9 +2574,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
 
     lock_tcp_con();
 
-    if (addr.is_anyport() && (m_pcb.so_options & SOF_REUSEADDR)) {
-        int reuse;
-        reuse = 0;
+    if (INPORT_ANY == get_sa_port(__addr, __addrlen) && (m_pcb.so_options & SOF_REUSEADDR)) {
+        int reuse = 0;
         ret = orig_os_api.setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
         BULLSEYE_EXCLUDE_BLOCK_START
         if (ret) {
@@ -2591,7 +2588,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
             return ret;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
-        ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
+        ret = orig_os_api.bind(m_fd, __addr, __addrlen);
         reuse = 1;
         int rv = orig_os_api.setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -2606,8 +2603,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
             return ret;
         }
     } else {
-        si_tcp_logdbg("OS bind to %s", addr.to_str_ip_port(true).c_str());
-        ret = orig_os_api.bind(m_fd, (struct sockaddr *)addr.get_p_sa(), addr_len);
+        si_tcp_logdbg("OS bind to %s", sockaddr2str(__addr, __addrlen, true).c_str());
+        ret = orig_os_api.bind(m_fd, __addr, __addrlen);
     }
 
 #if defined(DEFINED_NGINX)
@@ -2622,13 +2619,18 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         }
     }
 
+    sock_addr addr;
+    socklen_t addr_len = sizeof(addr);
+
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (orig_os_api.getsockname(m_fd, (struct sockaddr *)addr.get_p_sa(), &addr_len)) {
+    if (orig_os_api.getsockname(m_fd, addr.get_p_sa(), &addr_len)) {
         si_tcp_logerr("get sockname failed");
         unlock_tcp_con();
         return -1; // error
     }
     BULLSEYE_EXCLUDE_BLOCK_END
+
+    addr.strip_mapped_ipv4();
 
     // TODO: mark socket as accepting both os and offloaded connections
     if (!addr.is_supported()) {
@@ -2702,16 +2704,17 @@ int sockinfo_tcp::prepareListen()
          */
         si_tcp_logdbg("listen was called without bind - calling for bind");
 
-        if (bind((struct sockaddr *)addr.get_p_sa(), addr_len) < 0) {
+        if (bind(addr.get_p_sa(), addr_len) < 0) {
             si_tcp_logdbg("bind failed");
             return 1;
         }
     }
 
-    getsockname((struct sockaddr *)addr.get_p_sa(), &addr_len);
+    getsockname(addr.get_p_sa(), &addr_len);
+    addr.strip_mapped_ipv4();
     lock_tcp_con();
-    target_family = __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id,
-                                           (struct sockaddr *)addr.get_p_sa(), addr_len);
+    target_family =
+        __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id, addr.get_p_sa(), addr_len);
     si_tcp_logdbg("TRANSPORT: %s, sock state = %d", __vma_get_transport_str(target_family),
                   get_tcp_state(&m_pcb));
 
@@ -4620,7 +4623,7 @@ int sockinfo_tcp::getsockopt(int __level, int __optname, void *__optval, socklen
     return ret;
 }
 
-int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen, bool handle_mapped_ipv4)
+int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen)
 {
     __log_info_func("");
 
@@ -4637,15 +4640,7 @@ int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen, bool handl
             return -1;
         }
 
-        if (handle_mapped_ipv4) {
-            m_bound.get_sa_conv(__name, *__namelen, m_family);
-        } else {
-            if (*__namelen) {
-                m_bound.get_sa(__name, *__namelen);
-            }
-
-            *__namelen = m_bound.get_socklen();
-        }
+        m_bound.get_sa_conv(__name, *__namelen, m_family);
     }
 
     return 0;

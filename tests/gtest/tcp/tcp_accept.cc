@@ -63,19 +63,16 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
             int fd = tcp_base::sock_create(AF_INET, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
-                struct sockaddr *cl_addr =
-                    reinterpret_cast<struct sockaddr *>(&client_addr_mapped_ipv4);
-                struct sockaddr *sr_addr =
-                    reinterpret_cast<struct sockaddr *>(&server_addr_mapped_ipv4);
-
-                int rc = bind(fd, cl_addr, sizeof(client_addr_mapped_ipv4));
+                int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
-                    rc = connect(fd, sr_addr, sizeof(server_addr_mapped_ipv4));
+                    rc =
+                        connect(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
                     EXPECT_EQ_ERRNO(0, rc);
                     if (0 == rc) {
                         log_trace("Established connection: fd=%d to %s from %s\n", fd,
-                                  sockaddr2str(sr_addr).c_str(), sockaddr2str(cl_addr).c_str());
+                                  SOCK_STR(server_addr_mapped_ipv4),
+                                  SOCK_STR(client_addr_mapped_ipv4));
 
                         peer_wait(fd);
                     }
@@ -96,8 +93,7 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
             int l_fd = tcp_base::sock_create(AF_INET6, false, 10);
             EXPECT_LE_ERRNO(0, l_fd);
             if (0 <= l_fd) {
-                int rc = bind(l_fd, reinterpret_cast<const struct sockaddr *>(&any_addr),
-                              sizeof(any_addr));
+                int rc = bind(l_fd, &any_addr.addr, sizeof(any_addr));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
                     rc = listen(l_fd, 5);
@@ -107,7 +103,7 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
 
                         int fd = -1;
                         sockaddr_store_t peer_addr;
-                        struct sockaddr *ppeer = reinterpret_cast<struct sockaddr *>(&peer_addr);
+                        struct sockaddr *ppeer = &peer_addr.addr;
                         socklen_t socklen = sizeof(peer_addr);
                         memset(&peer_addr, 0, socklen);
                         if (api4) {
@@ -117,11 +113,10 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
                         }
                         EXPECT_LE_ERRNO(0, fd);
                         if (0 <= fd) {
-                            log_trace("Accepted connection: fd=%d from %s\n", fd,
-                                      sockaddr2str(ppeer).c_str());
+                            log_trace("Accepted connection: fd=%d from %s\n", fd, SOCK_STR(ppeer));
 
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  client_addr_mapped_ipv4.addr.sin_addr.s_addr);
+                                                  client_addr_mapped_ipv4.addr4.sin_addr.s_addr);
 
                             auto clear_sockaddr = [&socklen, &peer_addr]() {
                                 socklen = sizeof(peer_addr);
@@ -131,12 +126,12 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
                             clear_sockaddr();
                             getpeername(fd, ppeer, &socklen);
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  client_addr_mapped_ipv4.addr.sin_addr.s_addr);
+                                                  client_addr_mapped_ipv4.addr4.sin_addr.s_addr);
 
                             clear_sockaddr();
                             getsockname(fd, ppeer, &socklen);
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  server_addr_mapped_ipv4.addr.sin_addr.s_addr);
+                                                  server_addr_mapped_ipv4.addr4.sin_addr.s_addr);
 
                             close(fd);
                         }

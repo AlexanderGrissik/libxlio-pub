@@ -130,9 +130,8 @@ int socket_fd_api::listen(int backlog)
     return ret;
 }
 
-int socket_fd_api::getsockname(sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4)
+int socket_fd_api::getsockname(sockaddr *__name, socklen_t *__namelen)
 {
-    NOT_IN_USE(conv_mapped_ipv4);
     __log_info_func("");
     int ret = orig_os_api.getsockname(m_fd, __name, __namelen);
     if (ret) {

@@ -167,7 +167,7 @@ public:
     virtual int listen(int backlog);
     virtual int accept(struct sockaddr *__addr, socklen_t *__addrlen);
     virtual int accept4(struct sockaddr *__addr, socklen_t *__addrlen, int __flags);
-    virtual int getsockname(sockaddr *__name, socklen_t *__namelen, bool conv_mapped_ipv4 = false);
+    virtual int getsockname(sockaddr *__name, socklen_t *__namelen);
     virtual int getpeername(sockaddr *__name, socklen_t *__namelen);
 
     virtual int recvfrom_zcopy_free_packets(struct xlio_recvfrom_zcopy_packet_t *pkts,
