@@ -145,6 +145,12 @@ public:
         return (family == AF_INET ? LOOPBACK_N(m_ip) : *this == loopback6_addr());
     }
 
+    bool is_mapped_ipv4() const
+    {
+        return (m_ip6_64[0] == 0U && reinterpret_cast<const uint16_t *>(m_ip6_64)[4] == 0U &&
+                reinterpret_cast<const uint16_t *>(m_ip6_64)[5] == 0xFFFFU);
+    }
+
     bool is_equal_with_prefix(const ip_address &ip, unsigned prefix, sa_family_t family) const
     {
         if (prefix == 0) {
@@ -224,6 +230,12 @@ public:
         uint16_t *addr_ptr = reinterpret_cast<uint16_t *>(&out.m_ip6);
         addr_ptr[5] = 0xFFFFU;
         memcpy(addr_ptr + 6, &m_ip4, sizeof(m_ip4));
+    }
+
+    void from_mapped_ipv4(ip_address &out) const
+    {
+        out = any_addr();
+        reinterpret_cast<uint32_t *>(out.m_ip6_64)[3] = m_ip;
     }
 
     static const ip_address &any_addr()

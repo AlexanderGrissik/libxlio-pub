@@ -79,13 +79,9 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
 
                         peer_wait(fd);
                     }
-                } else {
-                    log_trace("Failed. errno = %d\n", errno);
                 }
 
                 close(fd);
-            } else {
-                log_trace("Failed. errno = %d\n", errno);
             }
 
             // This exit is very important, otherwise the fork

@@ -193,6 +193,24 @@ public:
         memcpy(&u_sa.m_sa, sa, std::min<size_t>(sizeof(u_sa), size));
     }
 
+    void set_sockaddr_mapped(const struct sockaddr *sa, socklen_t size)
+    {
+        if (::get_sa_family(sa) == AF_INET6) {
+            const struct sockaddr_in6 *addr = reinterpret_cast<const struct sockaddr_in6 *>(sa);
+            const ip_address *addr_ip = reinterpret_cast<const ip_address *>(&addr->sin6_addr);
+            if (unlikely(addr_ip->is_mapped_ipv4())) {
+                clear_sa();
+                u_sa.m_sa_in.sin_family = AF_INET;
+                u_sa.m_sa_in.sin_port = addr->sin6_port;
+                addr_ip->from_mapped_ipv4(
+                    *reinterpret_cast<ip_address *>(&u_sa.m_sa_in6.sin6_addr));
+                return;
+            }
+        }
+
+        set_sockaddr(sa, size);
+    }
+
     void set_ip_port(sa_family_t f, const void *ip_addr, in_port_t p)
     {
         clear_sa();
@@ -298,6 +316,14 @@ private:
         struct sockaddr_in m_sa_in;
         struct sockaddr_in6 m_sa_in6;
     } u_sa;
+};
+
+class sock_addr_mapped : public sock_addr {
+public:
+    sock_addr_mapped(const struct sockaddr *other, socklen_t size)
+    {
+        set_sockaddr_mapped(other, size);
+    }
 };
 
 namespace std {

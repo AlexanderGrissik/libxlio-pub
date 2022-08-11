@@ -250,3 +250,98 @@ TEST_F(udp_send, ti_6)
 
     close(fd);
 }
+
+/**
+ * @test udp_send.mapped_ipv4_send
+ * @brief
+ *    IPv6 mapped IPv4 send
+ *
+ * @details
+ */
+TEST_F(udp_send, mapped_ipv4_send)
+{
+    if (!is_mapped_ipv4_set()) {
+        return;
+    }
+
+    int pid = fork();
+    if (0 == pid) { // Child
+        int fd = udp_base::sock_create(AF_INET6, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 > fd) {
+            exit(testing::Test::HasFailure());
+            return;
+        }
+
+        auto do_send = [=](sa_family_t family) {
+            sockaddr_store_t &cl_server_t =
+                (family == AF_INET ? server_addr_mapped_ipv4 : server_addr);
+
+            struct sockaddr *sr_addr = reinterpret_cast<struct sockaddr *>(&cl_server_t);
+
+            barrier_fork(pid);
+
+            char buffer[8] = {0};
+            sendto(fd, buffer, sizeof(buffer), 0, sr_addr, sizeof(cl_server_t));
+
+            iovec vec = {.iov_base = buffer, .iov_len = sizeof(buffer)};
+            msghdr msg;
+            msg.msg_iov = &vec;
+            msg.msg_iovlen = 1U;
+            msg.msg_name = sr_addr;
+            msg.msg_namelen = sizeof(cl_server_t);
+            msg.msg_control = nullptr;
+            msg.msg_controllen = 0;
+            sendmsg(fd, &msg, 0);
+
+            mmsghdr mmsg;
+            mmsg.msg_hdr = msg;
+            mmsg.msg_len = 0U;
+            sendmmsg(fd, &mmsg, 1, 0);
+        };
+
+        do_send(AF_INET);
+        do_send(AF_INET6);
+
+        close(fd);
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { // Parent
+        auto do_recv = [pid, this](sa_family_t family) {
+            (void)family;
+            int fd = udp_base::sock_create(AF_INET6, false, 10);
+            EXPECT_LE_ERRNO(0, fd);
+            if (0 <= fd) {
+                sockaddr_store_t any_addr;
+                memset(&any_addr, 0, sizeof(any_addr));
+                any_addr.addr6.sin6_family = AF_INET6;
+                any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
+
+                const struct sockaddr *addr = reinterpret_cast<struct sockaddr *>(&any_addr);
+
+                int rc = bind(fd, addr, sizeof(sockaddr_store_t));
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    barrier_fork(pid);
+
+                    char buffer[8];
+                    rc = recv(fd, buffer, sizeof(buffer), 0);
+                    EXPECT_EQ(8, rc);
+                    rc = recv(fd, buffer, sizeof(buffer), 0);
+                    EXPECT_EQ(8, rc);
+                    rc = recv(fd, buffer, sizeof(buffer), 0);
+                    EXPECT_EQ(8, rc);
+                }
+
+                close(fd);
+            }
+        };
+
+        do_recv(AF_INET);
+        do_recv(AF_INET6);
+
+        EXPECT_EQ(0, wait_fork(pid));
+    }
+}

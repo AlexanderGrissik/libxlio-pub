@@ -1670,7 +1670,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
     TAKE_T_TX_START;
 #endif
     if (__dst != NULL) {
-        sock_addr dst(__dst, __dstlen);
+        sock_addr_mapped dst(__dst, __dstlen);
 
         if (unlikely(__dstlen < sizeof(struct sockaddr_in))) {
             si_udp_logdbg("going to os, dstlen < sizeof(struct sockaddr_in), dstlen = %d",
