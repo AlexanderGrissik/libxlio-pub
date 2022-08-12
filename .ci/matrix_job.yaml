@@ -113,15 +113,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_build=${action} ./contrib/test_jenkins.sh 
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -138,15 +130,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tool=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -163,15 +147,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_rpm=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -206,15 +182,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_style=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -231,15 +199,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_compiler=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -256,15 +216,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cov=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz,
       jenkins/**/output/errors/**/*.html
@@ -282,15 +234,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_cppcheck=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -307,15 +251,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_csbuild=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -332,15 +268,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_tidy=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -357,15 +285,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_run=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -382,16 +302,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_gtest=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-          for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -410,15 +321,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_vg=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz,
       jenkins/**/vg/*valgrind*.log
@@ -436,15 +339,7 @@ steps:
       env WORKSPACE=$PWD TARGET=${flags} jenkins_test_commit=${action} ./contrib/test_jenkins.sh
     parallel: false
     onfail: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        cd ./jenkins/${flags};
-          for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-        cd ../..
-      fi
+      ./.ci/artifacts.sh
     archiveArtifacts-onfail: |
       jenkins/**/arch-*.tar.gz
     archiveTap-onfail: |
@@ -453,18 +348,7 @@ steps:
   - name: Artifacts
     enable: ${do_artifact}
     run: |
-      if [ -d jenkins ]; then
-        gzip -f ./jenkins/*.tar 2>/dev/null || true
-        cd ./jenkins/ ;
-          for f in *.tar.gz ; do [ -e "$f" ] && mv "$f" "${flags}/arch-${name}-$f" ; done ;
-        cd ..
-        if [ -d jenkins/${flags} ]; then
-          cd ./jenkins/${flags};
-            for f in *.tap ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-            for f in *.xml ; do [ -e "$f" ] && mv "$f" "${flags}-${name}-$f" ; done ;
-          cd ../..
-        fi
-      fi
+      ./.ci/artifacts.sh
     parallel: false
     archiveArtifacts: |
       jenkins/**/arch-*.tar.gz
