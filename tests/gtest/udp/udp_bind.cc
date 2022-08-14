@@ -51,8 +51,8 @@ public:
 protected:
     bool create_ipv4_ipv6_sockets(bool reuse_addr)
     {
-        m_fd4 = udp_base::sock_create(AF_INET, reuse_addr);
-        m_fd6 = udp_base::sock_create(AF_INET6, reuse_addr);
+        m_fd4 = udp_base::sock_create_fa(AF_INET, reuse_addr);
+        m_fd6 = udp_base::sock_create_fa(AF_INET6, reuse_addr);
         EXPECT_LE(0, m_fd4);
         EXPECT_LE(0, m_fd6);
         return (m_fd4 > 0 && m_fd6 > 0);
@@ -62,7 +62,7 @@ protected:
     {
         int rc = close(m_fd6);
         EXPECT_EQ(0, rc);
-        m_fd6 = udp_base::sock_create(AF_INET6, reuse_addr);
+        m_fd6 = udp_base::sock_create_fa(AF_INET6, reuse_addr);
         EXPECT_LE(0, m_fd6);
         return (m_fd6 > 0);
     }
@@ -317,7 +317,7 @@ TEST_F(udp_bind, mapped_ipv4_bind_recv)
     if (0 == pid) { // Child
         barrier_fork(pid);
 
-        int fd = udp_base::sock_create(AF_INET, false);
+        int fd = udp_base::sock_create_fa(AF_INET, false);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
@@ -342,7 +342,7 @@ TEST_F(udp_bind, mapped_ipv4_bind_recv)
         // keeps running and may duplicate other tests.
         exit(testing::Test::HasFailure());
     } else { // Parent
-        int fd = udp_base::sock_create(AF_INET6, false, 10);
+        int fd = udp_base::sock_create_to(AF_INET6, false, 10);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
@@ -385,7 +385,7 @@ TEST_F(udp_bind, mapped_ipv4_bind_send)
     if (0 == pid) { // Child
         barrier_fork(pid);
 
-        int fd = udp_base::sock_create(AF_INET6, false);
+        int fd = udp_base::sock_create_fa(AF_INET6, false);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
@@ -408,7 +408,7 @@ TEST_F(udp_bind, mapped_ipv4_bind_send)
         // keeps running and may duplicate other tests.
         exit(testing::Test::HasFailure());
     } else { // Parent
-        int fd = udp_base::sock_create(AF_INET, false, 10);
+        int fd = udp_base::sock_create_to(AF_INET, false, 10);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));

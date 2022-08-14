@@ -143,7 +143,7 @@ void test_base::ipv4_to_mapped(sockaddr_store_t &inout)
     reinterpret_cast<in_addr *>(&inout.addr6.sin6_addr)[3] = addr;
 }
 
-int test_base::set_socket_rcv_timeout(int fd, int timeout_sec)
+int test_base_sock::set_socket_rcv_timeout(int fd, int timeout_sec)
 {
     struct timeval tv;
     tv.tv_sec = timeout_sec;
@@ -151,14 +151,9 @@ int test_base::set_socket_rcv_timeout(int fd, int timeout_sec)
     return setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 }
 
-int test_base::sock_create()
+int test_base_sock::sock_create_to(sa_family_t family, bool reuse_addr, int timeout_sec) const
 {
-    return sock_create_reuse(m_family, false);
-}
-
-int test_base::sock_create(sa_family_t family, bool reuse_addr, int timeout_sec)
-{
-    int fd = sock_create_reuse(family, reuse_addr);
+    int fd = sock_create_fa(family, reuse_addr);
     if (fd >= 0 && 0 != set_socket_rcv_timeout(fd, timeout_sec)) {
         close(fd);
         fd = -1;
@@ -167,9 +162,9 @@ int test_base::sock_create(sa_family_t family, bool reuse_addr, int timeout_sec)
     return fd;
 }
 
-int test_base::sock_create_nb()
+int test_base_sock::sock_create_fa_nb(sa_family_t family) const
 {
-    int fd = sock_create_reuse(m_family, false);
+    int fd = sock_create_fa(family, false);
     if (fd < 0) {
         return fd;
     }
@@ -177,6 +172,32 @@ int test_base::sock_create_nb()
     int rc = test_base::sock_noblock(fd);
     if (rc < 0) {
         log_error("failed sock_noblock() %s\n", strerror(errno));
+        goto err;
+    }
+
+    return fd;
+
+err:
+    close(fd);
+
+    return (-1);
+}
+
+int test_base_sock::sock_create_typed(sa_family_t family, int type, bool reuse_addr)
+{
+    int rc;
+    int fd;
+    int opt_val = (reuse_addr ? 1 : 0);
+
+    fd = socket(family, type, IPPROTO_IP);
+    if (fd < 0) {
+        log_error("failed socket(%hu) %s\n", family, strerror(errno));
+        return -1;
+    }
+
+    rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+    if (rc < 0) {
+        log_error("failed setsockopt(SO_REUSEADDR) %s\n", strerror(errno));
         goto err;
     }
 

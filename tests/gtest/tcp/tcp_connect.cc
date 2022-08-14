@@ -256,7 +256,7 @@ TEST_F(tcp_connect, ti_5_multi_connect)
 
     if (0 == pid) { /* I am the child */
         rc = -1;
-        int lfd = tcp_base::sock_create(m_family, true);
+        int lfd = tcp_base::sock_create_fa(m_family, true);
         EXPECT_LE(0, lfd);
         if (lfd > 0) {
             rc = bind(lfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -345,7 +345,7 @@ TEST_F(tcp_connect, mapped_ipv4_connect)
         if (0 == pid) { // Child
             barrier_fork(pid);
 
-            int fd = tcp_base::sock_create(AF_INET6, false);
+            int fd = tcp_base::sock_create_fa(AF_INET6, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
@@ -392,7 +392,7 @@ TEST_F(tcp_connect, mapped_ipv4_connect)
             // keeps running and may duplicate other tests.
             exit(testing::Test::HasFailure());
         } else { // Parent
-            int l_fd = tcp_base::sock_create(AF_INET, false, 10);
+            int l_fd = tcp_base::sock_create_to(AF_INET, false, 10);
             EXPECT_LE_ERRNO(0, l_fd);
             if (0 <= l_fd) {
                 int rc = bind(l_fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));

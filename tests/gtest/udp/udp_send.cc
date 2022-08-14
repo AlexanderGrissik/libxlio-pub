@@ -266,7 +266,7 @@ TEST_F(udp_send, mapped_ipv4_send)
 
     int pid = fork();
     if (0 == pid) { // Child
-        int fd = udp_base::sock_create(AF_INET6, false);
+        int fd = udp_base::sock_create_fa(AF_INET6, false);
         EXPECT_LE_ERRNO(0, fd);
         if (0 > fd) {
             exit(testing::Test::HasFailure());
@@ -311,7 +311,7 @@ TEST_F(udp_send, mapped_ipv4_send)
     } else { // Parent
         auto do_recv = [pid, this](sa_family_t family) {
             (void)family;
-            int fd = udp_base::sock_create(AF_INET6, false, 10);
+            int fd = udp_base::sock_create_to(AF_INET6, false, 10);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 sockaddr_store_t any_addr;

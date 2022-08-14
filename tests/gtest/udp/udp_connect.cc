@@ -191,7 +191,7 @@ TEST_F(udp_connect, mapped_ipv4_connect)
         if (0 == pid) { // Child
             barrier_fork(pid);
 
-            int fd = udp_base::sock_create(AF_INET6, false);
+            int fd = udp_base::sock_create_fa(AF_INET6, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
@@ -240,7 +240,7 @@ TEST_F(udp_connect, mapped_ipv4_connect)
             // keeps running and may duplicate other tests.
             exit(testing::Test::HasFailure());
         } else { // Parent
-            int fd = udp_base::sock_create(AF_INET, false, 10);
+            int fd = udp_base::sock_create_to(AF_INET, false, 10);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));

@@ -76,7 +76,7 @@ TEST_F(tcp_socket, ti_2_ipv6only_listen_all)
         if (0 == pid) { /* I am the child */
             barrier_fork(pid);
 
-            int fd = tcp_base::sock_create(client_addr.addr.sa_family);
+            int fd = tcp_base::sock_create_fa(client_addr.addr.sa_family);
             ASSERT_LE(0, fd);
 
             rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -88,7 +88,7 @@ TEST_F(tcp_socket, ti_2_ipv6only_listen_all)
 
                 close(fd);
 
-                fd = tcp_base::sock_create(AF_INET6);
+                fd = tcp_base::sock_create_fa(AF_INET6);
                 ASSERT_LE(0, fd);
 
                 rc = connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));

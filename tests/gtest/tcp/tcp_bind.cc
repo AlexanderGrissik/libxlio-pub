@@ -51,8 +51,8 @@ public:
 protected:
     bool create_ipv4_ipv6_sockets(bool reuse_addr)
     {
-        m_fd4 = tcp_base::sock_create(AF_INET, reuse_addr);
-        m_fd6 = tcp_base::sock_create(AF_INET6, reuse_addr);
+        m_fd4 = tcp_base::sock_create_fa(AF_INET, reuse_addr);
+        m_fd6 = tcp_base::sock_create_fa(AF_INET6, reuse_addr);
         EXPECT_LE(0, m_fd4);
         EXPECT_LE(0, m_fd6);
         return (m_fd4 > 0 && m_fd6 > 0);
@@ -63,7 +63,7 @@ protected:
         int rc = close(m_fd6);
         usleep(500000U); // XLIO timers to clean fd.
         EXPECT_EQ(0, rc);
-        m_fd6 = tcp_base::sock_create(AF_INET6, reuse_addr);
+        m_fd6 = tcp_base::sock_create_fa(AF_INET6, reuse_addr);
         EXPECT_LE(0, m_fd6);
         return (m_fd6 > 0);
     }
@@ -411,7 +411,7 @@ TEST_F(tcp_bind, mapped_ipv4_bind)
     if (0 == pid) { // Child
         barrier_fork(pid);
 
-        int fd = tcp_base::sock_create(AF_INET, false);
+        int fd = tcp_base::sock_create_fa(AF_INET, false);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
@@ -439,7 +439,7 @@ TEST_F(tcp_bind, mapped_ipv4_bind)
         // keeps running and may duplicate other tests.
         exit(testing::Test::HasFailure());
     } else { // Parent
-        int l_fd = tcp_base::sock_create(AF_INET6, false, 10);
+        int l_fd = tcp_base::sock_create_to(AF_INET6, false, 10);
         EXPECT_LE_ERRNO(0, l_fd);
         if (0 <= l_fd) {
             sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;

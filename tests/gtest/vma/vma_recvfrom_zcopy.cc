@@ -35,10 +35,12 @@
 #include "common/sys.h"
 #include "common/base.h"
 #include "common/cmn.h"
+#include "src/vma/util/sock_addr.h"
 
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
 #include "tcp/tcp_base.h"
+#include "udp/udp_base.h"
 #include "vma_base.h"
 
 class vma_tcp_recvfrom_zcopy : public vma_base, public tcp_base {
@@ -99,6 +101,8 @@ protected:
     int m_fd;
     char *m_test_buf;
     int m_test_buf_size;
+
+    udp_base_sock m_udp_base_sock;
 };
 
 /**
@@ -451,6 +455,193 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
 
             ASSERT_EQ(0, wait_fork(pid));
         }
+    }
+}
+
+/**
+ * @test vma_tcp_recvfrom_zcopy.mapped_ipv4
+ * @brief
+ *    IPv6 mapped IPv4 receive
+ *
+ * @details
+ */
+TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
+{
+    if (!is_mapped_ipv4_set()) {
+        return;
+    }
+
+    int pid = fork();
+
+    if (0 == pid) { // Child
+        barrier_fork(pid);
+
+        int fd = tcp_base::sock_create_fa(AF_INET, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                rc = connect(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    log_trace("Established connection: fd=%d to %s from %s\n", fd,
+                              SOCK_STR(server_addr_mapped_ipv4), SOCK_STR(client_addr_mapped_ipv4));
+
+                    char buffer[8] = {0};
+                    send(fd, buffer, sizeof(buffer), 0);
+                }
+            }
+
+            close(fd);
+        }
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { // Parent
+        sockaddr_store_t any_addr;
+        memset(&any_addr, 0, sizeof(any_addr));
+        any_addr.addr6.sin6_family = AF_INET6;
+        any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
+
+        int l_fd = tcp_base::sock_create_to(AF_INET6, false, 10);
+        EXPECT_LE_ERRNO(0, l_fd);
+        if (0 <= l_fd) {
+            int rc = bind(l_fd, &any_addr.addr, sizeof(any_addr));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                log_trace("Bound server: fd=%d\n", l_fd);
+
+                rc = listen(l_fd, 5);
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    barrier_fork(pid);
+
+                    int fd = accept(l_fd, nullptr, 0U);
+                    EXPECT_LE_ERRNO(0, fd);
+                    if (0 <= fd) {
+                        log_trace("Accepted connection: fd=%d\n", fd);
+
+                        size_t vma_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
+                            sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec);
+                        char buf[8 + vma_header_size];
+
+                        int flags = 0;
+                        sockaddr_store_t peer_addr;
+                        struct sockaddr *ppeer = &peer_addr.addr;
+                        socklen_t socklen = sizeof(peer_addr);
+                        memset(&peer_addr, 0, socklen);
+
+                        rc =
+                            xlio_api->recvfrom_zcopy(fd, buf, sizeof(buf), &flags, ppeer, &socklen);
+                        EXPECT_EQ(8, rc);
+                        EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
+                        if (rc > 0) {
+                            xlio_recvfrom_zcopy_packets_t *vma_packets =
+                                reinterpret_cast<xlio_recvfrom_zcopy_packets_t *>(buf);
+
+                            rc = xlio_api->recvfrom_zcopy_free_packets(fd, vma_packets->pkts,
+                                                                       vma_packets->n_packet_num);
+                            EXPECT_EQ(0, rc);
+                        }
+
+                        close(fd);
+                    }
+                }
+            }
+
+            close(l_fd);
+        }
+
+        EXPECT_EQ(0, wait_fork(pid));
+    }
+}
+
+/**
+ * @test vma_tcp_recvfrom_zcopy.mapped_ipv4_udp
+ * @brief
+ *    IPv6 mapped IPv4 receive
+ *
+ * @details
+ */
+TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4_udp)
+{
+    if (!is_mapped_ipv4_set()) {
+        return;
+    }
+
+    int pid = fork();
+
+    if (0 == pid) { // Child
+        barrier_fork(pid);
+
+        int fd = m_udp_base_sock.sock_create_fa(AF_INET, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                rc = connect(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    log_trace("Established connection: fd=%d to %s from %s\n", fd,
+                              SOCK_STR(server_addr_mapped_ipv4), SOCK_STR(client_addr_mapped_ipv4));
+
+                    char buffer[8] = {0};
+                    send(fd, buffer, sizeof(buffer), 0);
+                }
+            }
+
+            close(fd);
+        }
+
+        // This exit is very important, otherwise the fork
+        // keeps running and may duplicate other tests.
+        exit(testing::Test::HasFailure());
+    } else { // Parent
+        sockaddr_store_t any_addr;
+        memset(&any_addr, 0, sizeof(any_addr));
+        any_addr.addr6.sin6_family = AF_INET6;
+        any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
+
+        int fd = m_udp_base_sock.sock_create_to(AF_INET6, false, 10);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &any_addr.addr, sizeof(any_addr));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                log_trace("Bound server: fd=%d\n", fd);
+
+                barrier_fork(pid);
+
+                size_t vma_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
+                    sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec);
+                char buf[8 + vma_header_size];
+
+                int flags = 0;
+                sockaddr_store_t peer_addr;
+                struct sockaddr *ppeer = &peer_addr.addr;
+                socklen_t socklen = sizeof(peer_addr);
+                memset(&peer_addr, 0, socklen);
+
+                rc = xlio_api->recvfrom_zcopy(fd, buf, sizeof(buf), &flags, ppeer, &socklen);
+                EXPECT_EQ(8, rc);
+                EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
+                if (rc > 0) {
+                    xlio_recvfrom_zcopy_packets_t *vma_packets =
+                        reinterpret_cast<xlio_recvfrom_zcopy_packets_t *>(buf);
+
+                    rc = xlio_api->recvfrom_zcopy_free_packets(fd, vma_packets->pkts,
+                                                               vma_packets->n_packet_num);
+                    EXPECT_EQ(0, rc);
+                }
+            }
+
+            close(fd);
+        }
+
+        EXPECT_EQ(0, wait_fork(pid));
     }
 }
 

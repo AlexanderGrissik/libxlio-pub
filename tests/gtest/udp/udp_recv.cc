@@ -66,7 +66,7 @@ TEST_F(udp_recv, mapped_ipv4_recv)
         barrier_fork(pid);
 
         auto do_send = [this](sa_family_t family) {
-            int fd = udp_base::sock_create(family, false);
+            int fd = udp_base::sock_create_fa(family, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 sockaddr_store_t &cl_client_t =
@@ -111,7 +111,7 @@ TEST_F(udp_recv, mapped_ipv4_recv)
         any_addr.addr6.sin6_family = AF_INET6;
         any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
 
-        int fd = udp_base::sock_create(AF_INET6, false, 10);
+        int fd = udp_base::sock_create_to(AF_INET6, false, 10);
         EXPECT_LE_ERRNO(0, fd);
         if (0 <= fd) {
             int rc = bind(fd, &any_addr.addr, sizeof(any_addr));

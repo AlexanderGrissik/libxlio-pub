@@ -60,7 +60,7 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
         if (0 == pid) { // Child
             barrier_fork(pid);
 
-            int fd = tcp_base::sock_create(AF_INET, false);
+            int fd = tcp_base::sock_create_fa(AF_INET, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
                 int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
@@ -90,7 +90,7 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
             any_addr.addr6.sin6_family = AF_INET6;
             any_addr.addr6.sin6_port = server_addr.addr6.sin6_port;
 
-            int l_fd = tcp_base::sock_create(AF_INET6, false, 10);
+            int l_fd = tcp_base::sock_create_to(AF_INET6, false, 10);
             EXPECT_LE_ERRNO(0, l_fd);
             if (0 <= l_fd) {
                 int rc = bind(l_fd, &any_addr.addr, sizeof(any_addr));

@@ -96,7 +96,6 @@ gtest_SOURCES = \
 	mix/mix_list.cc \
 	\
 	tcp/tcp_accept.cc \
-	tcp/tcp_base.cc \
 	tcp/tcp_bind.cc \
 	tcp/tcp_connect.cc \
 	tcp/tcp_connect_nb.cc \
@@ -110,7 +109,6 @@ gtest_SOURCES = \
 	tcp/tcp_sockopt.cc \
 	tcp/tcp_tls.cc \
 	\
-	udp/udp_base.cc \
 	udp/udp_socket.cc \
 	udp/udp_bind.cc \
 	udp/udp_connect.cc \

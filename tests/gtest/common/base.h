@@ -60,27 +60,28 @@
 
 #define SOCK_STR(x) sockaddr2str(reinterpret_cast<const sockaddr *>(&x), sizeof(x)).c_str()
 
+class test_base_sock {
+public:
+    virtual int get_sock_type() const = 0;
+
+    int sock_create_fa(sa_family_t family, bool reuse_addr = false) const
+    {
+        return sock_create_typed(family, get_sock_type(), reuse_addr);
+    }
+
+    int sock_create_fa_nb(sa_family_t family) const;
+    int sock_create_to(sa_family_t family, bool reuse_addr, int timeout_sec) const;
+
+protected:
+    static int sock_create_typed(sa_family_t family, int type, bool reuse_addr);
+    static int set_socket_rcv_timeout(int fd, int timeout_sec);
+};
+
 /**
  * Base class for tests
  */
 class test_base {
 public:
-    virtual int sock_create_reuse(sa_family_t family, bool reuse_addr)
-    {
-        (void)(family);
-        (void)(reuse_addr);
-        return -1;
-    };
-
-    int sock_create(sa_family_t family, bool reuse_addr = false)
-    {
-        return sock_create_reuse(family, reuse_addr);
-    }
-
-    int sock_create();
-    int sock_create_nb();
-    int sock_create(sa_family_t family, bool reuse_addr, int timeout_sec);
-
     static int sock_noblock(int fd);
     static int event_wait(struct epoll_event *event);
     static int wait_fork(int pid);
@@ -97,7 +98,6 @@ protected:
     bool child_fork_exit() { return m_break_signal; }
     bool is_mapped_ipv4_set() const;
 
-    static int set_socket_rcv_timeout(int fd, int timeout_sec);
     static void ipv4_to_mapped(sockaddr_store_t &inout);
 
     sockaddr_store_t client_addr;

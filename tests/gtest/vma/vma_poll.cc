@@ -51,6 +51,9 @@ protected:
         SKIP_TRUE((getenv("XLIO_SOCKETXTREME")), "This test requires XLIO_SOCKETXTREME=1");
     }
     void TearDown() { vma_base::TearDown(); }
+
+    tcp_base_sock m_tcp_base;
+    udp_base_sock m_udp_base;
 };
 
 /**
@@ -73,7 +76,7 @@ TEST_F(vma_poll, ti_1)
 
         barrier_fork(pid);
 
-        fd = tcp_base::sock_create_nb();
+        fd = m_tcp_base.sock_create_fa_nb(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -104,7 +107,7 @@ TEST_F(vma_poll, ti_1)
         int fd_peer;
         struct sockaddr peer_addr;
 
-        fd = tcp_base::sock_create_nb();
+        fd = m_tcp_base.sock_create_fa_nb(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -159,7 +162,7 @@ TEST_F(vma_poll, ti_2)
     if (0 == pid) { /* I am the child */
         barrier_fork(pid);
 
-        fd = tcp_base::sock_create();
+        fd = m_tcp_base.sock_create_fa(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -186,7 +189,7 @@ TEST_F(vma_poll, ti_2)
         int fd_peer;
         struct sockaddr peer_addr;
 
-        fd = tcp_base::sock_create_nb();
+        fd = m_tcp_base.sock_create_fa_nb(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -257,7 +260,7 @@ TEST_F(vma_poll, ti_3)
     if (0 == pid) { /* I am the child */
         barrier_fork(pid);
 
-        fd = tcp_base::sock_create();
+        fd = m_tcp_base.sock_create_fa(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -285,7 +288,7 @@ TEST_F(vma_poll, ti_3)
         struct sockaddr peer_addr;
         const char *user_data = "This is a data";
 
-        fd = tcp_base::sock_create_nb();
+        fd = m_tcp_base.sock_create_fa_nb(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -361,7 +364,7 @@ TEST_F(vma_poll, ti_4)
     if (0 == pid) { /* I am the child */
         barrier_fork(pid);
 
-        fd = udp_base::sock_create();
+        fd = m_udp_base.sock_create_fa(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -382,7 +385,7 @@ TEST_F(vma_poll, ti_4)
         struct xlio_socketxtreme_completion_t vma_comps;
         int fd_peer = -1;
 
-        fd = udp_base::sock_create_nb();
+        fd = m_udp_base.sock_create_fa_nb(m_family);
         ASSERT_LE(0, fd);
 
         rc = bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
