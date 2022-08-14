@@ -2394,8 +2394,6 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 {
     int ret = 0;
 
-    NOT_IN_USE(__tolen);
-
     lock_tcp_con();
 
     /* Connection was closed by RST, timeout, ICMP error
@@ -2443,6 +2441,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     }
 
     m_connected.set_sockaddr(__to, __tolen);
+    m_connected.strip_mapped_ipv4();
 
     create_dst_entry();
     if (!m_p_connected_dst_entry) {
