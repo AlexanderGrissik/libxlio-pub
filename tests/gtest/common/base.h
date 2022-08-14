@@ -75,6 +75,7 @@ public:
 protected:
     static int sock_create_typed(sa_family_t family, int type, bool reuse_addr);
     static int set_socket_rcv_timeout(int fd, int timeout_sec);
+    static int bind_to_device(int fd, const sockaddr_store_t& addr_store);
 };
 
 /**

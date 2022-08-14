@@ -709,6 +709,9 @@ int get_ip_addr_from_ifindex(uint32_t ifindex, ip_addr &addr, sa_family_t family
 
         do {
             int len = socket_cm.recv_response();
+            if (len < 0) {
+                throw std::runtime_error("recv_response failed");
+            }
 
             for (auto nl = socket_cm.get_nlmsghdr(); nlmsg_ok(nl, len); nl = nlmsg_next(nl, &len)) {
                 struct ifaddrmsg *ifa = reinterpret_cast<struct ifaddrmsg *>(nlmsg_data(nl));

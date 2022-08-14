@@ -767,13 +767,16 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 ip_addr addr {0};
                 if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                     m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
-                } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family)) {
-                    si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, cannot find if_name",
-                                  setsockopt_so_opt_to_str(__optname));
-                    break;
-                } else {
+                } else if (!get_ip_addr_from_ifname((char *)__optval, addr, m_family) ||
+                           (m_family == AF_INET6 && !m_is_ipv6only && 
+                            !get_ip_addr_from_ifname((char *)__optval, addr, AF_INET))) {
                     m_so_bindtodevice_ip = addr;
+                } else {
+                    si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, cannot find if_name",
+                        setsockopt_so_opt_to_str(__optname));
+                    break;
                 }
+
                 si_udp_logdbg("SOL_SOCKET, %s='%s' (%s)", setsockopt_so_opt_to_str(__optname),
                               (char *)__optval, m_so_bindtodevice_ip.to_str().c_str());
 

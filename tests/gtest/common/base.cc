@@ -209,6 +209,21 @@ err:
     return (-1);
 }
 
+int test_base_sock::bind_to_device(int fd, const sockaddr_store_t& addr_store)
+{
+    char ifname[128] = {0};
+    char *rcs = sys_addr2dev(&addr_store.addr, ifname, sizeof(ifname));
+    if (rcs) {
+        log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd,
+                  sys_addr2str(&addr_store.addr), ifname);
+
+        return setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
+    }
+
+    errno = ENOMEDIUM;
+    return -1;
+}
+
 bool test_base::barrier()
 {
     int ret = pthread_barrier_wait(&m_barrier);

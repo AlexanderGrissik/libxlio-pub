@@ -380,50 +380,65 @@ TEST_F(udp_bind, mapped_ipv4_bind_send)
         return;
     }
 
-    int pid = fork();
+    auto check_bind = [this](bool bindtodevice) {
+        int pid = fork();
+        if (0 == pid) { // Child
+            barrier_fork(pid);
 
-    if (0 == pid) { // Child
-        barrier_fork(pid);
+            int fd = udp_base::sock_create_fa(AF_INET6, false);
+            EXPECT_LE_ERRNO(0, fd);
+            if (0 <= fd) {
+                sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
+                sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;
+                ipv4_to_mapped(client_ipv4);
+                ipv4_to_mapped(server_ipv4);
 
-        int fd = udp_base::sock_create_fa(AF_INET6, false);
-        EXPECT_LE_ERRNO(0, fd);
-        if (0 <= fd) {
-            sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
-            sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;
-            ipv4_to_mapped(client_ipv4);
-            ipv4_to_mapped(server_ipv4);
+                int rc = 0;
+                if (bindtodevice) {
+                    rc = bind_to_device(fd, client_addr_mapped_ipv4);
+                }
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    rc = bind(fd, &client_ipv4.addr, sizeof(client_ipv4));
+                    EXPECT_EQ_ERRNO(0, rc);
+                    if (0 == rc) {
+                        char buffer[8] = {0};
+                        rc = sendto(fd, buffer, sizeof(buffer), 0, &server_ipv4.addr,
+                                    sizeof(server_ipv4));
+                        EXPECT_EQ_ERRNO(8, rc);
+                    }
+                }
 
-            int rc = bind(fd, &client_ipv4.addr, sizeof(client_ipv4));
-            EXPECT_EQ_ERRNO(0, rc);
-            if (0 == rc) {
-                char buffer[8] = {0};
-                rc = sendto(fd, buffer, sizeof(buffer), 0, &server_ipv4.addr, sizeof(server_ipv4));
-                EXPECT_EQ_ERRNO(8, rc);
+                close(fd);
             }
 
-            close(fd);
-        }
+            // This exit is very important, otherwise the fork
+            // keeps running and may duplicate other tests.
+            exit(testing::Test::HasFailure());
+        } else { // Parent
+            int fd = udp_base::sock_create_to(AF_INET, false, 10);
+            EXPECT_LE_ERRNO(0, fd);
+            if (0 <= fd) {
+                int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                EXPECT_EQ_ERRNO(0, rc);
+                if (0 == rc) {
+                    barrier_fork(pid);
 
-        // This exit is very important, otherwise the fork
-        // keeps running and may duplicate other tests.
-        exit(testing::Test::HasFailure());
-    } else { // Parent
-        int fd = udp_base::sock_create_to(AF_INET, false, 10);
-        EXPECT_LE_ERRNO(0, fd);
-        if (0 <= fd) {
-            int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
-            EXPECT_EQ_ERRNO(0, rc);
-            if (0 == rc) {
-                barrier_fork(pid);
+                    char buffer[8] = {0};
+                    rc = recv(fd, buffer, sizeof(buffer), 0);
+                    EXPECT_EQ_ERRNO(8, rc);
+                }
 
-                char buffer[8] = {0};
-                rc = recv(fd, buffer, sizeof(buffer), 0);
-                EXPECT_EQ_ERRNO(8, rc);
+                close(fd);
             }
 
-            close(fd);
+            EXPECT_EQ(0, wait_fork(pid));
         }
+    };
 
-        EXPECT_EQ(0, wait_fork(pid));
-    }
+    log_trace("Checking bind()\n");
+    check_bind(false);
+    // Disabled for CI, XLIO inconformability.
+    //log_trace("Checking bind() with SO_BINDTODEVICE\n");
+    //check_bind(true);
 }

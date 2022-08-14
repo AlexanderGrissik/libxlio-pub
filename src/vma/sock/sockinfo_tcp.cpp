@@ -4215,7 +4215,9 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             allow_privileged_sock_opt = safe_mce_sys().allow_privileged_sock_opt;
             if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                 m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
-            } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family)) {
+            } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family) && 
+                       !(m_family == AF_INET6 && !m_is_ipv6only && 
+                         !get_ip_addr_from_ifname((char *)__optval, addr, AF_INET))) {
                 si_tcp_logdbg("SOL_SOCKET, SO_BINDTODEVICE - NOT HANDLED, cannot find if_name");
                 errno = EINVAL;
                 ret = -1;
