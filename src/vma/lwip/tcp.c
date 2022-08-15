@@ -115,6 +115,8 @@ void tcp_tmr(struct tcp_pcb *pcb)
     /* Call tcp_fasttmr() every (slow_tmr_interval / 2) ms */
     tcp_fasttmr(pcb);
 
+    pcb->ticks_since_data_sent += (pcb->ticks_since_data_sent != -1);
+
     if (++(pcb->tcp_timer) & 1) {
         /* Call tcp_tmr() every slow_tmr_interval ms, i.e., every other timer
            tcp_tmr() is called. */
@@ -558,8 +560,18 @@ err_t tcp_connect(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port, bool
         set_tcp_state(pcb, SYN_SENT);
 
         tcp_output(pcb);
+        pcb->ticks_since_data_sent = 0;
     }
     return ret;
+}
+
+static inline bool tcp_user_timeout_occured(struct tcp_pcb *pcb)
+{
+    u32_t user_timeout_ticks = (pcb->user_timeout_ms + slow_tmr_interval - 1U) / slow_tmr_interval;
+
+    return pcb->user_timeout_ms != 0 && pcb->ticks_since_data_sent > 0 &&
+        (u32_t)pcb->ticks_since_data_sent > user_timeout_ticks &&
+        (get_tcp_state(pcb) == ESTABLISHED || get_tcp_state(pcb) == SYN_SENT);
 }
 
 /**
@@ -571,14 +583,15 @@ err_t tcp_connect(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port, bool
  */
 void tcp_slowtmr(struct tcp_pcb *pcb)
 {
-    u8_t pcb_remove; /* flag if a PCB should be removed */
-    u8_t pcb_reset; /* flag if a RST should be sent when removing */
+    u8_t pcb_remove = 0; /* flag if a PCB should be removed */
+    u8_t pcb_reset = 0; /* flag if a RST should be sent when removing */
     err_t err;
 
     err = ERR_OK;
 
     if (pcb == NULL) {
         LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: no active pcbs\n"));
+        return;
     }
 
     if (pcb && PCB_IN_ACTIVE_STATE(pcb)) {
@@ -590,10 +603,11 @@ void tcp_slowtmr(struct tcp_pcb *pcb)
         LWIP_ASSERT("tcp_slowtmr: active get_tcp_state(pcb) != TIME-WAIT\n",
                     get_tcp_state(pcb) != TIME_WAIT);
 
-        pcb_remove = 0;
-        pcb_reset = 0;
-
-        if (get_tcp_state(pcb) == SYN_SENT && pcb->nrtx == TCP_SYNMAXRTX) {
+        if (tcp_user_timeout_occured(pcb)) {
+            ++pcb_remove;
+            err = ERR_TIMEOUT;
+            LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: user timeout occurred\n"));
+        } else if (get_tcp_state(pcb) == SYN_SENT && pcb->nrtx == TCP_SYNMAXRTX) {
             ++pcb_remove;
             err = ERR_TIMEOUT;
             LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: max SYN retries reached\n"));
@@ -932,6 +946,8 @@ void tcp_pcb_init(struct tcp_pcb *pcb, u8_t prio, void *container)
     u16_t snd_mss = pcb->advtsd_mss = tcp_send_mss(pcb);
     UPDATE_PCB_BY_MSS(pcb, snd_mss);
     pcb->max_unsent_len = pcb->max_tcp_snd_queuelen;
+    pcb->user_timeout_ms = 0;
+    pcb->ticks_since_data_sent = -1;
     pcb->rto = 3000 / slow_tmr_interval;
     pcb->sa = 0;
     pcb->sv = 3000 / slow_tmr_interval;
@@ -991,6 +1007,8 @@ void tcp_pcb_recycle(struct tcp_pcb *pcb)
     pcb->flags = 0;
     pcb->max_snd_buff = TCP_SND_BUF;
     pcb->snd_buf = pcb->max_snd_buff;
+    pcb->user_timeout_ms = 0;
+    pcb->ticks_since_data_sent = -1;
     pcb->rto = 3000 / slow_tmr_interval;
     pcb->sa = 0;
     pcb->sv = 3000 / slow_tmr_interval;
@@ -1315,6 +1333,18 @@ u16_t tcp_send_mss(struct tcp_pcb *pcb)
         }
     }
     return mss;
+}
+
+void tcp_set_keepalive(struct tcp_pcb *pcb, u32_t idle, u32_t intvl, u32_t cnt)
+{
+    pcb->keep_idle = idle;
+#if LWIP_TCP_KEEPALIVE
+    pcb->keep_intvl = intvl;
+    pcb->keep_cnt = cnt;
+#else
+    (void)intvl;
+    (void)cnt;
+#endif /* LWIP_TCP_KEEPALIVE */
 }
 
 #if TCP_DEBUG || TCP_INPUT_DEBUG || TCP_OUTPUT_DEBUG

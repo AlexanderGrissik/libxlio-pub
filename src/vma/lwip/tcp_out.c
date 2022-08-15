@@ -1863,6 +1863,9 @@ static err_t tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
         opts += 1; // Move to the next line (meaning next 32 bit) as this option is 3 bytes long +
                    // we added 1 byte NOOP padding => total 4 bytes
     }
+    if (pcb->ticks_since_data_sent == -1) {
+        pcb->ticks_since_data_sent = 0;
+    }
 
 #if LWIP_TCP_TIMESTAMPS
     if (!LWIP_IS_DUMMY_SEGMENT(seg)) {
@@ -2159,6 +2162,10 @@ void tcp_keepalive(struct tcp_pcb *pcb)
     /* Send output to IP */
     pcb->ip_output(p, NULL, pcb, 0);
     tcp_tx_pbuf_free(pcb, p);
+
+    if (pcb->ticks_since_data_sent == -1) {
+        pcb->ticks_since_data_sent = 0;
+    }
 
     LWIP_DEBUGF(
         TCP_DEBUG,

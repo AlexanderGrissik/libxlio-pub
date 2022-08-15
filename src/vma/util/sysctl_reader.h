@@ -42,6 +42,12 @@ struct sysctl_tcp_mem {
     int max_value;
 };
 
+struct tcp_keepalive_info {
+    int idle_secs;
+    int interval_secs;
+    int num_probes;
+};
+
 class sysctl_reader_t {
 
 private:
@@ -153,6 +159,17 @@ public:
             }
         }
         return &tcp_mem;
+    }
+
+    const tcp_keepalive_info *get_tcp_keepalive_info(bool update = false)
+    {
+        static tcp_keepalive_info info = {7200, 75, 9};
+        if (update) {
+            info.idle_secs = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_time", 7200);
+            info.interval_secs = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_intvl", 75);
+            info.num_probes = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_probes", 9);
+        }
+        return &info;
     }
 
     int get_tcp_window_scaling(bool update = false)

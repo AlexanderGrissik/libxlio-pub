@@ -138,6 +138,7 @@ vma_lwip::vma_lwip()
         free_lwip_resources();
         throw_vma_exception("LWIP: failed to register timer event");
     }
+    safe_mce_sys().sysctl_reader.get_tcp_keepalive_info(true);
 }
 
 vma_lwip::~vma_lwip()

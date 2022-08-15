@@ -294,6 +294,8 @@ struct tcp_pcb {
     /* RTT (round trip time) estimation variables */
     u32_t rttest; /* RTT estimate in 10ms ticks */
     u32_t rtseq; /* sequence number being timed */
+    u32_t user_timeout_ms; /* timeout in miliseconds */
+    s32_t ticks_since_data_sent;
 #if TCP_CC_ALGO_MOD
     u32_t t_rttupdated; /* number of RTT estimations taken so far */
 #endif
@@ -486,6 +488,8 @@ s32_t tcp_is_wnd_available(struct tcp_pcb *pcb, u32_t data_len);
 #define get_tcp_state(pcb) ((pcb)->private_state)
 #define set_tcp_state(pcb, state)                                                                  \
     external_tcp_state_observer((pcb)->my_container, (pcb)->private_state = state)
+
+void tcp_set_keepalive(struct tcp_pcb *pcb, u32_t idle, u32_t intvl, u32_t cnt);
 
 #ifdef __cplusplus
 }
