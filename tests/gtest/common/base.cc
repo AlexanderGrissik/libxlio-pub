@@ -71,11 +71,6 @@ test_base::test_base()
         memcpy(&server_addr, &gtest_conf.server_addr, sizeof(server_addr));
     }
 
-    memcpy(&client_addr_mapped_ipv4, &gtest_conf.client_addr_mapped_ipv4,
-           sizeof(client_addr_mapped_ipv4));
-    memcpy(&server_addr_mapped_ipv4, &gtest_conf.server_addr_mapped_ipv4,
-           sizeof(server_addr_mapped_ipv4));
-
     if (((struct sockaddr *)&gtest_conf.remote_addr)->sa_family != m_family) {
         memset(&remote_addr, 0, sizeof(remote_addr));
         ((struct sockaddr *)&remote_addr)->sa_family = m_family;
@@ -126,10 +121,9 @@ void test_base::cleanup()
 {
 }
 
-bool test_base::is_mapped_ipv4_set() const
+bool test_base::test_mapped_ipv4() const
 {
-    return (client_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0 &&
-            server_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0);
+    return (m_family != AF_INET6);
 }
 
 void test_base::ipv4_to_mapped(sockaddr_store_t &inout)
@@ -209,13 +203,13 @@ err:
     return (-1);
 }
 
-int test_base_sock::bind_to_device(int fd, const sockaddr_store_t& addr_store)
+int test_base_sock::bind_to_device(int fd, const sockaddr_store_t &addr_store)
 {
     char ifname[128] = {0};
     char *rcs = sys_addr2dev(&addr_store.addr, ifname, sizeof(ifname));
     if (rcs) {
-        log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd,
-                  sys_addr2str(&addr_store.addr), ifname);
+        log_trace("SO_BINDTODEVICE: fd=%d as %s on %s\n", fd, sys_addr2str(&addr_store.addr),
+                  ifname);
 
         return setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
     }

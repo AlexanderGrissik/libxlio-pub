@@ -38,12 +38,6 @@
 #include "src/vma/util/sock_addr.h"
 #include "udp_base.h"
 
-#define EXPECT_EQ_ADDR(v_peer, v_mapped, v_6)                                                      \
-    DO_WHILE0(                                                                                     \
-        if (family == AF_INET) { EXPECT_EQ_MAPPED_IPV4((v_peer), (v_mapped)); } else {             \
-            EXPECT_EQ_IPV6((v_peer), (v_6));                                                       \
-        })
-
 class udp_recv : public udp_base {
 };
 
@@ -56,7 +50,7 @@ class udp_recv : public udp_base {
  */
 TEST_F(udp_recv, mapped_ipv4_recv)
 {
-    if (!is_mapped_ipv4_set()) {
+    if (!test_mapped_ipv4()) {
         return;
     }
 
@@ -65,42 +59,30 @@ TEST_F(udp_recv, mapped_ipv4_recv)
     if (0 == pid) { // Child
         barrier_fork(pid);
 
-        auto do_send = [this](sa_family_t family) {
-            int fd = udp_base::sock_create_fa(family, false);
-            EXPECT_LE_ERRNO(0, fd);
-            if (0 <= fd) {
-                sockaddr_store_t &cl_client_t =
-                    (family == AF_INET ? client_addr_mapped_ipv4 : client_addr);
-                sockaddr_store_t &cl_server_t =
-                    (family == AF_INET ? server_addr_mapped_ipv4 : server_addr);
-                struct sockaddr *cl_addr = &cl_client_t.addr;
-                struct sockaddr *sr_addr = &cl_server_t.addr;
-
-                int rc = bind(fd, cl_addr, sizeof(cl_client_t));
+        int fd = udp_base::sock_create_fa(AF_INET, false);
+        EXPECT_LE_ERRNO(0, fd);
+        if (0 <= fd) {
+            int rc = bind(fd, &client_addr.addr, sizeof(client_addr));
+            EXPECT_EQ_ERRNO(0, rc);
+            if (0 == rc) {
+                rc = connect(fd, &server_addr.addr, sizeof(server_addr));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
-                    rc = connect(fd, sr_addr, sizeof(cl_server_t));
-                    EXPECT_EQ_ERRNO(0, rc);
-                    if (0 == rc) {
-                        log_trace("Established connection: fd=%d to %s from %s\n", fd,
-                                  SOCK_STR(cl_server_t), SOCK_STR(cl_client_t));
+                    log_trace("Established connection: fd=%d to %s from %s\n", fd,
+                              SOCK_STR(server_addr), SOCK_STR(client_addr));
 
-                        char buffer[8] = {0};
-                        send(fd, buffer, sizeof(buffer), 0);
-                        send(fd, buffer, sizeof(buffer), 0);
-                        send(fd, buffer, sizeof(buffer), 0);
+                    char buffer[8] = {0};
+                    send(fd, buffer, sizeof(buffer), 0);
+                    send(fd, buffer, sizeof(buffer), 0);
+                    send(fd, buffer, sizeof(buffer), 0);
 #if __USE_FORTIFY_LEVEL > 0 && defined __fortify_function && defined HAVE___RECVFROM_CHK
-                        send(fd, buffer, sizeof(buffer), 0);
+                    send(fd, buffer, sizeof(buffer), 0);
 #endif
-                    }
                 }
-
-                close(fd);
             }
-        };
 
-        do_send(AF_INET6);
-        do_send(AF_INET);
+            close(fd);
+        }
 
         // This exit is very important, otherwise the fork
         // keeps running and may duplicate other tests.
@@ -130,43 +112,34 @@ TEST_F(udp_recv, mapped_ipv4_recv)
                     memset(&peer_addr, 0, socklen);
                 };
 
-                auto do_recv = [&](sa_family_t family) {
-                    clear_sockaddr();
-                    recvfrom(fd, buffer, sizeof(buffer), 0, ppeer, &socklen);
-                    EXPECT_EQ_ADDR(peer_addr.addr6, client_addr_mapped_ipv4.addr4.sin_addr.s_addr,
-                                   client_addr.addr6);
+                clear_sockaddr();
+                recvfrom(fd, buffer, sizeof(buffer), 0, ppeer, &socklen);
+                EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6, client_addr.addr4.sin_addr.s_addr);
 
 #if __USE_FORTIFY_LEVEL > 0 && defined __fortify_function && defined HAVE___RECVFROM_CHK
-                    clear_sockaddr();
-                    __recvfrom_chk(fd, buffer, sizeof(buffer), sizeof(buffer), 0, ppeer, &socklen);
-                    EXPECT_EQ_ADDR(peer_addr.addr6, client_addr_mapped_ipv4.addr4.sin_addr.s_addr,
-                                   client_addr.addr6);
+                clear_sockaddr();
+                __recvfrom_chk(fd, buffer, sizeof(buffer), sizeof(buffer), 0, ppeer, &socklen);
+                EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6, client_addr.addr4.sin_addr.s_addr);
 #endif // HAVE___RECVFROM_CHK
 
-                    clear_sockaddr();
-                    iovec vec = {.iov_base = buffer, .iov_len = sizeof(buffer)};
-                    msghdr msg;
-                    msg.msg_iov = &vec;
-                    msg.msg_iovlen = 1U;
-                    msg.msg_name = ppeer;
-                    msg.msg_namelen = socklen;
-                    msg.msg_control = nullptr;
-                    msg.msg_controllen = 0;
-                    recvmsg(fd, &msg, 0);
-                    EXPECT_EQ_ADDR(peer_addr.addr6, client_addr_mapped_ipv4.addr4.sin_addr.s_addr,
-                                   client_addr.addr6);
+                clear_sockaddr();
+                iovec vec = {.iov_base = buffer, .iov_len = sizeof(buffer)};
+                msghdr msg;
+                msg.msg_iov = &vec;
+                msg.msg_iovlen = 1U;
+                msg.msg_name = ppeer;
+                msg.msg_namelen = socklen;
+                msg.msg_control = nullptr;
+                msg.msg_controllen = 0;
+                recvmsg(fd, &msg, 0);
+                EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6, client_addr.addr4.sin_addr.s_addr);
 
-                    clear_sockaddr();
-                    mmsghdr mmsg;
-                    mmsg.msg_hdr = msg;
-                    mmsg.msg_len = 0;
-                    recvmmsg(fd, &mmsg, 1, 0, nullptr);
-                    EXPECT_EQ_ADDR(peer_addr.addr6, client_addr_mapped_ipv4.addr4.sin_addr.s_addr,
-                                   client_addr.addr6);
-                };
-
-                do_recv(AF_INET6);
-                do_recv(AF_INET);
+                clear_sockaddr();
+                mmsghdr mmsg;
+                mmsg.msg_hdr = msg;
+                mmsg.msg_len = 0;
+                recvmmsg(fd, &mmsg, 1, 0, nullptr);
+                EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6, client_addr.addr4.sin_addr.s_addr);
             }
 
             close(fd);

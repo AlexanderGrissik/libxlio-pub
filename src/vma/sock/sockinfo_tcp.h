@@ -451,7 +451,7 @@ private:
     // Be sure that m_pcb is initialized
     void set_conn_properties_from_pcb();
     void set_sock_options(sockinfo_tcp *new_sock);
-
+    void passthrough_unlock(const char *dbg);
     // Register to timer
     void register_timer();
 

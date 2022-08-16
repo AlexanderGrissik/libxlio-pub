@@ -147,8 +147,7 @@ public:
 
     bool is_mapped_ipv4() const
     {
-        return (m_ip6_64[0] == 0U && reinterpret_cast<const uint16_t *>(m_ip6_64)[4] == 0U &&
-                reinterpret_cast<const uint16_t *>(m_ip6_64)[5] == 0xFFFFU);
+        return (m_ip6_64[0] == 0U && m_ip6_16[4] == 0U && m_ip6_16[5] == 0xFFFFU);
     }
 
     bool is_equal_with_prefix(const ip_address &ip, unsigned prefix, sa_family_t family) const
@@ -232,12 +231,6 @@ public:
         memcpy(addr_ptr + 6, &m_ip4, sizeof(m_ip4));
     }
 
-    void from_mapped_ipv4(ip_address &out) const
-    {
-        out = any_addr();
-        reinterpret_cast<uint32_t *>(out.m_ip6_64)[3] = m_ip;
-    }
-
     static const ip_address &any_addr()
     {
         static ip_address s_any_addr(in6addr_any);
@@ -266,6 +259,7 @@ protected:
     union {
         in6_addr m_ip6;
         uint64_t m_ip6_64[2];
+        uint16_t m_ip6_16[8];
         in_addr m_ip4;
         in_addr_t m_ip;
     };

@@ -460,7 +460,7 @@ int sockinfo_udp::bind_no_os()
     BULLSEYE_EXCLUDE_BLOCK_END
 
     // save the bound info and then attach to offload flows
-    addr.strip_mapped_ipv4();
+    validate_and_convert_mapped_ipv4(addr);
     on_sockname_change(addr.get_p_sa(), addr_len);
     si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true).c_str());
     dst_entry_map_t::iterator dst_entry_iter = m_dst_entry_map.begin();
@@ -498,6 +498,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
 {
     sock_addr connect_to(__to, __tolen);
     si_udp_logdbg("to %s", connect_to.to_str_ip_port(true).c_str());
+    validate_and_convert_mapped_ipv4(connect_to);
 
 #if defined(DEFINED_NGINX)
     // check if we can skip "connect()" flow, to increase performance of redundant connect() calls
@@ -768,12 +769,12 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                     m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
                 } else if (!get_ip_addr_from_ifname((char *)__optval, addr, m_family) ||
-                           (m_family == AF_INET6 && !m_is_ipv6only && 
+                           (m_family == AF_INET6 && !m_is_ipv6only &&
                             !get_ip_addr_from_ifname((char *)__optval, addr, AF_INET))) {
                     m_so_bindtodevice_ip = addr;
                 } else {
                     si_udp_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, cannot find if_name",
-                        setsockopt_so_opt_to_str(__optname));
+                                  setsockopt_so_opt_to_str(__optname));
                     break;
                 }
 
@@ -1675,11 +1676,8 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
 #endif
     if (__dst != NULL) {
         sock_addr dst(__dst, __dstlen);
-        dst.strip_mapped_ipv4();
-
-        if (unlikely(__dstlen < sizeof(struct sockaddr_in))) {
-            si_udp_logdbg("going to os, dstlen < sizeof(struct sockaddr_in), dstlen = %d",
-                          __dstlen);
+        if (!validate_and_convert_mapped_ipv4(dst)) {
+            si_udp_logdbg("Mapped IPv4 on IPv6-Only socket");
             goto tx_packet_to_os;
         }
 

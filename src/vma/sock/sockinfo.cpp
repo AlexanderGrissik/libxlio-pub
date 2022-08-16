@@ -1683,6 +1683,19 @@ void sockinfo::reuse_descs(descq_t *reuseq, ring *p_ring)
     }
 }
 
+bool sockinfo::validate_and_convert_mapped_ipv4(sock_addr &sock) const
+{
+    if (sock.get_sa_family() == AF_INET6) {
+        if (!m_is_ipv6only) {
+            sock.strip_mapped_ipv4();
+        } else if (sock.get_ip_addr().is_mapped_ipv4()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
 {
     sock_addr addr(m_bound);

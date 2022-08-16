@@ -182,7 +182,7 @@ TEST_F(udp_connect, ti_4)
  */
 TEST_F(udp_connect, mapped_ipv4_connect)
 {
-    if (!is_mapped_ipv4_set()) {
+    if (!test_mapped_ipv4()) {
         return;
     }
 
@@ -194,8 +194,8 @@ TEST_F(udp_connect, mapped_ipv4_connect)
             int fd = udp_base::sock_create_fa(AF_INET6, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
-                sockaddr_store_t client_ipv4 = client_addr_mapped_ipv4;
-                sockaddr_store_t server_ipv4 = server_addr_mapped_ipv4;
+                sockaddr_store_t client_ipv4 = client_addr;
+                sockaddr_store_t server_ipv4 = server_addr;
                 ipv4_to_mapped(client_ipv4);
                 ipv4_to_mapped(server_ipv4);
 
@@ -218,14 +218,15 @@ TEST_F(udp_connect, mapped_ipv4_connect)
                         memset(&peer_addr, 0, socklen);
 
                         getpeername(fd, ppeer, &socklen);
-                        EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                              server_addr_mapped_ipv4.addr4.sin_addr.s_addr);
+                        EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6, server_addr.addr4.sin_addr.s_addr);
 
-                        socklen = sizeof(peer_addr);
-                        memset(&peer_addr, 0, socklen);
-                        getsockname(fd, ppeer, &socklen);
-                        EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                              client_addr_mapped_ipv4.addr4.sin_addr.s_addr);
+                        if (withbind) {
+                            socklen = sizeof(peer_addr);
+                            memset(&peer_addr, 0, socklen);
+                            getsockname(fd, ppeer, &socklen);
+                            EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
+                                                  client_addr.addr4.sin_addr.s_addr);
+                        }
 
                         char buffer[8] = {0};
                         rc = send(fd, buffer, sizeof(buffer), 0);
@@ -243,7 +244,7 @@ TEST_F(udp_connect, mapped_ipv4_connect)
             int fd = udp_base::sock_create_to(AF_INET, false, 10);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
-                int rc = bind(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                int rc = bind(fd, &server_addr.addr, sizeof(server_addr));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
                     barrier_fork(pid);
@@ -264,4 +265,34 @@ TEST_F(udp_connect, mapped_ipv4_connect)
     check_connect(false);
     log_trace("With bind\n");
     check_connect(true);
+}
+
+/**
+ * @test udp_connect.mapped_ipv4_connect_v6only
+ * @brief
+ *    IPv6 mapped IPv4 connect IPv6-Only socket
+ * @details
+ */
+TEST_F(udp_connect, mapped_ipv4_connect_v6only)
+{
+    if (!test_mapped_ipv4()) {
+        return;
+    }
+
+    int fd = udp_base::sock_create_fa(AF_INET6, false);
+    EXPECT_LE_ERRNO(0, fd);
+    if (0 <= fd) {
+        sockaddr_store_t server_ipv4 = server_addr;
+        ipv4_to_mapped(server_ipv4);
+
+        int ipv6only = 1;
+        int rc = setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6only, sizeof(ipv6only));
+        EXPECT_EQ_ERRNO(0, rc);
+
+        rc = connect(fd, &server_ipv4.addr, sizeof(server_ipv4));
+        EXPECT_LE_ERRNO(rc, -1);
+        EXPECT_EQ(errno, ENETUNREACH);
+
+        close(fd);
+    }
 }

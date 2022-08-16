@@ -200,6 +200,7 @@ public:
     uint32_t get_flow_tag_val() { return m_flow_tag_id; }
     inline in_protocol_t get_protocol(void) { return m_protocol; }
 
+    bool validate_and_convert_mapped_ipv4(sock_addr &sock) const;
     void socket_stats_init(void);
 
     socket_stats_t *m_p_socket_stats;
@@ -465,7 +466,7 @@ protected:
         size_t payload_size = pdesc->rx.sz_payload;
 
         if (__from && __fromlen) {
-            pdesc->rx.src.get_sa_conv(__from, *__fromlen, m_family);
+            pdesc->rx.src.get_sa_by_family(__from, *__fromlen, m_family);
         }
 
         if (in_flags & MSG_XLIO_ZCOPY) {

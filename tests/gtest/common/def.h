@@ -130,8 +130,6 @@ struct gtest_configure_t {
     int random_seed;
     sockaddr_store_t client_addr;
     sockaddr_store_t server_addr;
-    sockaddr_store_t client_addr_mapped_ipv4;
-    sockaddr_store_t server_addr_mapped_ipv4;
     sockaddr_store_t remote_addr;
     uint16_t port;
     bool def_gw_exists;

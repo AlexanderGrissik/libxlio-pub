@@ -75,7 +75,7 @@ public:
 protected:
     static int sock_create_typed(sa_family_t family, int type, bool reuse_addr);
     static int set_socket_rcv_timeout(int fd, int timeout_sec);
-    static int bind_to_device(int fd, const sockaddr_store_t& addr_store);
+    static int bind_to_device(int fd, const sockaddr_store_t &addr_store);
 };
 
 /**
@@ -97,7 +97,7 @@ protected:
     bool barrier();
     void barrier_fork(int pid, bool sync_parent = false);
     bool child_fork_exit() { return m_break_signal; }
-    bool is_mapped_ipv4_set() const;
+    bool test_mapped_ipv4() const;
 
     static void ipv4_to_mapped(sockaddr_store_t &inout);
 
@@ -105,8 +105,6 @@ protected:
     sockaddr_store_t server_addr;
     sockaddr_store_t remote_addr;
     sockaddr_store_t bogus_addr;
-    sockaddr_store_t client_addr_mapped_ipv4; // Regular IPv4 address for mapped-ipv4 tests.
-    sockaddr_store_t server_addr_mapped_ipv4; // Regular IPv4 address for mapped-ipv4 tests.
     bool def_gw_exists;
     static uint16_t m_port;
     static int m_family;

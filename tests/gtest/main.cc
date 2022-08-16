@@ -77,7 +77,6 @@ static int _def_config(void)
     gtest_conf.random_seed = time(NULL) % 32768;
 
     sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.client_addr, true);
-    sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.client_addr_mapped_ipv4, true);
     sys_str2addr("0.0.0.0[0]", (struct sockaddr *)&gtest_conf.server_addr, true);
     sys_str2addr("0.0.0.0[8888]", (struct sockaddr *)&gtest_conf.remote_addr, true);
 
@@ -106,21 +105,15 @@ static int _set_config(int argc, char **argv)
         {"addr", required_argument, 0, 'a'},   {"if", required_argument, 0, 'i'},
         {"remote", required_argument, 0, 'r'}, {"port", required_argument, 0, 'p'},
         {"random", required_argument, 0, 's'}, {"debug", required_argument, 0, 'd'},
-        {"mapped", required_argument, 0, 'm'}, {"help", no_argument, 0, 'h'},
+        {"help", no_argument, 0, 'h'},
     };
     int op;
     int option_index;
     bool user_defined_remote = false;
 
-    while ((op = getopt_long(argc, argv, "a:i:r:p:d:m:h", long_options, &option_index)) != -1) {
+    while ((op = getopt_long(argc, argv, "a:i:r:p:d:h", long_options, &option_index)) != -1) {
         switch (op) {
-        case 'm':
         case 'a': {
-            struct sockaddr *cl_addr = (op == 'a' ? &gtest_conf.client_addr.addr
-                                                  : &gtest_conf.client_addr_mapped_ipv4.addr);
-            struct sockaddr *sr_addr = (op == 'a' ? &gtest_conf.server_addr.addr
-                                                  : &gtest_conf.server_addr_mapped_ipv4.addr);
-
             char *token1 = NULL;
             char *token2 = NULL;
             const char s[2] = ",";
@@ -136,14 +129,14 @@ static int _set_config(int argc, char **argv)
             }
 
             if (token1) {
-                rc = sys_get_addr(token1, cl_addr);
+                rc = sys_get_addr(token1, &gtest_conf.client_addr.addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token1);
                 }
             }
             if (token2) {
-                rc = sys_get_addr(token2, sr_addr);
+                rc = sys_get_addr(token2, &gtest_conf.server_addr.addr);
                 if (rc < 0) {
                     rc = -EINVAL;
                     log_fatal("Failed to resolve ip address %s\n", token2);
@@ -227,7 +220,6 @@ static int _set_config(int argc, char **argv)
     } else {
         srand(gtest_conf.random_seed);
         sys_set_port((struct sockaddr *)&gtest_conf.server_addr, gtest_conf.port);
-        sys_set_port((struct sockaddr *)&gtest_conf.server_addr_mapped_ipv4, gtest_conf.port);
 
         if (!user_defined_remote) {
             set_def_remote_address();
@@ -240,14 +232,6 @@ static int _set_config(int argc, char **argv)
         log_info("server ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.server_addr));
         log_info("remote ip: %s\n", sys_addr2str((struct sockaddr *)&gtest_conf.remote_addr));
         log_info("port: %d\n", gtest_conf.port);
-
-        if (gtest_conf.client_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0U &&
-            gtest_conf.server_addr_mapped_ipv4.addr4.sin_addr.s_addr != 0U) {
-            log_info("client ip for mapped-ipv4: %s\n",
-                     sys_addr2str((struct sockaddr *)&gtest_conf.client_addr_mapped_ipv4));
-            log_info("server ip for mapped-ipv4: %s\n",
-                     sys_addr2str((struct sockaddr *)&gtest_conf.server_addr_mapped_ipv4));
-        }
     }
 
     return rc;

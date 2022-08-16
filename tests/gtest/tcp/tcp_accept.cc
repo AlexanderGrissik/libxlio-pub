@@ -50,7 +50,7 @@ class tcp_accept : public tcp_base {
  */
 TEST_F(tcp_accept, mapped_ipv4_accept)
 {
-    if (!is_mapped_ipv4_set()) {
+    if (!test_mapped_ipv4()) {
         return;
     }
 
@@ -63,16 +63,14 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
             int fd = tcp_base::sock_create_fa(AF_INET, false);
             EXPECT_LE_ERRNO(0, fd);
             if (0 <= fd) {
-                int rc = bind(fd, &client_addr_mapped_ipv4.addr, sizeof(client_addr_mapped_ipv4));
+                int rc = bind(fd, &client_addr.addr, sizeof(client_addr));
                 EXPECT_EQ_ERRNO(0, rc);
                 if (0 == rc) {
-                    rc =
-                        connect(fd, &server_addr_mapped_ipv4.addr, sizeof(server_addr_mapped_ipv4));
+                    rc = connect(fd, &server_addr.addr, sizeof(server_addr));
                     EXPECT_EQ_ERRNO(0, rc);
                     if (0 == rc) {
                         log_trace("Established connection: fd=%d to %s from %s\n", fd,
-                                  SOCK_STR(server_addr_mapped_ipv4),
-                                  SOCK_STR(client_addr_mapped_ipv4));
+                                  SOCK_STR(server_addr), SOCK_STR(client_addr));
 
                         peer_wait(fd);
                     }
@@ -116,7 +114,7 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
                             log_trace("Accepted connection: fd=%d from %s\n", fd, SOCK_STR(ppeer));
 
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  client_addr_mapped_ipv4.addr4.sin_addr.s_addr);
+                                                  client_addr.addr4.sin_addr.s_addr);
 
                             auto clear_sockaddr = [&socklen, &peer_addr]() {
                                 socklen = sizeof(peer_addr);
@@ -126,12 +124,12 @@ TEST_F(tcp_accept, mapped_ipv4_accept)
                             clear_sockaddr();
                             getpeername(fd, ppeer, &socklen);
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  client_addr_mapped_ipv4.addr4.sin_addr.s_addr);
+                                                  client_addr.addr4.sin_addr.s_addr);
 
                             clear_sockaddr();
                             getsockname(fd, ppeer, &socklen);
                             EXPECT_EQ_MAPPED_IPV4(peer_addr.addr6,
-                                                  server_addr_mapped_ipv4.addr4.sin_addr.s_addr);
+                                                  server_addr.addr4.sin_addr.s_addr);
 
                             close(fd);
                         }

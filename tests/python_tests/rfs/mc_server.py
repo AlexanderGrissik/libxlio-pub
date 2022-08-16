@@ -22,7 +22,7 @@ socks = []
 buffs = []
 
 group = inet_aton(myHost)
-mreq = struct.pack('4sL', group, 8)
+mreq = struct.pack('4s4s', group, inet_aton("0.0.0.0"))
 
 for x in range(mySocksNum):
     socks.append(socket(AF_INET, SOCK_DGRAM)) # create a UDP socket

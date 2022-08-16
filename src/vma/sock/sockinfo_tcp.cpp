@@ -2386,6 +2386,13 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
     return true;
 }
 
+void sockinfo_tcp::passthrough_unlock(const char *dbg)
+{
+    setPassthrough();
+    unlock_tcp_con();
+    si_tcp_logdbg("%s", dbg);
+}
+
 /**
  *  try to connect to the dest over RDMA cm
  *  try fallback to the OS connect (TODO)
@@ -2434,59 +2441,55 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
 
     // take local ip from new sock and local port from acceptor
     if (m_sock_state != TCP_SOCK_BOUND && bind(m_bound.get_p_sa(), m_bound.get_socklen()) == -1) {
-        setPassthrough();
-        unlock_tcp_con();
-        si_tcp_logdbg("non offloaded socket --> connect only via OS");
+        passthrough_unlock("non offloaded socket --> connect only via OS");
         return -1;
     }
 
     m_connected.set_sockaddr(__to, __tolen);
-    m_connected.strip_mapped_ipv4();
+    if (!validate_and_convert_mapped_ipv4(m_connected)) {
+        passthrough_unlock("Mapped IPv4 on IPv6-Only socket --> connect only via OS");
+        return -1;
+    }
 
     create_dst_entry();
     if (!m_p_connected_dst_entry) {
-        setPassthrough();
-        unlock_tcp_con();
-        si_tcp_logdbg("non offloaded socket --> connect only via OS");
+        passthrough_unlock("non offloaded socket --> connect only via OS");
         return -1;
     }
 
     prepare_dst_to_send(false);
 
-    sock_addr local_addr(m_bound);
-    if (local_addr.is_anyaddr()) {
-        local_addr.set_in_addr(m_p_connected_dst_entry->get_src_addr());
+    bool bound_any_addr = m_bound.is_anyaddr();
+    if (bound_any_addr) {
+        const ip_address &ip = m_p_connected_dst_entry->get_src_addr();
+        // The family of local_addr may change due to mapped IPv4.
+        m_bound.set_ip_port(m_p_connected_dst_entry->get_sa_family(), &ip, m_bound.get_in_port());
     }
 
-    m_p_socket_stats->set_bound_if(local_addr);
+    m_p_socket_stats->set_bound_if(m_bound);
 
     sock_addr remote_addr;
     remote_addr.set_sa_family(m_p_connected_dst_entry->get_sa_family());
     remote_addr.set_in_addr(m_p_connected_dst_entry->get_dst_addr());
     remote_addr.set_in_port(m_p_connected_dst_entry->get_dst_port());
     if (!m_p_connected_dst_entry->is_offloaded() ||
-        find_target_family(ROLE_TCP_CLIENT, (sockaddr *)&remote_addr, local_addr.get_p_sa()) !=
+        find_target_family(ROLE_TCP_CLIENT, (sockaddr *)&remote_addr, m_bound.get_p_sa()) !=
             TRANS_VMA) {
-        setPassthrough();
-        unlock_tcp_con();
-        si_tcp_logdbg("non offloaded socket --> connect only via OS");
+        passthrough_unlock("non offloaded socket --> connect only via OS");
         return -1;
     } else {
         notify_epoll_context_fd_is_offloaded(); // remove fd from os epoll
     }
 
-    if (m_bound.is_anyaddr()) {
-        const ip_address &ip = m_p_connected_dst_entry->get_src_addr();
-        m_bound.set_in_addr(ip);
-        tcp_bind(&m_pcb, reinterpret_cast<const ip_addr_t *>(&ip), ntohs(m_bound.get_in_port()),
-                 m_pcb.is_ipv6);
+    if (bound_any_addr) {
+        tcp_bind(&m_pcb, reinterpret_cast<const ip_addr_t *>(&m_bound.get_ip_addr()),
+                 ntohs(m_bound.get_in_port()), m_pcb.is_ipv6);
     }
+
     m_conn_state = TCP_CONN_CONNECTING;
     bool success = attach_as_uc_receiver((role_t)NULL, true);
     if (!success) {
-        setPassthrough();
-        unlock_tcp_con();
-        si_tcp_logdbg("non offloaded socket --> connect only via OS");
+        passthrough_unlock("non offloaded socket --> connect only via OS");
         return -1;
     }
 
@@ -2581,9 +2584,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
             si_tcp_logerr("Failed to disable SO_REUSEADDR option (ret=%d %m), connection will be "
                           "handled by OS",
                           ret);
-            setPassthrough();
-            si_tcp_logdbg("socket bound only via OS");
-            unlock_tcp_con();
+            passthrough_unlock("socket bound only via OS");
             return ret;
         }
         BULLSEYE_EXCLUDE_BLOCK_END
@@ -2596,9 +2597,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         if (ret < 0) {
-            setPassthrough();
-            si_tcp_logdbg("socket bound only via OS");
-            unlock_tcp_con();
+            passthrough_unlock("socket bound only via OS");
             return ret;
         }
     } else {
@@ -2629,7 +2628,7 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    addr.strip_mapped_ipv4();
+    validate_and_convert_mapped_ipv4(addr);
 
     // TODO: mark socket as accepting both os and offloaded connections
     if (!addr.is_supported()) {
@@ -2645,10 +2644,8 @@ int sockinfo_tcp::bind(const sockaddr *__addr, socklen_t __addrlen)
         !g_p_net_device_table_mgr->get_net_device_val(
             ip_addr(m_bound.get_ip_addr(), m_bound.get_sa_family()))) {
         // if socket is not bound to INADDR_ANY and not offloaded socket- only bind OS
-        setPassthrough();
         m_sock_state = TCP_SOCK_BOUND;
-        si_tcp_logdbg("socket bound only via OS");
-        unlock_tcp_con();
+        passthrough_unlock("socket bound only via OS");
         return 0;
     }
 
@@ -2710,7 +2707,8 @@ int sockinfo_tcp::prepareListen()
     }
 
     getsockname(addr.get_p_sa(), &addr_len);
-    addr.strip_mapped_ipv4();
+    validate_and_convert_mapped_ipv4(addr);
+
     lock_tcp_con();
     target_family =
         __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id, addr.get_p_sa(), addr_len);
@@ -2797,9 +2795,7 @@ int sockinfo_tcp::listen(int backlog)
 
     if (!success) {
         /* we will get here if attach_as_uc_receiver failed */
-        si_tcp_logdbg("Fallback the connection to os");
-        setPassthrough();
-        unlock_tcp_con();
+        passthrough_unlock("Fallback the connection to os");
         return orig_os_api.listen(m_fd, orig_backlog);
     }
 
@@ -2826,10 +2822,8 @@ int sockinfo_tcp::listen(int backlog)
             si_tcp_logdbg("failed to add user's fd to internal epfd errno=%d (%m)", errno);
         } else {
             si_tcp_logerr("failed to add user's fd to internal epfd errno=%d (%m)", errno);
-            si_tcp_logdbg("Fallback the connection to os");
             destructor_helper();
-            setPassthrough();
-            unlock_tcp_con();
+            passthrough_unlock("Fallback the connection to os");
             return 0;
         }
     }
@@ -4215,8 +4209,8 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             allow_privileged_sock_opt = safe_mce_sys().allow_privileged_sock_opt;
             if (__optlen == 0 || ((char *)__optval)[0] == '\0') {
                 m_so_bindtodevice_ip = ip_addr(ip_address::any_addr(), m_family);
-            } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family) && 
-                       !(m_family == AF_INET6 && !m_is_ipv6only && 
+            } else if (get_ip_addr_from_ifname((char *)__optval, addr, m_family) &&
+                       !(m_family == AF_INET6 && !m_is_ipv6only &&
                          !get_ip_addr_from_ifname((char *)__optval, addr, AF_INET))) {
                 si_tcp_logdbg("SOL_SOCKET, SO_BINDTODEVICE - NOT HANDLED, cannot find if_name");
                 errno = EINVAL;
@@ -4641,7 +4635,7 @@ int sockinfo_tcp::getsockname(sockaddr *__name, socklen_t *__namelen)
             return -1;
         }
 
-        m_bound.get_sa_conv(__name, *__namelen, m_family);
+        m_bound.get_sa_by_family(__name, *__namelen, m_family);
     }
 
     return 0;
@@ -4671,7 +4665,7 @@ int sockinfo_tcp::getpeername(sockaddr *__name, socklen_t *__namelen)
 
         si_tcp_logfunc("m_connected: %s, family: %u", m_connected.to_str_ip_port(true).c_str(),
                        static_cast<unsigned int>(m_family));
-        m_connected.get_sa_conv(__name, *__namelen, m_family);
+        m_connected.get_sa_by_family(__name, *__namelen, m_family);
     }
 
     return 0;
