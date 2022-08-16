@@ -936,7 +936,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
     p_rx_wc_buf_desc->sz_data -= (sz_data - ip_tot_len);
 
-    uint16_t n_frag_offset = (hdr_data.ip_frag_off & FRAGMENT_OFFSET_IPV4) * 8;
+    uint16_t n_frag_offset = (hdr_data.ip_frag_off & IP_OFFMASK) * 8;
 
     ring_logfunc("Rx ip packet info: dst=%s, src=%s, packet_sz=%zu, offset=%" PRIu16
                  ", id=%s, proto=%s[%u" PRIu8 "]",
@@ -963,7 +963,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     p_rx_wc_buf_desc->rx.n_frags = 1;
 
     // Currently we don't expect to receive fragments
-    if (unlikely((hdr_data.ip_frag_off & MORE_FRAGMENTS_FLAG_IPV4) || n_frag_offset)) {
+    if (unlikely((hdr_data.ip_frag_off & IP_MF) || n_frag_offset)) {
         // Update fragments descriptor with datagram base address and length
         p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_ip_h + hdr_data.ip_hdr_len;
         p_rx_wc_buf_desc->rx.frag.iov_len = ip_tot_len - hdr_data.ip_hdr_len;

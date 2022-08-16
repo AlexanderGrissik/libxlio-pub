@@ -132,10 +132,6 @@ static inline uint64_t ntohll(uint64_t x)
 #define IPV4_IGMP_HDR_LEN_WORDS      (IPV4_IGMP_HDR_LEN / sizeof(uint32_t))
 #define IGMP_HDR_LEN                 (sizeof(struct igmphdr))
 #define IGMP_HDR_LEN_WORDS           (IGMP_HDR_LEN / sizeof(uint32_t))
-#define DONT_FRAGMENT_FLAG_IPV4      0x4000
-#define MORE_FRAGMENTS_FLAG_IPV4     0x2000
-#define FRAGMENT_OFFSET_IPV4         0x1FFF
-#define FRAGMENT_OFFSET_IPV6         0xFFF8
 #define MAX_APP_ID_LENGHT            64
 
 #define INPORT_ANY ((uint16_t)0x0000)

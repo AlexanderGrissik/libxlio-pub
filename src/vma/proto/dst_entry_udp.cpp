@@ -141,7 +141,7 @@ bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, co
             p_frag_h->ip6f_offlg &= ~IP6F_MORE_FRAG;
         }
         // offset should be << 3, but need to devide by 8, so no need to change n_ip_frag_offset
-        p_frag_h->ip6f_offlg |= htons(FRAGMENT_OFFSET_IPV6 & n_ip_frag_offset);
+        p_frag_h->ip6f_offlg |= htons(IP6F_OFF_MASK & n_ip_frag_offset);
 
         p_ip_hdr->ip6_nxt = IPPROTO_FRAGMENT;
         p_ip_hdr->ip6_plen = htons(sz_ip_frag);
@@ -350,7 +350,7 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_d
 
         uint16_t frag_off = 0;
         if (n_num_frags) {
-            frag_off |= MORE_FRAGMENTS_FLAG_IPV4;
+            frag_off |= IP_MF;
         }
 
         if (n_ip_frag_offset == 0) {
@@ -365,7 +365,7 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_d
             reinterpret_cast<udphdr *>(p_udp_hdr)->len = htons((uint16_t)sz_udp_payload);
         } else {
             m_header->copy_l2_ip_hdr(p_pkt);
-            frag_off |= FRAGMENT_OFFSET_IPV4 & (n_ip_frag_offset / 8);
+            frag_off |= IP_OFFMASK & (n_ip_frag_offset / 8);
         }
 
         iphdr *p_ip_hdr_cast = reinterpret_cast<iphdr *>(p_ip_hdr);

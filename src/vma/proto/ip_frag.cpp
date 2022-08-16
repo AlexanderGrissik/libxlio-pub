@@ -358,8 +358,8 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
     PRINT_STATISTICS();
 
     frag_off = ntohs(hdr->frag_off);
-    more_frags = frag_off & MORE_FRAGMENTS_FLAG_IPV4;
-    frag_first = (frag_off & FRAGMENT_OFFSET_IPV4) * 8;
+    more_frags = frag_off & IP_MF;
+    frag_first = (frag_off & IP_OFFMASK) * 8;
     frag_last = frag_first + ntohs(hdr->tot_len) - (hdr->ihl << 2) - 1; // frag starts from 0!!!
     frag_dbg("> fragment: %d-%d, %s more frags", frag_first, frag_last,
              more_frags ? "pending" : "no");
