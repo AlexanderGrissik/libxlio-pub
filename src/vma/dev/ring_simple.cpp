@@ -934,11 +934,9 @@ void ring_simple::inc_cq_moderation_stats(size_t sz_data)
 mem_buf_desc_t *ring_simple::get_tx_buffers(pbuf_type type, uint32_t n_num_mem_bufs)
 {
     mem_buf_desc_t *head;
-    descq_t *pool;
+    descq_t &pool = type == PBUF_ZEROCOPY ? m_zc_pool : m_tx_pool;
 
-    pool = type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
-
-    if (unlikely(pool->size() < n_num_mem_bufs)) {
+    if (unlikely(pool.size() < n_num_mem_bufs)) {
         int count = MAX(RING_TX_BUFS_COMPENSATE, n_num_mem_bufs);
         if (request_more_tx_buffers(type, count, m_tx_lkey)) {
             /*
@@ -953,12 +951,12 @@ mem_buf_desc_t *ring_simple::get_tx_buffers(pbuf_type type, uint32_t n_num_mem_b
             }
         }
 
-        if (unlikely(pool->size() < n_num_mem_bufs)) {
+        if (unlikely(pool.size() < n_num_mem_bufs)) {
             return NULL;
         }
     }
 
-    head = pool->get_and_pop_back();
+    head = pool.get_and_pop_back();
     head->lwip_pbuf.pbuf.ref = 1;
     assert(head->lwip_pbuf.pbuf.type == type);
     head->lwip_pbuf.pbuf.type = type;
@@ -966,7 +964,7 @@ mem_buf_desc_t *ring_simple::get_tx_buffers(pbuf_type type, uint32_t n_num_mem_b
 
     mem_buf_desc_t *next = head;
     while (n_num_mem_bufs) {
-        next->p_next_desc = pool->get_and_pop_back();
+        next->p_next_desc = pool.get_and_pop_back();
         next = next->p_next_desc;
         next->lwip_pbuf.pbuf.ref = 1;
         assert(head->lwip_pbuf.pbuf.type == type);
@@ -999,8 +997,6 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t *buff_list)
 {
     int count = 0, freed = 0;
     mem_buf_desc_t *next;
-    pbuf_type type;
-    descq_t *pool;
 
     while (buff_list) {
         next = buff_list->p_next_desc;
@@ -1019,10 +1015,9 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t *buff_list)
         }
 
         if (buff_list->lwip_pbuf.pbuf.ref == 0) {
-            type = (pbuf_type)buff_list->lwip_pbuf.pbuf.type;
-            pool = type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
+            descq_t &pool = buff_list->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY ? m_zc_pool : m_tx_pool;
             free_lwip_pbuf(&buff_list->lwip_pbuf);
-            pool->push_back(buff_list);
+            pool.push_back(buff_list);
             freed++;
         }
         count++;
@@ -1039,11 +1034,8 @@ int ring_simple::put_tx_buffers(mem_buf_desc_t *buff_list)
 int ring_simple::put_tx_single_buffer(mem_buf_desc_t *buff)
 {
     int count = 0;
-    descq_t *pool;
 
     if (likely(buff)) {
-        pool = buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY ? &m_zc_pool : &m_tx_pool;
-
         if (buff->tx.dev_mem_length) {
             m_p_qp_mgr->dm_release_data(buff);
         }
@@ -1057,9 +1049,10 @@ int ring_simple::put_tx_single_buffer(mem_buf_desc_t *buff)
         }
 
         if (buff->lwip_pbuf.pbuf.ref == 0) {
+            descq_t &pool = buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY ? m_zc_pool : m_tx_pool;
             buff->p_next_desc = NULL;
             free_lwip_pbuf(&buff->lwip_pbuf);
-            pool->push_back(buff);
+            pool.push_back(buff);
             count++;
         }
     }
