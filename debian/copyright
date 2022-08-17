@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: libvma
-Source: https://github.com/Mellanox/libvma
+Upstream-Name: libxlio
+Source: https://github.com/Mellanox-lab/libxlio
 
 Files: *
 Copyright: 2001-2022 NVIDIA CORPORATION & AFFILIATES.
