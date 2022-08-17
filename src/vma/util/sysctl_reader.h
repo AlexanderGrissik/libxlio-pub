@@ -165,9 +165,12 @@ public:
     {
         static tcp_keepalive_info info = {7200, 75, 9};
         if (update) {
-            info.idle_secs = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_time", 7200);
-            info.interval_secs = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_intvl", 75);
-            info.num_probes = read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_probes", 9);
+            info.idle_secs =
+                read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_time", info.idle_secs);
+            info.interval_secs =
+                read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_intvl", info.interval_secs);
+            info.num_probes =
+                read_file_to_int("/proc/sys/net/ipv4/tcp_keepalive_probes", info.num_probes);
         }
         return &info;
     }

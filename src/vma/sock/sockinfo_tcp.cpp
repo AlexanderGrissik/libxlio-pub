@@ -873,7 +873,10 @@ retry_is_ready:
 
     if (unlikely(!is_rts())) {
 
-        if (m_conn_state == TCP_CONN_CONNECTING) {
+        if (m_conn_state == TCP_CONN_TIMEOUT) {
+            si_tcp_logdbg("TX timed out");
+            errno = ETIMEDOUT;
+        } else if (m_conn_state == TCP_CONN_CONNECTING) {
             si_tcp_logdbg("TX while async-connect on socket go to poll");
             rx_wait_helper(poll_count, false);
             if (m_conn_state == TCP_CONN_CONNECTED) {

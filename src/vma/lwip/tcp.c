@@ -606,6 +606,7 @@ void tcp_slowtmr(struct tcp_pcb *pcb)
         if (tcp_user_timeout_occured(pcb)) {
             ++pcb_remove;
             err = ERR_TIMEOUT;
+            pcb_reset += (pcb->so_options & SOF_KEEPALIVE);
             LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: user timeout occurred\n"));
         } else if (get_tcp_state(pcb) == SYN_SENT && pcb->nrtx == TCP_SYNMAXRTX) {
             ++pcb_remove;
