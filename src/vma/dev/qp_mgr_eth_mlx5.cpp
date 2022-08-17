@@ -914,25 +914,38 @@ int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_
 
 std::unique_ptr<dpcp::dek> qp_mgr_eth_mlx5::get_new_dek(const void *key, uint32_t key_size_bytes)
 {
-    dpcp::dek *out_dek = nullptr;
+    dpcp::dek *_dek = nullptr;
     dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
     if (likely(adapter)) {
-        dpcp::status rc =
-            adapter->create_dek(dpcp::ENCRYPTION_KEY_TYPE_TLS, key, key_size_bytes, out_dek);
-        if (unlikely(rc != dpcp::DPCP_OK)) {
-            qp_logwarn("Failed to create new DEK, status: %d", rc);
-            if (out_dek) {
-                delete out_dek;
-                out_dek = nullptr;
+        dpcp::status status;
+        struct dpcp::dek::attr dek_attr;
+        memset(&dek_attr, 0, sizeof(dek_attr));
+        dek_attr.flags = dpcp::DEK_ATTR_TLS;
+        dek_attr.key = (void *)key;
+        dek_attr.key_size_bytes = key_size_bytes;
+        dek_attr.pd_id = adapter->get_pd();
+        status = adapter->create_dek(dek_attr, _dek);
+        if (unlikely(status != dpcp::DPCP_OK)) {
+            qp_logwarn("Failed to create new DEK, status: %d", status);
+            if (_dek) {
+                delete _dek;
+                _dek = nullptr;
             }
         }
     }
 
-    return std::unique_ptr<dpcp::dek>(out_dek);
+    return std::unique_ptr<dpcp::dek>(_dek);
 }
 
 std::unique_ptr<dpcp::dek> qp_mgr_eth_mlx5::get_dek(const void *key, uint32_t key_size_bytes)
 {
+    dpcp::status status;
+    dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
+
+    if (unlikely(!adapter)) {
+        return std::unique_ptr<dpcp::dek>(nullptr);
+    }
+
     // If the amount of available DEKs in m_dek_put_cache is smaller than
     // low-watermark we continue to create new DEKs. This is to avoid situations
     // where one DEKs is returned and then fetched in a throttlling manner
@@ -949,14 +962,9 @@ std::unique_ptr<dpcp::dek> qp_mgr_eth_mlx5::get_dek(const void *key, uint32_t ke
         qp_logdbg("Empty DEK get cache. Swapping caches and do Sync-Crypto. Put-Cache size: %zu",
                   m_dek_put_cache.size());
 
-        dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
-        if (unlikely(!adapter)) {
-            return std::unique_ptr<dpcp::dek>(nullptr);
-        }
-
-        dpcp::status rc = adapter->sync_crypto_tls();
-        if (unlikely(rc != dpcp::DPCP_OK)) {
-            qp_logwarn("Failed to flush DEK HW cache, status: %d", rc);
+        status = adapter->sync_crypto_tls();
+        if (unlikely(status != dpcp::DPCP_OK)) {
+            qp_logwarn("Failed to flush DEK HW cache, status: %d", status);
             return get_new_dek(key, key_size_bytes);
         }
 
@@ -966,12 +974,15 @@ std::unique_ptr<dpcp::dek> qp_mgr_eth_mlx5::get_dek(const void *key, uint32_t ke
     std::unique_ptr<dpcp::dek> out_dek(std::move(m_dek_get_cache.front()));
     m_dek_get_cache.pop_front();
 
-    dpcp::dek::attr attrs;
-    attrs.key = const_cast<void *>(key);
-    attrs.key_size_bytes = key_size_bytes;
-    dpcp::status rc = out_dek->modify(attrs);
-    if (unlikely(rc != dpcp::DPCP_OK)) {
-        qp_logwarn("Failed to modify DEK, status: %d", rc);
+    struct dpcp::dek::attr dek_attr;
+    memset(&dek_attr, 0, sizeof(dek_attr));
+    dek_attr.flags = dpcp::DEK_ATTR_TLS;
+    dek_attr.key = const_cast<void *>(key);
+    dek_attr.key_size_bytes = key_size_bytes;
+    dek_attr.pd_id = adapter->get_pd();
+    status = out_dek->modify(dek_attr);
+    if (unlikely(status != dpcp::DPCP_OK)) {
+        qp_logwarn("Failed to modify DEK, status: %d", status);
         out_dek.reset(nullptr);
     }
 
@@ -993,12 +1004,18 @@ xlio_tis *qp_mgr_eth_mlx5::tls_context_setup_tx(const xlio_tls_info *info)
 {
     xlio_tis *tis;
     uint32_t tisn;
-    dpcp::tis *_tis;
+    dpcp::tis *_tis = nullptr;
     dpcp::status status;
     dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
 
     if (m_tis_cache.empty()) {
-        status = adapter->create_tis(dpcp::TIS_TLS_EN, _tis);
+        struct dpcp::tis::attr tis_attr;
+        memset(&tis_attr, 0, sizeof(tis_attr));
+        tis_attr.flags = dpcp::TIS_ATTR_TRANSPORT_DOMAIN | dpcp::TIS_ATTR_TLS | dpcp::TIS_ATTR_PD;
+        tis_attr.transport_domain = adapter->get_td();
+        tis_attr.tls_en = 1;
+        tis_attr.pd = adapter->get_pd();
+        status = adapter->create_tis(tis_attr, _tis);
         if (unlikely(status != dpcp::DPCP_OK)) {
             qp_logerr("Failed to create TIS with TLS enabled, status: %d", status);
             return NULL;
@@ -1072,9 +1089,14 @@ int qp_mgr_eth_mlx5::tls_context_setup_rx(xlio_tir *tir, const xlio_tls_info *in
     dpcp::dek *_dek;
     dpcp::status status;
     dpcp::adapter *adapter = m_p_ib_ctx_handler->get_dpcp_adapter();
+    struct dpcp::dek::attr dek_attr;
 
-    status =
-        adapter->create_dek(dpcp::ENCRYPTION_KEY_TYPE_TLS, (void *)info->key, info->key_len, _dek);
+    memset(&dek_attr, 0, sizeof(dek_attr));
+    dek_attr.flags = dpcp::DEK_ATTR_TLS;
+    dek_attr.key = (void *)info->key;
+    dek_attr.key_size_bytes = info->key_len;
+    dek_attr.pd_id = adapter->get_pd();
+    status = adapter->create_dek(dek_attr, _dek);
     if (unlikely(status != dpcp::DPCP_OK)) {
         qp_logerr("Failed to create DEK, status: %d", status);
         return -1;

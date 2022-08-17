@@ -52,10 +52,11 @@ AS_IF([test "$vma_cv_dpcp" -ne 0],
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mellanox/dpcp.h>]],
          [[dpcp::tis* _tis;
            dpcp::dek* _dek;
-           dpcp::encryption_key_type_t type = dpcp::ENCRYPTION_KEY_TYPE_TLS;
-           dpcp::tis_flags flag = dpcp::TIS_TLS_EN;
-           (void)_tis; (void)_dek;
-           (void)type; (void)flag;]])],
+           int key_type = (int)dpcp::DEK_ATTR_TLS;
+           key_type = key_type;
+           int tis_bit = (int)dpcp::TIS_ATTR_TLS;
+           tis_bit = tis_bit;
+           (void)_tis; (void)_dek;]])],
          [vma_cv_dpcp_1_1_3=1])
     AC_LANG_POP()
     ])
