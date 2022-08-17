@@ -82,6 +82,7 @@ public:
     virtual int send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
                                  vma_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
+    virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
     virtual bool is_member(ring_slave *rng);
     virtual bool is_active_member(ring_slave *rng, ring_user_id_t id);
     virtual ring_user_id_t generate_id(const address_t src_mac, const address_t dst_mac,

@@ -119,6 +119,8 @@ public:
     virtual int poll_and_process_element_tx(uint64_t *p_cq_poll_sn) = 0;
     virtual void adapt_cq_moderation() = 0;
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc) = 0;
+    virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc,
+                                                      unsigned ref) = 0;
 
     virtual void inc_tx_retransmissions_stats(ring_user_id_t id) = 0;
     virtual bool is_member(ring_slave *rng) = 0;

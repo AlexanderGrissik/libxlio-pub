@@ -590,6 +590,19 @@ void ring_simple::mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_b
     RING_LOCK_AND_RUN(m_lock_ring_tx, put_tx_single_buffer(p_mem_buf_desc));
 }
 
+void ring_simple::mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref)
+{
+    if (unlikely(ref == 0)) {
+        return;
+    }
+
+    std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
+
+    p_mem_buf_desc->lwip_pbuf.pbuf.ref -=
+        std::min<unsigned>(p_mem_buf_desc->lwip_pbuf.pbuf.ref, ref - 1);
+    put_tx_single_buffer(p_mem_buf_desc);
+}
+
 int ring_simple::drain_and_proccess()
 {
     int ret = 0;

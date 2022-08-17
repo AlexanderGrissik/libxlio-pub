@@ -98,6 +98,7 @@ public:
     virtual int send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
                                  vma_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
+    virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
     virtual bool get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe);
     inline void convert_hw_time_to_system_time(uint64_t hwtime, struct timespec *systime)
     {

@@ -424,9 +424,7 @@ sockinfo_tcp_ops_tls::~sockinfo_tcp_ops_tls()
         m_p_tis = nullptr;
         if (m_zc_stor) {
             unsigned extra_ref = (m_zc_stor->sz_buffer - m_zc_stor_offset) / TLS_ZC_BLOCK;
-            assert(m_zc_stor->lwip_pbuf.pbuf.ref > extra_ref);
-            m_zc_stor->lwip_pbuf.pbuf.ref -= extra_ref; /* XXX Potential race! */
-            m_p_sock->get_tx_ring()->mem_buf_desc_return_single_to_owner_tx(m_zc_stor);
+            m_p_sock->get_tx_ring()->mem_buf_desc_return_single_multi_ref(m_zc_stor, extra_ref + 1);
             m_zc_stor = nullptr;
         }
     }
