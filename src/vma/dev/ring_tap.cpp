@@ -517,8 +517,6 @@ void ring_tap::mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_
 {
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
 
-    int count = 0;
-
     if (likely(p_mem_buf_desc)) {
         // potential race, ref is protected here by ring_tx lock, and in dst_entry_tcp &
         // sockinfo_tcp by tcp lock
@@ -530,13 +528,29 @@ void ring_tap::mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_
 
         if (p_mem_buf_desc->lwip_pbuf.pbuf.ref == 0) {
             p_mem_buf_desc->p_next_desc = NULL;
+            if (unlikely(p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY)) {
+                g_buffer_pool_zc->put_buffers_thread_safe(p_mem_buf_desc);
+                return;
+            }
             free_lwip_pbuf(&p_mem_buf_desc->lwip_pbuf);
             m_tx_pool.push_back(p_mem_buf_desc);
-            count++;
         }
     }
 
     return_to_global_pool();
+}
+
+void ring_tap::mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref)
+{
+    if (unlikely(ref == 0)) {
+        return;
+    }
+
+    m_lock_ring_tx.lock();
+    p_mem_buf_desc->lwip_pbuf.pbuf.ref -=
+        std::min<unsigned>(p_mem_buf_desc->lwip_pbuf.pbuf.ref, ref - 1);
+    m_lock_ring_tx.unlock();
+    mem_buf_desc_return_single_to_owner_tx(p_mem_buf_desc);
 }
 
 int ring_tap::mem_buf_tx_release(mem_buf_desc_t *buff_list, bool b_accounting, bool trylock)
