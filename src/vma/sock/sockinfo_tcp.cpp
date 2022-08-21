@@ -854,6 +854,7 @@ ssize_t sockinfo_tcp::tcp_tx(vma_tx_call_attr_t &tx_arg)
     bool is_dummy = false;
     bool block_this_run = false;
     bool is_send_zerocopy = false;
+    bool no_partial_write;
     void *tx_ptr = NULL;
     __off64_t file_offset = 0;
     struct xlio_pd_key *pd_key_array = NULL;
@@ -861,8 +862,7 @@ ssize_t sockinfo_tcp::tcp_tx(vma_tx_call_attr_t &tx_arg)
     /* Let allow OS to process all invalid scenarios to avoid any
      * inconsistencies in setting errno values
      */
-    if (unlikely((m_sock_offload != TCP_SOCK_LWIP) || (NULL == p_iov) || (0 >= sz_iov) ||
-                 (NULL == p_iov[0].iov_base))) {
+    if (unlikely(m_sock_offload != TCP_SOCK_LWIP) || unlikely(!p_iov) || unlikely(0 >= sz_iov)) {
         goto tx_packet_to_os;
     }
 
@@ -932,20 +932,27 @@ retry_is_ready:
         apiflags |= VMA_TX_FILE;
     }
 
-    if (!block_this_run && (tx_arg.vma_flags & TX_FLAG_NO_PARTIAL_WRITE)) {
+    no_partial_write = ((!block_this_run) && (tx_arg.vma_flags & TX_FLAG_NO_PARTIAL_WRITE));
+
+#ifdef DEFINED_TCP_TX_WND_AVAILABILITY
+#else
+    if (no_partial_write)
+#endif
+    {
         tx_size = 0;
-        for (int i = 0; i < sz_iov; ++i) {
+        for (ssize_t i = 0; i < sz_iov; ++i) {
             tx_size += p_iov[i].iov_len;
-        }
-        if (unlikely(tcp_sndbuf(&m_pcb) < tx_size)) {
-            unlock_tcp_con();
-            errno = EAGAIN;
-            return -1;
         }
     }
 
+    if (no_partial_write && unlikely(tcp_sndbuf(&m_pcb) < tx_size)) {
+        unlock_tcp_con();
+        errno = EAGAIN;
+        return -1;
+    }
+
 #ifdef DEFINED_TCP_TX_WND_AVAILABILITY
-    if (!tcp_is_wnd_available(&m_pcb, p_iov[0].iov_len)) {
+    if (!tcp_is_wnd_available(&m_pcb, tx_size)) {
         unlock_tcp_con();
         errno = EAGAIN;
         return -1;
@@ -966,6 +973,9 @@ retry_is_ready:
 
     for (int i = 0; i < sz_iov; i++) {
         si_tcp_logfunc("iov:%d base=%p len=%d", i, p_iov[i].iov_base, p_iov[i].iov_len);
+        if (unlikely(!p_iov[i].iov_base)) {
+            continue;
+        }
 
         pos = 0;
         if ((tx_arg.opcode == TX_FILE) && !(apiflags & VMA_TX_PACKET_ZEROCOPY)) {

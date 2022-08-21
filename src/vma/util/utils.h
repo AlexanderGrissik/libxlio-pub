@@ -596,6 +596,10 @@ inline uint16_t calc_sum_of_payload(const iovec *p_iov, const ssize_t sz_iov)
         size_t iov_len = p_iov[i].iov_len;
         uint16_t *iov_data = reinterpret_cast<uint16_t *>(p_iov[i].iov_base);
 
+        if (unlikely(!iov_data) || unlikely(iov_len <= 0U)) {
+            continue;
+        }
+
         // alignment to 16-bits, since checksum is calculated per each 16-bits
         if (prev_iov_unaligned) {
             sum += ((*iov_data) & htons(0xFF00)) << 8;

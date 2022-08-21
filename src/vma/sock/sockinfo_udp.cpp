@@ -1664,9 +1664,11 @@ void sockinfo_udp::rx_ready_byte_count_limit_update(size_t n_rx_ready_bytes_limi
 void sockinfo_udp::drop_rx_ready_byte_count(size_t n_rx_bytes_limit)
 {
     m_lock_rcv.lock();
-    while (m_p_socket_stats->n_rx_ready_byte_count > n_rx_bytes_limit) {
-        if (m_n_rx_pkt_ready_list_count) {
-            mem_buf_desc_t *p_rx_pkt_desc = m_rx_pkt_ready_list.get_and_pop_front();
+    while (m_n_rx_pkt_ready_list_count) {
+        mem_buf_desc_t *p_rx_pkt_desc = m_rx_pkt_ready_list.front();
+        if (m_p_socket_stats->n_rx_ready_byte_count > n_rx_bytes_limit ||
+            p_rx_pkt_desc->rx.sz_payload == 0U) {
+            m_rx_pkt_ready_list.pop_front();
             m_n_rx_pkt_ready_list_count--;
             m_rx_ready_byte_count -= p_rx_pkt_desc->rx.sz_payload;
             m_p_socket_stats->n_rx_ready_pkt_count--;
@@ -2003,9 +2005,12 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
      * However the actual limit for the data length, which is imposed by
      * the underlying IPv4 protocol, is 65,507 bytes
      * (65,535 - 8 byte UDP header - 20 byte IP header).
+     * For IPv6 it is 65527, since the IP header size is not included in
+     * IPv6 length field.
      */
-    if (unlikely((m_state == SOCKINFO_DESTROYING) || (g_b_exit) || (NULL == p_iov) ||
-                 (0 >= sz_iov) || (NULL == p_iov[0].iov_base) || (65507 < p_iov[0].iov_len))) {
+    ssize_t sz_data_payload = check_payload_size(p_iov, sz_iov);
+    if (unlikely(m_state == SOCKINFO_DESTROYING) || unlikely(g_b_exit) || unlikely(!p_iov) ||
+        unlikely(0 >= sz_iov) || unlikely(sz_data_payload < 0)) {
         goto tx_packet_to_os;
     }
 
@@ -2114,11 +2119,12 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
             b_blocking = false;
         }
 
+        attr.length = static_cast<size_t>(sz_data_payload);
         attr.flags = (vma_wr_tx_packet_attr)((b_blocking * VMA_TX_PACKET_BLOCK) |
                                              (is_dummy * VMA_TX_PACKET_DUMMY));
         if (likely(p_dst_entry->is_valid())) {
             // All set for fast path packet sending - this is our best performance flow
-            ret = p_dst_entry->fast_send((iovec *)p_iov, sz_iov, attr);
+            ret = p_dst_entry->fast_send(p_iov, sz_iov, attr);
         } else {
             // updates the dst_entry internal information and packet headers
             ret = p_dst_entry->slow_send(p_iov, sz_iov, attr, m_so_ratelimit, __flags, this,
@@ -2167,6 +2173,28 @@ tx_packet_to_os_stats:
     save_stats_tx_os(ret);
     m_lock_snd.unlock();
     return ret;
+}
+
+ssize_t sockinfo_udp::check_payload_size(const iovec *p_iov, ssize_t sz_iov)
+{
+    // Calc user data payload size
+    ssize_t sz_data_payload = 0;
+    for (ssize_t i = 0; i < sz_iov; i++) {
+        // Imitate Kernel behaviour.
+        if (unlikely(!p_iov[i].iov_base) && unlikely(p_iov[i].iov_len)) {
+            return -1;
+        }
+
+        sz_data_payload += p_iov[i].iov_len;
+    }
+
+    // See comment in sockinfo_udp::tx
+    if (unlikely(sz_data_payload > 65507) && (m_family == AF_INET || sz_data_payload > 65527)) {
+        si_udp_logfunc("sz_data_payload=%d exceeds max of 64KB - headers", sz_data_payload);
+        return -1;
+    }
+
+    return sz_data_payload;
 }
 
 int sockinfo_udp::rx_verify_available_data()

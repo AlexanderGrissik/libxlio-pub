@@ -230,7 +230,7 @@ private:
     bool m_multicast; // true when socket set MC rule
 
     bool packet_is_loopback(mem_buf_desc_t *p_desc);
-
+    ssize_t check_payload_size(const iovec *p_iov, ssize_t sz_iov);
     int mc_change_membership_start_helper_ip4(const ip_address &mc_grp, int optname);
     int mc_change_membership_end_helper_ip4(const ip_address &mc_grp, int optname,
                                             const ip_address &mc_src);

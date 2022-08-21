@@ -66,7 +66,7 @@ struct socket_data {
 typedef struct {
     vma_wr_tx_packet_attr flags;
     uint16_t mss;
-    uint32_t length;
+    size_t length;
     xlio_tis *tis;
 } vma_send_attr;
 

@@ -256,6 +256,7 @@ TEST_F(tcp_connect, ti_5_multi_connect)
 
     if (0 == pid) { /* I am the child */
         rc = -1;
+
         int lfd = tcp_base::sock_create_fa(m_family, true);
         EXPECT_LE(0, lfd);
         if (lfd > 0) {
