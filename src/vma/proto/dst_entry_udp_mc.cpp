@@ -45,9 +45,9 @@
 dst_entry_udp_mc::dst_entry_udp_mc(const sock_addr &dst, uint16_t src_port,
                                    const ip_address &tx_if_ip, bool mc_b_loopback,
                                    socket_data &sock_data,
-                                   resource_allocation_key &ring_alloc_logic)
+                                   resource_allocation_key &ring_alloc_logic, sa_family_t family)
     : dst_entry_udp(dst, src_port, sock_data, ring_alloc_logic)
-    , m_mc_tx_if_ip(tx_if_ip)
+    , m_mc_tx_src_ip(tx_if_ip, family)
     , m_b_mc_loopback_enabled(mc_b_loopback)
 {
     dst_udp_mc_logdbg("%s", to_str().c_str());
@@ -59,7 +59,7 @@ dst_entry_udp_mc::~dst_entry_udp_mc()
 
     if (m_p_net_dev_entry && m_p_net_dev_val) {
         // Registered in: dst_entry_udp_mc::resolve_net_dev
-        // With: g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_if_ip.get_in_addr()),
+        // With: g_p_net_device_table_mgr->register_observer(ip_addr(m_mc_tx_src_ip.get_in_addr()),
         //                                                   this, &net_dev_entry).
         if (!g_p_net_device_table_mgr->unregister_observer(m_p_net_dev_val->get_if_idx(), this)) {
             dst_udp_mc_logwarn("Failed to unregister observer (dst_entry_udp_mc) for if_index %d",
@@ -72,8 +72,8 @@ void dst_entry_udp_mc::set_src_addr()
 {
     if (!m_bound_ip.is_anyaddr()) {
         m_pkt_src_ip = m_bound_ip;
-    } else if (m_mc_tx_if_ip.get_in_addr() && !m_mc_tx_if_ip.is_mc(AF_INET)) {
-        m_pkt_src_ip = m_mc_tx_if_ip;
+    } else if (!m_mc_tx_src_ip.is_anyaddr() && !m_mc_tx_src_ip.is_mc()) {
+        m_pkt_src_ip = m_mc_tx_src_ip;
     } else {
         dst_entry::set_src_addr();
     }
@@ -86,10 +86,10 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
     bool ret_val = false;
     cache_entry_subject<int, net_device_val *> *net_dev_entry = NULL;
 
-    if (m_mc_tx_if_ip.get_in_addr() != INADDR_ANY && !m_mc_tx_if_ip.is_mc(AF_INET)) {
+    if (!m_mc_tx_src_ip.is_anyaddr() && !m_mc_tx_src_ip.is_mc()) {
         if (m_p_net_dev_entry == NULL) {
             net_device_val *mc_net_dev =
-                g_p_net_device_table_mgr->get_net_device_val(ip_addr(m_mc_tx_if_ip.get_in_addr()));
+                g_p_net_device_table_mgr->get_net_device_val(m_mc_tx_src_ip);
             if (mc_net_dev) {
                 if (g_p_net_device_table_mgr->register_observer(mc_net_dev->get_if_idx(), this,
                                                                 &net_dev_entry)) {
@@ -113,6 +113,7 @@ bool dst_entry_udp_mc::resolve_net_dev(bool is_connect)
             dst_udp_mc_logdbg("Netdev is not offloaded fallback to OS");
         }
     } else {
+        // Why we dont pass is_connect to next resolve_net_dev call?
         ret_val = dst_entry::resolve_net_dev();
     }
     return ret_val;

@@ -411,7 +411,7 @@ void vma_stats_instance_remove_socket_block(socket_stats_t *local_addr)
     g_lock_skt_inst_arr.unlock();
 }
 
-void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
+void vma_stats_mc_group_add(ip_address mc_grp, socket_stats_t *p_socket_stats)
 {
     int empty_entry = -1;
     int index_to_insert = -1;
@@ -422,7 +422,8 @@ void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
         if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num == 0 && empty_entry == -1) {
             empty_entry = grp_idx;
         } else if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num &&
-                   g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp == mc_grp) {
+                   g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp ==
+                       ip_addr(mc_grp, p_socket_stats->sa_family)) {
             index_to_insert = grp_idx;
         }
     }
@@ -431,7 +432,8 @@ void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
         index_to_insert = empty_entry;
     } else if (index_to_insert == -1 && g_sh_mem->mc_info.max_grp_num < MC_TABLE_SIZE) {
         index_to_insert = g_sh_mem->mc_info.max_grp_num;
-        g_sh_mem->mc_info.mc_grp_tbl[index_to_insert].mc_grp = mc_grp;
+        g_sh_mem->mc_info.mc_grp_tbl[index_to_insert].mc_grp =
+            ip_addr(mc_grp, p_socket_stats->sa_family);
         g_sh_mem->mc_info.max_grp_num++;
     }
 
@@ -445,12 +447,13 @@ void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
     }
 }
 
-void vma_stats_mc_group_remove(in_addr_t mc_grp, socket_stats_t *p_socket_stats)
+void vma_stats_mc_group_remove(ip_address mc_grp, socket_stats_t *p_socket_stats)
 {
     g_lock_mc_info.lock();
     for (int grp_idx = 0; grp_idx < g_sh_mem->mc_info.max_grp_num; grp_idx++) {
         if (g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num &&
-            g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp == mc_grp) {
+            g_sh_mem->mc_info.mc_grp_tbl[grp_idx].mc_grp ==
+                ip_addr(mc_grp, p_socket_stats->sa_family)) {
             p_socket_stats->mc_grp_map.set((size_t)grp_idx, 0);
             g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num--;
             if (!g_sh_mem->mc_info.mc_grp_tbl[grp_idx].sock_num) {

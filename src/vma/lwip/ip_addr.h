@@ -41,6 +41,7 @@
 extern "C" {
 #endif
 
+#define IPV4_VERSION 4U
 #define IPV6_VERSION 6U
 
 /* RFC879 Section 1. Introduction */

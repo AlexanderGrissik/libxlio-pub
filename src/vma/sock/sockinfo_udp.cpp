@@ -325,22 +325,56 @@ const char *setsockopt_ip_opt_to_str(int opt)
         return "IP_DROP_MEMBERSHIP";
     case IP_DROP_SOURCE_MEMBERSHIP:
         return "IP_DROP_SOURCE_MEMBERSHIP";
+    case IPV6_MULTICAST_IF:
+        return "IPV6_MULTICAST_IF";
+    case IPV6_MULTICAST_HOPS:
+        return "IPV6_MULTICAST_HOPS";
+    case IPV6_MULTICAST_LOOP:
+        return "IPV6_MULTICAST_LOOP";
+    case IPV6_JOIN_GROUP:
+        return "IPV6_JOIN_GROUP";
+    case IPV6_LEAVE_GROUP:
+        return "IPV6_LEAVE_GROUP";
+    case MCAST_JOIN_GROUP:
+        return "MCAST_JOIN_GROUP";
+    case MCAST_LEAVE_GROUP:
+        return "MCAST_LEAVE_GROUP";
+    case MCAST_BLOCK_SOURCE:
+        return "MCAST_BLOCK_SOURCE";
+    case MCAST_UNBLOCK_SOURCE:
+        return "MCAST_UNBLOCK_SOURCE";
+    case MCAST_JOIN_SOURCE_GROUP:
+        return "MCAST_JOIN_SOURCE_GROUP";
+    case MCAST_LEAVE_SOURCE_GROUP:
+        return "MCAST_LEAVE_SOURCE_GROUP";
     default:
         break;
     }
     return "UNKNOWN IP opt";
 }
 
+const char *setsockopt_level_to_str(int level)
+{
+    switch (level) {
+    case IPPROTO_IPV6:
+        return "IPPROTO_IPV6";
+    case IPPROTO_IP:
+        return "IPPROTO_IP";
+    default:
+        break;
+    }
+    return "UNKNOWN opt level";
+}
 // Throttle the amount of ring polling we do (remember last time we check for receive packets)
 tscval_t g_si_tscv_last_poll = 0;
 
 sockinfo_udp::sockinfo_udp(int fd, int domain)
     : sockinfo(fd, domain)
-    , m_mc_tx_if(INADDR_ANY)
+    , m_mc_tx_src_ip(in6addr_any, domain)
     , m_b_mc_tx_loop(
           safe_mce_sys().tx_mc_loopback_default) // default value is 'true'. User can change this
                                                  // with config parameter SYS_VAR_TX_MC_LOOPBACK
-    , m_n_mc_ttl(DEFAULT_MC_TTL)
+    , m_n_mc_ttl_hop_lim(m_family == AF_INET ? DEFAULT_MC_TTL : DEFAULT_MC_HOP_LIMIT)
     , m_loops_to_go(safe_mce_sys().rx_poll_num_init) // Start up with a init polling loops value
     , m_rx_udp_poll_os_ratio_counter(0)
     , m_sock_offload(true)
@@ -367,7 +401,7 @@ sockinfo_udp::sockinfo_udp(int fd, int domain)
     m_p_socket_stats->b_is_offloaded = m_sock_offload;
 
     // Update MC related stats (default values)
-    m_p_socket_stats->mc_tx_if = ip_address(m_mc_tx_if);
+    m_p_socket_stats->mc_tx_if = m_mc_tx_src_ip;
     m_p_socket_stats->b_mc_loop = m_b_mc_tx_loop;
 
     int n_so_rcvbuf_bytes = 0;
@@ -575,13 +609,14 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         m_p_connected_dst_entry = NULL;
     }
 
-    if (dst_ipaddr.is_mc(AF_INET)) {
-        socket_data data = {m_fd, {m_n_mc_ttl}, m_tos, m_pcp};
+    if (dst_ipaddr.is_mc(m_family)) {
+        socket_data data = {m_fd, m_n_mc_ttl_hop_lim, m_tos, m_pcp};
         m_p_connected_dst_entry = new dst_entry_udp_mc(
-            m_connected, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
-            m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
+            m_connected, src_port,
+            m_mc_tx_src_ip.is_anyaddr() ? m_bound.get_ip_addr() : m_mc_tx_src_ip, m_b_mc_tx_loop,
+            data, m_ring_alloc_log_tx, m_family);
     } else {
-        socket_data data = {m_fd, {m_n_uc_ttl}, m_tos, m_pcp};
+        socket_data data = {m_fd, m_n_uc_ttl_hop_lim, m_tos, m_pcp};
         m_p_connected_dst_entry =
             new dst_entry_udp(m_connected, src_port, data, m_ring_alloc_log_tx);
     }
@@ -798,6 +833,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                               setsockopt_so_opt_to_str(__optname));
             }
             break;
+
         case SO_MAX_PACING_RATE:
             if (__optval) {
                 struct xlio_rate_limit_t val;
@@ -851,6 +887,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                               setsockopt_so_opt_to_str(__optname));
             }
             break;
+
         case SO_PRIORITY:
             if (set_sockopt_prio(__optval, __optlen)) {
                 return -1;
@@ -914,16 +951,16 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 }
             }
 
-            m_mc_tx_if = mreqn.imr_address.s_addr;
+            m_mc_tx_src_ip = ip_addr(mreqn.imr_address.s_addr);
 
             si_udp_logdbg("IPPROTO_IP, %s=%d.%d.%d.%d", setsockopt_ip_opt_to_str(__optname),
-                          NIPQUAD(m_mc_tx_if));
-            m_p_socket_stats->mc_tx_if = ip_address(m_mc_tx_if);
+                          NIPQUAD(m_mc_tx_src_ip.get_in_addr()));
+            m_p_socket_stats->mc_tx_if = m_mc_tx_src_ip;
         } break;
 
         case IP_MULTICAST_TTL: {
             int n_mc_ttl = -1;
-            if (__optlen == sizeof(m_n_mc_ttl)) {
+            if (__optlen == sizeof(m_n_mc_ttl_hop_lim)) {
                 n_mc_ttl = *(char *)__optval;
             } else if (__optlen == sizeof(int)) {
                 n_mc_ttl = *(int *)__optval;
@@ -934,10 +971,10 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 n_mc_ttl = 1;
             }
             if (n_mc_ttl >= 0 && n_mc_ttl <= 255) {
-                m_n_mc_ttl = n_mc_ttl;
-                header_ttl_hop_limit_updater du(m_n_mc_ttl, true); // TODO IPV6 hop_limit
+                m_n_mc_ttl_hop_lim = n_mc_ttl;
+                header_ttl_hop_limit_updater du(m_n_mc_ttl_hop_lim, true);
                 update_header_field(&du);
-                si_udp_logdbg("IPPROTO_IP, %s=%d", setsockopt_ip_opt_to_str(__optname), m_n_mc_ttl);
+                si_udp_logdbg("IPPROTO_IP, %s=%d", setsockopt_ip_opt_to_str(__optname), m_n_mc_ttl_hop_lim);
             } else {
                 si_udp_loginfo("IPPROTO_IP, %s=\"???\"", setsockopt_ip_opt_to_str(__optname));
             }
@@ -1725,14 +1762,13 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                 in_port_t src_port = m_bound.get_in_port();
                 // Create the new dst_entry
                 if (dst.is_mc()) {
-                    // TODO IPV6 - use hop_limit instead ttl
-                    socket_data data = {m_fd, {m_n_mc_ttl}, m_tos, m_pcp};
+                    socket_data data = {m_fd, m_n_mc_ttl_hop_lim, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp_mc(
-                        dst, src_port, m_mc_tx_if ? ip_address(m_mc_tx_if) : m_bound.get_ip_addr(),
-                        m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
+                        dst, src_port,
+                        m_mc_tx_src_ip.is_anyaddr() ? m_bound.get_ip_addr() : m_mc_tx_src_ip,
+                        m_b_mc_tx_loop, data, m_ring_alloc_log_tx, m_family);
                 } else {
-                    // TODO IPV6 - use hop_limit instead ttl
-                    socket_data data = {m_fd, {m_n_uc_ttl}, m_tos, m_pcp};
+                    socket_data data = {m_fd, m_n_uc_ttl_hop_lim, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp(dst, src_port, data, m_ring_alloc_log_tx);
                 }
                 BULLSEYE_EXCLUDE_BLOCK_START
@@ -2175,6 +2211,7 @@ void sockinfo_udp::handle_pending_mreq()
     mc_pram_list_t::iterator mreq_iter, mreq_iter_temp;
     for (mreq_iter = m_pending_mreqs.begin(); mreq_iter != m_pending_mreqs.end();) {
         if (m_sock_offload) {
+            // for delayed operations - os setsockopt was executed before
             mc_change_membership(&(*mreq_iter));
         }
         mreq_iter_temp = mreq_iter;

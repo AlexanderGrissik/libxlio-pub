@@ -58,10 +58,7 @@ class xlio_tis;
 
 struct socket_data {
     int fd;
-    union {
-        uint8_t ttl;
-        uint8_t hop_limit;
-    };
+    uint8_t ttl_hop_limit;
     uint8_t tos;
     uint32_t pcp;
 };
@@ -120,7 +117,7 @@ public:
     inline sa_family_t get_sa_family() { return m_family; }
 
     uint8_t get_tos() const { return m_tos; }
-    uint8_t get_ttl_hop_limit() const { return m_ttl; }
+    uint8_t get_ttl_hop_limit() const { return m_ttl_hop_limit; }
 
     void reset_inflight_zc_buffers_ctx(void *ctx)
     {
@@ -156,10 +153,8 @@ protected:
     mem_buf_desc_t *m_p_tx_mem_buf_desc_list;
     mem_buf_desc_t *m_p_zc_mem_buf_desc_list;
     int m_b_tx_mem_buf_desc_list_pending;
-    union {
-        uint8_t m_ttl;
-        uint8_t m_hop_limit;
-    };
+    uint8_t m_ttl_hop_limit;
+
     uint8_t m_tos;
     uint8_t m_pcp;
     bool m_b_is_initialized;

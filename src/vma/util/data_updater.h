@@ -49,10 +49,7 @@ public:
     virtual bool update_field(dst_entry &hdr);
 
 private:
-    union {
-        uint8_t m_ttl;
-        uint8_t m_hop_limit;
-    };
+    uint8_t m_ttl_hop_limit;
     bool m_is_multicast;
 };
 

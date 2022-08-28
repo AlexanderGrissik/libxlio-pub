@@ -117,7 +117,7 @@ typedef struct {
 // multicast stat info
 typedef struct {
     uint32_t sock_num;
-    in_addr_t mc_grp;
+    ip_addr mc_grp {0};
 } mc_tbl_entry_t;
 
 typedef struct {
@@ -430,7 +430,11 @@ typedef struct sh_mem_t {
         memset(ring_inst_arr, 0, sizeof(ring_inst_arr));
         memset(bpool_inst_arr, 0, sizeof(bpool_inst_arr));
         memset(global_inst_arr, 0, sizeof(global_inst_arr));
-        memset(&mc_info, 0, sizeof(mc_info));
+        mc_info.max_grp_num = 0;
+        for (uint32_t i = 0; i < MC_TABLE_SIZE; i++) {
+            mc_info.mc_grp_tbl[i].mc_grp = {ip_address::any_addr(), 0};
+            mc_info.mc_grp_tbl[i].sock_num = 0;
+        }
         memset(&iomux, 0, sizeof(iomux));
         for (uint32_t i = 0; i < max_skt_inst_num; i++) {
             skt_inst_arr[i].reset();
@@ -453,8 +457,8 @@ void vma_shmem_stats_close();
 void vma_stats_instance_create_socket_block(socket_stats_t *);
 void vma_stats_instance_remove_socket_block(socket_stats_t *);
 
-void vma_stats_mc_group_add(in_addr_t mc_grp, socket_stats_t *p_socket_stats);
-void vma_stats_mc_group_remove(in_addr_t mc_grp, socket_stats_t *p_socket_stats);
+void vma_stats_mc_group_add(ip_address mc_grp, socket_stats_t *p_socket_stats);
+void vma_stats_mc_group_remove(ip_address mc_grp, socket_stats_t *p_socket_stats);
 
 void vma_stats_instance_create_ring_block(ring_stats_t *);
 void vma_stats_instance_remove_ring_block(ring_stats_t *);

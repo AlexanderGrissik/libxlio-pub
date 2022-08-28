@@ -62,7 +62,7 @@ using namespace std;
 typedef std::list<int> fd_list_t;
 
 typedef struct {
-    in_addr_t mc_grp;
+    ip_addr mc_grp {0};
     fd_list_t fd_list;
 } mc_group_fds_t;
 
@@ -1106,7 +1106,7 @@ void show_iomux_stats(iomux_stats_t *p_curr_stats, iomux_stats_t *p_prev_stats,
 // Find mc_grp in mc_group_fds array.
 // if exist: add the fd to the list.
 // if not: add the mc group to the array and the fd to the list
-void add_fd_to_array(int fd, in_addr_t mc_grp, mc_group_fds_t *mc_group_fds, int *array_size)
+void add_fd_to_array(int fd, ip_addr mc_grp, mc_group_fds_t *mc_group_fds, int *array_size)
 {
     // Go over the mc_group_fds array
     int i = 0;
@@ -1134,7 +1134,7 @@ void print_mc_group_fds(mc_group_fds_t *mc_group_fds, int array_size)
     for (int i = 0; i < array_size; i++) {
         char mcg_str[256];
         /* cppcheck-suppress wrongPrintfScanfArgNum */
-        sprintf(mcg_str, "[%d.%d.%d.%d]", NIPQUAD(mc_group_fds[i].mc_grp));
+        sprintf(mcg_str, "[%s]", mc_group_fds[i].mc_grp.to_str().c_str());
         printf("%-22s", mcg_str);
         for (const auto &fd : mc_group_fds[i].fd_list) {
             printf("%d ", fd);

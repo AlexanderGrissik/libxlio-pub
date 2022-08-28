@@ -222,6 +222,15 @@ public:
         return val;
     }
 
+    int get_net_ipv6_hop_limit(bool update = false)
+    {
+        static int val;
+        if (update) {
+            val = read_file_to_int("/proc/sys/net/ipv6/conf/default/hop_limit", 64);
+        }
+        return val;
+    }
+
     int get_igmp_max_membership(bool update = false)
     {
         static int val;

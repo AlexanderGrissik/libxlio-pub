@@ -64,7 +64,7 @@ dst_entry::dst_entry(const sock_addr &dst, uint16_t src_port, socket_data &sock_
     , m_p_tx_mem_buf_desc_list(NULL)
     , m_p_zc_mem_buf_desc_list(NULL)
     , m_b_tx_mem_buf_desc_list_pending(false)
-    , m_ttl(sock_data.ttl) // union with hop_limit (IPv6)
+    , m_ttl_hop_limit(sock_data.ttl_hop_limit)
     , m_tos(sock_data.tos)
     , m_pcp(sock_data.pcp)
     , m_id(0)

@@ -38,7 +38,7 @@ data_updater::~data_updater()
 
 header_ttl_hop_limit_updater::header_ttl_hop_limit_updater(uint8_t ttl_hop_limit, bool is_multicast)
     : data_updater()
-    , m_ttl(ttl_hop_limit) // union with hop_limit (IPv6)
+    , m_ttl_hop_limit(ttl_hop_limit)
     , m_is_multicast(is_multicast)
 {
 }
@@ -47,7 +47,7 @@ bool header_ttl_hop_limit_updater::update_field(dst_entry &dst)
 {
     if ((dst.get_dst_addr().is_mc(AF_INET) && m_is_multicast) ||
         (!dst.get_dst_addr().is_mc(AF_INET) && !m_is_multicast)) {
-        dst.set_ip_ttl_hop_limit(m_ttl);
+        dst.set_ip_ttl_hop_limit(m_ttl_hop_limit);
     }
     return true;
 }

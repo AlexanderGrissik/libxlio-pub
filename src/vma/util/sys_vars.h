@@ -869,6 +869,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MAX_MLX5_CQ_SIZE_ITEMS              4194304
 #define TCP_MAX_SYN_RATE_TOP_LIMIT          100000
 #define DEFAULT_MC_TTL                      64
+#define DEFAULT_MC_HOP_LIMIT                1
 #define IFTYPE_PARAM_FILE                   "/sys/class/net/%s/type"
 #define IFADDR_MTU_PARAM_FILE               "/sys/class/net/%s/mtu"
 #define UMCAST_PARAM_FILE                   "/sys/class/net/%s/umcast"

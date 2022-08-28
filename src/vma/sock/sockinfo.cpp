@@ -93,7 +93,9 @@ sockinfo::sockinfo(int fd, int domain)
     , m_flow_tag_id(0)
     , m_flow_tag_enabled(false)
     , m_rx_cq_wait_ctrl(safe_mce_sys().rx_cq_wait_ctrl)
-    , m_n_uc_ttl(safe_mce_sys().sysctl_reader.get_net_ipv4_ttl())
+    , m_n_uc_ttl_hop_lim(m_family == AF_INET
+                             ? safe_mce_sys().sysctl_reader.get_net_ipv4_ttl()
+                             : safe_mce_sys().sysctl_reader.get_net_ipv6_hop_limit())
     , m_is_ipv6only(safe_mce_sys().sysctl_reader.get_ipv6_bindv6only())
     , m_p_rings_fds(NULL)
 {
@@ -502,7 +504,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
     } else if (__level == IPPROTO_IP) {
         switch (__optname) {
         case IP_TTL:
-            if (__optlen < sizeof(m_n_uc_ttl)) {
+            if (__optlen < sizeof(m_n_uc_ttl_hop_lim)) {
                 ret = SOCKOPT_NO_VMA_SUPPORT;
                 errno = EINVAL;
             } else {
@@ -512,11 +514,12 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                     ret = SOCKOPT_NO_VMA_SUPPORT;
                     errno = EINVAL;
                 } else {
-                    m_n_uc_ttl = (val == -1) ? safe_mce_sys().sysctl_reader.get_net_ipv4_ttl()
-                                             : (uint8_t)val;
-                    header_ttl_hop_limit_updater du(m_n_uc_ttl, false); // TODO IPV6 hop_limit
+                    m_n_uc_ttl_hop_lim = (val == -1)
+                        ? safe_mce_sys().sysctl_reader.get_net_ipv4_ttl()
+                        : (uint8_t)val;
+                    header_ttl_hop_limit_updater du(m_n_uc_ttl_hop_lim, false);
                     update_header_field(&du);
-                    si_logdbg("IPPROTO_IP, optname=IP_TTL (%d)", m_n_uc_ttl);
+                    si_logdbg("IPPROTO_IP, optname=IP_TTL (%d)", m_n_uc_ttl_hop_lim);
                 }
             }
             break;

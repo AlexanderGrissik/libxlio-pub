@@ -762,8 +762,7 @@ uint16_t ipv6_addr_type_scope(const ip_address &addr, uint8_t &scope)
     }
 
     if ((up16 & 0xFF00) == 0xFF00) { // Multicast, addr-select 3.1
-        // scope = ipv6_addr_scope2type(IPV6_ADDR_MC_SCOPE(addr));
-        __log_err("IPv6 TODO fix");
+        scope = up16 & IPV6_ADDR_SCOPE_MASK;
         return IPV6_ADDR_MULTICAST;
     }
 

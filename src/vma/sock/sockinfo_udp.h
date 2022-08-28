@@ -174,9 +174,9 @@ private:
         bool operator==(const int &r_port) { return port == r_port; }
     };
 
-    in_addr_t m_mc_tx_if;
+    ip_addr m_mc_tx_src_ip;
     bool m_b_mc_tx_loop;
-    uint8_t m_n_mc_ttl;
+    uint8_t m_n_mc_ttl_hop_lim;
 
     int32_t m_loops_to_go; // local param for polling loop on this socket
     uint32_t

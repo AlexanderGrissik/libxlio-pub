@@ -132,8 +132,8 @@ void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, 
         for (int grp_idx = 0; grp_idx < p_mc_grp_info->max_grp_num; grp_idx++) {
             if (p_si_stats->mc_grp_map.test(grp_idx)) {
                 /* cppcheck-suppress wrongPrintfScanfArgNum */
-                fprintf(filename, "- Member of = [%d.%d.%d.%d]\n",
-                        NIPQUAD(p_mc_grp_info->mc_grp_tbl[grp_idx].mc_grp));
+                fprintf(filename, "- Member of = [%s]\n",
+                        p_mc_grp_info->mc_grp_tbl[grp_idx].mc_grp.to_str().c_str());
             }
         }
     }
