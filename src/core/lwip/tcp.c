@@ -115,8 +115,6 @@ void tcp_tmr(struct tcp_pcb *pcb)
     /* Call tcp_fasttmr() every (slow_tmr_interval / 2) ms */
     tcp_fasttmr(pcb);
 
-    pcb->ticks_since_data_sent += (pcb->ticks_since_data_sent != -1);
-
     if (++(pcb->tcp_timer) & 1) {
         /* Call tcp_tmr() every slow_tmr_interval ms, i.e., every other timer
            tcp_tmr() is called. */
@@ -593,6 +591,8 @@ void tcp_slowtmr(struct tcp_pcb *pcb)
         LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: no active pcbs\n"));
         return;
     }
+
+    pcb->ticks_since_data_sent += (pcb->ticks_since_data_sent != -1);
 
     if (pcb && PCB_IN_ACTIVE_STATE(pcb)) {
         LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: processing active pcb\n"));
