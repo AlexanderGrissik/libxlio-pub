@@ -411,7 +411,7 @@ void vma_stats_instance_remove_socket_block(socket_stats_t *local_addr)
     g_lock_skt_inst_arr.unlock();
 }
 
-void vma_stats_mc_group_add(ip_address mc_grp, socket_stats_t *p_socket_stats)
+void vma_stats_mc_group_add(const ip_address &mc_grp, socket_stats_t *p_socket_stats)
 {
     int empty_entry = -1;
     int index_to_insert = -1;
@@ -447,7 +447,7 @@ void vma_stats_mc_group_add(ip_address mc_grp, socket_stats_t *p_socket_stats)
     }
 }
 
-void vma_stats_mc_group_remove(ip_address mc_grp, socket_stats_t *p_socket_stats)
+void vma_stats_mc_group_remove(const ip_address &mc_grp, socket_stats_t *p_socket_stats)
 {
     g_lock_mc_info.lock();
     for (int grp_idx = 0; grp_idx < g_sh_mem->mc_info.max_grp_num; grp_idx++) {

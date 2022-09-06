@@ -103,6 +103,8 @@ public:
         get_net_ipv4_ttl(true);
         get_igmp_max_membership(true);
         get_igmp_max_source_membership(true);
+        get_mld_max_source_membership(true);
+        get_net_ipv6_hop_limit(true);
         get_ipv6_bindv6only(true);
         get_ipv6_conf_all_optimistic_dad(true);
         get_ipv6_conf_all_use_optimistic(true);
@@ -250,6 +252,18 @@ public:
             val = read_file_to_int("/proc/sys/net/ipv4/igmp_max_msf", 1024);
             if (0 > val) {
                 vlog_printf(VLOG_WARNING, "failed to read get_igmp_max_source_membership value\n");
+            }
+        }
+        return val;
+    }
+
+    int get_mld_max_source_membership(bool update = false)
+    {
+        static int val;
+        if (update) {
+            val = read_file_to_int("/proc/sys/net/ipv6/mld_max_msf", 64);
+            if (0 > val) {
+                vlog_printf(VLOG_WARNING, "failed to read get_mld_max_source_membership value\n");
             }
         }
         return val;

@@ -614,7 +614,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
         m_p_connected_dst_entry = new dst_entry_udp_mc(
             m_connected, src_port,
             m_mc_tx_src_ip.is_anyaddr() ? m_bound.get_ip_addr() : m_mc_tx_src_ip, m_b_mc_tx_loop,
-            data, m_ring_alloc_log_tx, m_family);
+            data, m_ring_alloc_log_tx);
     } else {
         socket_data data = {m_fd, m_n_uc_ttl_hop_lim, m_tos, m_pcp};
         m_p_connected_dst_entry =
@@ -904,7 +904,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
 
     case IPPROTO_IP: {
         switch (__optname) {
-
         case IP_MULTICAST_IF: {
             struct ip_mreqn mreqn;
             memset(&mreqn, 0, sizeof(mreqn));
@@ -974,7 +973,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 m_n_mc_ttl_hop_lim = n_mc_ttl;
                 header_ttl_hop_limit_updater du(m_n_mc_ttl_hop_lim, true);
                 update_header_field(&du);
-                si_udp_logdbg("IPPROTO_IP, %s=%d", setsockopt_ip_opt_to_str(__optname), m_n_mc_ttl_hop_lim);
+                si_udp_logdbg("IPPROTO_IP, %s=%d", setsockopt_ip_opt_to_str(__optname),
+                              m_n_mc_ttl_hop_lim);
             } else {
                 si_udp_loginfo("IPPROTO_IP, %s=\"???\"", setsockopt_ip_opt_to_str(__optname));
             }
@@ -996,6 +996,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         case IP_DROP_MEMBERSHIP:
         case IP_ADD_SOURCE_MEMBERSHIP:
         case IP_DROP_SOURCE_MEMBERSHIP: {
+            // XXX TODO: refactor all ip structs to ip_address
             if (!m_sock_offload) {
                 si_udp_logdbg("Rx Offload is Disabled! calling OS setsockopt() for IPPROTO_IP, %s",
                               setsockopt_ip_opt_to_str(__optname));
@@ -1097,7 +1098,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 }
                 // Find local if for this MC ADD/DROP
                 route_result res;
-                // TODO IPv6 support
                 g_p_route_table_mgr->route_resolve(
                     route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos),
                     res);
@@ -1112,15 +1112,18 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             }
 
             // Add multicast group membership
-            if (mc_change_membership_start_helper(mc_grp, __optname)) {
+            if (mc_change_membership_start_helper_ip4(ip_address(mc_grp), __optname)) {
                 return -1;
             }
 
             bool goto_os = false;
             // Check MC rules for not offloading
             sock_addr tmp_grp_addr(AF_INET, &mc_grp, m_bound.get_in_port());
-            mc_pending_pram mcpram = {mreqprm.imr_multiaddr, mreqprm.imr_interface,
-                                      mreqprm.imr_sourceaddr, __optname};
+            mc_pending_pram mcpram;
+            mcpram.mc_grp = ip_address(mreqprm.imr_multiaddr);
+            mcpram.mc_if = ip_address(mreqprm.imr_interface);
+            mcpram.mc_src = ip_address(mreqprm.imr_sourceaddr);
+            mcpram.optname = __optname;
 
             if (TRANS_OS ==
                 __vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
@@ -1149,7 +1152,7 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 mc_change_pending_mreq(&mcpram);
             }
             // Handle attach to this MC group now
-            else if (mc_change_membership(&mcpram)) {
+            else if (mc_change_membership_ip4(&mcpram)) {
                 // Opps, failed in attaching??? call orig setsockopt()
                 goto_os = true;
             }
@@ -1161,7 +1164,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 }
             }
 
-            mc_change_membership_end_helper(mc_grp, __optname, mreqprm.imr_sourceaddr.s_addr);
+            mc_change_membership_end_helper_ip4(ip_address(mc_grp), __optname,
+                                                ip_address(mreqprm.imr_sourceaddr.s_addr));
             return 0;
         } break;
         case IP_PKTINFO:
@@ -1255,12 +1259,312 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
         } // case IPPROTO_UDP
         break;
 
+    case IPPROTO_IPV6:
+        switch (__optname) {
+        case IPV6_MULTICAST_IF: {
+            if (!__optval || __optlen < sizeof(int)) {
+                si_udp_logdbg("%s, %s=\"???\", optlen:%d", setsockopt_level_to_str(__level),
+                              setsockopt_ip_opt_to_str(__optname), (int)__optlen);
+                break;
+            }
+
+            int if_ix = (*reinterpret_cast<const int *>(__optval));
+            if (if_ix != 0 && !g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
+                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
+                              setsockopt_ip_opt_to_str(__optname), if_ix);
+                break;
+            }
+
+            // We take the first address of the interface.
+            // However, Kernel Differentiate between src-addr and outgoing-if.
+            // Also, in Kernel, the address selection is not the first one,
+            // see p_route_output_key_hash_rcu -> inet_select_addr.
+            if (if_ix != 0) {
+                local_ip_list_t lip_offloaded_list;
+                g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, if_ix);
+                if (!lip_offloaded_list.empty()) {
+                    m_mc_tx_src_ip = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
+                } else {
+                    ip_addr src_addr {0};
+                    if (get_ip_addr_from_ifindex(if_ix, src_addr, AF_INET6) == 0) {
+                        m_mc_tx_src_ip = src_addr;
+                    } else {
+                        si_udp_logdbg("IPPROTO_IPV6, setsockopt(%s) will be passed to OS for "
+                                      "handling, can't get address "
+                                      "of interface index %d ",
+                                      setsockopt_ip_opt_to_str(__optname), if_ix);
+                        break;
+                    }
+                }
+            }
+
+            si_udp_logdbg("IPPROTO_IPV6, %s=%s", setsockopt_ip_opt_to_str(__optname),
+                          m_mc_tx_src_ip.to_str().c_str());
+            m_p_socket_stats->mc_tx_if = m_mc_tx_src_ip;
+        } break;
+
+        case IPV6_MULTICAST_LOOP: {
+            if (__optval) {
+                m_b_mc_tx_loop = *(bool *)__optval;
+                m_p_socket_stats->b_mc_loop = m_b_mc_tx_loop;
+                si_udp_logdbg("IPV6_MULTICAST_LOOP, %s=%s", setsockopt_ip_opt_to_str(__optname),
+                              (m_b_mc_tx_loop ? "true" : "false"));
+            } else {
+                si_udp_logdbg("%s, optval=NULL", setsockopt_ip_opt_to_str(__optname));
+            }
+        } break;
+
+        case IPV6_MULTICAST_HOPS: {
+            if (__optval && __optlen == sizeof(int)) {
+                int val = (*reinterpret_cast<const int *>(__optval));
+                if ((val >= -1) && (val <= 255)) {
+                    m_n_mc_ttl_hop_lim = (val == -1) ? DEFAULT_MC_HOP_LIMIT : val;
+                    si_udp_logdbg("IPV6_MULTICAST_HOPS, set to %u", m_n_mc_ttl_hop_lim);
+                    break;
+                }
+            }
+            si_udp_logdbg("IPV6_MULTICAST_HOPS, invalid value/length arguments. "
+                          " val %p, len %zu, expected-len %zu",
+                          __optval, static_cast<size_t>(__optlen), sizeof(int));
+        } break;
+
+        case IPV6_LEAVE_GROUP:
+        case IPV6_JOIN_GROUP: {
+            if (!__optval) {
+                si_udp_logdbg("%s, %s=\"???\", optlen:%d", setsockopt_level_to_str(__level),
+                              setsockopt_ip_opt_to_str(__optname), (int)__optlen);
+                break;
+            }
+
+            if (__optlen < sizeof(struct ipv6_mreq)) {
+                si_udp_logdbg("%s, %s; Bad optlen! calling OS setsockopt() with optlen=%d "
+                              "(required optlen=%zu)",
+                              setsockopt_level_to_str(__level), setsockopt_ip_opt_to_str(__optname),
+                              __optlen, sizeof(struct ipv6_mreq));
+                break;
+            }
+
+            int if_ix = reinterpret_cast<const struct ipv6_mreq *>(__optval)->ipv6mr_interface;
+            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
+                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
+                              setsockopt_ip_opt_to_str(__optname), if_ix);
+                break;
+            }
+
+            if (multicast_membership_setsockopt_ip6(__optname, __optval, __optlen) < 0) {
+                si_udp_logdbg("setsockopt(%s) will be passed to OS for handling",
+                              setsockopt_ip_opt_to_str(__optname));
+                break;
+            }
+            return 0;
+        } break;
+        case MCAST_JOIN_GROUP:
+        case MCAST_LEAVE_GROUP: {
+            if (!__optval) {
+                si_udp_logdbg("%s, %s optval=NULL, optlen:%d", setsockopt_level_to_str(__level),
+                              setsockopt_ip_opt_to_str(__optname), (int)__optlen);
+                break;
+            }
+            if (__optlen < sizeof(struct group_req)) {
+                si_udp_logdbg("%s, %s; Bad optlen! calling OS setsockopt() with optlen=%d "
+                              "(required optlen=%zu)",
+                              setsockopt_level_to_str(__level), setsockopt_ip_opt_to_str(__optname),
+                              __optlen, sizeof(struct group_req));
+                break;
+            }
+
+            int if_ix = reinterpret_cast<const struct group_req *>(__optval)->gr_interface;
+            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
+                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
+                              setsockopt_ip_opt_to_str(__optname), if_ix);
+                break;
+            }
+
+            const sock_addr *sock = reinterpret_cast<const sock_addr *>(
+                &(reinterpret_cast<const struct group_req *>(__optval)->gr_group));
+            if (sock->get_sa_family() != AF_INET6) {
+                si_udp_logdbg(
+                    "setsockopt(%s) will be passed to OS for handling, sa_family != AF_INET6 ",
+                    setsockopt_ip_opt_to_str(__optname));
+                break;
+            }
+
+            if (multicast_membership_setsockopt_ip6(__optname, __optval, __optlen) < 0) {
+                si_udp_logdbg("setsockopt(%s) will be passed to OS for handling",
+                              setsockopt_ip_opt_to_str(__optname));
+                break;
+            }
+            return 0;
+        } break;
+        case MCAST_JOIN_SOURCE_GROUP:
+        case MCAST_LEAVE_SOURCE_GROUP: {
+            if (!__optval) {
+                si_udp_logdbg("%s, %s optval=NULL, optlen:%d", setsockopt_level_to_str(__level),
+                              setsockopt_ip_opt_to_str(__optname), (int)__optlen);
+                break;
+            }
+
+            if (__optlen < sizeof(struct group_source_req)) {
+                si_udp_logdbg("%s, %s; Bad optlen! calling OS setsockopt() with optlen=%d "
+                              "(required optlen=%zu)",
+                              setsockopt_level_to_str(__level), setsockopt_ip_opt_to_str(__optname),
+                              __optlen, sizeof(struct group_source_req));
+                break;
+            }
+
+            int if_ix = reinterpret_cast<const struct group_source_req *>(__optval)->gsr_interface;
+            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
+                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
+                              setsockopt_ip_opt_to_str(__optname), if_ix);
+                break;
+            }
+
+            const sock_addr *grp = reinterpret_cast<const sock_addr *>(
+                &(reinterpret_cast<const struct group_source_req *>(__optval)->gsr_group));
+            const sock_addr *src = reinterpret_cast<const sock_addr *>(
+                &(reinterpret_cast<const struct group_source_req *>(__optval)->gsr_source));
+            if (grp->get_sa_family() != AF_INET6 || src->get_sa_family() != AF_INET6) {
+                si_udp_logdbg(
+                    "setsockopt(%s) will be passed to OS for handling, sa_family != AF_INET6 ",
+                    setsockopt_ip_opt_to_str(__optname));
+                break;
+            }
+
+            if (multicast_membership_setsockopt_ip6(__optname, __optval, __optlen) < 0) {
+                si_udp_logdbg("setsockopt(%s) will be passed to OS for handling",
+                              setsockopt_ip_opt_to_str(__optname));
+                break;
+            }
+            return 0;
+        } break;
+        }
+        break; // case IPPROTO_IPV6
     default: {
         si_udp_logdbg("level = %d, optname = %d", __level, __optname);
         supported = false;
     } break;
     }
     return setsockopt_kernel(__level, __optname, __optval, __optlen, supported, false);
+}
+
+int sockinfo_udp::multicast_membership_setsockopt_ip6(int optname, const void *optval,
+                                                      socklen_t optlen)
+{
+    if (!m_sock_offload) {
+        si_udp_logdbg("Rx Offload is Disabled!");
+        return -1;
+    }
+
+    mc_pending_pram mcpram;
+    if (fill_mc_structs_ip6(optname, optval, &mcpram) < 0) {
+        si_udp_logerr("Unknown optname=%d", optname);
+        return -1;
+    }
+
+    si_udp_logdbg("IPPROTO_IPV6, %s=%s, mc_if:%s, src_ip:%s", setsockopt_ip_opt_to_str(optname),
+                  mcpram.mc_grp.to_str(m_family).c_str(), mcpram.mc_if.to_str(m_family).c_str(),
+                  mcpram.mc_src.to_str(m_family).c_str());
+
+    // Add multicast group membership
+    if (mc_change_membership_start_helper_ip6(&mcpram)) {
+        si_udp_logerr("IPPROTO_IPV6, %s failed due to wrong input",
+                      setsockopt_ip_opt_to_str(optname));
+        return -1;
+    }
+
+    bool goto_os = false;
+    // Check MC rules for not offloading
+
+    int ret {0};
+
+    // Check if local_if is offloaded
+    if (!g_p_net_device_table_mgr->get_net_device_val(ip_addr(mcpram.mc_if, m_family))) {
+        // call orig setsockopt() and don't try to offlaod
+        si_udp_logdbg("Not offloaded interface (%s)", mcpram.mc_if.to_str(m_family).c_str());
+        goto_os = true;
+    }
+
+    // offloaded, check if need to pend
+    else if (m_bound.is_anyport()) {
+        // Delay attaching to this MC group until we have bound UDP port
+        ret = orig_os_api.setsockopt(m_fd, IPPROTO_IPV6, optname, optval, optlen);
+        if (ret) {
+            return ret;
+        }
+        mc_change_pending_mreq(&mcpram);
+    }
+
+    // Handle attach to this MC group now
+    else if (mc_change_membership_ip6(&mcpram)) {
+        // Opps, failed in attaching??? call orig setsockopt()
+        goto_os = true;
+    }
+
+    if (goto_os) {
+        ret = orig_os_api.setsockopt(m_fd, IPPROTO_IPV6, optname, optval, optlen);
+        if (ret) {
+            return ret;
+        }
+    }
+
+    if (mc_change_membership_end_helper_ip6(&mcpram) < 0) {
+        si_udp_logerr("Unknown optname=%d", optname);
+        return -1;
+    }
+    return 0;
+}
+
+int sockinfo_udp::fill_mc_structs_ip6(int optname, const void *optval, mc_pending_pram *mcpram)
+{
+    const mc_req_all *mc_req = reinterpret_cast<const mc_req_all *>(optval);
+    mcpram->is_ipv6 = true;
+    mcpram->optname = optname;
+    switch (optname) {
+    case MCAST_JOIN_GROUP:
+    case MCAST_LEAVE_GROUP:
+        mcpram->pram_size = sizeof(struct group_req);
+        mcpram->mc_grp = reinterpret_cast<const sock_addr *>(&mc_req->greq.gr_group)->get_ip_addr();
+        mcpram->if_index = mc_req->greq.gr_interface;
+        break;
+    case IPV6_JOIN_GROUP:
+    case IPV6_LEAVE_GROUP:
+        mcpram->pram_size = sizeof(struct ipv6_mreq);
+        mcpram->mc_grp = ip_address(mc_req->ip6_mreq.ipv6mr_multiaddr);
+        mcpram->if_index = mc_req->ip6_mreq.ipv6mr_interface;
+        break;
+    case MCAST_JOIN_SOURCE_GROUP:
+    case MCAST_LEAVE_SOURCE_GROUP:
+    case MCAST_BLOCK_SOURCE:
+    case MCAST_UNBLOCK_SOURCE:
+        mcpram->pram_size = sizeof(struct group_source_req);
+        mcpram->mc_grp =
+            reinterpret_cast<const sock_addr *>(&mc_req->gsreq.gsr_group)->get_ip_addr();
+        mcpram->if_index = mc_req->gsreq.gsr_interface;
+        mcpram->mc_src =
+            reinterpret_cast<const sock_addr *>(&mc_req->gsreq.gsr_source)->get_ip_addr();
+        break;
+    default:
+        return -1;
+    }
+
+    local_ip_list_t lip_offloaded_list;
+    g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, mcpram->if_index);
+    if (!lip_offloaded_list.empty()) {
+        mcpram->mc_if = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
+    } else {
+        ip_addr src_addr {0};
+        if (get_ip_addr_from_ifindex(mcpram->if_index, src_addr, AF_INET6) == 0) {
+            mcpram->mc_if = src_addr;
+        } else {
+            si_udp_logdbg("setsockopt(%s) will be passed to OS for handling, can't find interface "
+                          "ip of interface index %d ",
+                          setsockopt_ip_opt_to_str(mcpram->optname), mcpram->if_index);
+            return -1;
+        }
+    }
+
+    memcpy(&mcpram->req, optval, mcpram->pram_size);
+    return 0;
 }
 
 int sockinfo_udp::getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen)
@@ -1766,7 +2070,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
                     p_dst_entry = new dst_entry_udp_mc(
                         dst, src_port,
                         m_mc_tx_src_ip.is_anyaddr() ? m_bound.get_ip_addr() : m_mc_tx_src_ip,
-                        m_b_mc_tx_loop, data, m_ring_alloc_log_tx, m_family);
+                        m_b_mc_tx_loop, data, m_ring_alloc_log_tx);
                 } else {
                     socket_data data = {m_fd, m_n_uc_ttl_hop_lim, m_tos, m_pcp};
                     p_dst_entry = new dst_entry_udp(dst, src_port, data, m_ring_alloc_log_tx);
@@ -2089,16 +2393,42 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
             return false;
         }
         if (m_mc_num_grp_with_src_filter) {
-            in_addr_t mc_grp = p_desc->rx.dst.get_ip_addr().get_in_addr();
-            if (IN_MULTICAST_N(mc_grp)) {
-                in_addr_t mc_src = p_desc->rx.src.get_ip_addr().get_in_addr();
+            const ip_address &mc_grp = p_desc->rx.dst.get_ip_addr();
+            if (mc_grp.is_mc(m_family)) {
+                const ip_address &mc_src = p_desc->rx.src.get_ip_addr();
 
-                if ((m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) ||
-                    ((0 < m_mc_memberships_map[mc_grp].size()) &&
-                     (m_mc_memberships_map[mc_grp].find(mc_src) ==
-                      m_mc_memberships_map[mc_grp].end()))) {
-                    si_udp_logfunc("rx packet discarded - multicast source mismatch");
-                    return false;
+                if (m_family == AF_INET) {
+                    if ((m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) ||
+                        ((0 < m_mc_memberships_map[mc_grp].size()) &&
+                         (m_mc_memberships_map[mc_grp].find(mc_src) ==
+                          m_mc_memberships_map[mc_grp].end()))) {
+                        si_udp_logfunc("rx packet discarded - multicast source mismatch");
+                        return false;
+                    }
+                } else {
+                    // here we would like to find relevant source filtering
+                    // thus - src map size should not contain anyaddr src
+                    size_t src_map_size {0};
+                    bool mc_grp_exists {false};
+                    bool mc_src_exists {false};
+                    if (m_mc_memberships_map.find(mc_grp) != m_mc_memberships_map.end()) {
+                        mc_grp_exists = true;
+                        mc_src_exists = (m_mc_memberships_map[mc_grp].find(mc_src) !=
+                                         m_mc_memberships_map[mc_grp].end());
+                        src_map_size = m_mc_memberships_map[mc_grp].size();
+                        if (m_mc_memberships_map[mc_grp].find(ip_address::any_addr()) !=
+                            m_mc_memberships_map[mc_grp].end()) {
+                            --src_map_size;
+                        }
+                    }
+
+                    if (!mc_grp_exists || ((src_map_size > 0) && !mc_src_exists)) {
+                        /* bug #3202713
+                        || ((src_map_size > 0) && mc_src_exists &&
+                        (m_mc_memberships_map[mc_grp][mc_src] == MCAST_EXCLUDE))) { */
+                        si_udp_logfunc("rx packet discarded - multicast source mismatch");
+                        return false;
+                    }
                 }
             }
         }
@@ -2212,7 +2542,11 @@ void sockinfo_udp::handle_pending_mreq()
     for (mreq_iter = m_pending_mreqs.begin(); mreq_iter != m_pending_mreqs.end();) {
         if (m_sock_offload) {
             // for delayed operations - os setsockopt was executed before
-            mc_change_membership(&(*mreq_iter));
+            if (m_family == AF_INET6) {
+                mc_change_membership_ip6(&(*mreq_iter));
+            } else {
+                mc_change_membership_ip4(&(*mreq_iter));
+            }
         }
         mreq_iter_temp = mreq_iter;
         ++mreq_iter;
@@ -2226,19 +2560,29 @@ int sockinfo_udp::mc_change_pending_mreq(const mc_pending_pram *p_mc_pram)
                   setsockopt_ip_opt_to_str(p_mc_pram->optname));
 
     mc_pram_list_t::iterator mc_pram_iter, mreq_iter_temp;
+    bool erase_all_src = false;
     switch (p_mc_pram->optname) {
     case IP_ADD_MEMBERSHIP:
     case IP_ADD_SOURCE_MEMBERSHIP:
+    case IPV6_JOIN_GROUP:
+    case MCAST_JOIN_GROUP:
+    case MCAST_JOIN_SOURCE_GROUP:
         m_pending_mreqs.push_back(*p_mc_pram);
         break;
+    case MCAST_LEAVE_GROUP:
     case IP_DROP_MEMBERSHIP:
+    case IPV6_LEAVE_GROUP:
+        erase_all_src = true;
+        // fallthrough
+    case MCAST_LEAVE_SOURCE_GROUP:
     case IP_DROP_SOURCE_MEMBERSHIP:
         for (mc_pram_iter = m_pending_mreqs.begin(); mc_pram_iter != m_pending_mreqs.end();) {
-            if ((mc_pram_iter->imr_multiaddr.s_addr == p_mc_pram->imr_multiaddr.s_addr) &&
-                ((IP_DROP_MEMBERSHIP ==
-                  p_mc_pram->optname) || // In case of a IP_DROP_SOURCE_MEMBERSHIP we should check
-                                         // source address too
-                 (mc_pram_iter->imr_sourceaddr.s_addr == p_mc_pram->imr_sourceaddr.s_addr))) {
+            if ((mc_pram_iter->mc_grp == p_mc_pram->mc_grp) &&
+                // In case of a IP_DROP_SOURCE_MEMBERSHIP/MCAST_LEAVE_SOURCE_GROUP
+                // we should check source address and interface ix too
+                (erase_all_src ||
+                 ((mc_pram_iter->mc_src == p_mc_pram->mc_src) &&
+                  (mc_pram_iter->if_index == p_mc_pram->if_index)))) {
                 // We found the group, erase it
                 mreq_iter_temp = mc_pram_iter;
                 ++mc_pram_iter;
@@ -2257,7 +2601,7 @@ int sockinfo_udp::mc_change_pending_mreq(const mc_pending_pram *p_mc_pram)
     return 0;
 }
 
-int sockinfo_udp::mc_change_membership_start_helper(in_addr_t mc_grp, int optname)
+int sockinfo_udp::mc_change_membership_start_helper_ip4(const ip_address &mc_grp, int optname)
 {
     switch (optname) {
     case IP_ADD_MEMBERSHIP:
@@ -2297,8 +2641,8 @@ int sockinfo_udp::mc_change_membership_start_helper(in_addr_t mc_grp, int optnam
     return 0;
 }
 
-int sockinfo_udp::mc_change_membership_end_helper(in_addr_t mc_grp, int optname,
-                                                  in_addr_t mc_src /*=0*/)
+int sockinfo_udp::mc_change_membership_end_helper_ip4(const ip_address &mc_grp, int optname,
+                                                      const ip_address &mc_src)
 {
     switch (optname) {
     case IP_ADD_MEMBERSHIP:
@@ -2333,15 +2677,15 @@ int sockinfo_udp::mc_change_membership_end_helper(in_addr_t mc_grp, int optname,
     return 0;
 }
 
-int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
+int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
 {
-    in_addr_t mc_grp = p_mc_pram->imr_multiaddr.s_addr;
-    in_addr_t mc_if = p_mc_pram->imr_interface.s_addr;
+    const ip_address &mc_grp = p_mc_pram->mc_grp.get_in4_addr();
+    ip_address mc_if = p_mc_pram->mc_if.get_in4_addr();
 
     BULLSEYE_EXCLUDE_BLOCK_START
-    if (IN_MULTICAST_N(mc_grp) == false) {
-        si_udp_logerr("%s for non multicast (%d.%d.%d.%d) %#x",
-                      setsockopt_ip_opt_to_str(p_mc_pram->optname), NIPQUAD(mc_grp), mc_grp);
+    if (!mc_grp.is_mc(AF_INET)) {
+        si_udp_logerr("%s for non multicast (%s)", setsockopt_ip_opt_to_str(p_mc_pram->optname),
+                      mc_grp.to_str(AF_INET).c_str());
         return -1;
     }
     BULLSEYE_EXCLUDE_BLOCK_END
@@ -2355,37 +2699,33 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         return -1;
     }
 
-    if (mc_if == INADDR_ANY) {
-        in_addr_t dst_ip = mc_grp;
-        in_addr_t src_ip = 0;
+    if (mc_if.is_anyaddr()) {
+        const ip_address &dst_ip = mc_grp;
+        const ip_address &src_ip = (!m_bound.is_anyaddr() && !m_bound.is_mc())
+            ? m_bound.get_ip_addr()
+            : m_so_bindtodevice_ip;
 
-        if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            src_ip = m_bound.get_ip_addr().get_in_addr();
-        } else if (!m_so_bindtodevice_ip.is_anyaddr()) {
-            src_ip = m_so_bindtodevice_ip.get_in_addr();
-        }
         // Find local if for this MC ADD/DROP
         route_result res;
-        // TODO IPv6 support
-        g_p_route_table_mgr->route_resolve(
-            route_rule_table_key(ip_address(dst_ip), ip_address(src_ip), AF_INET, m_tos), res);
-        mc_if = res.src.get_in_addr();
+        g_p_route_table_mgr->route_resolve(route_rule_table_key(dst_ip, src_ip, AF_INET, m_tos),
+                                           res);
+        mc_if = res.src;
     }
 
     // Check if local_if is offloadable
-    if (!g_p_net_device_table_mgr->get_net_device_val(ip_addr(mc_if))) {
+    if (!g_p_net_device_table_mgr->get_net_device_val(ip_addr(mc_if, AF_INET))) {
         // Break so we call orig setsockopt() and try to offlaod
-        si_udp_logdbg("setsockopt(%s) will be passed to OS for handling - not offload interface "
-                      "(%d.%d.%d.%d)",
-                      setsockopt_ip_opt_to_str(p_mc_pram->optname), NIPQUAD(mc_if));
+        si_udp_logdbg(
+            "setsockopt(%s) will be passed to OS for handling - not offload interface (%s)",
+            setsockopt_ip_opt_to_str(p_mc_pram->optname), mc_if.to_str(AF_INET).c_str());
         return -1;
     }
 
     int pram_size = sizeof(ip_mreq);
     struct ip_mreq_source mreq_src;
-    mreq_src.imr_multiaddr.s_addr = p_mc_pram->imr_multiaddr.s_addr;
-    mreq_src.imr_interface.s_addr = p_mc_pram->imr_interface.s_addr;
-    mreq_src.imr_sourceaddr.s_addr = p_mc_pram->imr_sourceaddr.s_addr;
+    mreq_src.imr_multiaddr.s_addr = p_mc_pram->mc_grp.get_in4_addr().s_addr;
+    mreq_src.imr_interface.s_addr = p_mc_pram->mc_if.get_in4_addr().s_addr;
+    mreq_src.imr_sourceaddr.s_addr = p_mc_pram->mc_src.get_in4_addr().s_addr;
 
     switch (p_mc_pram->optname) {
     case IP_ADD_MEMBERSHIP: {
@@ -2396,44 +2736,41 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
 
         // The address specified in bind() has a filtering role.
         // i.e. sockets should discard datagrams which sent to an unbound ip address.
-        if (!m_bound.is_anyaddr() && mc_grp != m_bound.get_ip_addr().get_in_addr()) {
+        if (!m_bound.is_anyaddr() && mc_grp != m_bound.get_ip_addr()) {
             // Ignore for socketXtreme because m_bound is used as part of the legacy implementation
             if (!safe_mce_sys().enable_socketxtreme) {
                 return -1; // Socket was bound to a different ip address
             }
         }
 
-        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
-                                          m_connected.get_ip_addr(), m_connected.get_in_port(),
-                                          PROTO_UDP, AF_INET, ip_address(mc_if));
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_ip_addr(),
+                                          m_connected.get_in_port(), PROTO_UDP, AF_INET, mc_if);
         if (!attach_receiver(flow_key)) {
             // we will get RX from OS
             return -1;
         }
         vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
-        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
+        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         m_multicast = true;
         break;
     }
     case IP_ADD_SOURCE_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
-                                          ip_address::any_addr(), 0, PROTO_UDP, AF_INET,
-                                          ip_address(mc_if));
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), ip_address::any_addr(), 0,
+                                          PROTO_UDP, AF_INET, mc_if);
         if (!attach_receiver(flow_key)) {
             // we will get RX from OS
             return -1;
         }
         vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
         pram_size = sizeof(ip_mreq_source);
-        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
+        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         m_multicast = true;
         break;
     }
     case IP_DROP_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
-                                          m_connected.get_ip_addr(), m_connected.get_in_port(),
-                                          PROTO_UDP, AF_INET, ip_address(mc_if));
-        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), m_connected.get_ip_addr(),
+                                          m_connected.get_in_port(), PROTO_UDP, AF_INET, mc_if);
+        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         if (!detach_receiver(flow_key)) {
             return -1;
         }
@@ -2442,11 +2779,10 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
         break;
     }
     case IP_DROP_SOURCE_MEMBERSHIP: {
-        flow_tuple_with_local_if flow_key(ip_address(mc_grp), m_bound.get_in_port(),
-                                          ip_address::any_addr(), 0, PROTO_UDP, AF_INET,
-                                          ip_address(mc_if));
+        flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), ip_address::any_addr(), 0,
+                                          PROTO_UDP, AF_INET, mc_if);
         pram_size = sizeof(ip_mreq_source);
-        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname);
+        original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         if (1 == m_mc_memberships_map[mc_grp].size()) { // Last source in the group
             if (!detach_receiver(flow_key)) {
                 return -1;
@@ -2467,11 +2803,230 @@ int sockinfo_udp::mc_change_membership(const mc_pending_pram *p_mc_pram)
     return 0;
 }
 
-void sockinfo_udp::original_os_setsockopt_helper(void *pram, int pram_size, int optname)
+int sockinfo_udp::mc_change_membership_start_helper_ip6(const mc_pending_pram *p_mc_pram)
+{
+    int optname = p_mc_pram->optname;
+    const ip_address &mc_grp = p_mc_pram->mc_grp;
+    const ip_address &mc_src = p_mc_pram->mc_src;
+
+    BULLSEYE_EXCLUDE_BLOCK_START
+    if (!mc_grp.is_mc(AF_INET6)) {
+        si_udp_logdbg("%s, mc group is not a multicast address (%s)",
+                      setsockopt_ip_opt_to_str(optname), mc_grp.to_str(AF_INET6).c_str());
+        return -1;
+    }
+    BULLSEYE_EXCLUDE_BLOCK_END
+
+    sock_addr tmp_grp_addr(m_family, &mc_grp, m_bound.get_in_port());
+    if (__vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
+                                 tmp_grp_addr.get_socklen()) == TRANS_OS) {
+        // Break so we call orig setsockopt() and don't try to offload
+        si_udp_logdbg("Not offloading due to rule matching");
+        return -1;
+    }
+
+    bool group_exists = (m_mc_memberships_map.find(mc_grp) != m_mc_memberships_map.end());
+    bool src_exists = group_exists
+        ? (m_mc_memberships_map[mc_grp].find(mc_src) != m_mc_memberships_map[mc_grp].end())
+        : false;
+
+    switch (optname) {
+    case IPV6_JOIN_GROUP:
+    case MCAST_JOIN_GROUP:
+        if (group_exists) {
+            si_udp_logdbg("MC group already exists");
+            errno = EINVAL;
+            return -1;
+        }
+
+        // The address specified in bind() has a filtering role.
+        // i.e. sockets should discard datagrams which sent to an unbound ip address.
+        if (!m_bound.is_anyaddr() && mc_grp != m_bound.get_ip_addr()) {
+            si_udp_logdbg("Bound address != MC group");
+            errno = EINVAL;
+            return -1;
+        }
+        break;
+    case IPV6_LEAVE_GROUP:
+    case MCAST_LEAVE_GROUP:
+        if (!group_exists) {
+            si_udp_logdbg("MC group doesn't exist");
+            errno = EADDRNOTAVAIL;
+            return -1;
+        }
+        break;
+    case MCAST_JOIN_SOURCE_GROUP: {
+        if (group_exists) {
+            if (m_mc_memberships_map[mc_grp].size() >=
+                (size_t)safe_mce_sys().sysctl_reader.get_mld_max_source_membership()) {
+                errno = ENOBUFS;
+                return -1;
+            }
+        }
+    } break;
+    case MCAST_LEAVE_SOURCE_GROUP:
+        if (!src_exists || (m_mc_memberships_map[mc_grp][mc_src] == MCAST_EXCLUDE)) {
+            si_udp_logdbg("Wrong source IP");
+            errno = EADDRNOTAVAIL;
+            return -1;
+        }
+        break;
+    case MCAST_BLOCK_SOURCE: {
+        return -1;
+        /* TODO: bug #3202713
+        open MCAST_BLOCK_SOURCE and MCAST_UNBLOCK_SOURCE
+        requires a fix in drop packet logic - see bug #3202713 above
+        size_t max_cap = is_ipv6 ?
+        (size_t)safe_mce_sys().sysctl_reader.get_mld_max_source_membership() :
+        (size_t)safe_mce_sys().sysctl_reader.get_igmp_max_source_membership(); if (group_exists
+        && !src_exists) {
+            if (m_mc_memberships_map[mc_grp].size() >= max_cap) {
+                errno = ENOBUFS;
+                return -1;
+            }
+        } else {
+            return -1;
+        } */
+    } break;
+    case MCAST_UNBLOCK_SOURCE:
+        return -1;
+        /* TODO: bug #3202713
+        open MCAST_BLOCK_SOURCE and MCAST_UNBLOCK_SOURCE
+        requires a fix in drop packet logic - see bug #3202713 above
+        if (!src_exists || (m_mc_memberships_map[mc_grp][mc_src] == MCAST_INCLUDE)) {
+            return -1;
+        }
+        break; */
+        BULLSEYE_EXCLUDE_BLOCK_START
+    default:
+        si_udp_logerr("Invalid optname=%d (%s)", optname, setsockopt_ip_opt_to_str(optname));
+        return -1;
+        BULLSEYE_EXCLUDE_BLOCK_END
+    }
+    return 0;
+}
+
+int sockinfo_udp::mc_change_membership_end_helper_ip6(const mc_pending_pram *p_mc_pram)
+{
+    const ip_address &mc_grp = p_mc_pram->mc_grp;
+    const ip_address &mc_src = p_mc_pram->mc_src;
+
+    bool has_any_addr_src = (m_mc_memberships_map[mc_grp].find(ip_address::any_addr()) !=
+                             m_mc_memberships_map[mc_grp].end());
+    switch (p_mc_pram->optname) {
+    case IPV6_JOIN_GROUP:
+    case MCAST_JOIN_GROUP:
+        m_mc_memberships_map[mc_grp][m_connected.get_ip_addr()] = MCAST_INCLUDE;
+        break;
+    case MCAST_JOIN_SOURCE_GROUP:
+        m_mc_memberships_map[mc_grp][mc_src] = MCAST_INCLUDE;
+        if (1 == (m_mc_memberships_map[mc_grp].size() - (size_t)has_any_addr_src)) {
+            ++m_mc_num_grp_with_src_filter;
+        }
+        break;
+    case IPV6_LEAVE_GROUP:
+    case MCAST_LEAVE_GROUP:
+        m_mc_memberships_map[mc_grp].erase(ip_address::any_addr());
+        if (m_mc_memberships_map[mc_grp].size()) {
+            --m_mc_num_grp_with_src_filter;
+        }
+        m_mc_memberships_map.erase(mc_grp);
+        break;
+        /* TODO: bug #3202713
+            case MCAST_BLOCK_SOURCE:
+                m_mc_memberships_map[mc_grp][mc_src] = MCAST_EXCLUDE;
+                if (1 == (m_mc_memberships_map[mc_grp].size() - (size_t)has_any_addr_src)) {
+                    ++m_mc_num_grp_with_src_filter;
+                }
+                break;
+
+            case MCAST_UNBLOCK_SOURCE:
+        */
+    case MCAST_LEAVE_SOURCE_GROUP:
+        m_mc_memberships_map[mc_grp].erase(mc_src);
+        if (has_any_addr_src) {
+            if (1 == m_mc_memberships_map[mc_grp].size()) {
+                --m_mc_num_grp_with_src_filter;
+            }
+        } else {
+            if (0 == m_mc_memberships_map[mc_grp].size()) {
+                m_mc_memberships_map.erase(mc_grp);
+                --m_mc_num_grp_with_src_filter;
+            }
+        }
+        break;
+        BULLSEYE_EXCLUDE_BLOCK_START
+    default:
+        si_udp_logerr("Invalid optname=%d (%s)", p_mc_pram->optname,
+                      setsockopt_ip_opt_to_str(p_mc_pram->optname));
+        return -1;
+        BULLSEYE_EXCLUDE_BLOCK_END
+    }
+
+    // IFTAH - TODO: should not be depended on m_b_mc_tx_loop
+    // See "Inspects multicast packets" flow
+    m_multicast = (m_mc_memberships_map.size() > 0) ? true : !m_b_mc_tx_loop;
+    return 0;
+}
+
+// Assume input correct - checked by mc_change_membership_start_helper
+int sockinfo_udp::mc_change_membership_ip6(const mc_pending_pram *p_mc_pram)
+{
+    const ip_address &mc_grp = p_mc_pram->mc_grp;
+    bool detach_anyway = false;
+
+    flow_tuple_with_local_if flow_key(mc_grp, m_bound.get_in_port(), ip_address::any_addr(), 0,
+                                      PROTO_UDP, m_family, p_mc_pram->mc_if);
+    switch (p_mc_pram->optname) {
+    case IPV6_JOIN_GROUP:
+    case MCAST_JOIN_GROUP:
+    case MCAST_JOIN_SOURCE_GROUP: {
+        // TODO: fix bug - cant join 2 times for the same group iwth different sources
+        // attach will fail. should be like:
+        // attach_receiver only if its the first time for the mc_grp
+        // if (m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) {
+        if (!attach_receiver(flow_key)) {
+            // we will get RX from OS
+            return -1;
+        }
+        vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
+        original_os_setsockopt_helper(&p_mc_pram->req, p_mc_pram->pram_size, p_mc_pram->optname,
+                                      IPPROTO_IPV6);
+    } break;
+    case IPV6_LEAVE_GROUP:
+    case MCAST_LEAVE_GROUP:
+        detach_anyway = true; // operation for all sources
+        // fallthrough
+    case MCAST_LEAVE_SOURCE_GROUP: {
+        original_os_setsockopt_helper(&p_mc_pram->req, p_mc_pram->pram_size, p_mc_pram->optname,
+                                      IPPROTO_IPV6);
+        if (detach_anyway ||
+            // Last source in the group
+            (1 == m_mc_memberships_map[mc_grp].size())) {
+            if (!detach_receiver(flow_key)) {
+                return -1;
+            }
+            vma_stats_mc_group_remove(mc_grp, m_p_socket_stats);
+        }
+        break;
+    }
+        BULLSEYE_EXCLUDE_BLOCK_START
+    default:
+        si_udp_logerr("Invalid optname=%d (%s)", p_mc_pram->optname,
+                      setsockopt_ip_opt_to_str(p_mc_pram->optname));
+        return -1;
+        BULLSEYE_EXCLUDE_BLOCK_END
+    }
+
+    return 0;
+}
+
+void sockinfo_udp::original_os_setsockopt_helper(const void *pram, int pram_size, int optname,
+                                                 int level)
 {
     si_udp_logdbg("calling orig_setsockopt(%s) for igmp support by OS",
                   setsockopt_ip_opt_to_str(optname));
-    if (orig_os_api.setsockopt(m_fd, IPPROTO_IP, optname, pram, pram_size)) {
+    if (orig_os_api.setsockopt(m_fd, level, optname, pram, pram_size)) {
         si_udp_logdbg("orig setsockopt(%s) failed (errno=%d %m)", setsockopt_ip_opt_to_str(optname),
                       errno);
     }

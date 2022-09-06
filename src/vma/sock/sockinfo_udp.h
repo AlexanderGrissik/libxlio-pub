@@ -56,16 +56,29 @@
 // Send flow dst_entry map
 typedef std::unordered_map<sock_addr, dst_entry *> dst_entry_map_t;
 
+typedef union {
+    struct ip_mreq mreq;
+    struct ip_mreq_source mreq_src;
+    struct ip_mreqn mreqn;
+    struct ipv6_mreq ip6_mreq;
+    struct group_req greq;
+    struct group_source_req gsreq;
+} mc_req_all;
+
 struct mc_pending_pram {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_interface;
-    struct in_addr imr_sourceaddr;
+    ip_address mc_grp;
+    ip_address mc_if;
+    ip_address mc_src;
+    mc_req_all req;
     int optname;
+    int if_index;
+    int pram_size;
+    bool is_ipv6;
 };
 
 // Multicast pending list
 typedef std::list<struct mc_pending_pram> mc_pram_list_t;
-typedef std::unordered_map<in_addr_t, std::unordered_map<in_addr_t, int>> mc_memberships_map_t;
+typedef std::unordered_map<ip_address, std::unordered_map<ip_address, int>> mc_memberships_map_t;
 
 /**
  * @class udp sockinfo
@@ -87,6 +100,10 @@ public:
     virtual int getsockname(sockaddr *__name, socklen_t *__namelen);
     int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
     int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
+
+    int fill_mc_structs_ip6(int optname, const void *optval, mc_pending_pram *mcpram);
+    int multicast_membership_setsockopt_ip6(int optname, const void *optval, socklen_t optlen);
+    inline int fill_mreq_with_ix(void *mreq, int if_index, bool is_ipv6);
 
     inline void set_reuseaddr(bool reuseaddr) { m_reuseaddr = reuseaddr; }
     inline void set_reuseport(bool reuseport) { m_reuseport = reuseport; }
@@ -214,13 +231,18 @@ private:
 
     bool packet_is_loopback(mem_buf_desc_t *p_desc);
 
-    int mc_change_membership(const mc_pending_pram *p_mc_pram);
-    int mc_change_membership_start_helper(in_addr_t mc_grp, int optname);
-    int mc_change_membership_end_helper(in_addr_t mc_grp, int optname, in_addr_t mc_src = 0);
+    int mc_change_membership_start_helper_ip4(const ip_address &mc_grp, int optname);
+    int mc_change_membership_end_helper_ip4(const ip_address &mc_grp, int optname,
+                                            const ip_address &mc_src);
+    int mc_change_membership_ip4(const mc_pending_pram *p_mc_pram);
+
+    int mc_change_membership_ip6(const mc_pending_pram *p_mc_pram);
+    int mc_change_membership_start_helper_ip6(const mc_pending_pram *p_mc_pram);
+    int mc_change_membership_end_helper_ip6(const mc_pending_pram *p_mc_pram);
     int mc_change_pending_mreq(const mc_pending_pram *p_mc_pram);
     int on_sockname_change(struct sockaddr *__name, socklen_t __namelen);
     void handle_pending_mreq();
-    void original_os_setsockopt_helper(void *pram, int pram_size, int optname);
+    void original_os_setsockopt_helper(const void *pram, int pram_size, int optname, int level);
     /* helper functions */
     void set_blocking(bool is_blocked);
 

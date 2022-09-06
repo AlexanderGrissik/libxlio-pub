@@ -457,8 +457,8 @@ void vma_shmem_stats_close();
 void vma_stats_instance_create_socket_block(socket_stats_t *);
 void vma_stats_instance_remove_socket_block(socket_stats_t *);
 
-void vma_stats_mc_group_add(ip_address mc_grp, socket_stats_t *p_socket_stats);
-void vma_stats_mc_group_remove(ip_address mc_grp, socket_stats_t *p_socket_stats);
+void vma_stats_mc_group_add(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
+void vma_stats_mc_group_remove(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
 
 void vma_stats_instance_create_ring_block(ring_stats_t *);
 void vma_stats_instance_remove_ring_block(ring_stats_t *);

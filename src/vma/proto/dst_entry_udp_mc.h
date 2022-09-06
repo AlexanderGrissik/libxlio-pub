@@ -39,11 +39,11 @@ class dst_entry_udp_mc : public dst_entry_udp {
 public:
     dst_entry_udp_mc(const sock_addr &dst, uint16_t src_port, const ip_address &mc_tx_if_ip,
                      bool mc_b_loopback, socket_data &sock_data,
-                     resource_allocation_key &ring_alloc_logic, sa_family_t family);
+                     resource_allocation_key &ring_alloc_logic);
     virtual ~dst_entry_udp_mc();
 
 protected:
-    ip_addr m_mc_tx_src_ip;
+    ip_address m_mc_tx_src_ip;
     bool m_b_mc_loopback_enabled;
 
     virtual void set_src_addr();
