@@ -262,6 +262,10 @@ void route_table_mgr::parse_entry(struct nlmsghdr *nl_header)
     rt_attribute = (struct rtattr *)RTM_RTA(rt_msg);
 
     for (; RTA_OK(rt_attribute, len); rt_attribute = RTA_NEXT(rt_attribute, len)) {
+        if (rt_attribute->rta_type == RTA_MULTIPATH) {
+            // Ignore multipath routes, because XLIO doesn't support them yet
+            return;
+        }
         parse_attr(rt_attribute, val);
     }
     val.set_state(true);
