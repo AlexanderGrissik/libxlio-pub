@@ -101,6 +101,7 @@ public:
     int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
     int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
 
+    int resolve_if_ip(const int if_index, const ip_address &ip, ip_address &resolved_ip);
     int fill_mc_structs_ip6(int optname, const void *optval, mc_pending_pram *mcpram);
     int multicast_membership_setsockopt_ip6(int optname, const void *optval, socklen_t optlen);
     inline int fill_mreq_with_ix(void *mreq, int if_index, bool is_ipv6);

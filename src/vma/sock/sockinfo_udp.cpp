@@ -1270,7 +1270,11 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             }
 
             int if_ix = (*reinterpret_cast<const int *>(__optval));
-            if (if_ix != 0 && !g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
+            if (if_ix == 0) {
+                break;
+            }
+
+            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
                 si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
                               setsockopt_ip_opt_to_str(__optname), if_ix);
                 break;
@@ -1280,22 +1284,20 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             // However, Kernel Differentiate between src-addr and outgoing-if.
             // Also, in Kernel, the address selection is not the first one,
             // see p_route_output_key_hash_rcu -> inet_select_addr.
-            if (if_ix != 0) {
-                local_ip_list_t lip_offloaded_list;
-                g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, if_ix);
-                if (!lip_offloaded_list.empty()) {
-                    m_mc_tx_src_ip = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
+            local_ip_list_t lip_offloaded_list;
+            g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, if_ix);
+            if (!lip_offloaded_list.empty()) {
+                m_mc_tx_src_ip = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
+            } else {
+                ip_addr src_addr {0};
+                if (get_ip_addr_from_ifindex(if_ix, src_addr, AF_INET6) == 0) {
+                    m_mc_tx_src_ip = src_addr;
                 } else {
-                    ip_addr src_addr {0};
-                    if (get_ip_addr_from_ifindex(if_ix, src_addr, AF_INET6) == 0) {
-                        m_mc_tx_src_ip = src_addr;
-                    } else {
-                        si_udp_logdbg("IPPROTO_IPV6, setsockopt(%s) will be passed to OS for "
-                                      "handling, can't get address "
-                                      "of interface index %d ",
-                                      setsockopt_ip_opt_to_str(__optname), if_ix);
-                        break;
-                    }
+                    si_udp_logdbg("IPPROTO_IPV6, setsockopt(%s) will be passed to OS for "
+                                  "handling, can't get address "
+                                  "of interface index %d ",
+                                  setsockopt_ip_opt_to_str(__optname), if_ix);
+                    break;
                 }
             }
 
@@ -1320,6 +1322,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 int val = (*reinterpret_cast<const int *>(__optval));
                 if ((val >= -1) && (val <= 255)) {
                     m_n_mc_ttl_hop_lim = (val == -1) ? DEFAULT_MC_HOP_LIMIT : val;
+                    header_ttl_hop_limit_updater du(m_n_mc_ttl_hop_lim, true);
+                    update_header_field(&du);
                     si_udp_logdbg("IPV6_MULTICAST_HOPS, set to %u", m_n_mc_ttl_hop_lim);
                     break;
                 }
@@ -1345,13 +1349,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                 break;
             }
 
-            int if_ix = reinterpret_cast<const struct ipv6_mreq *>(__optval)->ipv6mr_interface;
-            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
-                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
-                              setsockopt_ip_opt_to_str(__optname), if_ix);
-                break;
-            }
-
             if (multicast_membership_setsockopt_ip6(__optname, __optval, __optlen) < 0) {
                 si_udp_logdbg("setsockopt(%s) will be passed to OS for handling",
                               setsockopt_ip_opt_to_str(__optname));
@@ -1371,13 +1368,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                               "(required optlen=%zu)",
                               setsockopt_level_to_str(__level), setsockopt_ip_opt_to_str(__optname),
                               __optlen, sizeof(struct group_req));
-                break;
-            }
-
-            int if_ix = reinterpret_cast<const struct group_req *>(__optval)->gr_interface;
-            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
-                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
-                              setsockopt_ip_opt_to_str(__optname), if_ix);
                 break;
             }
 
@@ -1410,13 +1400,6 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
                               "(required optlen=%zu)",
                               setsockopt_level_to_str(__level), setsockopt_ip_opt_to_str(__optname),
                               __optlen, sizeof(struct group_source_req));
-                break;
-            }
-
-            int if_ix = reinterpret_cast<const struct group_source_req *>(__optval)->gsr_interface;
-            if (!g_p_net_device_table_mgr->get_net_device_val(if_ix)) {
-                si_udp_logdbg("IPPROTO_IPV6, %s: if_ix=%d does not exist",
-                              setsockopt_ip_opt_to_str(__optname), if_ix);
                 break;
             }
 
@@ -1458,7 +1441,6 @@ int sockinfo_udp::multicast_membership_setsockopt_ip6(int optname, const void *o
 
     mc_pending_pram mcpram;
     if (fill_mc_structs_ip6(optname, optval, &mcpram) < 0) {
-        si_udp_logerr("Unknown optname=%d", optname);
         return -1;
     }
 
@@ -1515,6 +1497,45 @@ int sockinfo_udp::multicast_membership_setsockopt_ip6(int optname, const void *o
     return 0;
 }
 
+int sockinfo_udp::resolve_if_ip(const int if_index, const ip_address &ip, ip_address &resolved_ip)
+{
+    if (if_index) {
+        if (!g_p_net_device_table_mgr->get_net_device_val(if_index)) {
+            si_udp_logdbg("if_index does not exist (%d)", if_index);
+            return -1;
+        }
+        local_ip_list_t lip_offloaded_list;
+        g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, if_index);
+        if (!lip_offloaded_list.empty()) {
+            resolved_ip = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
+        } else {
+            ip_addr src_addr {0};
+            if (get_ip_addr_from_ifindex(if_index, src_addr, m_family) == 0) {
+                resolved_ip = src_addr;
+            } else {
+                si_udp_logdbg("Can't find interface IP of interface index %d", if_index);
+                return -1;
+            }
+        }
+    } else {
+        // In case if_index is 0 - find the correct interface from routing table
+        route_result res;
+        const ip_address &src_ip = (!m_bound.is_anyaddr() && !m_bound.is_mc())
+            ? m_bound.get_ip_addr()
+            : m_so_bindtodevice_ip;
+        if (g_p_route_table_mgr->route_resolve(route_rule_table_key(ip, src_ip, m_family, m_tos),
+                                               res)) {
+            resolved_ip = res.src;
+        } else {
+            // If we could not resolve routing - pass to OS, MC will not be offloaded
+            si_udp_logdbg("Route was not resolved for IP:%s", ip.to_str(m_family).c_str());
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int sockinfo_udp::fill_mc_structs_ip6(int optname, const void *optval, mc_pending_pram *mcpram)
 {
     const mc_req_all *mc_req = reinterpret_cast<const mc_req_all *>(optval);
@@ -1545,23 +1566,13 @@ int sockinfo_udp::fill_mc_structs_ip6(int optname, const void *optval, mc_pendin
             reinterpret_cast<const sock_addr *>(&mc_req->gsreq.gsr_source)->get_ip_addr();
         break;
     default:
+        si_udp_logerr("Unknown optname=%d", optname);
         return -1;
     }
 
-    local_ip_list_t lip_offloaded_list;
-    g_p_net_device_table_mgr->get_ip_list(lip_offloaded_list, m_family, mcpram->if_index);
-    if (!lip_offloaded_list.empty()) {
-        mcpram->mc_if = ip_addr(lip_offloaded_list.front().get().local_addr, m_family);
-    } else {
-        ip_addr src_addr {0};
-        if (get_ip_addr_from_ifindex(mcpram->if_index, src_addr, AF_INET6) == 0) {
-            mcpram->mc_if = src_addr;
-        } else {
-            si_udp_logdbg("setsockopt(%s) will be passed to OS for handling, can't find interface "
-                          "ip of interface index %d ",
-                          setsockopt_ip_opt_to_str(mcpram->optname), mcpram->if_index);
-            return -1;
-        }
+    if (resolve_if_ip(mcpram->if_index, mcpram->mc_grp, mcpram->mc_if) < 0) {
+        si_udp_logdbg("Resolve IP failed for %s", mcpram->mc_grp.to_str(AF_INET6).c_str());
+        return -1;
     }
 
     memcpy(&mcpram->req, optval, mcpram->pram_size);

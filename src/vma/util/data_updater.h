@@ -44,7 +44,7 @@ public:
 
 class header_ttl_hop_limit_updater : public data_updater {
 public:
-    header_ttl_hop_limit_updater(uint8_t ttl, bool is_unicast);
+    header_ttl_hop_limit_updater(uint8_t ttl, bool is_multicast);
     virtual ~header_ttl_hop_limit_updater() {};
     virtual bool update_field(dst_entry &hdr);
 
