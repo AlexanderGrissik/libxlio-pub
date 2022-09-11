@@ -298,14 +298,14 @@ public:
         }
     }
 
-    inline size_t append_data(void *data, size_t len)
+    inline size_t append_data(void *data, size_t len, bool is_tls13)
     {
         len = std::min(len, avail_space());
         if (len > 0) {
             if (m_p_zc_owner) {
                 m_p_zc_data = reinterpret_cast<uint8_t *>(data);
             } else {
-                memcpy(m_p_data + m_size - TLS_RECORD_TAG_LEN, data, len);
+                memcpy(m_p_data + m_size - TLS_RECORD_TAG_LEN - !!is_tls13, data, len);
             }
             m_size += len;
             set_length();
@@ -825,7 +825,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
                 /* sndbuf overflow is not possible since we have a check above. */
                 tosend = std::min(tosend, sndbuf - m_tls_rec_overhead);
             }
-            tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend);
+            tosend = rec->append_data((uint8_t *)p_iov[i].iov_base + pos, tosend, is_tx_tls13());
             /* Set type after all data, because for TLS1.3 it is in the tail. */
             rec->set_type(tls_type, is_tx_tls13());
             rec->fill_iov(tls_arg.attr.msg.iov, ARRAY_SIZE(tls_iov), is_tx_tls13());
