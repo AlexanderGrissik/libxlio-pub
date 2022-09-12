@@ -34,7 +34,7 @@
 #include "common/log.h"
 #include "common/sys.h"
 #include "common/base.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 #include <list>
 #include <algorithm>
 #include "tcp_base.h"

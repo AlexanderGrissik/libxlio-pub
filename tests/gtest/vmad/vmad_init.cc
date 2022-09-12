@@ -38,7 +38,7 @@
 
 #include "vmad_base.h"
 
-#include "src/vma/util/agent_def.h"
+#include "src/core/util/agent_def.h"
 #include "config.h"
 
 class vmad_init : public vmad_base {

@@ -35,7 +35,7 @@
 #include "common/log.h"
 #include "common/sys.h"
 #include "common/base.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 #include "tcp_base.h"
 
 class tcp_accept : public tcp_base {

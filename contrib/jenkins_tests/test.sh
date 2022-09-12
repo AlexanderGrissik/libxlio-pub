@@ -82,7 +82,7 @@ if [ ! -z "${test_remote_ip}" ] ; then
 				subdir=${WORKSPACE##*/}
 				cmd="cd ${sperf_exec_dir}/${subdir} && "
 				cmd+="./autogen.sh && ./configure && make ${make_opt} && "
-				cmd+="cp src/vma/.libs/*.so ${sperf_exec_dir} &&"
+				cmd+="cp src/core/.libs/*.so ${sperf_exec_dir} &&"
 				cmd+="cd ${sperf_exec_dir} && "
 				cmd+="unzip sockperf_v2.zip && cd sockperf-sockperf_v2 && "
 				cmd+="./autogen.sh && ./configure && make ${make_opt} && cp sockperf ${sperf_exec_dir}"

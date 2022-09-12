@@ -38,7 +38,7 @@
 
 #include "vmad_base.h"
 
-#include "src/vma/util/agent_def.h"
+#include "src/core/util/agent_def.h"
 
 class vmad_flow : public vmad_base {
 protected:

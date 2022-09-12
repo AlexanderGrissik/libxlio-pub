@@ -35,11 +35,11 @@
 #endif
 
 #include <cinttypes>
-#include "vma/util/utils.h"
-#include "vma/util/vma_stats.h"
-#include "vma/lwip/tcp.h"
-#include "vma/xlio_extra.h"
-#include "vma/util/sys_vars.h"
+#include "core/util/utils.h"
+#include "core/util/vma_stats.h"
+#include "core/lwip/tcp.h"
+#include "core/xlio_extra.h"
+#include "core/util/sys_vars.h"
 
 typedef enum { e_K = 1024, e_M = 1048576 } units_t;
 

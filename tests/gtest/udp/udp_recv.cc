@@ -35,7 +35,7 @@
 #include "common/log.h"
 #include "common/sys.h"
 #include "common/base.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 #include "udp_base.h"
 
 class udp_recv : public udp_base {

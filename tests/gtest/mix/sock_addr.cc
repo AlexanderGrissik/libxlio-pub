@@ -31,7 +31,7 @@
  */
 
 #include "mix_base.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 
 #define SOCKLEN4 static_cast<socklen_t>(sizeof(sockaddr_in))
 #define SOCKLEN6 static_cast<socklen_t>(sizeof(sockaddr_in6))

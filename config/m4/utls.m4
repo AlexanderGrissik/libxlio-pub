@@ -45,8 +45,8 @@ AC_ARG_ENABLE([utls],
     [enable_utls=auto]
 )
 
-vma_cv_dpcp_1_1_3=0
-AS_IF([test "$vma_cv_dpcp" -ne 0],
+prj_cv_dpcp_1_1_3=0
+AS_IF([test "$prj_cv_dpcp" -ne 0],
     [
     AC_LANG_PUSH([C++])
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mellanox/dpcp.h>]],
@@ -57,11 +57,11 @@ AS_IF([test "$vma_cv_dpcp" -ne 0],
            int tis_bit = (int)dpcp::TIS_ATTR_TLS;
            tis_bit = tis_bit;
            (void)_tis; (void)_dek;]])],
-         [vma_cv_dpcp_1_1_3=1])
+         [prj_cv_dpcp_1_1_3=1])
     AC_LANG_POP()
     ])
 
-AS_IF([test "$vma_cv_dpcp_1_1_3" -eq 0],
+AS_IF([test "$prj_cv_dpcp_1_1_3" -eq 0],
     [
     AS_IF([test "x$enable_utls" == xauto],
         [enable_utls=no])
@@ -72,7 +72,7 @@ AS_IF([test "$vma_cv_dpcp_1_1_3" -eq 0],
         ])
     ])
 
-vma_cv_utls=0
+prj_cv_utls=0
 AS_IF([test "x$enable_utls" != xno],
     [
     AC_CHECK_HEADER(
@@ -80,33 +80,33 @@ AS_IF([test "x$enable_utls" != xno],
         [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <linux/tls.h>]],
              [[int flag = TLS_TX;
                (void)flag;]])],
-             [vma_cv_utls=1])
+             [prj_cv_utls=1])
         ])
     ])
 
-vma_cv_utls_aes256=0
-AS_IF([test "$vma_cv_utls" -ne 0],
+prj_cv_utls_aes256=0
+AS_IF([test "$prj_cv_utls" -ne 0],
     [
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <linux/tls.h>]],
          [[struct tls12_crypto_info_aes_gcm_256 crypto_info;
            char arr[TLS_CIPHER_AES_GCM_256_KEY_SIZE];
            crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_256;
            (void)crypto_info; (void)arr;]])],
-         [vma_cv_utls_aes256=1])
+         [prj_cv_utls_aes256=1])
     ])
 
 AC_CHECK_HEADER(
     [openssl/evp.h], [],
     # Currently, we don't support TX without RX, so disable UTLS completely
-    [vma_cv_utls=0])
+    [prj_cv_utls=0])
 
 AC_MSG_CHECKING([for utls support])
-if test "$vma_cv_utls" -ne 0; then
+if test "$prj_cv_utls" -ne 0; then
     AC_DEFINE_UNQUOTED([DEFINED_UTLS], [1], [Define to 1 to enable UTLS])
     AC_MSG_RESULT([yes])
 
     AC_MSG_CHECKING([for utls AES-256 support])
-    if test "$vma_cv_utls" -ne 0; then
+    if test "$prj_cv_utls" -ne 0; then
         AC_DEFINE_UNQUOTED([DEFINED_UTLS_AES256], [1], [Define to 1 to enable UTLS AES-256])
         AC_MSG_RESULT([yes])
     else

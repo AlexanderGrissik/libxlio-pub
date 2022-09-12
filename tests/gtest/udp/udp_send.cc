@@ -38,7 +38,7 @@
 #include "common/base.h"
 #include "common/cmn.h"
 #include "udp_base.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 
 class udp_send : public udp_base {
 };

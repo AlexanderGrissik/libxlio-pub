@@ -70,7 +70,7 @@ gtest_LDADD = libgtest.la  $(VERBS_LIBS)
 gtest_CPPFLAGS = \
 	-I$(top_srcdir)/ \
 	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/vma \
+	-I$(top_srcdir)/src/core \
 	-I$(top_srcdir)/tests/gtest \
 	-I$(top_srcdir)/tests/gtest/googletest/include \
 	$(AM_CPPFLAGS)
@@ -117,10 +117,10 @@ gtest_SOURCES = \
 	udp/udp_sendto.cc \
 	udp/udp_rfs.cc \
 	\
-	vma/vma_base.cc \
-	vma/vma_sockopt.cc \
-	vma/vma_send_zc.cc \
-	vma/vma_ioctl.cc \
+	core/vma_base.cc \
+	core/vma_sockopt.cc \
+	core/vma_send_zc.cc \
+	core/vma_ioctl.cc \
 	\
 	vmad/vmad_base.cc \
 	vmad/vmad_bitmap.cc \
@@ -146,7 +146,7 @@ noinst_HEADERS = \
 	\
 	udp/udp_base.h \
 	\
-	vma/vma_base.h \
+	core/vma_base.h \
 	\
 	vmad/vmad_base.h
 

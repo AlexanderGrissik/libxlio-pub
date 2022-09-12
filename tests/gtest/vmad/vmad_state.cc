@@ -38,8 +38,8 @@
 
 #include "vmad_base.h"
 
-#include "src/vma/util/agent_def.h"
-#include "src/vma/lwip/tcp.h"
+#include "src/core/util/agent_def.h"
+#include "src/core/lwip/tcp.h"
 
 class vmad_state : public vmad_base {
 protected:

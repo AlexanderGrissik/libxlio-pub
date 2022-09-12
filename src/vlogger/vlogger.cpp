@@ -42,8 +42,8 @@
 #include <fcntl.h>
 
 #include "utils/bullseye.h"
-#include "vma/util/utils.h"
-#include "vma/util/sys_vars.h"
+#include "core/util/utils.h"
+#include "core/util/sys_vars.h"
 
 #define VLOG_DEFAULT_MODULE_NAME "XLIO"
 #define XLIO_LOG_CB_ENV_VAR      "XLIO_LOG_CB_FUNC_PTR"

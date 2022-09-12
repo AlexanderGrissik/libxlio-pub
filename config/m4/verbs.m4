@@ -43,13 +43,13 @@ AC_DEFUN([CHECK_VERBS_ATTRIBUTE], [
     AC_LINK_IFELSE([AC_LANG_PROGRAM([
         [#include <$2>]],
         [[int attr = (int)$1; attr = attr;]])],
-        [vma_cv_attribute_$1=yes],
-        [vma_cv_attribute_$1=no])
+        [prj_cv_attribute_$1=yes],
+        [prj_cv_attribute_$1=no])
 
     AC_MSG_CHECKING([for attribute $1])
-    AC_MSG_RESULT([$vma_cv_attribute_$1])
-    AS_IF([test "x$3" != "x"], [vma_cv_attribute_ex_$3=$vma_cv_attribute_$1])
-    AS_IF([test "x$vma_cv_attribute_$1" = "xyes"], [
+    AC_MSG_RESULT([$prj_cv_attribute_$1])
+    AS_IF([test "x$3" != "x"], [prj_cv_attribute_ex_$3=$prj_cv_attribute_$1])
+    AS_IF([test "x$prj_cv_attribute_$1" = "xyes"], [
         AS_IF([test "x$3" = "x"],
             [AC_DEFINE_UNQUOTED([DEFINED_$1], [1], [Define to 1 if attribute $1 is supported])],
             [AC_DEFINE_UNQUOTED([DEFINED_$3], [1], [Define to 1 if attribute $1 is supported])]
@@ -93,39 +93,39 @@ LIBS="$LIBS $VERBS_LIBS"
 
 # Check if VERBS version
 #
-vma_cv_verbs=0
-vma_cv_verbs_str="None"
+prj_cv_verbs=0
+prj_cv_verbs_str="None"
 AC_CHECK_HEADER([infiniband/verbs.h],
 	[AC_CHECK_MEMBERS([struct ibv_query_device_ex_input.comp_mask],
-		[vma_cv_verbs=3 vma_cv_verbs_str="Upstream"],
-		[vma_cv_verbs=1 vma_cv_verbs_str="Legacy"],
+		[prj_cv_verbs=3 prj_cv_verbs_str="Upstream"],
+		[prj_cv_verbs=1 prj_cv_verbs_str="Legacy"],
 		[[#include <infiniband/verbs.h>]] )],
 		[],
 		[AC_MSG_ERROR([Can not detect VERBS version])]
 )
 AC_MSG_CHECKING([for OFED Verbs version])
-AC_MSG_RESULT([$vma_cv_verbs_str])
-AC_DEFINE_UNQUOTED([DEFINED_VERBS_VERSION], [$vma_cv_verbs], [Define found Verbs version])
+AC_MSG_RESULT([$prj_cv_verbs_str])
+AC_DEFINE_UNQUOTED([DEFINED_VERBS_VERSION], [$prj_cv_verbs], [Define found Verbs version])
 
 
 # Check if direct hardware operations can be used instead of VERBS API
 #
-vma_cv_directverbs=0
-case "$vma_cv_verbs" in
+prj_cv_directverbs=0
+case "$prj_cv_verbs" in
     1)
         ;;
     3)
         AC_CHECK_HEADER([infiniband/mlx5dv.h],
             [AC_CHECK_LIB(mlx5,
-                mlx5dv_init_obj, [VERBS_LIBS="$VERBS_LIBS -lmlx5" vma_cv_directverbs=$vma_cv_verbs])])
+                mlx5dv_init_obj, [VERBS_LIBS="$VERBS_LIBS -lmlx5" prj_cv_directverbs=$prj_cv_verbs])])
         ;;
     *)
-        AC_MSG_ERROR([Unrecognized parameter 'vma_cv_verbs' as $vma_cv_verbs])
+        AC_MSG_ERROR([Unrecognized parameter 'prj_cv_verbs' as $prj_cv_verbs])
         ;;
 esac
 AC_MSG_CHECKING([for direct verbs support])
-if test "$vma_cv_directverbs" -ne 0; then
-    AC_DEFINE_UNQUOTED([DEFINED_DIRECT_VERBS], [$vma_cv_directverbs], [Direct VERBS support])
+if test "$prj_cv_directverbs" -ne 0; then
+    AC_DEFINE_UNQUOTED([DEFINED_DIRECT_VERBS], [$prj_cv_directverbs], [Direct VERBS support])
     AC_MSG_RESULT([yes])
 else
     AC_MSG_RESULT([no])
@@ -149,10 +149,10 @@ CHECK_VERBS_MEMBER([struct ibv_qp_rate_limit_attr.max_burst_sz], [infiniband/ver
 
 # Check Upstream
 #
-if test "x$vma_cv_verbs" == x3; then
+if test "x$prj_cv_verbs" == x3; then
     CHECK_VERBS_ATTRIBUTE([IBV_WR_TSO], [infiniband/verbs.h], [TSO])
 
-    if test "x$vma_cv_directverbs" == x3; then
+    if test "x$prj_cv_directverbs" == x3; then
         CHECK_VERBS_ATTRIBUTE([MLX5_OPCODE_NOP], [infiniband/mlx5dv.h], [IBV_WR_NOP])
         CHECK_VERBS_MEMBER([struct mlx5dv_clock_info.last_cycles], [infiniband/mlx5dv.h], [IBV_CLOCK_INFO])
         CHECK_VERBS_MEMBER([struct mlx5dv_context.num_lag_ports], [infiniband/mlx5dv.h], [ROCE_LAG])

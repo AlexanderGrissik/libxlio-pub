@@ -62,7 +62,7 @@
 
 #define USING_EXTRA_API
 #ifdef  USING_EXTRA_API
-#include <src/vma/xlio_extra.h>
+#include <src/core/xlio_extra.h>
 #endif
 
 int prepare_socket(struct sockaddr_in* p_addr);

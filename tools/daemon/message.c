@@ -41,7 +41,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "vma/lwip/tcp.h" /* display TCP states */
+#include "core/lwip/tcp.h" /* display TCP states */
 #include "hash.h"
 #include "tc.h"
 #include "daemon.h"

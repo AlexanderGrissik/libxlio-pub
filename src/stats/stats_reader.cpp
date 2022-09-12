@@ -53,9 +53,9 @@
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include "utils/rdtsc.h"
-#include "vma/util/utils.h"
-#include "vma/util/vma_stats.h"
-#include "vma/util/sys_vars.h"
+#include "core/util/utils.h"
+#include "core/util/vma_stats.h"
+#include "core/util/sys_vars.h"
 
 using namespace std;
 

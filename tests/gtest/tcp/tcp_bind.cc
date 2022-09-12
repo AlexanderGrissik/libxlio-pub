@@ -35,7 +35,7 @@
 #include "common/sys.h"
 #include "common/base.h"
 #include "common/cmn.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/core/util/sock_addr.h"
 #include "tcp_base.h"
 
 class tcp_bind : public tcp_base {

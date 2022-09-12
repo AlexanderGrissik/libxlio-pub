@@ -35,9 +35,9 @@
 #endif
 
 #include "stats/stats_data_reader.h"
-#include "vma/util/vma_stats.h"
-#include "vma/sock/sock-redirect.h"
-#include "vma/event/event_handler_manager.h"
+#include "core/util/vma_stats.h"
+#include "core/sock/sock-redirect.h"
+#include "core/event/event_handler_manager.h"
 
 #define MODULE_NAME "STATS: "
 
