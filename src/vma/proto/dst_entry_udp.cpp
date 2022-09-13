@@ -141,7 +141,7 @@ bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, co
             p_frag_h->ip6f_offlg &= ~IP6F_MORE_FRAG;
         }
         // offset should be << 3, but need to devide by 8, so no need to change n_ip_frag_offset
-        p_frag_h->ip6f_offlg |= htons(IP6F_OFF_MASK & n_ip_frag_offset);
+        p_frag_h->ip6f_offlg |= IP6F_OFF_MASK & htons(n_ip_frag_offset);
 
         p_ip_hdr->ip6_nxt = IPPROTO_FRAGMENT;
         p_ip_hdr->ip6_plen = htons(sz_ip_frag);
