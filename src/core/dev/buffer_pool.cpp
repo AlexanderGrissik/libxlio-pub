@@ -38,8 +38,8 @@
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
-#include "core/util/sys_vars.h"
-#include "core/proto/mem_buf_desc.h"
+#include "util/sys_vars.h"
+#include "proto/mem_buf_desc.h"
 #include "ib_ctx_handler_collection.h"
 
 #define MODULE_NAME "bpool"

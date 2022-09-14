@@ -32,12 +32,12 @@
 
 #include "ring_simple.h"
 
-#include "core/util/valgrind.h"
-#include "core/util/sg_array.h"
-#include "core/sock/fd_collection.h"
+#include "util/valgrind.h"
+#include "util/sg_array.h"
+#include "sock/fd_collection.h"
 #if defined(DEFINED_DIRECT_VERBS)
-#include "core/dev/qp_mgr_eth_mlx5.h"
-#include "core/dev/qp_mgr_eth_mlx5_dpcp.h"
+#include "dev/qp_mgr_eth_mlx5.h"
+#include "dev/qp_mgr_eth_mlx5_dpcp.h"
 #endif
 
 #undef MODULE_NAME

@@ -34,7 +34,7 @@
 #define RING_TAP_H_
 
 #include "ring_slave.h"
-#include "core/util/agent.h"
+#include "util/agent.h"
 
 class ring_tap : public ring_slave {
 public:

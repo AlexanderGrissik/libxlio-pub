@@ -32,15 +32,15 @@
 
 #include "qp_mgr.h"
 #include "utils/bullseye.h"
-#include "core/util/utils.h"
-#include "core/util/valgrind.h"
-#include "core/util/instrumentation.h"
-#include "core/iomux/io_mux_call.h"
+#include "util/utils.h"
+#include "util/valgrind.h"
+#include "util/instrumentation.h"
+#include "iomux/io_mux_call.h"
 #include "buffer_pool.h"
 #include "cq_mgr.h"
 #include "ring_simple.h"
 #include "util/valgrind.h"
-#include "core/dev/rfs_rule_ibv.h"
+#include "dev/rfs_rule_ibv.h"
 #include <memory>
 
 #undef MODULE_NAME

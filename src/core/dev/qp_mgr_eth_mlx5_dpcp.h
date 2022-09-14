@@ -38,7 +38,7 @@
 #if defined(DEFINED_DPCP)
 #include <mellanox/dpcp.h>
 #include <memory>
-#include "core/dev/qp_mgr_eth_mlx5.h"
+#include "dev/qp_mgr_eth_mlx5.h"
 
 class qp_mgr_eth_mlx5_dpcp : public qp_mgr_eth_mlx5 {
 public:

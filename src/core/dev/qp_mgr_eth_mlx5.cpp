@@ -35,8 +35,8 @@
 
 #include <sys/mman.h>
 #include "cq_mgr_mlx5.h"
-#include "core/proto/tls.h"
-#include "core/util/utils.h"
+#include "proto/tls.h"
+#include "util/utils.h"
 #include "vlogger/vlogger.h"
 #include "ring_simple.h"
 #include <utility>

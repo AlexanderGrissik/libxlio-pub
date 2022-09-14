@@ -33,7 +33,7 @@
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
 #include "wakeup_pipe.h"
-#include "core/sock/sock-redirect.h"
+#include "sock/sock-redirect.h"
 
 #define MODULE_NAME "wakeup_pipe"
 

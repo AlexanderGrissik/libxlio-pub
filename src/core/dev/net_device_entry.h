@@ -34,9 +34,9 @@
 #define NET_DEVICE_ENTRY_H
 
 #include "net_device_val.h"
-#include "core/infra/cache_subject_observer.h"
-#include "core/util/ip_address.h"
-#include "core/event/timer_handler.h"
+#include "infra/cache_subject_observer.h"
+#include "util/ip_address.h"
+#include "event/timer_handler.h"
 
 #define MAX_CMA_ID_BIND_TRIAL_COUNT   10
 #define CMA_ID_BIND_TIMER_PERIOD_MSEC 100

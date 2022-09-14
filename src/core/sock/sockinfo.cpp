@@ -39,11 +39,11 @@
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
-#include "core/util/if.h"
-#include "core/proto/route_table_mgr.h"
+#include "util/if.h"
+#include "proto/route_table_mgr.h"
 #include "sock-redirect.h"
 #include "fd_collection.h"
-#include "core/dev/ring_simple.h"
+#include "dev/ring_simple.h"
 
 #define MODULE_NAME "si"
 #undef MODULE_HDR_INFO

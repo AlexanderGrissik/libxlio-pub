@@ -35,11 +35,11 @@
 
 #include <vector>
 
-#include "core/ib/base/verbs_extra.h"
-#include "core/util/vtypes.h"
-#include "core/dev/ring_simple.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/proto/flow_tuple.h"
+#include "ib/base/verbs_extra.h"
+#include "util/vtypes.h"
+#include "dev/ring_simple.h"
+#include "proto/mem_buf_desc.h"
+#include "proto/flow_tuple.h"
 
 #define RFS_SINKS_LIST_DEFAULT_LEN 32
 

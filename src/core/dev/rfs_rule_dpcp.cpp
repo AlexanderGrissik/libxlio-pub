@@ -30,12 +30,12 @@
  * SOFTWARE.
  */
 
-#include "core/dev/rfs_rule_dpcp.h"
+#include "dev/rfs_rule_dpcp.h"
 
 #if defined(DEFINED_DPCP)
 
 #include <cinttypes>
-#include "core/dev/rfs.h"
+#include "dev/rfs.h"
 
 #define MODULE_NAME "rfs_rule_dpcp"
 

@@ -31,11 +31,11 @@
  */
 
 #include "utils/bullseye.h"
-#include "core/dev/rfs_uc.h"
-#include "core/proto/L2_address.h"
-#include "core/dev/ring_simple.h"
+#include "dev/rfs_uc.h"
+#include "proto/L2_address.h"
+#include "dev/ring_simple.h"
 #include "util/instrumentation.h"
-#include "core/sock/sock-redirect.h"
+#include "sock/sock-redirect.h"
 
 #define MODULE_NAME "rfs_uc"
 

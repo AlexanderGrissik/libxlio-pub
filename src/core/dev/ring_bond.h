@@ -35,8 +35,8 @@
 
 #include "ring.h"
 
-#include "core/dev/ring_tap.h"
-#include "core/dev/net_device_table_mgr.h"
+#include "dev/ring_tap.h"
+#include "dev/net_device_table_mgr.h"
 
 typedef std::vector<ring_slave *> ring_slave_vector_t;
 

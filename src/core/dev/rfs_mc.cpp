@@ -31,9 +31,9 @@
  */
 
 #include "utils/bullseye.h"
-#include "core/util/utils.h"
-#include "core/dev/rfs_mc.h"
-#include "core/dev/ring_simple.h"
+#include "util/utils.h"
+#include "dev/rfs_mc.h"
+#include "dev/ring_simple.h"
 
 #define MODULE_NAME "rfs_mc"
 

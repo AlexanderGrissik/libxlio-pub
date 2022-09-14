@@ -36,20 +36,20 @@
 #include <errno.h>
 #include <ifaddrs.h>
 
-#include "core/ib/base/verbs_extra.h"
-#include "core/proto/vma_lwip.h"
+#include "ib/base/verbs_extra.h"
+#include "proto/vma_lwip.h"
 #include "vlogger/vlogger.h"
 #include "utils/atomic.h"
-#include "core/util/vtypes.h"
-#include "core/util/sys_vars.h"
-#include "core/util/libvma.h"
-#include "core/util/if.h"
-#include "core/lwip/opt.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/infra/sender.h"
-#include "core/dev/ib_ctx_handler.h"
-#include "core/dev/cq_mgr.h"
-#include "core/dev/rfs_rule.h"
+#include "util/vtypes.h"
+#include "util/sys_vars.h"
+#include "util/libvma.h"
+#include "util/if.h"
+#include "lwip/opt.h"
+#include "proto/mem_buf_desc.h"
+#include "infra/sender.h"
+#include "dev/ib_ctx_handler.h"
+#include "dev/cq_mgr.h"
+#include "dev/rfs_rule.h"
 
 /* Forward declarations */
 struct xlio_tls_info;

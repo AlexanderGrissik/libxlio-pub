@@ -34,10 +34,10 @@
 
 #include "utils/clock.h"
 #include "vlogger/vlogger.h"
-#include <core/util/sys_vars.h>
-#include <core/sock/fd_collection.h>
-#include <core/dev/net_device_table_mgr.h>
-#include "core/util/instrumentation.h"
+#include <util/sys_vars.h>
+#include <sock/fd_collection.h>
+#include <dev/net_device_table_mgr.h>
+#include "util/instrumentation.h"
 
 //#define IOMUX_DEBUG
 #ifdef IOMUX_DEBUG

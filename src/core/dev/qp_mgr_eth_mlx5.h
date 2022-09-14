@@ -34,8 +34,8 @@
 #define QP_MGR_ETH_MLX5_H
 
 #include "qp_mgr.h"
-#include "core/util/sg_array.h"
-#include "core/dev/dm_mgr.h"
+#include "util/sg_array.h"
+#include "dev/dm_mgr.h"
 #include <list>
 #include <vector>
 

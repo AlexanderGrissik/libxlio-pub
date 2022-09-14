@@ -32,9 +32,9 @@
 
 #include "ring_bond.h"
 
-#include "core/sock/sockinfo.h"
-#include "core/dev/ring_simple.h"
-#include "core/dev/ring_tap.h"
+#include "sock/sockinfo.h"
+#include "dev/ring_simple.h"
+#include "dev/ring_tap.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "ring_bond"

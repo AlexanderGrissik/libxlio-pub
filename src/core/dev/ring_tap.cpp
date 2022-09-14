@@ -33,9 +33,9 @@
 #include "ring_tap.h"
 
 #include <linux/if_tun.h>
-#include "core/util/sg_array.h"
-#include "core/sock/fd_collection.h"
-#include "core/dev/net_device_table_mgr.h"
+#include "util/sg_array.h"
+#include "sock/fd_collection.h"
+#include "dev/net_device_table_mgr.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "ring_tap"

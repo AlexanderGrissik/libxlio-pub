@@ -32,13 +32,13 @@
 
 #include <stdlib.h>
 #include <vlogger/vlogger.h>
-#include "core/event/event_handler_manager.h"
-#include <core/util/sys_vars.h>
+#include "event/event_handler_manager.h"
+#include <util/sys_vars.h>
 #include "utils/rdtsc.h"
-#include "core/util/instrumentation.h"
-#include "core/util/utils.h"
-#include "core/dev/time_converter_ptp.h"
-#include "core/ib/base/verbs_extra.h"
+#include "util/instrumentation.h"
+#include "util/utils.h"
+#include "dev/time_converter_ptp.h"
+#include "ib/base/verbs_extra.h"
 
 #ifdef DEFINED_IBV_CLOCK_INFO
 

@@ -35,7 +35,7 @@
 
 #include <unordered_map>
 
-#include "core/ib/base/verbs_extra.h"
+#include "ib/base/verbs_extra.h"
 #include "ib_ctx_handler.h"
 
 typedef std::unordered_map<struct ibv_device *, ib_ctx_handler *> ib_context_map_t;

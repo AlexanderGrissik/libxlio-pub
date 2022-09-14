@@ -32,7 +32,7 @@
 
 #include <sys/epoll.h>
 
-#include <core/iomux/epfd_info.h>
+#include <iomux/epfd_info.h>
 #include <vlogger/vlogger.h>
 #include "utils/bullseye.h"
 #include "sock-redirect.h"

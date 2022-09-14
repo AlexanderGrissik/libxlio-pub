@@ -33,7 +33,7 @@
 #include "utils/bullseye.h"
 #include "net_device_entry.h"
 #include "net_device_table_mgr.h"
-#include "core/event/event_handler_manager.h"
+#include "event/event_handler_manager.h"
 
 #define MODULE_NAME "nde"
 

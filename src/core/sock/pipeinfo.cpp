@@ -33,7 +33,7 @@
 #include <cinttypes>
 #include <vlogger/vlogger.h>
 #include "utils/bullseye.h"
-#include <core/event/event_handler_manager.h>
+#include <event/event_handler_manager.h>
 
 #include "sock-redirect.h"
 

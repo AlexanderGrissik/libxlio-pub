@@ -33,11 +33,11 @@
 #include <inttypes.h>
 #include <netinet/ip6.h>
 #include "ring_slave.h"
-#include "core/proto/ip_frag.h"
-#include "core/dev/rfs_mc.h"
-#include "core/dev/rfs_uc_tcp_gro.h"
-#include "core/sock/fd_collection.h"
-#include "core/sock/sockinfo.h"
+#include "proto/ip_frag.h"
+#include "dev/rfs_mc.h"
+#include "dev/rfs_uc_tcp_gro.h"
+#include "sock/fd_collection.h"
+#include "sock/sockinfo.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "ring_slave"

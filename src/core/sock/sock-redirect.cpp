@@ -44,25 +44,25 @@
 
 #include "utils/compiler.h"
 #include "utils/lock_wrapper.h"
-#include <core/proto/ip_frag.h>
-#include <core/dev/buffer_pool.h>
-#include <core/event/event_handler_manager.h>
-#include <core/event/vlogger_timer_handler.h>
-#include <core/iomux/poll_call.h>
-#include <core/iomux/select_call.h>
-#include <core/iomux/epfd_info.h>
-#include <core/iomux/epoll_wait_call.h>
-#include <core/util/sys_vars.h>
-#include <core/proto/mapping.h>
-#include <core/proto/vma_lwip.h>
-#include <core/main.h>
-#include "core/xlio_extra.h"
+#include <proto/ip_frag.h>
+#include <dev/buffer_pool.h>
+#include <event/event_handler_manager.h>
+#include <event/vlogger_timer_handler.h>
+#include <iomux/poll_call.h>
+#include <iomux/select_call.h>
+#include <iomux/epfd_info.h>
+#include <iomux/epoll_wait_call.h>
+#include <util/sys_vars.h>
+#include <proto/mapping.h>
+#include <proto/vma_lwip.h>
+#include <main.h>
+#include "xlio_extra.h"
 
-#include <core/sock/sockinfo_tcp.h>
-#include <core/sock/sockinfo_udp.h>
+#include <sock/sockinfo_tcp.h>
+#include <sock/sockinfo_udp.h>
 
 #include "fd_collection.h"
-#include "core/util/instrumentation.h"
+#include "util/instrumentation.h"
 
 using namespace std;
 

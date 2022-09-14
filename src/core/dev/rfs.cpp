@@ -31,10 +31,10 @@
  */
 
 #include "utils/bullseye.h"
-#include "core/dev/rfs.h"
-#include "core/dev/qp_mgr.h"
-#include "core/dev/ring_simple.h"
-#include "core/sock/sock-redirect.h"
+#include "dev/rfs.h"
+#include "dev/qp_mgr.h"
+#include "dev/ring_simple.h"
+#include "sock/sock-redirect.h"
 #include <cinttypes>
 
 #define MODULE_NAME "rfs"

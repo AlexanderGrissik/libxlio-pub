@@ -35,11 +35,11 @@
 
 #include "config.h"
 #include <sys/socket.h>
-#include "core/xlio_extra.h"
+#include "xlio_extra.h"
 
-#include <core/dev/cq_mgr.h>
-#include <core/dev/buffer_pool.h>
-#include <core/sock/cleanable_obj.h>
+#include <dev/cq_mgr.h>
+#include <dev/buffer_pool.h>
+#include <sock/cleanable_obj.h>
 
 #ifndef SOCK_NONBLOCK
 #define SOCK_NONBLOCK 04000

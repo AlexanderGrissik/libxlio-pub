@@ -30,7 +30,7 @@
  * SOFTWARE.
  */
 
-#include "core/ib/base/verbs_extra.h"
+#include "ib/base/verbs_extra.h"
 
 #ifndef IB_WQE_TEMPLATE_H
 #define IB_WQE_TEMPLATE_H

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#include <core/sock/fd_collection.h>
-#include <core/iomux/epfd_info.h>
+#include <sock/fd_collection.h>
+#include <iomux/epfd_info.h>
 
 #define MODULE_NAME "epfd_info:"
 

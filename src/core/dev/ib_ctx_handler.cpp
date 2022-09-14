@@ -35,13 +35,13 @@
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
-#include <core/util/sys_vars.h>
-#include "core/dev/ib_ctx_handler.h"
-#include "core/ib/base/verbs_extra.h"
-#include "core/dev/time_converter_ib_ctx.h"
-#include "core/dev/time_converter_ptp.h"
+#include <util/sys_vars.h>
+#include "dev/ib_ctx_handler.h"
+#include "ib/base/verbs_extra.h"
+#include "dev/time_converter_ib_ctx.h"
+#include "dev/time_converter_ptp.h"
 #include "util/valgrind.h"
-#include "core/event/event_handler_manager.h"
+#include "event/event_handler_manager.h"
 
 #define MODULE_NAME "ibch"
 

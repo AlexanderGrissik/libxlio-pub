@@ -36,9 +36,9 @@
 #include <unordered_map>
 #include <infiniband/verbs.h>
 
-#include "core/util/sys_vars.h"
-#include "core/sock/cleanable_obj.h"
-#include "core/event/timer_handler.h"
+#include "util/sys_vars.h"
+#include "sock/cleanable_obj.h"
+#include "event/timer_handler.h"
 
 class net_device_val;
 typedef std::unordered_map<int, net_device_val *> net_device_map_t;

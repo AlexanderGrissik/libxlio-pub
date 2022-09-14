@@ -32,8 +32,8 @@
 
 #include "dm_mgr.h"
 #include "vlogger/vlogger.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/dev/ib_ctx_handler.h"
+#include "proto/mem_buf_desc.h"
+#include "dev/ib_ctx_handler.h"
 
 #if defined(DEFINED_DIRECT_VERBS)
 #if defined(DEFINED_IBV_DM)

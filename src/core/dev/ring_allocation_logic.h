@@ -35,8 +35,8 @@
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
-#include "core/dev/net_device_table_mgr.h"
-#include "core/util/sys_vars.h"
+#include "dev/net_device_table_mgr.h"
+#include "util/sys_vars.h"
 #include "xlio_extra.h"
 
 #define CANDIDATE_STABILITY_ROUNDS 20

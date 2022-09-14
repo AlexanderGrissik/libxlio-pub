@@ -32,10 +32,10 @@
 
 #include <stdlib.h>
 #include <vlogger/vlogger.h>
-#include "core/event/event_handler_manager.h"
-#include <core/util/sys_vars.h>
+#include "event/event_handler_manager.h"
+#include <util/sys_vars.h>
 #include "time_converter_ib_ctx.h"
-#include "core/ib/base/verbs_extra.h"
+#include "ib/base/verbs_extra.h"
 
 #define MODULE_NAME "time_converter_ib_ctx"
 

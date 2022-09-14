@@ -41,12 +41,12 @@
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
 
-#include "core/xlio_extra.h"
-#include "core/util/chunk_list.h"
-#include "core/util/vma_stats.h"
-#include "core/util/sys_vars.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/proto/dst_entry_udp.h"
+#include "xlio_extra.h"
+#include "util/chunk_list.h"
+#include "util/vma_stats.h"
+#include "util/sys_vars.h"
+#include "proto/mem_buf_desc.h"
+#include "proto/dst_entry_udp.h"
 
 #include "pkt_rcvr_sink.h"
 #include "pkt_sndr_source.h"

@@ -34,9 +34,9 @@
 #define VMA_SOCKINFO_ULP_H
 
 #include "socket_fd_api.h" /* vma_tx_call_attr_t */
-#include "core/proto/dst_entry.h" /* vma_send_attr */
-#include "core/proto/tls.h" /* xlio_tls_info */
-#include "core/lwip/err.h" /* err_t */
+#include "proto/dst_entry.h" /* vma_send_attr */
+#include "proto/tls.h" /* xlio_tls_info */
+#include "lwip/err.h" /* err_t */
 
 #include <stdint.h>
 

@@ -33,11 +33,11 @@
 #include "poll_call.h"
 
 #include <vlogger/vlogger.h>
-#include <core/util/vtypes.h>
-#include <core/sock/socket_fd_api.h>
-#include <core/sock/sock-redirect.h>
-#include <core/sock/fd_collection.h>
-#include <core/dev/net_device_table_mgr.h>
+#include <util/vtypes.h>
+#include <sock/socket_fd_api.h>
+#include <sock/sock-redirect.h>
+#include <sock/fd_collection.h>
+#include <dev/net_device_table_mgr.h>
 
 #define MODULE_NAME "poll_call:"
 

@@ -34,7 +34,7 @@
 
 #if defined(DEFINED_DIRECT_VERBS)
 
-#include <core/util/valgrind.h>
+#include <util/valgrind.h>
 #include "cq_mgr.inl"
 #include "cq_mgr_mlx5.inl"
 #include "qp_mgr.h"

@@ -33,9 +33,9 @@
 #ifndef RING_H
 #define RING_H
 
-#include "core/ib/base/verbs_extra.h"
-#include "core/proto/flow_tuple.h"
-#include "core/sock/socket_fd_api.h"
+#include "ib/base/verbs_extra.h"
+#include "proto/flow_tuple.h"
+#include "sock/socket_fd_api.h"
 
 /* Forward declarations */
 struct xlio_tls_info;

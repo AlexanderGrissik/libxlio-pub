@@ -30,7 +30,7 @@
  * SOFTWARE.
  */
 
-#include "core/dev/ring_allocation_logic.h"
+#include "dev/ring_allocation_logic.h"
 
 #define MODULE_NAME "ral"
 

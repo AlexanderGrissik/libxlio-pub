@@ -34,12 +34,12 @@
 #define BUFFER_POOL_H
 
 #include "utils/lock_wrapper.h"
-#include "core/util/vma_stats.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/dev/allocator.h"
-#include "core/util/vma_list.h"
-#include "core/proto/mapping.h"
-#include "core/proto/mem_desc.h"
+#include "util/vma_stats.h"
+#include "proto/mem_buf_desc.h"
+#include "dev/allocator.h"
+#include "util/vma_list.h"
+#include "proto/mapping.h"
+#include "proto/mem_desc.h"
 
 inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
 {

@@ -42,14 +42,14 @@
 #include <arpa/inet.h>
 
 #include "utils/lock_wrapper.h"
-#include "core/util/sys_vars.h"
-#include "core/util/ip_address.h"
-#include "core/event/event_handler_ibverbs.h"
-#include "core/event/event_handler_rdma_cm.h"
-#include "core/dev/ib_ctx_handler.h"
-#include "core/proto/neighbour_observer.h"
-#include "core/proto/L2_address.h"
-#include "core/infra/cache_subject_observer.h"
+#include "util/sys_vars.h"
+#include "util/ip_address.h"
+#include "event/event_handler_ibverbs.h"
+#include "event/event_handler_rdma_cm.h"
+#include "dev/ib_ctx_handler.h"
+#include "proto/neighbour_observer.h"
+#include "proto/L2_address.h"
+#include "infra/cache_subject_observer.h"
 
 class L2_address;
 class ring;

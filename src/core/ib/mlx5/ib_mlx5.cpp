@@ -36,9 +36,9 @@
 #include "util/valgrind.h"
 #if defined(DEFINED_DIRECT_VERBS)
 
-#include "core/util/valgrind.h"
-#include "core/util/utils.h"
-#include "core/ib/mlx5/ib_mlx5.h"
+#include "util/valgrind.h"
+#include "util/utils.h"
+#include "ib/mlx5/ib_mlx5.h"
 
 int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags)
 {

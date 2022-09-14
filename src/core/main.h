@@ -33,10 +33,10 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <core/util/vtypes.h>
-#include <core/util/sys_vars.h>
-#include <core/util/utils.h>
-#include <core/sock/sock-redirect.h>
+#include <util/vtypes.h>
+#include <util/sys_vars.h>
+#include <util/utils.h>
+#include <sock/sock-redirect.h>
 
 void print_vma_global_settings();
 void check_locked_mem();

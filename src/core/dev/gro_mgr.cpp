@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#include "core/dev/gro_mgr.h"
-#include "core/dev/rfs_uc_tcp_gro.h"
+#include "dev/gro_mgr.h"
+#include "dev/rfs_uc_tcp_gro.h"
 
 #define MODULE_NAME "gro_mgr"
 

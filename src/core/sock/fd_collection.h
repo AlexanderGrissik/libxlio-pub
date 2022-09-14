@@ -37,12 +37,12 @@
 #include <unordered_map>
 
 #include "vlogger/vlogger.h"
-#include "core/dev/ring_tap.h"
-#include "core/event/event_handler_manager.h"
-#include "core/event/timer_handler.h"
-#include "core/sock/cleanable_obj.h"
-#include "core/sock/socket_fd_api.h"
-#include "core/iomux/epfd_info.h"
+#include "dev/ring_tap.h"
+#include "event/event_handler_manager.h"
+#include "event/timer_handler.h"
+#include "sock/cleanable_obj.h"
+#include "sock/socket_fd_api.h"
+#include "iomux/epfd_info.h"
 #include "utils/lock_wrapper.h"
 
 typedef vma_list_t<socket_fd_api, socket_fd_api::pendig_to_remove_node_offset> sock_fd_api_list_t;

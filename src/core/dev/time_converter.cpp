@@ -36,11 +36,11 @@
 #include "vlogger/vlogger.h"
 #include "utils/rdtsc.h"
 
-#include "core/util/sys_vars.h"
-#include "core/util/instrumentation.h"
-#include "core/event/event_handler_manager.h"
-#include "core/ib/base/verbs_extra.h"
-#include "core/dev/net_device_table_mgr.h"
+#include "util/sys_vars.h"
+#include "util/instrumentation.h"
+#include "event/event_handler_manager.h"
+#include "ib/base/verbs_extra.h"
+#include "dev/net_device_table_mgr.h"
 
 #define MODULE_NAME "time_converter"
 

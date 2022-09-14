@@ -33,7 +33,7 @@
 #ifndef RFS_MC_H
 #define RFS_MC_H
 
-#include "core/dev/rfs.h"
+#include "dev/rfs.h"
 
 #define MODULE_NAME "rfs_mc"
 

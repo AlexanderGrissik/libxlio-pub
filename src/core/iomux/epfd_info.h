@@ -33,9 +33,9 @@
 #ifndef VMA_EPOLL_H
 #define VMA_EPOLL_H
 
-#include <core/util/wakeup_pipe.h>
-#include <core/sock/cleanable_obj.h>
-#include <core/sock/sockinfo.h>
+#include <util/wakeup_pipe.h>
+#include <sock/cleanable_obj.h>
+#include <sock/sockinfo.h>
 
 typedef vma_list_t<socket_fd_api, socket_fd_api::ep_ready_fd_node_offset> ep_ready_fd_list_t;
 typedef vma_list_t<socket_fd_api, socket_fd_api::ep_info_fd_node_offset> fd_info_list_t;

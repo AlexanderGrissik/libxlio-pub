@@ -33,7 +33,7 @@
 #ifndef RFS_UC_TCP_GRO_H
 #define RFS_UC_TCP_GRO_H
 
-#include "core/dev/rfs_uc.h"
+#include "dev/rfs_uc.h"
 #include <netinet/tcp.h>
 
 #define IP_H_LEN_NO_OPTIONS    5

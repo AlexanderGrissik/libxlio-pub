@@ -38,11 +38,11 @@
 #include <netinet/ip.h>
 
 #include "utils/bullseye.h"
-#include <core/util/vtypes.h>
-#include <core/util/valgrind.h>
-#include "core/util/instrumentation.h"
-#include <core/sock/sock-redirect.h>
-#include "core/ib/base/verbs_extra.h"
+#include <util/vtypes.h>
+#include <util/valgrind.h>
+#include "util/instrumentation.h"
+#include <sock/sock-redirect.h>
+#include "ib/base/verbs_extra.h"
 
 #include "buffer_pool.h"
 #include "qp_mgr.h"

@@ -34,9 +34,9 @@
 #define RFS_RULE_IBV_H
 
 #include <memory>
-#include "core/util/utils.h"
-#include "core/ib/base/verbs_extra.h"
-#include "core/dev/rfs_rule.h"
+#include "util/utils.h"
+#include "ib/base/verbs_extra.h"
+#include "dev/rfs_rule.h"
 
 using namespace std;
 

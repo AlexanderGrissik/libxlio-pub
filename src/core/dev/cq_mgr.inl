@@ -35,7 +35,7 @@
 
 #include "cq_mgr.h"
 #include "ring_simple.h"
-#include "core/util/utils.h"
+#include "util/utils.h"
 
 /**/
 /** inlining functions can only help if they are implemented before their usage **/

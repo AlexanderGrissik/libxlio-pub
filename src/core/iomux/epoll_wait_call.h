@@ -34,7 +34,7 @@
 #define _EPOLL_WAIT_CALL_H
 
 #include <sys/epoll.h>
-#include <core/iomux/epfd_info.h>
+#include <iomux/epfd_info.h>
 
 #include "io_mux_call.h"
 

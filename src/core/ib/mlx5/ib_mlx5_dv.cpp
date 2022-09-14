@@ -36,7 +36,7 @@
 
 #if defined(DEFINED_DIRECT_VERBS) && (DEFINED_DIRECT_VERBS == 3)
 
-#include "core/ib/mlx5/ib_mlx5.h"
+#include "ib/mlx5/ib_mlx5.h"
 
 int vma_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type)
 {

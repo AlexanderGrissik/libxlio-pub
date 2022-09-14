@@ -35,8 +35,8 @@
 
 #include "ring.h"
 #include <memory>
-#include "core/dev/net_device_table_mgr.h"
-#include "core/util/sock_addr.h"
+#include "dev/net_device_table_mgr.h"
+#include "util/sock_addr.h"
 
 class rfs;
 struct iphdr;

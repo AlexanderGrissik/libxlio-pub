@@ -36,9 +36,9 @@
 #include <infiniband/verbs.h>
 #include <unordered_map>
 
-#include "core/event/event_handler_ibverbs.h"
-#include "core/dev/time_converter.h"
-#include "core/ib/base/verbs_extra.h"
+#include "event/event_handler_ibverbs.h"
+#include "dev/time_converter.h"
+#include "ib/base/verbs_extra.h"
 #include "utils/lock_wrapper.h"
 
 #ifdef DEFINED_DPCP

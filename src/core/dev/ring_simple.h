@@ -38,9 +38,9 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "core/dev/gro_mgr.h"
-#include "core/dev/qp_mgr.h"
-#include "core/dev/net_device_table_mgr.h"
+#include "dev/gro_mgr.h"
+#include "dev/qp_mgr.h"
+#include "dev/net_device_table_mgr.h"
 
 struct cq_moderation_info {
     uint32_t period;

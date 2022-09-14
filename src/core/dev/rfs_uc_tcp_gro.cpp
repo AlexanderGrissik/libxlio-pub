@@ -31,9 +31,9 @@
  */
 
 #include "utils/bullseye.h"
-#include "core/dev/rfs_uc_tcp_gro.h"
-#include "core/dev/gro_mgr.h"
-#include "core/dev/ring_simple.h"
+#include "dev/rfs_uc_tcp_gro.h"
+#include "dev/gro_mgr.h"
+#include "dev/ring_simple.h"
 #include <netinet/ip6.h>
 
 #define MODULE_NAME "rfs_uc_tcp_gro"

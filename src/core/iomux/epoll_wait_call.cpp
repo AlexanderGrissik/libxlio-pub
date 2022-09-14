@@ -34,10 +34,10 @@
 
 #include <vlogger/vlogger.h>
 
-#include <core/util/vtypes.h>
-#include <core/sock/sock-redirect.h>
-#include <core/sock/socket_fd_api.h>
-#include <core/sock/fd_collection.h>
+#include <util/vtypes.h>
+#include <sock/sock-redirect.h>
+#include <sock/socket_fd_api.h>
+#include <sock/fd_collection.h>
 
 #include "epfd_info.h"
 

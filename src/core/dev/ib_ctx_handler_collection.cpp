@@ -36,9 +36,9 @@
 #include "vlogger/vlogger.h"
 #include "ib_ctx_handler_collection.h"
 
-#include "core/ib/base/verbs_extra.h"
-#include "core/util/utils.h"
-#include "core/event/event_handler_manager.h"
+#include "ib/base/verbs_extra.h"
+#include "util/utils.h"
+#include "event/event_handler_manager.h"
 
 #define MODULE_NAME "ib_ctx_collection"
 

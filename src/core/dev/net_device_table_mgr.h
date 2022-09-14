@@ -39,10 +39,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "core/util/sys_vars.h"
-#include "core/util/ip_address.h"
-#include "core/event/timer_handler.h"
-#include "core/infra/cache_subject_observer.h"
+#include "util/sys_vars.h"
+#include "util/ip_address.h"
+#include "event/timer_handler.h"
+#include "infra/cache_subject_observer.h"
 #include "net_device_val.h"
 #include "net_device_entry.h"
 

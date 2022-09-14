@@ -35,31 +35,31 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ifaddrs.h>
-#include "core/util/if.h"
+#include "util/if.h"
 #include <net/if_arp.h>
 #include <sys/epoll.h>
 #include <algorithm>
 
 #include "utils/bullseye.h"
 #include "utils/rdtsc.h"
-#include "core/util/libvma.h"
-#include "core/sock/sock-redirect.h"
-#include "core/sock/fd_collection.h"
-#include "core/event/event_handler_manager.h"
-#include "core/dev/buffer_pool.h"
-#include "core/dev/ring.h"
-#include "core/dev/ring_slave.h"
-#include "core/dev/ring_bond.h"
-#include "core/dev/ring_simple.h"
-#include "core/proto/route_table_mgr.h"
-#include "core/proto/rule_table_mgr.h"
-#include "core/proto/dst_entry_tcp.h"
-#include "core/proto/dst_entry_udp.h"
-#include "core/proto/dst_entry_udp_mc.h"
-#include "core/iomux/epfd_info.h"
-#include "core/iomux/io_mux_call.h"
-#include "core/util/instrumentation.h"
-#include "core/dev/ib_ctx_handler_collection.h"
+#include "util/libvma.h"
+#include "sock/sock-redirect.h"
+#include "sock/fd_collection.h"
+#include "event/event_handler_manager.h"
+#include "dev/buffer_pool.h"
+#include "dev/ring.h"
+#include "dev/ring_slave.h"
+#include "dev/ring_bond.h"
+#include "dev/ring_simple.h"
+#include "proto/route_table_mgr.h"
+#include "proto/rule_table_mgr.h"
+#include "proto/dst_entry_tcp.h"
+#include "proto/dst_entry_udp.h"
+#include "proto/dst_entry_udp_mc.h"
+#include "iomux/epfd_info.h"
+#include "iomux/io_mux_call.h"
+#include "util/instrumentation.h"
+#include "dev/ib_ctx_handler_collection.h"
 
 /* useful debugging macros */
 

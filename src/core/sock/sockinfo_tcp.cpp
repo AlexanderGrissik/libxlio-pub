@@ -33,21 +33,21 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <netinet/tcp.h>
-#include "core/util/if.h"
+#include "util/if.h"
 
 #include "utils/bullseye.h"
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
 #include "utils/rdtsc.h"
-#include "core/util/libvma.h"
-#include "core/util/instrumentation.h"
-#include "core/util/list.h"
-#include "core/util/agent.h"
-#include "core/event/event_handler_manager.h"
-#include "core/proto/route_table_mgr.h"
-#include "core/proto/vma_lwip.h"
-#include "core/proto/dst_entry_tcp.h"
-#include "core/iomux/io_mux_call.h"
+#include "util/libvma.h"
+#include "util/instrumentation.h"
+#include "util/list.h"
+#include "util/agent.h"
+#include "event/event_handler_manager.h"
+#include "proto/route_table_mgr.h"
+#include "proto/vma_lwip.h"
+#include "proto/dst_entry_tcp.h"
+#include "iomux/io_mux_call.h"
 
 #include "sock-redirect.h"
 #include "fd_collection.h"

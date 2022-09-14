@@ -33,15 +33,15 @@
 #ifndef CQ_MGR_H
 #define CQ_MGR_H
 
-#include "core/ib/base/verbs_extra.h"
+#include "ib/base/verbs_extra.h"
 #include "utils/atomic.h"
-#include "core/dev/qp_mgr.h"
-#include "core/dev/ib_ctx_handler.h"
-#include "core/util/sys_vars.h"
-#include "core/util/vma_stats.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/proto/vma_lwip.h"
-#include "core/xlio_extra.h"
+#include "dev/qp_mgr.h"
+#include "dev/ib_ctx_handler.h"
+#include "util/sys_vars.h"
+#include "util/vma_stats.h"
+#include "proto/mem_buf_desc.h"
+#include "proto/vma_lwip.h"
+#include "xlio_extra.h"
 
 #if VLIST_DEBUG
 #define VLIST_DEBUG_CQ_MGR_PRINT_ERROR_IS_MEMBER                                                   \

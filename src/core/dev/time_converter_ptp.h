@@ -34,8 +34,8 @@
 #define TIME_CONVERTER_PTP_H
 
 #include <infiniband/verbs.h>
-#include "core/event/timer_handler.h"
-#include <core/util/sys_vars.h>
+#include "event/timer_handler.h"
+#include <util/sys_vars.h>
 #include "time_converter.h"
 
 #ifdef DEFINED_IBV_CLOCK_INFO

@@ -30,13 +30,13 @@
  * SOFTWARE.
  */
 
-#include "core/ib/base/verbs_extra.h"
+#include "ib/base/verbs_extra.h"
 
 #include <errno.h>
 #include <vlogger/vlogger.h>
 
 #include "xlio_extra.h"
-#include "core/util/valgrind.h"
+#include "util/valgrind.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "verbs_extra:"

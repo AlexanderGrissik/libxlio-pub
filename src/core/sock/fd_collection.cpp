@@ -33,14 +33,14 @@
 #include <sys/resource.h>
 
 #include "utils/bullseye.h"
-#include "core/util/libvma.h"
+#include "util/libvma.h"
 #include "fd_collection.h"
 #include "sock-redirect.h"
 #include "socket_fd_api.h"
 #include "sockinfo_udp.h"
 #include "pipeinfo.h"
 #include "sockinfo_tcp.h"
-#include "core/iomux/epfd_info.h"
+#include "iomux/epfd_info.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "fdc:"

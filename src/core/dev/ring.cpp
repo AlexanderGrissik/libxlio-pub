@@ -31,7 +31,7 @@
  */
 
 #include "ring.h"
-#include "core/proto/route_table_mgr.h"
+#include "proto/route_table_mgr.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "ring"

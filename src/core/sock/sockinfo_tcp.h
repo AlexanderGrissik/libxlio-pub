@@ -34,15 +34,15 @@
 #define TCP_SOCKINFO_H
 
 #include "utils/lock_wrapper.h"
-#include "core/proto/mem_buf_desc.h"
-#include "core/sock/socket_fd_api.h"
-#include "core/dev/buffer_pool.h"
-#include "core/dev/cq_mgr.h"
-#include "core/xlio_extra.h"
+#include "proto/mem_buf_desc.h"
+#include "sock/socket_fd_api.h"
+#include "dev/buffer_pool.h"
+#include "dev/cq_mgr.h"
+#include "xlio_extra.h"
 
 // LWIP includes
-#include "core/lwip/opt.h"
-#include "core/lwip/tcp_impl.h"
+#include "lwip/opt.h"
+#include "lwip/tcp_impl.h"
 
 #include "sockinfo.h"
 #include "sockinfo_ulp.h"

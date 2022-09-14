@@ -31,7 +31,7 @@
  */
 
 #include <cinttypes>
-#include "core/dev/rfs_rule_ibv.h"
+#include "dev/rfs_rule_ibv.h"
 
 #define MODULE_NAME "rfs_rule_ibv"
 

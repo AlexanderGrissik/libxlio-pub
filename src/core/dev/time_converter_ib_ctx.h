@@ -34,7 +34,7 @@
 #define TIME_CONVERTER_IB_CTX_H
 
 #include <infiniband/verbs.h>
-#include <core/util/sys_vars.h>
+#include <util/sys_vars.h>
 #include "time_converter.h"
 
 class time_converter_ib_ctx : public time_converter {

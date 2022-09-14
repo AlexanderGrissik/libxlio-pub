@@ -36,10 +36,10 @@
 #include <exception>
 #include <sys/time.h>
 
-#include <core/util/vtypes.h>
-#include <core/util/vma_stats.h>
-#include <core/sock/socket_fd_api.h>
-#include <core/sock/sockinfo.h>
+#include <util/vtypes.h>
+#include <util/vma_stats.h>
+#include <sock/socket_fd_api.h>
+#include <sock/sockinfo.h>
 
 // from sigset.h
 #ifndef sigandnset
