@@ -176,12 +176,12 @@ public:
     {
         uint64_t xb = m_ip6_64[0] ^ ip.m_ip6_64[0];
         if (xb) {
-            return static_cast<uint8_t>(ntohll(__builtin_ctzl(xb)));
+            return static_cast<uint8_t>(__builtin_clzl(ntohll(xb)));
         }
 
         xb = m_ip6_64[1] ^ ip.m_ip6_64[1];
         if (xb) {
-            return 64 + static_cast<uint8_t>(ntohll(__builtin_ctzl(xb)));
+            return 64 + static_cast<uint8_t>(__builtin_clzl(ntohll(xb)));
         }
 
         return 128;

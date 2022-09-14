@@ -319,6 +319,16 @@ if [[ -z "$TEST_CASE" ]] || [ "$TEST_CASE" = "10" ]; then
 	sudo ip -6 addr del 2001:1::2:2/66 dev $IF1
 	sudo ip -6 addr del 2001:1::2:1/65 dev $IF1
 	echo "$(clear_server)"
+
+	sudo ip -6 addr add 2001:1::1:23/128 dev $IF1
+	sudo ip -6 addr add 2001:1::1:13/64 dev $IF1
+	sleep 4
+	ssh $SRV_HOST 'sudo python2 '"$SRV_PATH"' inet6 2001:1::1:1 '"$PORT"' 2001:1::1:23 >> '"$OUT_PATH"' 2>> '"$ERR_PATH"' < /dev/null &'
+	sleep 1
+	LD_PRELOAD=$XLIO_PATH XLIO_LOG_FILE=/tmp/xlio.log python2 $CLT_PATH inet6 2001:1::1:1 $PORT
+	sudo ip -6 addr del 2001:1::1:23/128 dev $IF1
+	sudo ip -6 addr del 2001:1::1:13/64 dev $IF1
+	echo "$(clear_server)"
 fi
 
 # Use Optimistic Address (use_optimistic=1)
