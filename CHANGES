@@ -1,3 +1,16 @@
+Version 2.0.4-1:
+Date + Time 2022-09-14
+=============================================================
+Added:
+        - RM #3120089 Remove Sockextreme|Callback APIs and non-mlnx5 support
+        - RM #3064947 Rename /vma directory with /core
+Fixed:
+        - RM #3183546 Fixing the handling of null elements in tx iov
+        - RM #3068125 Ignore multipath routes
+        - RM #3206778 Fix TLS1.3 broken in SSL_sendfile
+        - RM #3207336 MC IPv6 - Fix for if_index=0
+        - RM #3209278 Fix IPv6 frag offset
+
 Version 2.0.3-1:
 Date + Time 2022-09-08
 =============================================================
