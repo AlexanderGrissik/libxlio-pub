@@ -1604,7 +1604,7 @@ err_t tcp_output(struct tcp_pcb *pcb)
 {
     struct tcp_seg *seg, *useg;
     u32_t wnd, snd_nxt;
-    err_t rc;
+    err_t rc = ERR_OK;
 #if TCP_CWND_DEBUG
     s16_t i = 0;
 #endif /* TCP_CWND_DEBUG */
@@ -1661,7 +1661,7 @@ err_t tcp_output(struct tcp_pcb *pcb)
     }
 #endif /* TCP_TSO_DEBUG */
 
-    while (seg) {
+    while (seg && rc == ERR_OK) {
         /* TSO segment can be in unsent queue only in case of retransmission.
          * Clear TSO flag, tcp_split_segment() and tcp_tso_segment() will handle
          * all scenarios further.
@@ -1733,11 +1733,11 @@ err_t tcp_output(struct tcp_pcb *pcb)
 #endif /* TCP_OVERSIZE_DBGCHECK */
 
             rc = tcp_output_segment(seg, pcb);
-            if (rc != ERR_OK) {
-                if (rc == ERR_WOULDBLOCK) {
-                    break;
-                }
-                return rc;
+            if (rc != ERR_OK && pcb->unacked) {
+                /* Transmission failed, skip moving the segment to unacked, so we
+                 * retry with the next tcp_output(). We must have at least one unacked
+                 * segment in this case or RTO would be broken otherwise. */
+                break;
             }
 
             pcb->unsent = seg->next;
@@ -1814,7 +1814,7 @@ err_t tcp_output(struct tcp_pcb *pcb)
         pcb->pbuf_alloc = tcp_tx_pbuf_alloc(pcb, 0, PBUF_RAM, NULL, NULL);
     }
 
-    return ERR_OK;
+    return rc == ERR_WOULDBLOCK ? ERR_OK : rc;
 }
 
 /**
