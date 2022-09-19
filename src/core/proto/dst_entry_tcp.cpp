@@ -62,7 +62,7 @@ dst_entry_tcp::~dst_entry_tcp()
 transport_t dst_entry_tcp::get_transport(const sock_addr &to)
 {
     NOT_IN_USE(to);
-    return TRANS_VMA;
+    return TRANS_XLIO;
 }
 
 ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr)

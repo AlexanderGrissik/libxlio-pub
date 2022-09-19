@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef _LIBVMA_H
-#define _LIBVMA_H
+#ifndef _LIBXLIO_H
+#define _LIBXLIO_H
 
 #include <netinet/in.h>
 
@@ -61,7 +61,14 @@ typedef enum {
     ROLE_UDP_CONNECT
 } role_t;
 
-typedef enum { TRANS_OS = 1, TRANS_VMA, TRANS_SDP, TRANS_SA, TRANS_ULP, TRANS_DEFAULT } transport_t;
+typedef enum {
+    TRANS_OS = 1,
+    TRANS_XLIO,
+    TRANS_SDP,
+    TRANS_SA,
+    TRANS_ULP,
+    TRANS_DEFAULT
+} transport_t;
 
 typedef enum { PROTO_UNDEFINED, PROTO_UDP, PROTO_TCP, PROTO_ALL } in_protocol_t;
 
@@ -72,13 +79,13 @@ typedef enum { IN_ADDR_DHCP, IN_ADDR_STATIC } in_addr_alloc_mode_t;
 typedef enum { MAC_AUTO_GEN, MAC_MANUAL } mac_alloc_mode_t;
 
 /* some state to string functions */
-static inline const char *__vma_get_transport_str(transport_t transport)
+static inline const char *__xlio_get_transport_str(transport_t transport)
 {
     switch (transport) {
     case TRANS_OS:
         return "OS";
         break;
-    case TRANS_VMA:
+    case TRANS_XLIO:
         return "XLIO";
         break;
     case TRANS_SDP:
@@ -98,7 +105,7 @@ static inline const char *__vma_get_transport_str(transport_t transport)
 }
 
 /* some state to string functions */
-static inline const char *__vma_get_protocol_str(in_protocol_t protocol)
+static inline const char *__xlio_get_protocol_str(in_protocol_t protocol)
 {
     switch (protocol) {
     case PROTO_UNDEFINED:
@@ -115,7 +122,7 @@ static inline const char *__vma_get_protocol_str(in_protocol_t protocol)
     return ("unknown-protocol");
 }
 
-static inline const char *__vma_get_family_str(sa_family_t family)
+static inline const char *__xlio_get_family_str(sa_family_t family)
 {
     switch (family) {
     case AF_INET:
@@ -128,7 +135,7 @@ static inline const char *__vma_get_family_str(sa_family_t family)
     return ("unknown-family");
 }
 
-static inline const char *__vma_get_role_str(int role)
+static inline const char *__xlio_get_role_str(int role)
 {
     switch (role) {
     case ROLE_TCP_CLIENT:
@@ -180,8 +187,8 @@ struct use_family_rule {
     in_protocol_t protocol; /* protocol family for mapping		*/
 };
 
-/* data structure for holding the devices vma will handle */
-struct vma_device {
+/* data structure for holding the devices xlio will handle */
+struct xlio_device {
     dev_conf_mode_t conf_mode; /* clone or replace insterface		*/
     u8_t hw_addr[NETIF_MAX_HWADDR_LEN]; /* interface physical address		*/
     u8_t hw_addr_len; /* interface physical address length	*/
@@ -208,54 +215,54 @@ struct instance {
 };
 
 extern struct dbl_lst __instance_list;
-extern int __vma_min_level;
+extern int __xlio_min_level;
 
-#define VMA_NETMASK(n) ((n == 0) ? 0 : ~((1UL << (32 - n)) - 1))
-#define IF_NAME_LEN    10
+#define XLIO_NETMASK(n) ((n == 0) ? 0 : ~((1UL << (32 - n)) - 1))
+#define IF_NAME_LEN     10
 
 /* match.cpp */
-transport_t __vma_match_tcp_client(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin_first,
-                                   const socklen_t sin_addrlen_first,
-                                   const struct sockaddr *sin_second,
-                                   const socklen_t sin_addrlen_second);
-
-transport_t __vma_match_tcp_server(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin, const socklen_t addrlen);
-
-transport_t __vma_match_udp_sender(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin, const socklen_t addrlen);
-
-transport_t __vma_match_udp_receiver(transport_t my_transport, const char *app_id,
-                                     const struct sockaddr *sin, const socklen_t addrlen);
-
-transport_t __vma_match_udp_connect(transport_t my_transport, const char *app_id,
+transport_t __xlio_match_tcp_client(transport_t my_transport, const char *app_id,
                                     const struct sockaddr *sin_first,
                                     const socklen_t sin_addrlen_first,
                                     const struct sockaddr *sin_second,
                                     const socklen_t sin_addrlen_second);
 
+transport_t __xlio_match_tcp_server(transport_t my_transport, const char *app_id,
+                                    const struct sockaddr *sin, const socklen_t addrlen);
+
+transport_t __xlio_match_udp_sender(transport_t my_transport, const char *app_id,
+                                    const struct sockaddr *sin, const socklen_t addrlen);
+
+transport_t __xlio_match_udp_receiver(transport_t my_transport, const char *app_id,
+                                      const struct sockaddr *sin, const socklen_t addrlen);
+
+transport_t __xlio_match_udp_connect(transport_t my_transport, const char *app_id,
+                                     const struct sockaddr *sin_first,
+                                     const socklen_t sin_addrlen_first,
+                                     const struct sockaddr *sin_second,
+                                     const socklen_t sin_addrlen_second);
+
 /* config.c */
-int __vma_config_empty(void);
+int __xlio_config_empty(void);
 
-int __vma_parse_config_file(const char *config_file);
+int __xlio_parse_config_file(const char *config_file);
 
-int __vma_parse_config_line(const char *config_line);
+int __xlio_parse_config_line(const char *config_line);
 
-void __vma_print_conf_file(struct dbl_lst conf_lst);
+void __xlio_print_conf_file(struct dbl_lst conf_lst);
 
-void __vma_free_resources(void);
+void __xlio_free_resources(void);
 
-int __vma_match_program_name(struct instance *instance);
+int __xlio_match_program_name(struct instance *instance);
 
-int __vma_match_user_defined_id(struct instance *instance, const char *app_id);
+int __xlio_match_user_defined_id(struct instance *instance, const char *app_id);
 
-transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id);
+transport_t __xlio_match_by_program(in_protocol_t my_protocol, const char *app_id);
 
 /* log.c */
 #if 0
 static inline
-void __vma_log(
+void __xlio_log(
 	int level,
 	char *format,
 	... )
@@ -265,39 +272,39 @@ void __vma_log(
 };
 #endif
 
-#define __vma_log(level, format, args...) printf(format, ##args)
+#define __xlio_log(level, format, args...) printf(format, ##args)
 
-static inline int __vma_log_get_level(void)
+static inline int __xlio_log_get_level(void)
 {
-    return __vma_min_level;
+    return __xlio_min_level;
 }
 
-static inline void __vma_log_set_min_level(int level)
+static inline void __xlio_log_set_min_level(int level)
 {
-    __vma_min_level = level;
+    __xlio_min_level = level;
 };
 
 // TODO AlexV: implement this function
-static inline int __vma_log_set_log_stderr(void)
-{
-    return 0;
-};
-
-// TODO AlexV: implement this function
-static inline int __vma_log_set_log_syslog(void)
+static inline int __xlio_log_set_log_stderr(void)
 {
     return 0;
 };
 
 // TODO AlexV: implement this function
-static inline int __vma_log_set_log_file(char *filename)
+static inline int __xlio_log_set_log_syslog(void)
+{
+    return 0;
+};
+
+// TODO AlexV: implement this function
+static inline int __xlio_log_set_log_file(char *filename)
 {
     NOT_IN_USE(filename);
     return 0;
 };
 
-int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
-                          struct sockaddr_in *addr_out, int *was_ipv6);
+int __xlio_sockaddr_to_xlio(const struct sockaddr *addr_in, socklen_t addrlen,
+                            struct sockaddr_in *addr_out, int *was_ipv6);
 
 #ifdef __cplusplus
 };

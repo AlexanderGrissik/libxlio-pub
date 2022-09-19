@@ -112,7 +112,7 @@ static void free_instance_content(struct instance *instance)
     free(instance);
 }
 
-void __vma_free_resources(void)
+void __xlio_free_resources(void)
 {
     struct dbl_lst_node *node, *tmp;
 
@@ -166,8 +166,8 @@ static void get_rule_str(struct use_family_rule *rule, char *buf, size_t len)
     char ports_buf_first[17];
     char addr_buf_second[MAX_ADDR_STR_LEN];
     char ports_buf_second[17];
-    const char *target = __vma_get_transport_str(rule->target_transport);
-    const char *protocol = __vma_get_protocol_str(rule->protocol);
+    const char *target = __xlio_get_transport_str(rule->target_transport);
+    const char *protocol = __xlio_get_protocol_str(rule->protocol);
 
     get_address_port_rule_str(addr_buf_first, ports_buf_first, &(rule->first));
     if (rule->use_second) {
@@ -249,7 +249,7 @@ static void print_instance_conf(struct instance *instance)
     }
 }
 
-void __vma_print_conf_file(struct dbl_lst conf_lst)
+void __xlio_print_conf_file(struct dbl_lst conf_lst)
 {
     struct dbl_lst_node *node = conf_lst.head;
 
@@ -267,10 +267,10 @@ static inline int match_ipv4_addr(struct address_port_rule *rule, const struct s
     // Added netmask on rule side to avoid user mistake when configuring ip rule: 1.1.1.x/24 instead
     // of 1.1.1.0/24
     match_logdbg("rule ip address:%d.%d.%d.%d, socket ip address:%d.%d.%d.%d ",
-                 NIPQUAD(rule->ipv4.s_addr & htonl(VMA_NETMASK(rule->prefixlen))),
-                 NIPQUAD(sin->sin_addr.s_addr & htonl(VMA_NETMASK(rule->prefixlen))));
-    return ((rule->ipv4.s_addr & htonl(VMA_NETMASK(rule->prefixlen))) !=
-            (sin->sin_addr.s_addr & htonl(VMA_NETMASK(rule->prefixlen))));
+                 NIPQUAD(rule->ipv4.s_addr & htonl(XLIO_NETMASK(rule->prefixlen))),
+                 NIPQUAD(sin->sin_addr.s_addr & htonl(XLIO_NETMASK(rule->prefixlen))));
+    return ((rule->ipv4.s_addr & htonl(XLIO_NETMASK(rule->prefixlen))) !=
+            (sin->sin_addr.s_addr & htonl(XLIO_NETMASK(rule->prefixlen))));
 }
 
 static int match_ip_addr_and_port(transport_t my_transport, struct use_family_rule *rule,
@@ -348,7 +348,7 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
     }
 
     if (match && rule->first.match_by_addr) {
-        if (__vma_sockaddr_to_vma(addr_in_first, addrlen_first, &tmp_sin_first, NULL) ||
+        if (__xlio_sockaddr_to_xlio(addr_in_first, addrlen_first, &tmp_sin_first, NULL) ||
             match_ipv4_addr(&(rule->first), &tmp_sin_first)) {
             match_logdbg("NEGATIVE MATCH by address");
             match = 0;
@@ -370,7 +370,7 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
         }
 
         if (match && rule->second.match_by_addr) {
-            if (__vma_sockaddr_to_vma(addr_in_second, addrlen_second, &tmp_sin_second, NULL) ||
+            if (__xlio_sockaddr_to_xlio(addr_in_second, addrlen_second, &tmp_sin_second, NULL) ||
                 match_ipv4_addr(&(rule->second), &tmp_sin_second)) {
                 match_logdbg("NEGATIVE MATCH by address");
                 match = 0;
@@ -392,7 +392,7 @@ static int match_ip_addr_and_port(transport_t my_transport, struct use_family_ru
 }
 
 /* return 1 on match */
-int __vma_match_program_name(struct instance *instance)
+int __xlio_match_program_name(struct instance *instance)
 {
     if (!instance) {
         return 1;
@@ -402,7 +402,7 @@ int __vma_match_program_name(struct instance *instance)
 }
 
 /* return 1 on match */
-int __vma_match_user_defined_id(struct instance *instance, const char *app_id)
+int __xlio_match_user_defined_id(struct instance *instance, const char *app_id)
 {
     int ret_val = 0;
 
@@ -440,7 +440,7 @@ static transport_t get_family_by_first_matching_rule(transport_t my_transport,
     }
 
     match_logdbg("No matching rule. Using (default)");
-    return TRANS_VMA; // No matching rule or no rule at all. Don't continue to next application-id
+    return TRANS_XLIO; // No matching rule or no rule at all. Don't continue to next application-id
 }
 
 static transport_t get_family_by_instance_first_matching_rule(
@@ -450,9 +450,9 @@ static transport_t get_family_by_instance_first_matching_rule(
 {
     transport_t target_family = TRANS_DEFAULT;
 
-    /* if we do not have any rules we use vma */
-    if (__vma_config_empty()) {
-        target_family = TRANS_VMA;
+    /* if we do not have any rules we use xlio */
+    if (__xlio_config_empty()) {
+        target_family = TRANS_XLIO;
     } else {
         struct dbl_lst_node *curr = __instance_list.head;
 
@@ -460,8 +460,8 @@ static transport_t get_family_by_instance_first_matching_rule(
             struct instance *curr_instance = (struct instance *)curr->data;
             if (curr_instance) {
                 /* skip if not our program */
-                if (__vma_match_program_name(curr_instance) &&
-                    __vma_match_user_defined_id(curr_instance, app_id)) {
+                if (__xlio_match_program_name(curr_instance) &&
+                    __xlio_match_user_defined_id(curr_instance, app_id)) {
                     match_logdbg("MATCHING program name: %s, application-id: %s",
                                  curr_instance->id.prog_name_expr,
                                  curr_instance->id.user_defined_id);
@@ -501,30 +501,30 @@ static transport_t get_family_by_instance_first_matching_rule(
             curr = curr->next;
         }
         if (!curr && target_family == TRANS_DEFAULT) {
-            target_family = TRANS_VMA;
+            target_family = TRANS_XLIO;
         }
     }
     return target_family;
 }
 
 /* return the result of the first matching rule found */
-transport_t __vma_match_tcp_server(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin, const socklen_t addrlen)
+transport_t __xlio_match_tcp_server(transport_t my_transport, const char *app_id,
+                                    const struct sockaddr *sin, const socklen_t addrlen)
 {
     transport_t target_family;
 
     target_family = get_family_by_instance_first_matching_rule(my_transport, ROLE_TCP_SERVER,
                                                                app_id, sin, addrlen);
 
-    match_logdbg("MATCH TCP SERVER (LISTEN): => %s", __vma_get_transport_str(target_family));
+    match_logdbg("MATCH TCP SERVER (LISTEN): => %s", __xlio_get_transport_str(target_family));
 
     return target_family;
 }
 
-transport_t __vma_match_tcp_client(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin_first, const socklen_t addrlen_first,
-                                   const struct sockaddr *sin_second,
-                                   const socklen_t addrlen_second)
+transport_t __xlio_match_tcp_client(transport_t my_transport, const char *app_id,
+                                    const struct sockaddr *sin_first, const socklen_t addrlen_first,
+                                    const struct sockaddr *sin_second,
+                                    const socklen_t addrlen_second)
 {
     transport_t target_family;
 
@@ -532,42 +532,43 @@ transport_t __vma_match_tcp_client(transport_t my_transport, const char *app_id,
         get_family_by_instance_first_matching_rule(my_transport, ROLE_TCP_CLIENT, app_id, sin_first,
                                                    addrlen_first, sin_second, addrlen_second);
 
-    match_logdbg("MATCH TCP CLIENT (CONNECT): => %s", __vma_get_transport_str(target_family));
+    match_logdbg("MATCH TCP CLIENT (CONNECT): => %s", __xlio_get_transport_str(target_family));
 
     return target_family;
 }
 
 /* return the result of the first matching rule found */
-transport_t __vma_match_udp_sender(transport_t my_transport, const char *app_id,
-                                   const struct sockaddr *sin, const socklen_t addrlen)
+transport_t __xlio_match_udp_sender(transport_t my_transport, const char *app_id,
+                                    const struct sockaddr *sin, const socklen_t addrlen)
 {
     transport_t target_family;
 
     target_family = get_family_by_instance_first_matching_rule(my_transport, ROLE_UDP_SENDER,
                                                                app_id, sin, addrlen);
 
-    match_logdbg("MATCH UDP SENDER: => %s", __vma_get_transport_str(target_family));
+    match_logdbg("MATCH UDP SENDER: => %s", __xlio_get_transport_str(target_family));
 
     return target_family;
 }
 
-transport_t __vma_match_udp_receiver(transport_t my_transport, const char *app_id,
-                                     const struct sockaddr *sin, const socklen_t addrlen)
+transport_t __xlio_match_udp_receiver(transport_t my_transport, const char *app_id,
+                                      const struct sockaddr *sin, const socklen_t addrlen)
 {
     transport_t target_family;
 
     target_family = get_family_by_instance_first_matching_rule(my_transport, ROLE_UDP_RECEIVER,
                                                                app_id, sin, addrlen);
 
-    match_logdbg("MATCH UDP RECEIVER: => %s", __vma_get_transport_str(target_family));
+    match_logdbg("MATCH UDP RECEIVER: => %s", __xlio_get_transport_str(target_family));
 
     return target_family;
 }
 
-transport_t __vma_match_udp_connect(transport_t my_transport, const char *app_id,
-                                    const struct sockaddr *sin_first, const socklen_t addrlen_first,
-                                    const struct sockaddr *sin_second,
-                                    const socklen_t addrlen_second)
+transport_t __xlio_match_udp_connect(transport_t my_transport, const char *app_id,
+                                     const struct sockaddr *sin_first,
+                                     const socklen_t addrlen_first,
+                                     const struct sockaddr *sin_second,
+                                     const socklen_t addrlen_second)
 {
     transport_t target_family;
 
@@ -575,7 +576,7 @@ transport_t __vma_match_udp_connect(transport_t my_transport, const char *app_id
                                                                app_id, sin_first, addrlen_first,
                                                                sin_second, addrlen_second);
 
-    match_logdbg("MATCH UDP CONNECT: => %s", __vma_get_transport_str(target_family));
+    match_logdbg("MATCH UDP CONNECT: => %s", __xlio_get_transport_str(target_family));
 
     return target_family;
 }
@@ -583,7 +584,7 @@ transport_t __vma_match_udp_connect(transport_t my_transport, const char *app_id
 /* given a set of rules see if there is a global match for current program */
 static transport_t match_by_all_rules_program(in_protocol_t my_protocol, struct dbl_lst rules_lst)
 {
-    int any_vma = 0;
+    int any_xlio = 0;
     int any_os = 0;
     int any_sdp = 0;
     transport_t target_family = TRANS_DEFAULT;
@@ -606,8 +607,8 @@ static transport_t match_by_all_rules_program(in_protocol_t my_protocol, struct 
             (rule->first.match_by_addr || rule->first.match_by_port ||
              (rule->use_second && (rule->second.match_by_addr || rule->second.match_by_port)))) {
             /* not a global match rule - just track the target family */
-            if (rule->target_transport == TRANS_VMA || rule->target_transport == TRANS_ULP) {
-                any_vma++;
+            if (rule->target_transport == TRANS_XLIO || rule->target_transport == TRANS_ULP) {
+                any_xlio++;
             } else if (rule->target_transport == TRANS_OS) {
                 any_os++;
             }
@@ -616,32 +617,32 @@ static transport_t match_by_all_rules_program(in_protocol_t my_protocol, struct 
                      (rule->use_second &&
                       (rule->second.match_by_addr || rule->second.match_by_port)))) {
             /* a global match so we can declare a match by program */
-            if ((rule->target_transport == TRANS_VMA || rule->target_transport == TRANS_ULP) &&
+            if ((rule->target_transport == TRANS_XLIO || rule->target_transport == TRANS_ULP) &&
                 (any_os == 0)) {
-                target_family = TRANS_VMA;
-            } else if ((rule->target_transport == TRANS_OS) && (any_vma == 0) && (any_sdp == 0)) {
+                target_family = TRANS_XLIO;
+            } else if ((rule->target_transport == TRANS_OS) && (any_xlio == 0) && (any_sdp == 0)) {
                 target_family = TRANS_OS;
             }
         }
     }
-    if (target_family == TRANS_DEFAULT) { // no matching rules under application-id. use VMA. Don't
+    if (target_family == TRANS_DEFAULT) { // no matching rules under application-id. use xlio. Don't
                                           // continue to next application-id
-        target_family = TRANS_VMA;
+        target_family = TRANS_XLIO;
     }
     return target_family;
 }
 
-/* return tcp or vma if the port and role are don't cares */
-transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id)
+/* return tcp or xlio if the port and role are don't cares */
+transport_t __xlio_match_by_program(in_protocol_t my_protocol, const char *app_id)
 {
     transport_t server_target_family = TRANS_DEFAULT;
     transport_t client_target_family = TRANS_DEFAULT;
     transport_t target_family = TRANS_DEFAULT;
     bool b_found_app_id_match = false;
 
-    if (__vma_config_empty()) {
+    if (__xlio_config_empty()) {
         match_logdbg("Configuration file is empty. Using (default)");
-        target_family = TRANS_VMA;
+        target_family = TRANS_XLIO;
     } else {
         struct dbl_lst_node *node = __instance_list.head;
 
@@ -649,8 +650,8 @@ transport_t __vma_match_by_program(in_protocol_t my_protocol, const char *app_id
             /* need to try both server and client rules */
             struct instance *instance;
             instance = (struct instance *)node->data;
-            if (instance && __vma_match_program_name(instance) &&
-                __vma_match_user_defined_id(instance, app_id)) {
+            if (instance && __xlio_match_program_name(instance) &&
+                __xlio_match_user_defined_id(instance, app_id)) {
                 b_found_app_id_match = true;
                 if (my_protocol == PROTO_TCP) {
                     /* TCP */
@@ -703,31 +704,31 @@ static int is_ipv4_embedded_in_ipv6(const struct sockaddr_in6 *sin6)
 }
 
 #define IPV6_ADDR_IN_MIN_LEN 24
-int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
-                          struct sockaddr_in *addr_out, int *was_ipv6)
+int __xlio_sockaddr_to_xlio(const struct sockaddr *addr_in, socklen_t addrlen,
+                            struct sockaddr_in *addr_out, int *was_ipv6)
 {
     const struct sockaddr_in *sin = (const struct sockaddr_in *)addr_in;
     const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *)addr_in;
     char buf[MAX_ADDR_STR_LEN];
 
-    /* currently VMA supports only IPv4 ... */
+    /* currently xlio supports only IPv4 ... */
     if (!addr_in) {
-        match_logdbg("Error __vma_sockaddr_to_vma: "
+        match_logdbg("Error __xlio_sockaddr_to_xlio: "
                      "provided NULL input pointer");
         errno = EINVAL;
         return -1;
     }
     if (!addr_out) {
-        match_logdbg("Error __vma_sockaddr_to_vma: "
+        match_logdbg("Error __xlio_sockaddr_to_xlio: "
                      "provided NULL output pointer");
         errno = EINVAL;
         return -1;
     }
 
     if (sin->sin_family == AF_INET) {
-        match_logdbg("__vma_sockaddr_to_vma: Given IPv4");
+        match_logdbg("__xlio_sockaddr_to_xlio: Given IPv4");
         if (addrlen < sizeof(struct sockaddr_in)) {
-            match_logdbg("Error __vma_sockaddr_to_vma: "
+            match_logdbg("Error __xlio_sockaddr_to_xlio: "
                          "provided address length:%u < IPv4 length %d",
                          (unsigned)addrlen, (int)sizeof(struct sockaddr_in));
             errno = EINVAL;
@@ -740,7 +741,7 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
         }
     } else if (sin6->sin6_family == AF_INET6) {
         if (addrlen < IPV6_ADDR_IN_MIN_LEN) {
-            match_logdbg("Error __vma_sockaddr_to_vma: "
+            match_logdbg("Error __xlio_sockaddr_to_xlio: "
                          "provided address length:%d < IPv6 length %d",
                          addrlen, IPV6_ADDR_IN_MIN_LEN);
             errno = EINVAL;
@@ -749,7 +750,7 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
 
         /* cannot convert IPv6 that is not IPv4 embedding */
         if (!is_ipv4_embedded_in_ipv6(sin6)) {
-            match_logdbg("Error __vma_sockaddr_to_vma: "
+            match_logdbg("Error __xlio_sockaddr_to_xlio: "
                          "Given IPv6 address not an embedded IPv4");
             errno = EINVAL;
             return -1;
@@ -759,9 +760,9 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
 
         if (addr_out->sin_addr.s_addr == ntohl(1)) {
             addr_out->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            match_logdbg("__vma_sockaddr_to_vma: Given IPv6 loopback address");
+            match_logdbg("__xlio_sockaddr_to_xlio: Given IPv6 loopback address");
         } else {
-            match_logdbg("__vma_sockaddr_to_vma: Given IPv4 embedded in IPv6");
+            match_logdbg("__xlio_sockaddr_to_xlio: Given IPv4 embedded in IPv6");
         }
 
         addr_out->sin_family = AF_INET;
@@ -769,9 +770,9 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
 
         if (inet_ntop(addr_out->sin_family, (void *)&(addr_out->sin_addr), buf, MAX_ADDR_STR_LEN) ==
             NULL) {
-            match_logdbg("__vma_sockaddr_to_vma: Converted IPv4 address is illegal");
+            match_logdbg("__xlio_sockaddr_to_xlio: Converted IPv4 address is illegal");
         } else {
-            match_logdbg("__vma_sockaddr_to_vma: Converted IPv4 is:%s", buf);
+            match_logdbg("__xlio_sockaddr_to_xlio: Converted IPv4 is:%s", buf);
         }
         if (was_ipv6) {
             *was_ipv6 = 1;
@@ -779,10 +780,10 @@ int __vma_sockaddr_to_vma(const struct sockaddr *addr_in, socklen_t addrlen,
 
     } else if (sin->sin_family == 0) {
 
-        match_logdbg("__vma_sockaddr_to_vma: Converted NULL address");
+        match_logdbg("__xlio_sockaddr_to_xlio: Converted NULL address");
         memcpy(addr_out, addr_in, addrlen);
     } else {
-        match_logdbg("Error __vma_sockaddr_to_vma: "
+        match_logdbg("Error __xlio_sockaddr_to_xlio: "
                      "address family <%d> is unknown",
                      sin->sin_family);
         errno = EAFNOSUPPORT;

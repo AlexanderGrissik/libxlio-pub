@@ -805,7 +805,7 @@ char *libxlio_yytext;
 #include <string.h>
 #include <stdio.h>
 #include "config_parser.h"
-extern long __vma_config_line_num;
+extern long __xlio_config_line_num;
 #define YY_NO_INPUT 1
 
 /* Line 812 of config_scanner.c */
@@ -1361,7 +1361,7 @@ case 25:
 YY_RULE_SETUP
 /* Line 255 of config_scanner.l */
 {
-	__vma_config_line_num++;
+	__xlio_config_line_num++;
 #ifdef DEBUG
 	printf("LINE\n");
 #endif
@@ -1373,7 +1373,7 @@ case 26:
 YY_RULE_SETUP
 /* Line 264 of config_scanner.l */
 {
- 	__vma_config_line_num++;
+ 	__xlio_config_line_num++;
 }
 	YY_BREAK
 case 27:

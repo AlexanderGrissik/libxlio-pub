@@ -487,10 +487,10 @@ extern "C" int vma_add_conf_rule(const char *config_line)
 {
     srdr_logdbg("adding conf rule: %s", config_line);
 
-    int ret = __vma_parse_config_line(config_line);
+    int ret = __xlio_parse_config_line(config_line);
 
     if (*g_p_vlogger_level >= VLOG_DEBUG) {
-        __vma_print_conf_file(__instance_list);
+        __xlio_print_conf_file(__instance_list);
     }
 
     return ret;

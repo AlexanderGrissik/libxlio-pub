@@ -2356,7 +2356,7 @@ int sockinfo_tcp::connect(const sockaddr *__to, socklen_t __tolen)
     remote_addr.set_in_port(m_p_connected_dst_entry->get_dst_port());
     if (!m_p_connected_dst_entry->is_offloaded() ||
         find_target_family(ROLE_TCP_CLIENT, (sockaddr *)&remote_addr, m_bound.get_p_sa()) !=
-            TRANS_VMA) {
+            TRANS_XLIO) {
         passthrough_unlock("non offloaded socket --> connect only via OS");
         return -1;
     } else {
@@ -2598,8 +2598,8 @@ int sockinfo_tcp::prepareListen()
 
     lock_tcp_con();
     target_family =
-        __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id, addr.get_p_sa(), addr_len);
-    si_tcp_logdbg("TRANSPORT: %s, sock state = %d", __vma_get_transport_str(target_family),
+        __xlio_match_tcp_server(TRANS_XLIO, safe_mce_sys().app_id, addr.get_p_sa(), addr_len);
+    si_tcp_logdbg("TRANSPORT: %s, sock state = %d", __xlio_get_transport_str(target_family),
                   get_tcp_state(&m_pcb));
 
     if (target_family == TRANS_OS || m_sock_offload == TCP_SOCK_PASSTHROUGH) {

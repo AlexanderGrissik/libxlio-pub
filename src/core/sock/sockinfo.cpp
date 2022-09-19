@@ -1724,11 +1724,11 @@ bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
         si_logdbg("Attached to specific local if: %s addr: %s", if_addr.to_str().c_str(),
                   addr.to_str_ip_port(true).c_str());
 
-        transport_t target_family = TRANS_VMA;
+        transport_t target_family = TRANS_XLIO;
         if (!skip_rules) {
             target_family = find_target_family(role, addr.get_p_sa());
         }
-        if (target_family == TRANS_VMA) {
+        if (target_family == TRANS_XLIO) {
             flow_tuple_with_local_if flow_key(addr.get_ip_addr(), addr.get_in_port(),
                                               m_connected.get_ip_addr(), m_connected.get_in_port(),
                                               m_protocol, addr.get_sa_family(), if_addr);
@@ -1759,13 +1759,13 @@ bool sockinfo::attach_as_uc_receiver_anyip(sa_family_t family, role_t role, bool
         for (auto itr = addrvec.cbegin(); ret && addrvec.cend() != itr; ++itr) {
             si_logfunc("Attaching IP: %s", (*itr).get().local_addr.to_str(family).c_str());
 
-            transport_t target_family = TRANS_VMA;
+            transport_t target_family = TRANS_XLIO;
             if (!skip_rules) {
                 addr.set_sa_family(family);
                 addr.set_in_addr((*itr).get().local_addr);
                 target_family = find_target_family(role, addr.get_p_sa());
             }
-            if (target_family == TRANS_VMA) {
+            if (target_family == TRANS_XLIO) {
                 // In case m_connected is any address we need to take the any ip_address
                 // correctly, since the layout inside m_connected is different for A_INET
                 // and AF_INET6 (Currently m_connected family can be different from
@@ -1791,26 +1791,26 @@ transport_t sockinfo::find_target_family(role_t role, const struct sockaddr *soc
     transport_t target_family = TRANS_DEFAULT;
     switch (role) {
     case ROLE_TCP_SERVER:
-        target_family = __vma_match_tcp_server(TRANS_VMA, safe_mce_sys().app_id, sock_addr_first,
-                                               sizeof(struct sockaddr));
+        target_family = __xlio_match_tcp_server(TRANS_XLIO, safe_mce_sys().app_id, sock_addr_first,
+                                                sizeof(struct sockaddr));
         break;
     case ROLE_TCP_CLIENT:
-        target_family = __vma_match_tcp_client(TRANS_VMA, safe_mce_sys().app_id, sock_addr_first,
-                                               sizeof(struct sockaddr), sock_addr_second,
-                                               sizeof(struct sockaddr));
-        break;
-    case ROLE_UDP_RECEIVER:
-        target_family = __vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, sock_addr_first,
-                                                 sizeof(struct sockaddr));
-        break;
-    case ROLE_UDP_SENDER:
-        target_family = __vma_match_udp_sender(TRANS_VMA, safe_mce_sys().app_id, sock_addr_first,
-                                               sizeof(struct sockaddr));
-        break;
-    case ROLE_UDP_CONNECT:
-        target_family = __vma_match_udp_connect(TRANS_VMA, safe_mce_sys().app_id, sock_addr_first,
+        target_family = __xlio_match_tcp_client(TRANS_XLIO, safe_mce_sys().app_id, sock_addr_first,
                                                 sizeof(struct sockaddr), sock_addr_second,
                                                 sizeof(struct sockaddr));
+        break;
+    case ROLE_UDP_RECEIVER:
+        target_family = __xlio_match_udp_receiver(TRANS_XLIO, safe_mce_sys().app_id,
+                                                  sock_addr_first, sizeof(struct sockaddr));
+        break;
+    case ROLE_UDP_SENDER:
+        target_family = __xlio_match_udp_sender(TRANS_XLIO, safe_mce_sys().app_id, sock_addr_first,
+                                                sizeof(struct sockaddr));
+        break;
+    case ROLE_UDP_CONNECT:
+        target_family = __xlio_match_udp_connect(TRANS_XLIO, safe_mce_sys().app_id, sock_addr_first,
+                                                 sizeof(struct sockaddr), sock_addr_second,
+                                                 sizeof(struct sockaddr));
         break;
         BULLSEYE_EXCLUDE_BLOCK_START
     default:

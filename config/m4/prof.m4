@@ -187,17 +187,17 @@ AS_IF([test "x$with_rdtsc_rx_after_process_buffer_to_receivefrom" == xyes],
 	[AC_MSG_RESULT([no])]
 )
 
-AC_MSG_CHECKING([if rdtsc-rx-vma-tcp-idle-poll is enabled])
-AC_ARG_WITH([rdtsc-rx-vma-tcp-idle-poll],
-    AS_HELP_STRING([--with-rdtsc-rx-vma-tcp-idle-poll],
-                   [Enable rdtsc measurement of rx vma tcp idle poll]),
+AC_MSG_CHECKING([if rdtsc-rx-xlio-tcp-idle-poll is enabled])
+AC_ARG_WITH([rdtsc-rx-xlio-tcp-idle-poll],
+    AS_HELP_STRING([--with-rdtsc-rx-xlio-tcp-idle-poll],
+                   [Enable rdtsc measurement of rx xlio tcp idle poll]),
     [],
-    [with_rdtsc_rx_vma_tcp_idle_poll=no]
+    [with_rdtsc_rx_xlio_tcp_idle_poll=no]
 )
 
-AS_IF([test "x$with_rdtsc_rx_vma_tcp_idle_poll" == xyes],
+AS_IF([test "x$with_rdtsc_rx_xlio_tcp_idle_poll" == xyes],
 	[AC_DEFINE([RDTSC_MEASURE], 1, [Define to 1 to enable rdtsc measurements.])]
-	[AC_DEFINE([RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL], 1, [Define to 1 to enable rdtsc measurement of rx vma tcp idle poll.])]
+	[AC_DEFINE([RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL], 1, [Define to 1 to enable rdtsc measurement of rx xlio tcp idle poll.])]
 	[AC_MSG_RESULT([yes])],
 	[AC_MSG_RESULT([no])]
 )

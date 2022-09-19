@@ -64,7 +64,7 @@ dst_entry_udp::~dst_entry_udp()
 
 transport_t dst_entry_udp::get_transport(const sock_addr &to)
 {
-    return __vma_match_udp_sender(TRANS_VMA, safe_mce_sys().app_id, to.get_p_sa(), sizeof to);
+    return __xlio_match_udp_sender(TRANS_XLIO, safe_mce_sys().app_id, to.get_p_sa(), sizeof to);
 }
 
 // The following function supposed to be called under m_lock

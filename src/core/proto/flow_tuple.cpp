@@ -139,9 +139,9 @@ std::string flow_tuple::to_str() const
     rc += ":";
     rc += std::to_string(ntohs(m_src_port));
     rc += ", proto: ";
-    rc += __vma_get_protocol_str(m_protocol);
+    rc += __xlio_get_protocol_str(m_protocol);
     rc += ", family: ";
-    rc += __vma_get_family_str(m_family);
+    rc += __xlio_get_family_str(m_family);
 
     return rc;
 }

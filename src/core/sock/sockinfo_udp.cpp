@@ -600,7 +600,7 @@ int sockinfo_udp::connect(const struct sockaddr *__to, socklen_t __tolen)
     si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true).c_str());
     in_port_t src_port = m_bound.get_in_port();
 
-    if (TRANS_VMA !=
+    if (TRANS_XLIO !=
         find_target_family(ROLE_UDP_CONNECT, m_connected.get_p_sa(), m_bound.get_p_sa())) {
         setPassthrough();
         return 0;
@@ -1128,8 +1128,8 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             mcpram.optname = __optname;
 
             if (TRANS_OS ==
-                __vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
-                                         tmp_grp_addr.get_socklen())) {
+                __xlio_match_udp_receiver(TRANS_XLIO, safe_mce_sys().app_id,
+                                          tmp_grp_addr.get_p_sa(), tmp_grp_addr.get_socklen())) {
                 // call orig setsockopt() and don't try to offlaod
                 si_udp_logdbg(
                     "setsockopt(%s) will be passed to OS for handling due to rule matching",
@@ -2634,8 +2634,8 @@ int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
     BULLSEYE_EXCLUDE_BLOCK_END
 
     sock_addr tmp_grp_addr(AF_INET, &mc_grp, m_bound.get_in_port());
-    if (__vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
-                                 tmp_grp_addr.get_socklen()) == TRANS_OS) {
+    if (__xlio_match_udp_receiver(TRANS_XLIO, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
+                                  tmp_grp_addr.get_socklen()) == TRANS_OS) {
         // Break so we call orig setsockopt() and don't try to offload
         si_udp_logdbg("setsockopt(%s) will be passed to OS for handling due to rule matching",
                       setsockopt_ip_opt_to_str(p_mc_pram->optname));
@@ -2759,8 +2759,8 @@ int sockinfo_udp::mc_change_membership_start_helper_ip6(const mc_pending_pram *p
     BULLSEYE_EXCLUDE_BLOCK_END
 
     sock_addr tmp_grp_addr(m_family, &mc_grp, m_bound.get_in_port());
-    if (__vma_match_udp_receiver(TRANS_VMA, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
-                                 tmp_grp_addr.get_socklen()) == TRANS_OS) {
+    if (__xlio_match_udp_receiver(TRANS_XLIO, safe_mce_sys().app_id, tmp_grp_addr.get_p_sa(),
+                                  tmp_grp_addr.get_socklen()) == TRANS_OS) {
         // Break so we call orig setsockopt() and don't try to offload
         si_udp_logdbg("Not offloading due to rule matching");
         return -1;

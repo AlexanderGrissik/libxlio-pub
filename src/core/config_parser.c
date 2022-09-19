@@ -97,25 +97,25 @@ static int parse_err = 0;
 struct dbl_lst	__instance_list;
 
 /* some globals to store intermidiate parser state */
-static struct use_family_rule __vma_rule;
-static struct address_port_rule *__vma_address_port_rule = NULL;
-static int __vma_rule_push_head = 0;
+static struct use_family_rule __xlio_rule;
+static struct address_port_rule *__xlio_address_port_rule = NULL;
+static int __xlio_rule_push_head = 0;
 static int current_role = 0;
 static configuration_t current_conf_type = CONF_RULE;
 static struct instance *curr_instance = NULL;
 
-int __vma_config_empty(void)
+int __xlio_config_empty(void)
 {
 	return ((__instance_list.head == NULL) && (__instance_list.tail == NULL));
 }
 
 /* define the address by 4 integers */
-static void __vma_set_ipv4_addr(short a0, short a1, short a2, short a3)
+static void __xlio_set_ipv4_addr(short a0, short a1, short a2, short a3)
 {
 	char buf[16];
 	struct in_addr *p_ipv4 = NULL;
   
-	p_ipv4 = &(__vma_address_port_rule->ipv4);
+	p_ipv4 = &(__xlio_address_port_rule->ipv4);
   
 	snprintf(buf, sizeof(buf), "%hd.%hd.%hd.%hd", a0, a1, a2, a3);
 	if (1 != inet_pton(AF_INET, (const char*)buf, p_ipv4)) {
@@ -124,25 +124,25 @@ static void __vma_set_ipv4_addr(short a0, short a1, short a2, short a3)
 	}
 }
 
-static void __vma_set_inet_addr_prefix_len(unsigned char prefixlen)
+static void __xlio_set_inet_addr_prefix_len(unsigned char prefixlen)
 {
 	if (prefixlen > 32)
 		prefixlen = 32;
 	
-	__vma_address_port_rule->prefixlen = prefixlen;
+	__xlio_address_port_rule->prefixlen = prefixlen;
 }
 
 // SM: log part is  not used...
-int __vma_min_level = 9;
+int __xlio_min_level = 9;
 
-void __vma_dump_address_port_rule_config_state(char *buf) {
-	if (__vma_address_port_rule->match_by_addr) {
+void __xlio_dump_address_port_rule_config_state(char *buf) {
+	if (__xlio_address_port_rule->match_by_addr) {
 		char str_addr[INET_ADDRSTRLEN];
 
-		inet_ntop(AF_INET, &(__vma_address_port_rule->ipv4), str_addr, sizeof(str_addr));
-		if ( __vma_address_port_rule->prefixlen != 32 ) {
+		inet_ntop(AF_INET, &(__xlio_address_port_rule->ipv4), str_addr, sizeof(str_addr));
+		if ( __xlio_address_port_rule->prefixlen != 32 ) {
  			sprintf(buf+strlen(buf), " %s/%d", str_addr,
-					__vma_address_port_rule->prefixlen);
+					__xlio_address_port_rule->prefixlen);
 		} else {
 			sprintf(buf+strlen(buf), " %s", str_addr);
 		}
@@ -150,34 +150,34 @@ void __vma_dump_address_port_rule_config_state(char *buf) {
 		sprintf(buf+strlen(buf), " *");
 	}
 	
-	if (__vma_address_port_rule->match_by_port) {
-		sprintf(buf+strlen(buf), ":%d",__vma_address_port_rule->sport);
-		if (__vma_address_port_rule->eport > __vma_address_port_rule->sport) 
-			sprintf(buf+strlen(buf), "-%d",__vma_address_port_rule->eport);
+	if (__xlio_address_port_rule->match_by_port) {
+		sprintf(buf+strlen(buf), ":%d",__xlio_address_port_rule->sport);
+		if (__xlio_address_port_rule->eport > __xlio_address_port_rule->sport) 
+			sprintf(buf+strlen(buf), "-%d",__xlio_address_port_rule->eport);
 	}
 	else
 		sprintf(buf+strlen(buf), ":*");
 }
 
 /* dump the current state in readable format */
-static void  __vma_dump_rule_config_state(void) {
+static void  __xlio_dump_rule_config_state(void) {
 	char buf[1024];
 	sprintf(buf, "\tACCESS CONFIG: use %s %s %s ", 
-			__vma_get_transport_str(__vma_rule.target_transport), 
-			__vma_get_role_str(current_role),
-			__vma_get_protocol_str(__vma_rule.protocol));
-	__vma_address_port_rule = &(__vma_rule.first);
-	__vma_dump_address_port_rule_config_state(buf);
-	if (__vma_rule.use_second) {
-		__vma_address_port_rule = &(__vma_rule.second);
-		__vma_dump_address_port_rule_config_state(buf);
+			__xlio_get_transport_str(__xlio_rule.target_transport), 
+			__xlio_get_role_str(current_role),
+			__xlio_get_protocol_str(__xlio_rule.protocol));
+	__xlio_address_port_rule = &(__xlio_rule.first);
+	__xlio_dump_address_port_rule_config_state(buf);
+	if (__xlio_rule.use_second) {
+		__xlio_address_port_rule = &(__xlio_rule.second);
+		__xlio_dump_address_port_rule_config_state(buf);
 	}
 	sprintf(buf+strlen(buf), "\n");
-	__vma_log(1, "%s", buf);
+	__xlio_log(1, "%s", buf);
 }
 
 /* dump configuration properites of new instance */
-static void  __vma_dump_instance(void) {
+static void  __xlio_dump_instance(void) {
 	char buf[1024];
 	
 	if (curr_instance) {
@@ -187,11 +187,11 @@ static void  __vma_dump_instance(void) {
 		if (curr_instance->id.user_defined_id)
 			sprintf(buf+strlen(buf), "%s", curr_instance->id.user_defined_id);
 		sprintf(buf+strlen(buf), ":\n");
-		__vma_log(1, "%s", buf);
+		__xlio_log(1, "%s", buf);
 	}
 }
 
-static void __vma_add_dbl_lst_node_head(struct dbl_lst *lst, struct dbl_lst_node *node)
+static void __xlio_add_dbl_lst_node_head(struct dbl_lst *lst, struct dbl_lst_node *node)
 {
 	if (node && lst) {
 	
@@ -207,7 +207,7 @@ static void __vma_add_dbl_lst_node_head(struct dbl_lst *lst, struct dbl_lst_node
 	}
 }
 
-static void __vma_add_dbl_lst_node(struct dbl_lst *lst, struct dbl_lst_node *node)
+static void __xlio_add_dbl_lst_node(struct dbl_lst *lst, struct dbl_lst_node *node)
 {
 	if (node && lst) {
 		node->prev = lst->tail;
@@ -220,7 +220,7 @@ static void __vma_add_dbl_lst_node(struct dbl_lst *lst, struct dbl_lst_node *nod
 	}
 }
 
-static struct dbl_lst_node* __vma_allocate_dbl_lst_node(void)
+static struct dbl_lst_node* __xlio_allocate_dbl_lst_node(void)
 {
 	struct dbl_lst_node *ret_val = NULL;
 	
@@ -235,7 +235,7 @@ static struct dbl_lst_node* __vma_allocate_dbl_lst_node(void)
 }
 
 /* use the above state for adding a new instance */
-static void __vma_add_instance(char *prog_name_expr, char *user_defined_id) {
+static void __xlio_add_instance(char *prog_name_expr, char *user_defined_id) {
 	struct dbl_lst_node *curr, *new_node;
 	struct instance *new_instance;
   
@@ -244,13 +244,13 @@ static void __vma_add_instance(char *prog_name_expr, char *user_defined_id) {
 		struct instance *instance = (struct instance*)curr->data;
 		if (!strcmp(prog_name_expr, instance->id.prog_name_expr) && !strcmp(user_defined_id, instance->id.user_defined_id)) {
 			curr_instance = (struct instance*)curr->data;
-			if (__vma_min_level <= 1) __vma_dump_instance();
+			if (__xlio_min_level <= 1) __xlio_dump_instance();
 			return;  		
 		}
 		curr = curr->next;
 	}
   
-	if (!(new_node = __vma_allocate_dbl_lst_node())) 
+	if (!(new_node = __xlio_allocate_dbl_lst_node())) 
 		return;
 	
 	new_instance = (struct instance*) malloc(sizeof(struct instance));
@@ -277,29 +277,29 @@ static void __vma_add_instance(char *prog_name_expr, char *user_defined_id) {
 		return;
 	}
 	new_node->data = (void*)new_instance;
-	__vma_add_dbl_lst_node(&__instance_list, new_node);
+	__xlio_add_dbl_lst_node(&__instance_list, new_node);
 	curr_instance = new_instance;
-	if (__vma_min_level <= 1) __vma_dump_instance();
+	if (__xlio_min_level <= 1) __xlio_dump_instance();
 }
 
-static void __vma_add_inst_with_int_uid(char *prog_name_expr, int user_defined_id) {
+static void __xlio_add_inst_with_int_uid(char *prog_name_expr, int user_defined_id) {
 	char str_id[50];
 	sprintf(str_id, "%d", user_defined_id);
-	__vma_add_instance(prog_name_expr, str_id);
+	__xlio_add_instance(prog_name_expr, str_id);
 }
 
 /* use the above state for making a new rule */
-static void __vma_add_rule(void) {
+static void __xlio_add_rule(void) {
 	struct dbl_lst *p_lst;
 	struct use_family_rule *rule;
 	struct dbl_lst_node *new_node;
 
 	if (!curr_instance)
-		__vma_add_instance((char *)"*", (char *)"*");
+		__xlio_add_instance((char *)"*", (char *)"*");
   	if (!curr_instance)
 		return;
   
-	if (__vma_min_level <= 1) __vma_dump_rule_config_state();
+	if (__xlio_min_level <= 1) __xlio_dump_rule_config_state();
 	switch (current_role) {
 	case ROLE_TCP_SERVER:
 		p_lst = &curr_instance->tcp_srv_rules_lst;
@@ -323,7 +323,7 @@ static void __vma_add_rule(void) {
 		break;
 	}
 
-	if (!(new_node = __vma_allocate_dbl_lst_node())) 
+	if (!(new_node = __xlio_allocate_dbl_lst_node())) 
 		return;
 	
 	rule = (struct use_family_rule *)malloc(sizeof(*rule));
@@ -335,11 +335,11 @@ static void __vma_add_rule(void) {
 	}
 	memset(rule, 0, sizeof(*rule));
 	new_node->data = (void*)rule;
-	*((struct use_family_rule *)new_node->data) = __vma_rule; 
-	if (__vma_rule_push_head)
-		__vma_add_dbl_lst_node_head(p_lst, new_node);
+	*((struct use_family_rule *)new_node->data) = __xlio_rule; 
+	if (__xlio_rule_push_head)
+		__xlio_add_dbl_lst_node_head(p_lst, new_node);
 	else
-		__vma_add_dbl_lst_node(p_lst, new_node);
+		__xlio_add_dbl_lst_node(p_lst, new_node);
 }
 
 
@@ -474,7 +474,7 @@ int libxlio_yyparse ();
 /* Line 390 of yacc.c  */
 /* Line 339 of config_parser.y */
 
-  long __vma_config_line_num;
+  long __xlio_config_line_num;
 
 /* Line 390 of yacc.c  */
 /* Line 474 of config_parser.c */
@@ -800,7 +800,7 @@ static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "\"use\"", "\"tcp client\"",
   "\"tcp server\"", "\"udp sender\"", "\"udp receiver\"",
-  "\"udp connect\"", "\"tcp\"", "\"udp\"", "\"os\"", "\"vma\"", "\"sdp\"",
+  "\"udp connect\"", "\"tcp\"", "\"udp\"", "\"os\"", "\"xlio\"", "\"sdp\"",
   "\"sa\"", "\"integer value\"", "\"application id\"", "\"program name\"",
   "\"userdefined id str\"", "\"log statement\"", "\"destination\"",
   "\"ystderr\"", "\"syslog\"", "\"yfile\"", "\"a name\"", "\"min-level\"",
@@ -1746,43 +1746,43 @@ yyreduce:
         case 17:
 /* Line 1792 of yacc.c  */
 /* Line 376 of config_parser.y */
-    { __vma_log_set_log_stderr(); }
+    { __xlio_log_set_log_stderr(); }
     break;
 
   case 18:
 /* Line 1792 of yacc.c  */
 /* Line 377 of config_parser.y */
-    { __vma_log_set_log_syslog(); }
+    { __xlio_log_set_log_syslog(); }
     break;
 
   case 19:
 /* Line 1792 of yacc.c  */
 /* Line 378 of config_parser.y */
-    { __vma_log_set_log_file((yyvsp[(3) - (3)].sval)); }
+    { __xlio_log_set_log_file((yyvsp[(3) - (3)].sval)); }
     break;
 
   case 20:
 /* Line 1792 of yacc.c  */
 /* Line 382 of config_parser.y */
-    { __vma_log_set_min_level((yyvsp[(2) - (2)].ival)); }
+    { __xlio_log_set_min_level((yyvsp[(2) - (2)].ival)); }
     break;
 
   case 22:
 /* Line 1792 of yacc.c  */
 /* Line 390 of config_parser.y */
-    {__vma_add_instance((yyvsp[(2) - (3)].sval), (yyvsp[(3) - (3)].sval));	if ((yyvsp[(2) - (3)].sval)) free((yyvsp[(2) - (3)].sval)); if ((yyvsp[(3) - (3)].sval)) free((yyvsp[(3) - (3)].sval));	}
+    {__xlio_add_instance((yyvsp[(2) - (3)].sval), (yyvsp[(3) - (3)].sval));	if ((yyvsp[(2) - (3)].sval)) free((yyvsp[(2) - (3)].sval)); if ((yyvsp[(3) - (3)].sval)) free((yyvsp[(3) - (3)].sval));	}
     break;
 
   case 23:
 /* Line 1792 of yacc.c  */
 /* Line 391 of config_parser.y */
-    {__vma_add_inst_with_int_uid((yyvsp[(2) - (3)].sval), (yyvsp[(3) - (3)].ival));	if ((yyvsp[(2) - (3)].sval)) free((yyvsp[(2) - (3)].sval));		}
+    {__xlio_add_inst_with_int_uid((yyvsp[(2) - (3)].sval), (yyvsp[(3) - (3)].ival));	if ((yyvsp[(2) - (3)].sval)) free((yyvsp[(2) - (3)].sval));		}
     break;
 
   case 24:
 /* Line 1792 of yacc.c  */
 /* Line 396 of config_parser.y */
-    { __vma_add_rule(); }
+    { __xlio_add_rule(); }
     break;
 
   case 25:
@@ -1794,115 +1794,115 @@ yyreduce:
   case 26:
 /* Line 1792 of yacc.c  */
 /* Line 404 of config_parser.y */
-    { __vma_rule.target_transport = TRANS_OS;	}
+    { __xlio_rule.target_transport = TRANS_OS;	}
     break;
 
   case 27:
 /* Line 1792 of yacc.c  */
 /* Line 405 of config_parser.y */
-    { __vma_rule.target_transport = TRANS_VMA;	}
+    { __xlio_rule.target_transport = TRANS_XLIO;	}
     break;
 
   case 28:
 /* Line 1792 of yacc.c  */
 /* Line 406 of config_parser.y */
-    { __vma_rule.target_transport = TRANS_SDP;	}
+    { __xlio_rule.target_transport = TRANS_SDP;	}
     break;
 
   case 29:
 /* Line 1792 of yacc.c  */
 /* Line 407 of config_parser.y */
-    { __vma_rule.target_transport = TRANS_SA;	}
+    { __xlio_rule.target_transport = TRANS_SA;	}
     break;
 
   case 30:
 /* Line 1792 of yacc.c  */
 /* Line 408 of config_parser.y */
-    { __vma_rule.target_transport = TRANS_ULP;	}
+    { __xlio_rule.target_transport = TRANS_ULP;	}
     break;
 
   case 31:
 /* Line 1792 of yacc.c  */
 /* Line 413 of config_parser.y */
-    { current_role = ROLE_TCP_SERVER; 	__vma_rule.protocol = PROTO_TCP; }
+    { current_role = ROLE_TCP_SERVER; 	__xlio_rule.protocol = PROTO_TCP; }
     break;
 
   case 32:
 /* Line 1792 of yacc.c  */
 /* Line 414 of config_parser.y */
-    { current_role = ROLE_TCP_CLIENT; 	__vma_rule.protocol = PROTO_TCP; }
+    { current_role = ROLE_TCP_CLIENT; 	__xlio_rule.protocol = PROTO_TCP; }
     break;
 
   case 33:
 /* Line 1792 of yacc.c  */
 /* Line 415 of config_parser.y */
-    { current_role = ROLE_UDP_RECEIVER; __vma_rule.protocol = PROTO_UDP; }
+    { current_role = ROLE_UDP_RECEIVER; __xlio_rule.protocol = PROTO_UDP; }
     break;
 
   case 34:
 /* Line 1792 of yacc.c  */
 /* Line 416 of config_parser.y */
-    { current_role = ROLE_UDP_SENDER;	__vma_rule.protocol = PROTO_UDP; }
+    { current_role = ROLE_UDP_SENDER;	__xlio_rule.protocol = PROTO_UDP; }
     break;
 
   case 35:
 /* Line 1792 of yacc.c  */
 /* Line 417 of config_parser.y */
-    { current_role = ROLE_UDP_CONNECT;	__vma_rule.protocol = PROTO_UDP; }
+    { current_role = ROLE_UDP_CONNECT;	__xlio_rule.protocol = PROTO_UDP; }
     break;
 
   case 40:
 /* Line 1792 of yacc.c  */
 /* Line 434 of config_parser.y */
-    { __vma_address_port_rule = &(__vma_rule.first); __vma_rule.use_second = 0; }
+    { __xlio_address_port_rule = &(__xlio_rule.first); __xlio_rule.use_second = 0; }
     break;
 
   case 42:
 /* Line 1792 of yacc.c  */
 /* Line 438 of config_parser.y */
-    { __vma_address_port_rule = &(__vma_rule.second); __vma_rule.use_second = 1; }
+    { __xlio_address_port_rule = &(__xlio_rule.second); __xlio_rule.use_second = 1; }
     break;
 
   case 44:
 /* Line 1792 of yacc.c  */
 /* Line 442 of config_parser.y */
-    { if (current_conf_type == CONF_RULE) __vma_address_port_rule->match_by_addr = 1; __vma_set_inet_addr_prefix_len(32); }
+    { if (current_conf_type == CONF_RULE) __xlio_address_port_rule->match_by_addr = 1; __xlio_set_inet_addr_prefix_len(32); }
     break;
 
   case 45:
 /* Line 1792 of yacc.c  */
 /* Line 443 of config_parser.y */
-    { if (current_conf_type == CONF_RULE) __vma_address_port_rule->match_by_addr = 1; __vma_set_inet_addr_prefix_len((yyvsp[(3) - (3)].ival)); }
+    { if (current_conf_type == CONF_RULE) __xlio_address_port_rule->match_by_addr = 1; __xlio_set_inet_addr_prefix_len((yyvsp[(3) - (3)].ival)); }
     break;
 
   case 46:
 /* Line 1792 of yacc.c  */
 /* Line 444 of config_parser.y */
-    { if (current_conf_type == CONF_RULE) __vma_address_port_rule->match_by_addr = 0; __vma_set_inet_addr_prefix_len(32); }
+    { if (current_conf_type == CONF_RULE) __xlio_address_port_rule->match_by_addr = 0; __xlio_set_inet_addr_prefix_len(32); }
     break;
 
   case 47:
 /* Line 1792 of yacc.c  */
 /* Line 448 of config_parser.y */
-    { __vma_set_ipv4_addr((yyvsp[(1) - (7)].ival),(yyvsp[(3) - (7)].ival),(yyvsp[(5) - (7)].ival),(yyvsp[(7) - (7)].ival)); }
+    { __xlio_set_ipv4_addr((yyvsp[(1) - (7)].ival),(yyvsp[(3) - (7)].ival),(yyvsp[(5) - (7)].ival),(yyvsp[(7) - (7)].ival)); }
     break;
 
   case 48:
 /* Line 1792 of yacc.c  */
 /* Line 452 of config_parser.y */
-    { __vma_address_port_rule->match_by_port = 1; __vma_address_port_rule->sport= (yyvsp[(1) - (1)].ival); __vma_address_port_rule->eport= (yyvsp[(1) - (1)].ival); }
+    { __xlio_address_port_rule->match_by_port = 1; __xlio_address_port_rule->sport= (yyvsp[(1) - (1)].ival); __xlio_address_port_rule->eport= (yyvsp[(1) - (1)].ival); }
     break;
 
   case 49:
 /* Line 1792 of yacc.c  */
 /* Line 453 of config_parser.y */
-    { __vma_address_port_rule->match_by_port = 1; __vma_address_port_rule->sport= (yyvsp[(1) - (3)].ival); __vma_address_port_rule->eport= (yyvsp[(3) - (3)].ival); }
+    { __xlio_address_port_rule->match_by_port = 1; __xlio_address_port_rule->sport= (yyvsp[(1) - (3)].ival); __xlio_address_port_rule->eport= (yyvsp[(3) - (3)].ival); }
     break;
 
   case 50:
 /* Line 1792 of yacc.c  */
 /* Line 454 of config_parser.y */
-    { __vma_address_port_rule->match_by_port = 0; __vma_address_port_rule->sport= 0;  __vma_address_port_rule->eport= 0;  }
+    { __xlio_address_port_rule->match_by_port = 0; __xlio_address_port_rule->sport= 0;  __xlio_address_port_rule->eport= 0;  }
     break;
 
 
@@ -2164,7 +2164,7 @@ int yyerror(const char *msg)
 		word = strtok(NULL, " ");
 	}
 	
-	__vma_log(9, "Error (line:%ld) : %s\n", __vma_config_line_num, final_msg);
+	__xlio_log(9, "Error (line:%ld) : %s\n", __xlio_config_line_num, final_msg);
 	parse_err = 1;
 	
 	free(orig_msg);
@@ -2176,7 +2176,7 @@ int yyerror(const char *msg)
 #include <errno.h>
 
 /* parse apollo route dump file */
-int __vma_parse_config_file (const char *fileName) {
+int __xlio_parse_config_file (const char *fileName) {
 	extern FILE * libxlio_yyin;
    
 	/* open the file */
@@ -2196,7 +2196,7 @@ int __vma_parse_config_file (const char *fileName) {
 	__instance_list.head = NULL;
 	__instance_list.tail = NULL;
 	parse_err = 0;
-	__vma_config_line_num = 1;
+	__xlio_config_line_num = 1;
 
 	/* parse it */
 	yyparse();
@@ -2205,10 +2205,10 @@ int __vma_parse_config_file (const char *fileName) {
 	return(parse_err);
 }
 
-int __vma_parse_config_line (const char *line) {
+int __xlio_parse_config_line (const char *line) {
 	extern FILE * libxlio_yyin;
 	
-	__vma_rule_push_head = 1;
+	__xlio_rule_push_head = 1;
 	
 	/* The below casting is valid because we open the stream as read-only. */
 	/* coverity[alloc_strlen] */

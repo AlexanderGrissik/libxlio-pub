@@ -1112,7 +1112,7 @@ static void do_global_ctors_helper()
             vlog_printf(VLOG_INFO, "Please see README section regarding %s\n",
                         SYS_VAR_CONF_FILENAME);
         }
-    } else if (__vma_parse_config_file(safe_mce_sys().conf_filename)) {
+    } else if (__xlio_parse_config_file(safe_mce_sys().conf_filename)) {
         vlog_printf(VLOG_DEBUG, "FAILED to read library configuration file: %s\n",
                     safe_mce_sys().conf_filename);
     }

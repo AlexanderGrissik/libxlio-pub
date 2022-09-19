@@ -408,7 +408,7 @@ use:
 
 transport:
  	  OS	{ __vma_rule.target_transport = TRANS_OS;	}
-	| XLIO	{ __vma_rule.target_transport = TRANS_VMA;	}
+	| XLIO	{ __vma_rule.target_transport = TRANS_XLIO;	}
 	| SDP	{ __vma_rule.target_transport = TRANS_SDP;	}
 	| SA	{ __vma_rule.target_transport = TRANS_SA;	}
 	| '*'	{ __vma_rule.target_transport = TRANS_ULP;	}

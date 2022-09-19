@@ -227,7 +227,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
     try {
         switch (sock_type) {
         case SOCK_DGRAM: {
-            transport = __vma_match_by_program(PROTO_UDP, safe_mce_sys().app_id);
+            transport = __xlio_match_by_program(PROTO_UDP, safe_mce_sys().app_id);
             if (transport == TRANS_OS) {
                 fdcoll_logdbg("All UDP rules are consistent and instructing to use OS.");
                 return -1;
@@ -237,7 +237,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
             break;
         }
         case SOCK_STREAM: {
-            transport = __vma_match_by_program(PROTO_TCP, safe_mce_sys().app_id);
+            transport = __xlio_match_by_program(PROTO_TCP, safe_mce_sys().app_id);
             if (transport == TRANS_OS) {
                 fdcoll_logdbg("All TCP rules are consistent and instructing to use OS.");
                 return -1;
