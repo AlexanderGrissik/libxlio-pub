@@ -167,7 +167,7 @@ buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size,
     m_custom_free_function = custom_free_function;
     m_p_bpool_stat = &m_bpool_stat_static;
     memset(m_p_bpool_stat, 0, sizeof(*m_p_bpool_stat));
-    vma_stats_instance_create_bpool_block(m_p_bpool_stat);
+    xlio_stats_instance_create_bpool_block(m_p_bpool_stat);
 
     if (buf_size == 0) {
         m_size = 0;
@@ -210,7 +210,7 @@ void buffer_pool::free_bpool_resources()
         __log_info_dbg("count %lu, missing %lu", m_n_buffers, m_n_buffers_created - m_n_buffers);
     }
 
-    vma_stats_instance_remove_bpool_block(m_p_bpool_stat);
+    xlio_stats_instance_remove_bpool_block(m_p_bpool_stat);
 
     while (!m_areas.empty()) {
         buffer_pool_area *area;

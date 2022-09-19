@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_STATS_H
-#define VMA_STATS_H
+#ifndef XLIO_STATS_H
+#define XLIO_STATS_H
 
 #include <stddef.h>
 #include <string.h>
@@ -56,7 +56,7 @@
 #define MAP_SH_MEM(var, sh_stats)    var = (sh_mem_t *)sh_stats
 #define STATS_PUBLISHER_TIMER_PERIOD 10 // publisher will check for stats request every 10 msec
 #define STATS_READER_DELAY                                                                         \
-    STATS_PUBLISHER_TIMER_PERIOD + 5 // reader will wait for vma to wakeup and write statistics to
+    STATS_PUBLISHER_TIMER_PERIOD + 5 // reader will wait for xlio to wakeup and write statistics to
                                      // shmem (with extra 5 msec overhead)
 #define STATS_FD_STATISTICS_DISABLED          -1
 #define STATS_FD_STATISTICS_LOG_LEVEL_DEFAULT VLOG_DEFAULT
@@ -451,32 +451,32 @@ typedef struct sh_mem_info {
 } sh_mem_info_t;
 
 // publisher functions
-void vma_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_log_details);
-void vma_shmem_stats_close();
+void xlio_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_log_details);
+void xlio_shmem_stats_close();
 
-void vma_stats_instance_create_socket_block(socket_stats_t *);
-void vma_stats_instance_remove_socket_block(socket_stats_t *);
+void xlio_stats_instance_create_socket_block(socket_stats_t *);
+void xlio_stats_instance_remove_socket_block(socket_stats_t *);
 
-void vma_stats_mc_group_add(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
-void vma_stats_mc_group_remove(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
+void xlio_stats_mc_group_add(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
+void xlio_stats_mc_group_remove(const ip_address &mc_grp, socket_stats_t *p_socket_stats);
 
-void vma_stats_instance_create_ring_block(ring_stats_t *);
-void vma_stats_instance_remove_ring_block(ring_stats_t *);
+void xlio_stats_instance_create_ring_block(ring_stats_t *);
+void xlio_stats_instance_remove_ring_block(ring_stats_t *);
 
-void vma_stats_instance_create_cq_block(cq_stats_t *);
-void vma_stats_instance_remove_cq_block(cq_stats_t *);
+void xlio_stats_instance_create_cq_block(cq_stats_t *);
+void xlio_stats_instance_remove_cq_block(cq_stats_t *);
 
-void vma_stats_instance_create_bpool_block(bpool_stats_t *);
-void vma_stats_instance_remove_bpool_block(bpool_stats_t *);
+void xlio_stats_instance_create_bpool_block(bpool_stats_t *);
+void xlio_stats_instance_remove_bpool_block(bpool_stats_t *);
 
-void vma_stats_instance_create_global_block(global_stats_t *);
-void vma_stats_instance_remove_global_block(global_stats_t *);
+void xlio_stats_instance_create_global_block(global_stats_t *);
+void xlio_stats_instance_remove_global_block(global_stats_t *);
 
-void vma_stats_instance_get_poll_block(iomux_func_stats_t *);
-void vma_stats_instance_get_select_block(iomux_func_stats_t *);
+void xlio_stats_instance_get_poll_block(iomux_func_stats_t *);
+void xlio_stats_instance_get_select_block(iomux_func_stats_t *);
 
-void vma_stats_instance_create_epoll_block(int, iomux_func_stats_t *);
-void vma_stats_instance_remove_epoll_block(iomux_func_stats_t *ep_stats);
+void xlio_stats_instance_create_epoll_block(int, iomux_func_stats_t *);
+void xlio_stats_instance_remove_epoll_block(iomux_func_stats_t *ep_stats);
 
 // reader functions
 void print_full_stats(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info, FILE *filename);
@@ -484,4 +484,4 @@ void print_netstat_like(socket_stats_t *p_si_stats, mc_grp_info_t *p_mc_grp_info
                         int pid);
 void print_netstat_like_headers(FILE *file);
 
-#endif // VMA_STATS_H
+#endif // XLIO_STATS_H

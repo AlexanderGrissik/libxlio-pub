@@ -70,7 +70,7 @@ select_call::select_call(int *off_fds_buffer, offloaded_mode_t *off_modes_buffer
 
     // create stats
     m_p_stats = &g_select_stats;
-    vma_stats_instance_get_select_block(m_p_stats);
+    xlio_stats_instance_get_select_block(m_p_stats);
 
     bool offloaded_read = !!m_readfds;
     bool offloaded_write = !!m_writefds;

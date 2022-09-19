@@ -934,10 +934,10 @@ extern "C" void sock_redirect_exit(void)
     vlog_printf(VLOG_DEBUG, "%s()\n", __FUNCTION__);
 
     if (g_init_global_ctors_done) {
-        vma_stats_instance_remove_global_block(&g_global_stat_static);
+        xlio_stats_instance_remove_global_block(&g_global_stat_static);
     }
 
-    vma_shmem_stats_close();
+    xlio_shmem_stats_close();
 }
 
 #define NEW_CTOR(ptr, ctor)                                                                        \
@@ -1005,12 +1005,12 @@ static void do_global_ctors_helper()
     // Create all global managment objects
     NEW_CTOR(g_p_event_handler_manager, event_handler_manager());
 
-    vma_shmem_stats_open(&g_p_vlogger_level, &g_p_vlogger_details);
+    xlio_shmem_stats_open(&g_p_vlogger_level, &g_p_vlogger_details);
     *g_p_vlogger_level = g_vlogger_level;
     *g_p_vlogger_details = g_vlogger_details;
 
     memset(&g_global_stat_static, 0, sizeof(g_global_stat_static));
-    vma_stats_instance_create_global_block(&g_global_stat_static);
+    xlio_stats_instance_create_global_block(&g_global_stat_static);
 
     // Create new netlink listener
     NEW_CTOR(g_p_netlink_handler, netlink_wrapper());

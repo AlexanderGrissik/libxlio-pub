@@ -2690,7 +2690,7 @@ int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
             // we will get RX from OS
             return -1;
         }
-        vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
+        xlio_stats_mc_group_add(mc_grp, m_p_socket_stats);
         original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         m_multicast = true;
         break;
@@ -2702,7 +2702,7 @@ int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
             // we will get RX from OS
             return -1;
         }
-        vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
+        xlio_stats_mc_group_add(mc_grp, m_p_socket_stats);
         pram_size = sizeof(ip_mreq_source);
         original_os_setsockopt_helper(&mreq_src, pram_size, p_mc_pram->optname, IPPROTO_IP);
         m_multicast = true;
@@ -2715,7 +2715,7 @@ int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
         if (!detach_receiver(flow_key)) {
             return -1;
         }
-        vma_stats_mc_group_remove(mc_grp, m_p_socket_stats);
+        xlio_stats_mc_group_remove(mc_grp, m_p_socket_stats);
         m_multicast = false;
         break;
     }
@@ -2728,7 +2728,7 @@ int sockinfo_udp::mc_change_membership_ip4(const mc_pending_pram *p_mc_pram)
             if (!detach_receiver(flow_key)) {
                 return -1;
             }
-            vma_stats_mc_group_remove(mc_grp, m_p_socket_stats);
+            xlio_stats_mc_group_remove(mc_grp, m_p_socket_stats);
             m_multicast = false; // get out from MC group
         }
         break;
@@ -2930,7 +2930,7 @@ int sockinfo_udp::mc_change_membership_ip6(const mc_pending_pram *p_mc_pram)
             // we will get RX from OS
             return -1;
         }
-        vma_stats_mc_group_add(mc_grp, m_p_socket_stats);
+        xlio_stats_mc_group_add(mc_grp, m_p_socket_stats);
         original_os_setsockopt_helper(&p_mc_pram->req, p_mc_pram->pram_size, p_mc_pram->optname,
                                       IPPROTO_IPV6);
     } break;
@@ -2947,7 +2947,7 @@ int sockinfo_udp::mc_change_membership_ip6(const mc_pending_pram *p_mc_pram)
             if (!detach_receiver(flow_key)) {
                 return -1;
             }
-            vma_stats_mc_group_remove(mc_grp, m_p_socket_stats);
+            xlio_stats_mc_group_remove(mc_grp, m_p_socket_stats);
         }
         break;
     }

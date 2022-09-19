@@ -58,7 +58,7 @@ poll_call::poll_call(int *off_rfds_buffer, offloaded_mode_t *off_modes_buffer, i
 
     // create stats
     m_p_stats = &g_poll_stats;
-    vma_stats_instance_get_poll_block(m_p_stats);
+    xlio_stats_instance_get_poll_block(m_p_stats);
 
     // Collect offloaded fds and remove all tcp (skip_os) sockets from m_fds
     for (i = 0; i < m_nfds; ++i) {

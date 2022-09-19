@@ -111,7 +111,7 @@ sockinfo::sockinfo(int fd, int domain)
     m_p_socket_stats = &m_socket_stats; // Save stats as local copy and allow state publisher to
                                         // copy from this location
     socket_stats_init();
-    vma_stats_instance_create_socket_block(m_p_socket_stats);
+    xlio_stats_instance_create_socket_block(m_p_socket_stats);
     m_rx_reuse_buff.n_buff_num = 0;
     memset(&m_so_ratelimit, 0, sizeof(xlio_rate_limit_t));
     set_flow_tag(m_fd + 1);
@@ -152,7 +152,7 @@ sockinfo::~sockinfo()
         }
     }
 
-    vma_stats_instance_remove_socket_block(m_p_socket_stats);
+    xlio_stats_instance_remove_socket_block(m_p_socket_stats);
 }
 
 void sockinfo::socket_stats_init(void)

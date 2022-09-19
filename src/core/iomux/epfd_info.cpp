@@ -87,7 +87,7 @@ epfd_info::epfd_info(int epfd, int size)
 
     m_log_invalid_events = NUM_LOG_INVALID_EVENTS;
 
-    vma_stats_instance_create_epoll_block(m_epfd, &(m_stats->stats));
+    xlio_stats_instance_create_epoll_block(m_epfd, &(m_stats->stats));
 
     // Register this socket to read nonoffloaded data
     g_p_event_handler_manager->update_epfd(m_epfd, EPOLL_CTL_ADD,
@@ -136,7 +136,7 @@ epfd_info::~epfd_info()
 
     unlock();
 
-    vma_stats_instance_remove_epoll_block(&m_stats->stats);
+    xlio_stats_instance_remove_epoll_block(&m_stats->stats);
     delete[] m_p_offloaded_fds;
 }
 

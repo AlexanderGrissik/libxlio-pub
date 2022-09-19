@@ -94,7 +94,7 @@ ring_slave::ring_slave(int if_index, ring *parent, ring_type_t type)
     m_tx_pool.set_id("ring_slave (%p) : m_tx_pool", this);
     m_zc_pool.set_id("ring_slave (%p) : m_zc_pool", this);
 
-    vma_stats_instance_create_ring_block(m_p_ring_stat.get());
+    xlio_stats_instance_create_ring_block(m_p_ring_stat.get());
 
     print_val();
 }
@@ -104,7 +104,7 @@ ring_slave::~ring_slave()
     print_val();
 
     if (m_p_ring_stat) {
-        vma_stats_instance_remove_ring_block(m_p_ring_stat.get());
+        xlio_stats_instance_remove_ring_block(m_p_ring_stat.get());
     }
 
     /* Release TX buffer poll */

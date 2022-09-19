@@ -153,7 +153,7 @@ void cq_mgr::configure(int cq_size)
     }
 
     if (m_b_is_rx) {
-        vma_stats_instance_create_cq_block(m_p_cq_stat);
+        xlio_stats_instance_create_cq_block(m_p_cq_stat);
     }
 
     if (m_b_is_rx) {
@@ -229,7 +229,7 @@ cq_mgr::~cq_mgr()
 
     statistics_print();
     if (m_b_is_rx) {
-        vma_stats_instance_remove_cq_block(m_p_cq_stat);
+        xlio_stats_instance_remove_cq_block(m_p_cq_stat);
     }
 
     cq_logdbg("done");
