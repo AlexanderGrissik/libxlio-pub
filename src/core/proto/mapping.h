@@ -102,7 +102,7 @@ public:
     uint32_t m_ref;
     uint32_t m_owners;
     ib_ctx_handler *m_ib_ctx;
-    vma_allocator m_allocator;
+    xlio_allocator m_allocator;
 
 private:
     int duplicate_fd(int fd, bool &rw);

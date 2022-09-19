@@ -141,7 +141,7 @@ private:
 
     bpool_stats_t *m_p_bpool_stat;
     bpool_stats_t m_bpool_stat_static;
-    vma_allocator m_allocator;
+    xlio_allocator m_allocator;
     buffer_pool_area_list_t m_areas;
     pbuf_free_custom_fn m_custom_free_function;
 

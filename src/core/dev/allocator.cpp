@@ -36,7 +36,7 @@
 
 #define MODULE_NAME "allocator"
 
-vma_allocator::vma_allocator()
+xlio_allocator::xlio_allocator()
 {
     __log_info_dbg("");
 
@@ -50,7 +50,7 @@ vma_allocator::vma_allocator()
     __log_info_dbg("Done");
 }
 
-vma_allocator::vma_allocator(alloc_t alloc_func, free_t free_func)
+xlio_allocator::xlio_allocator(alloc_t alloc_func, free_t free_func)
 {
     __log_info_dbg("");
 
@@ -68,7 +68,7 @@ vma_allocator::vma_allocator(alloc_t alloc_func, free_t free_func)
     __log_info_dbg("Done");
 }
 
-vma_allocator::~vma_allocator()
+xlio_allocator::~xlio_allocator()
 {
     __log_info_dbg("");
 
@@ -112,7 +112,8 @@ vma_allocator::~vma_allocator()
     __log_info_dbg("Done");
 }
 
-void *vma_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h, void *ptr /* NULL */)
+void *xlio_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h,
+                                       void *ptr /* NULL */)
 {
     uint64_t access = VMA_IBV_ACCESS_LOCAL_WRITE;
 
@@ -171,7 +172,7 @@ void *vma_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h, v
     return m_data_block;
 }
 
-uint32_t vma_allocator::find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const
+uint32_t xlio_allocator::find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const
 {
     lkey_map_ib_ctx_map_t::const_iterator iter = m_lkey_map_ib_ctx.find(p_ib_ctx_h);
     if (iter != m_lkey_map_ib_ctx.end()) {
@@ -181,7 +182,7 @@ uint32_t vma_allocator::find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const
     return (uint32_t)(-1);
 }
 
-bool vma_allocator::hugetlb_alloc(size_t sz_bytes)
+bool xlio_allocator::hugetlb_alloc(size_t sz_bytes)
 {
     static size_t hugepagemask = 0;
 
@@ -237,7 +238,7 @@ bool vma_allocator::hugetlb_alloc(size_t sz_bytes)
     return false;
 }
 
-bool vma_allocator::hugetlb_mmap_alloc()
+bool xlio_allocator::hugetlb_mmap_alloc()
 {
 #ifdef MAP_HUGETLB
     __log_info_dbg("Allocating %zd bytes in huge tlb using mmap", m_length);
@@ -255,7 +256,7 @@ bool vma_allocator::hugetlb_mmap_alloc()
 #endif
 }
 
-bool vma_allocator::hugetlb_sysv_alloc()
+bool xlio_allocator::hugetlb_sysv_alloc()
 {
     __log_info_dbg("Allocating %zd bytes in huge tlb with shmget", m_length);
 
@@ -299,7 +300,7 @@ bool vma_allocator::hugetlb_sysv_alloc()
     return true;
 }
 
-void vma_allocator::align_simple_malloc(size_t sz_bytes)
+void xlio_allocator::align_simple_malloc(size_t sz_bytes)
 {
     int ret = 0;
     long page_size = sysconf(_SC_PAGESIZE);
@@ -328,7 +329,7 @@ void vma_allocator::align_simple_malloc(size_t sz_bytes)
     __log_info_dbg("allocated memory using malloc()");
 }
 
-void vma_allocator::register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, uint64_t access)
+void xlio_allocator::register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, uint64_t access)
 {
     ib_context_map_t *ib_ctx_map = NULL;
     ib_ctx_handler *p_ib_ctx_h_ref = p_ib_ctx_h;
@@ -398,7 +399,7 @@ void vma_allocator::register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, uin
     return;
 }
 
-void vma_allocator::deregister_memory()
+void xlio_allocator::deregister_memory()
 {
     ib_ctx_handler *p_ib_ctx_h = NULL;
     ib_context_map_t *ib_ctx_map = NULL;

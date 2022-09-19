@@ -39,11 +39,11 @@
 class ib_ctx_handler;
 typedef std::unordered_map<ib_ctx_handler *, uint32_t> lkey_map_ib_ctx_map_t;
 
-class vma_allocator {
+class xlio_allocator {
 public:
-    vma_allocator();
-    vma_allocator(alloc_t alloc_func, free_t free_func);
-    ~vma_allocator();
+    xlio_allocator();
+    xlio_allocator(alloc_t alloc_func, free_t free_func);
+    ~xlio_allocator();
     void *alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h, void *ptr = NULL);
     uint32_t find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const;
     void register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, uint64_t access);
