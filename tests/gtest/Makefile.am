@@ -117,10 +117,10 @@ gtest_SOURCES = \
 	udp/udp_sendto.cc \
 	udp/udp_rfs.cc \
 	\
-	core/vma_base.cc \
-	core/vma_sockopt.cc \
-	core/vma_send_zc.cc \
-	core/vma_ioctl.cc \
+	core/xlio_base.cc \
+	core/xlio_sockopt.cc \
+	core/xlio_send_zc.cc \
+	core/xlio_ioctl.cc \
 	\
 	xliod/xliod_base.cc \
 	xliod/xliod_bitmap.cc \
@@ -146,7 +146,7 @@ noinst_HEADERS = \
 	\
 	udp/udp_base.h \
 	\
-	core/vma_base.h \
+	core/xlio_base.h \
 	\
 	xliod/xliod_base.h
 

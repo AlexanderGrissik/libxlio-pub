@@ -30,13 +30,13 @@
  * SOFTWARE.
  */
 
-#ifndef TESTS_GTEST_VMA_BASE_H_
-#define TESTS_GTEST_VMA_BASE_H_
+#ifndef TESTS_GTEST_XLIO_BASE_H_
+#define TESTS_GTEST_XLIO_BASE_H_
 
 #include <xlio_extra.h>
 
 /**
- * To enable vma tests you need to set below EXTRA_API_ENABLED to 1
+ * To enable xlio tests you need to set below EXTRA_API_ENABLED to 1
  * or you can add the following CPPFLAG during compilation 'make CPPFLAGS="-DEXTRA_API_ENABLED=1"'
  */
 #ifndef EXTRA_API_ENABLED
@@ -44,9 +44,9 @@
 #endif
 
 /**
- * VMA Base class for tests
+ * XLIO Base class for tests
  */
-class vma_base : virtual public testing::Test, virtual public test_base {
+class xlio_base : virtual public testing::Test, virtual public test_base {
 protected:
     virtual void SetUp();
     virtual void TearDown();
@@ -57,4 +57,4 @@ protected:
 #endif /* EXTRA_API_ENABLED */
 };
 
-#endif /* TESTS_GTEST_VMA_BASE_H_ */
+#endif /* TESTS_GTEST_XLIO_BASE_H_ */

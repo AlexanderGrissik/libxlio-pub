@@ -36,20 +36,20 @@
 #include "common/base.h"
 #include "common/cmn.h"
 
-#include "vma_base.h"
+#include "xlio_base.h"
 
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
-class vma_sockopt : public vma_base {
+class xlio_sockopt : public xlio_base {
 };
 
 /**
- * @test vma_sockopt.ti_1
+ * @test xlio_sockopt.ti_1
  * @brief
  *    UDP RING_USER_ID good flow
  * @details
  */
-TEST_F(vma_sockopt, ti_1)
+TEST_F(xlio_sockopt, ti_1)
 {
     int rc = EOK;
     int fd = UNDEFINED_VALUE;
@@ -77,12 +77,12 @@ TEST_F(vma_sockopt, ti_1)
 }
 
 /**
- * @test vma_sockopt.ti_2
+ * @test xlio_sockopt.ti_2
  * @brief
  *    UDP RING_USER_ID bad flow
  * @details
  */
-TEST_F(vma_sockopt, ti_2)
+TEST_F(xlio_sockopt, ti_2)
 {
     int rc = EOK;
     int fd = UNDEFINED_VALUE;

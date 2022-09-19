@@ -36,9 +36,9 @@
 #include "common/base.h"
 #include "common/cmn.h"
 
-#include "vma_base.h"
+#include "xlio_base.h"
 
-void vma_base::SetUp()
+void xlio_base::SetUp()
 {
     errno = EOK;
 
@@ -50,6 +50,6 @@ void vma_base::SetUp()
 #endif /* EXTRA_API_ENABLED */
 }
 
-void vma_base::TearDown()
+void xlio_base::TearDown()
 {
 }
