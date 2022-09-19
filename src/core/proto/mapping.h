@@ -119,7 +119,7 @@ typedef std::unordered_map<int, mapping_t *> mapping_fd_map_t;
 typedef std::unordered_map<int, mapping_t *>::iterator mapping_fd_map_iter_t;
 typedef std::unordered_map<file_uid_t, mapping_t *> mapping_uid_map_t;
 typedef std::unordered_map<file_uid_t, mapping_t *>::iterator mapping_uid_map_iter_t;
-typedef vma_list_t<mapping_t, mapping_t::mapping_node_offset> mapping_list_t;
+typedef xlio_list_t<mapping_t, mapping_t::mapping_node_offset> mapping_list_t;
 
 class mapping_cache : public lock_spin {
 public:

@@ -80,7 +80,7 @@ private:
     list_node<buffer_pool_area, buffer_pool_area::node_offset> m_node;
 };
 
-typedef vma_list_t<buffer_pool_area, buffer_pool_area::node_offset> buffer_pool_area_list_t;
+typedef xlio_list_t<buffer_pool_area, buffer_pool_area::node_offset> buffer_pool_area_list_t;
 
 /**
  * A buffer pool which internally sorts the buffers.

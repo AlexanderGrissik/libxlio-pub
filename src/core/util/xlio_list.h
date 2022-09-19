@@ -47,7 +47,7 @@
                 ##log_args)
 
 #if VLIST_DEBUG
-template <class T, size_t offset(void)> class vma_list_t;
+template <class T, size_t offset(void)> class xlio_list_t;
 #define VLIST_DEBUG_PRINT_ERROR_IS_MEMBER                                                          \
     vlist_logerr("Buff is already a member in a list! parent.id=[%s], this.id=[%s]",               \
                  node_obj->list_id(), this->list_id())
@@ -68,7 +68,7 @@ public:
     T *obj_ptr;
 
 #if VLIST_DEBUG
-    vma_list_t<T, offset> *parent;
+    xlio_list_t<T, offset> *parent;
 
     char *list_id() { return this->parent->list_id(); }
 
@@ -185,10 +185,10 @@ private:
     }
 };
 
-template <class T, size_t offset(void)> class vma_list_t {
+template <class T, size_t offset(void)> class xlio_list_t {
 public:
     typedef list_iterator_t<T, offset> iterator;
-    vma_list_t() { init_list(); }
+    xlio_list_t() { init_list(); }
 
     void set_id(const char *format, ...)
     {
@@ -202,14 +202,14 @@ public:
         }
     }
 
-    ~vma_list_t()
+    ~xlio_list_t()
     {
         if (!empty()) {
             vlist_logwarn("Destructor is not supported for non-empty list! size=%zu", m_size);
         }
     }
 
-    vma_list_t<T, offset>(const vma_list_t<T, offset> &other)
+    xlio_list_t<T, offset>(const xlio_list_t<T, offset> &other)
     {
         if (!other.empty()) {
             vlist_logwarn("Copy constructor is not supported for non-empty list! other.size=%zu",
@@ -218,7 +218,7 @@ public:
         init_list();
     }
 
-    vma_list_t<T, offset> &operator=(const vma_list_t<T, offset> &other)
+    xlio_list_t<T, offset> &operator=(const xlio_list_t<T, offset> &other)
     {
         if (!empty() || !other.empty()) {
             vlist_logwarn("Operator= is not supported for non-empty list! size=%zu, other.size=%zu",
@@ -351,7 +351,7 @@ public:
     }
 
     // concatenate 'from' at the head of this list
-    void splice_head(vma_list_t<T, offset> &from)
+    void splice_head(xlio_list_t<T, offset> &from)
     {
 
         this->m_size += from.m_size;
@@ -361,7 +361,7 @@ public:
     }
 
     // concatenate 'from' at the tail of this list
-    void splice_tail(vma_list_t<T, offset> &from)
+    void splice_tail(xlio_list_t<T, offset> &from)
     {
         this->m_size += from.m_size;
         list_splice_tail(&from.m_list.head, &this->m_list.head);
@@ -378,9 +378,9 @@ public:
      * in x before the call, and the elements of x are those which were in this. All iterators,
      * references and pointers remain valid for the swapped objects.
      */
-    void swap(vma_list_t<T, offset> &x)
+    void swap(xlio_list_t<T, offset> &x)
     {
-        vma_list_t<T, offset> temp_list;
+        xlio_list_t<T, offset> temp_list;
         this->move_to_empty(temp_list);
         x.move_to_empty(*this);
         temp_list.move_to_empty(x);
@@ -402,7 +402,7 @@ private:
     char id[VLIST_ID_SIZE];
 #endif
 
-    void move_to_empty(vma_list_t<T, offset> &to)
+    void move_to_empty(xlio_list_t<T, offset> &to)
     {
         assert(to.empty());
         to.m_size = this->m_size;

@@ -85,7 +85,7 @@ int epoll_wait_call::get_current_events()
         return m_n_all_ready_fds;
     }
 
-    vma_list_t<socket_fd_api, socket_fd_api::socket_fd_list_node_offset> socket_fd_list;
+    xlio_list_t<socket_fd_api, socket_fd_api::socket_fd_list_node_offset> socket_fd_list;
     lock();
     int i, ready_rfds = 0, ready_wfds = 0;
     i = m_n_all_ready_fds;

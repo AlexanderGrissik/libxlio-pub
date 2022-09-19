@@ -45,8 +45,8 @@
 #include "iomux/epfd_info.h"
 #include "utils/lock_wrapper.h"
 
-typedef vma_list_t<socket_fd_api, socket_fd_api::pendig_to_remove_node_offset> sock_fd_api_list_t;
-typedef vma_list_t<epfd_info, epfd_info::epfd_info_node_offset> epfd_info_list_t;
+typedef xlio_list_t<socket_fd_api, socket_fd_api::pendig_to_remove_node_offset> sock_fd_api_list_t;
+typedef xlio_list_t<epfd_info, epfd_info::epfd_info_node_offset> epfd_info_list_t;
 
 typedef std::unordered_map<pthread_t, int> offload_thread_rule_t;
 

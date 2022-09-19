@@ -135,7 +135,7 @@ enum fd_type_t {
     FD_TYPE_PIPE,
 };
 
-typedef vma_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> vma_desc_list_t;
+typedef xlio_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> vma_desc_list_t;
 
 /**
  *

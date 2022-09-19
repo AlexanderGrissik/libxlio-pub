@@ -130,7 +130,7 @@ public:
     {
         return NODE_OFFSET(sockinfo_tcp, accepted_conns_node);
     }
-    typedef vma_list_t<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> sock_list_t;
+    typedef xlio_list_t<sockinfo_tcp, sockinfo_tcp::accepted_conns_node_offset> sock_list_t;
     sockinfo_tcp(int fd, int domain);
     virtual ~sockinfo_tcp();
 

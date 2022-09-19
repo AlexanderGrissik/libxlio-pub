@@ -37,8 +37,8 @@
 #include <sock/cleanable_obj.h>
 #include <sock/sockinfo.h>
 
-typedef vma_list_t<socket_fd_api, socket_fd_api::ep_ready_fd_node_offset> ep_ready_fd_list_t;
-typedef vma_list_t<socket_fd_api, socket_fd_api::ep_info_fd_node_offset> fd_info_list_t;
+typedef xlio_list_t<socket_fd_api, socket_fd_api::ep_ready_fd_node_offset> ep_ready_fd_list_t;
+typedef xlio_list_t<socket_fd_api, socket_fd_api::ep_info_fd_node_offset> fd_info_list_t;
 typedef std::unordered_map<int, epoll_fd_rec> fd_info_map_t;
 typedef std::unordered_map<ring *, int /*ref count*/> ring_map_t;
 typedef std::deque<int> ready_cq_fd_q_t;

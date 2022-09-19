@@ -69,7 +69,7 @@ template <typename T> class chunk_list_t {
         }
     };
 
-    typedef vma_list_t<container, container::node_offset> container_list;
+    typedef xlio_list_t<container, container::node_offset> container_list;
 
 private:
     container_list m_free_containers; // Contains available containers.
