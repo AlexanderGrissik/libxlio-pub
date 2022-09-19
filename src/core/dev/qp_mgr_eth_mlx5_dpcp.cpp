@@ -223,7 +223,7 @@ void qp_mgr_eth_mlx5_dpcp::down()
     qp_mgr_eth_mlx5::down();
 }
 
-rfs_rule *qp_mgr_eth_mlx5_dpcp::create_rfs_rule(vma_ibv_flow_attr &attrs, xlio_tir *tir_ext)
+rfs_rule *qp_mgr_eth_mlx5_dpcp::create_rfs_rule(xlio_ibv_flow_attr &attrs, xlio_tir *tir_ext)
 {
     // TODO Remove copypaste.
 #ifdef DEFINED_UTLS

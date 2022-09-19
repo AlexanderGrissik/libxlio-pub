@@ -114,10 +114,10 @@ bool time_converter_ib_ctx::sync_clocks(struct timespec *st, uint64_t *hw_clock)
     uint64_t hw_clock_min = 0;
 
     memset(&queried_values, 0, sizeof(queried_values));
-    queried_values.comp_mask = VMA_IBV_VALUES_MASK_RAW_CLOCK;
+    queried_values.comp_mask = XLIO_IBV_VALUES_MASK_RAW_CLOCK;
     for (int i = 0; i < 10; i++) {
         clock_gettime(CLOCK_REALTIME, &st1);
-        if (vma_ibv_query_values(m_p_ibv_context, &queried_values) ||
+        if (xlio_ibv_query_values(m_p_ibv_context, &queried_values) ||
             !vma_get_ts_val(queried_values)) {
             return false;
         }

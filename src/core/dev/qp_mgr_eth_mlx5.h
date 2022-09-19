@@ -176,9 +176,9 @@ private:
     virtual void dm_release_data(mem_buf_desc_t *buff) { m_dm_mgr.release_data(buff); }
 
     inline void set_signal_in_next_send_wqe();
-    int send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp,
+    int send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp,
                      xlio_tis *tis);
-    inline int fill_wqe(vma_ibv_send_wr *p_send_wqe);
+    inline int fill_wqe(xlio_ibv_send_wr *p_send_wqe);
     inline void store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti);
     void destroy_tis_cache(void);
 #ifdef DEFINED_UTLS
@@ -204,8 +204,8 @@ protected:
 
 private:
 #endif /* DEFINED_UTLS */
-    inline int fill_wqe_send(vma_ibv_send_wr *pswr);
-    inline int fill_wqe_lso(vma_ibv_send_wr *pswr);
+    inline int fill_wqe_send(xlio_ibv_send_wr *pswr);
+    inline int fill_wqe_lso(xlio_ibv_send_wr *pswr);
     inline void ring_doorbell(uint64_t *wqe, int db_method, int num_wqebb, int num_wqebb_top = 0);
     inline int fill_inl_segment(sg_array &sga, uint8_t *cur_seg, uint8_t *data_addr,
                                 int max_inline_len, int inline_len);

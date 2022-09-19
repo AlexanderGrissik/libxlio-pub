@@ -65,7 +65,7 @@
 /** inlining functions can only help if they are implemented before their usage **/
 /**/
 
-inline void ring_simple::send_status_handler(int ret, vma_ibv_send_wr *p_send_wqe)
+inline void ring_simple::send_status_handler(int ret, xlio_ibv_send_wr *p_send_wqe)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (unlikely(ret)) {
@@ -268,7 +268,7 @@ void ring_simple::create_resources()
     if ((safe_mce_sys().enable_tso == option_3::ON) ||
         ((safe_mce_sys().enable_tso == option_3::AUTO) && (1 == validate_tso(get_if_index())))) {
         if (vma_check_dev_attr_tso(m_p_ib_ctx->get_ibv_device_attr())) {
-            const vma_ibv_tso_caps *caps = &vma_get_tso_caps(m_p_ib_ctx->get_ibv_device_attr_ex());
+            const xlio_ibv_tso_caps *caps = &vma_get_tso_caps(m_p_ib_ctx->get_ibv_device_attr_ex());
             if (ibv_is_qpt_supported(caps->supported_qpts, IBV_QPT_RAW_PACKET)) {
                 m_tso.max_payload_sz = caps->max_tso;
                 /* ETH(14) + IP(20) + TCP(20) + TCP OPTIONS(40) */
@@ -682,7 +682,7 @@ void ring_simple::mem_buf_rx_release(mem_buf_desc_t *p_mem_buf_desc)
 }
 
 /* note that this function is inline, so keep it above the functions using it */
-inline int ring_simple::send_buffer(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+inline int ring_simple::send_buffer(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
                                     xlio_tis *tis)
 {
     // Note: this is debatable logic as it count of WQEs waiting completion but
@@ -707,7 +707,7 @@ inline int ring_simple::send_buffer(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packe
     return ret;
 }
 
-bool ring_simple::get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe)
+bool ring_simple::get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe)
 {
     NOT_IN_USE(id);
     NOT_IN_USE(p_send_wqe);
@@ -715,7 +715,7 @@ bool ring_simple::get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *
     return m_p_qp_mgr->get_hw_dummy_send_support();
 }
 
-void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+void ring_simple::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                    vma_wr_tx_packet_attr attr)
 {
     NOT_IN_USE(id);
@@ -731,7 +731,7 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wq
     send_status_handler(ret, p_send_wqe);
 }
 
-int ring_simple::send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+int ring_simple::send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                   vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     NOT_IN_USE(id);
@@ -1142,7 +1142,7 @@ uint32_t ring_simple::get_tx_user_lkey(void *addr, size_t length, void *p_mappin
         if (iter != m_user_lkey_map.end()) {
             lkey = iter->second;
         } else {
-            lkey = m_p_ib_ctx->user_mem_reg(addr, length, VMA_IBV_ACCESS_LOCAL_WRITE);
+            lkey = m_p_ib_ctx->user_mem_reg(addr, length, XLIO_IBV_ACCESS_LOCAL_WRITE);
             if (lkey == (uint32_t)(-1)) {
                 ring_logerr("Can't register user memory addr %p len %lx", addr, length);
             } else {

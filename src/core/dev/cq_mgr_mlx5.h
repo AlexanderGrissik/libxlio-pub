@@ -87,7 +87,7 @@ protected:
     inline struct vma_mlx5_cqe *get_cqe(struct vma_mlx5_cqe **cqe_err = NULL);
     inline void cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, mem_buf_desc_t *p_rx_wc_buf_desc,
                                      enum buff_status_e &status);
-    void cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, vma_ibv_wc *wc);
+    void cqe_to_vma_wc(struct vma_mlx5_cqe *cqe, xlio_ibv_wc *wc);
     inline struct vma_mlx5_cqe *check_error_completion(struct vma_mlx5_cqe *cqe, uint32_t *ci,
                                                        uint8_t op_own);
     inline void update_global_sn(uint64_t &cq_poll_sn, uint32_t rettotal);

@@ -211,7 +211,7 @@ int qp_mgr::configure(struct qp_mgr_desc *desc)
     qp_logdbg("cq tx: %p rx: %p", m_p_cq_mgr_tx, m_p_cq_mgr_rx);
 
     // Create QP
-    vma_ibv_qp_init_attr qp_init_attr;
+    xlio_ibv_qp_init_attr qp_init_attr;
     memset(&qp_init_attr, 0, sizeof(qp_init_attr));
 
     // TODO: m_tx_num_wr and m_rx_num_wr should be part of m_qp_cap
@@ -430,7 +430,7 @@ void qp_mgr::release_tx_buffers()
 
 void qp_mgr::trigger_completion_for_all_sent_packets()
 {
-    vma_ibv_send_wr send_wr;
+    xlio_ibv_send_wr send_wr;
     ibv_sge sge[1];
 
     // Handle releasing of Tx buffers
@@ -475,7 +475,7 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         send_wr.sg_list = sge;
         send_wr.num_sge = 1;
         send_wr.next = NULL;
-        vma_send_wr_opcode(send_wr) = VMA_IBV_WR_SEND;
+        vma_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
         qp_logdbg("IBV_SEND_SIGNALED");
 
         // Close the Tx unsignaled send list
@@ -555,23 +555,23 @@ void qp_mgr::post_recv_buffers(descq_t *p_buffers, size_t count)
     }
 }
 
-inline int qp_mgr::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
                                 bool request_comp, xlio_tis *tis)
 {
     NOT_IN_USE(attr);
     NOT_IN_USE(tis);
     int ret = 0;
-    vma_ibv_send_wr *bad_wr = NULL;
+    xlio_ibv_send_wr *bad_wr = NULL;
 
     if (request_comp) {
         vma_send_wr_send_flags(*p_send_wqe) =
-            (vma_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) | VMA_IBV_SEND_SIGNALED);
+            (xlio_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) | XLIO_IBV_SEND_SIGNALED);
     }
 
-    IF_VERBS_FAILURE(vma_ibv_post_send(m_qp, p_send_wqe, &bad_wr))
+    IF_VERBS_FAILURE(xlio_ibv_post_send(m_qp, p_send_wqe, &bad_wr))
     {
         qp_logerr("failed post_send%s (errno=%d %m)\n",
-                  ((vma_send_wr_send_flags(*p_send_wqe) & VMA_IBV_SEND_INLINE) ? "(+inline)" : ""),
+                  ((vma_send_wr_send_flags(*p_send_wqe) & XLIO_IBV_SEND_INLINE) ? "(+inline)" : ""),
                   errno);
         if (bad_wr) {
             qp_logerr("bad_wr info: wr_id=%#lx, send_flags=%#lx, addr=%#lx, length=%d, lkey=%#x, "
@@ -586,12 +586,12 @@ inline int qp_mgr::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_at
 
     // Clear the SINGAL request
     vma_send_wr_send_flags(*p_send_wqe) =
-        (vma_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) & ~VMA_IBV_SEND_SIGNALED);
+        (xlio_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) & ~XLIO_IBV_SEND_SIGNALED);
 
     return ret;
 }
 
-int qp_mgr::send(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
+int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)p_send_wqe->wr_id;
     /* Control tx completions:
@@ -679,20 +679,20 @@ void qp_mgr_eth::modify_qp_to_ready_state()
     BULLSEYE_EXCLUDE_BLOCK_END
 }
 
-int qp_mgr_eth::prepare_ibv_qp(vma_ibv_qp_init_attr &qp_init_attr)
+int qp_mgr_eth::prepare_ibv_qp(xlio_ibv_qp_init_attr &qp_init_attr)
 {
     qp_logdbg("");
     int ret = 0;
 
     qp_init_attr.qp_type = IBV_QPT_RAW_PACKET;
-    vma_ibv_qp_init_attr_comp_mask(m_p_ib_ctx_handler->get_ibv_pd(), qp_init_attr);
+    xlio_ibv_qp_init_attr_comp_mask(m_p_ib_ctx_handler->get_ibv_pd(), qp_init_attr);
 
     if (m_p_ring->is_tso()) {
-        vma_ibv_qp_init_attr_tso(qp_init_attr, m_p_ring->get_max_header_sz());
+        xlio_ibv_qp_init_attr_tso(qp_init_attr, m_p_ring->get_max_header_sz());
         qp_logdbg("create qp with max_tso_header = %d", m_p_ring->get_max_header_sz());
     }
 
-    m_qp = vma_ibv_create_qp(m_p_ib_ctx_handler->get_ibv_pd(), &qp_init_attr);
+    m_qp = xlio_ibv_create_qp(m_p_ib_ctx_handler->get_ibv_pd(), &qp_init_attr);
 
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!m_qp) {
@@ -740,7 +740,7 @@ int qp_mgr::modify_qp_ratelimit(struct xlio_rate_limit_t &rate_limit, uint32_t r
     return 0;
 }
 
-rfs_rule *qp_mgr::create_rfs_rule(vma_ibv_flow_attr &attrs, xlio_tir *tir_ext)
+rfs_rule *qp_mgr::create_rfs_rule(xlio_ibv_flow_attr &attrs, xlio_tir *tir_ext)
 {
     if (unlikely(tir_ext != NULL)) {
         qp_logwarn("Requested steering rule cannot be created. Consider "

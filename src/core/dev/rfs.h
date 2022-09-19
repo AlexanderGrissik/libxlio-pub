@@ -60,8 +60,8 @@ class pkt_rcvr_sink;
  */
 
 typedef struct ibv_flow_attr_eth {
-    vma_ibv_flow_attr attr;
-    vma_ibv_flow_spec_eth eth;
+    xlio_ibv_flow_attr attr;
+    xlio_ibv_flow_spec_eth eth;
 } ibv_flow_attr_eth;
 
 template <typename T> struct attach_flow_data_eth_ip_tcp_udp_t {
@@ -69,15 +69,15 @@ template <typename T> struct attach_flow_data_eth_ip_tcp_udp_t {
     qp_mgr *p_qp_mgr;
     struct ibv_flow_attr_eth_ip_tcp_udp : public ibv_flow_attr_eth {
         T ip;
-        vma_ibv_flow_spec_tcp_udp tcp_udp;
-        vma_ibv_flow_spec_action_tag flow_tag; // must be the last as struct can be used without it
+        xlio_ibv_flow_spec_tcp_udp tcp_udp;
+        xlio_ibv_flow_spec_action_tag flow_tag; // must be the last as struct can be used without it
 
         ibv_flow_attr_eth_ip_tcp_udp(uint8_t port)
         {
             memset(this, 0, sizeof(*this));
             attr.size = sizeof(T) - sizeof(flow_tag);
             attr.num_of_specs = 3;
-            attr.type = VMA_IBV_FLOW_ATTR_NORMAL;
+            attr.type = XLIO_IBV_FLOW_ATTR_NORMAL;
             attr.priority = 2; // almost highest priority, 1 is used for 5-tuple later
             attr.port = port;
         }
@@ -95,15 +95,15 @@ template <typename T> struct attach_flow_data_eth_ip_tcp_udp_t {
     }
 };
 
-typedef attach_flow_data_eth_ip_tcp_udp_t<vma_ibv_flow_spec_ipv4>
+typedef attach_flow_data_eth_ip_tcp_udp_t<xlio_ibv_flow_spec_ipv4>
     attach_flow_data_eth_ipv4_tcp_udp_t;
-typedef attach_flow_data_eth_ip_tcp_udp_t<vma_ibv_flow_spec_ipv6>
+typedef attach_flow_data_eth_ip_tcp_udp_t<xlio_ibv_flow_spec_ipv6>
     attach_flow_data_eth_ipv6_tcp_udp_t;
 
 typedef struct attach_flow_data_t {
     rfs_rule *rfs_flow;
     qp_mgr *p_qp_mgr;
-    vma_ibv_flow_attr ibv_flow_attr;
+    xlio_ibv_flow_attr ibv_flow_attr;
 } attach_flow_data_t;
 
 typedef std::vector<attach_flow_data_t *> attach_flow_data_vector_t;

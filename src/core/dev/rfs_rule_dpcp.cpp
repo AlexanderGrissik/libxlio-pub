@@ -43,7 +43,7 @@ rfs_rule_dpcp::~rfs_rule_dpcp()
 {
 }
 
-bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
+bool rfs_rule_dpcp::create(const xlio_ibv_flow_attr &attrs, dpcp::tir &in_tir,
                            dpcp::adapter &in_adapter)
 {
     const ibv_flow_attr_eth &attrs_eth(reinterpret_cast<const ibv_flow_attr_eth &>(attrs));
@@ -62,8 +62,8 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
     match_msk.vlan_id = ntohs(attrs_eth.eth.mask.vlan_tag);
     mp.vlan_id = ntohs(attrs_eth.eth.val.vlan_tag);
 
-    const vma_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
-    const vma_ibv_flow_spec_action_tag *p_flow_tag = nullptr;
+    const xlio_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
+    const xlio_ibv_flow_spec_action_tag *p_flow_tag = nullptr;
 
     if (attrs_eth.eth.val.ether_type == htons(ETH_P_IP)) {
         const auto &attrs_tcpudp(
@@ -98,7 +98,7 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
     match_msk.src_port = ntohs(p_tcp_udp->mask.src_port);
     mp.src_port = ntohs(p_tcp_udp->val.src_port);
     match_msk.protocol = 0xFF;
-    mp.protocol = (p_tcp_udp->type == VMA_IBV_FLOW_SPEC_TCP ? IPPROTO_TCP : IPPROTO_UDP);
+    mp.protocol = (p_tcp_udp->type == XLIO_IBV_FLOW_SPEC_TCP ? IPPROTO_TCP : IPPROTO_UDP);
     match_msk.ip_version = 0xF;
 
     dpcp::flow_rule *new_rule = nullptr;
@@ -135,7 +135,7 @@ bool rfs_rule_dpcp::create(const vma_ibv_flow_attr &attrs, dpcp::tir &in_tir,
     rfs_logdbg("Added dpcp_flow_rule::add_dest_tir() TIR %" PRIu32 ", dpcp_flow: %p", tirn,
                new_rule);
 
-    if (p_flow_tag->type == VMA_IBV_FLOW_SPEC_ACTION_TAG) {
+    if (p_flow_tag->type == XLIO_IBV_FLOW_SPEC_ACTION_TAG) {
         rfs_logdbg("Setting flow tag dpcp_adpater::set_flow_id(), Tag: %" PRIu32 ", dpcp_flow: %p",
                    p_flow_tag->tag_id, new_rule);
 

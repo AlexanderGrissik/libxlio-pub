@@ -60,9 +60,9 @@ public:
         NOT_IN_USE(rx_reuse);
         return -1;
     }
-    virtual void send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                   vma_wr_tx_packet_attr attr);
-    virtual int send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                  vma_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
@@ -70,7 +70,7 @@ public:
                                            int n_num_mem_bufs = 1);
     virtual int mem_buf_tx_release(mem_buf_desc_t *p_mem_buf_desc_list, bool b_accounting,
                                    bool trylock = false);
-    virtual bool get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe)
+    virtual bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe)
     {
         NOT_IN_USE(id);
         NOT_IN_USE(p_send_wqe);
@@ -123,8 +123,8 @@ private:
     int prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action);
     int process_element_rx(void *pv_fd_ready_array);
     bool request_more_rx_buffers();
-    int send_buffer(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr);
-    void send_status_handler(int ret, vma_ibv_send_wr *p_send_wqe);
+    int send_buffer(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr);
+    void send_status_handler(int ret, xlio_ibv_send_wr *p_send_wqe);
     void tap_create(net_device_val *p_ndev);
     void tap_destroy();
 

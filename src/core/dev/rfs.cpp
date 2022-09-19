@@ -330,7 +330,7 @@ rfs_rule *create_rule_T(xlio_tir *tir, const flow_tuple &flow_spec, attach_flow_
     auto *p_attr =
         reinterpret_cast<typename T::ibv_flow_attr_eth_ip_tcp_udp *>(&iter->ibv_flow_attr);
 
-    if (unlikely(p_attr->eth.type != VMA_IBV_FLOW_SPEC_ETH)) {
+    if (unlikely(p_attr->eth.type != XLIO_IBV_FLOW_SPEC_ETH)) {
         // We support only ETH rules for now
         return NULL;
     }

@@ -102,16 +102,16 @@ static bool is_bf(struct ibv_context *ib_ctx)
     return false;
 }
 
-//! Maps vma_ibv_wr_opcode to real MLX5 opcode.
+//! Maps xlio_ibv_wr_opcode to real MLX5 opcode.
 //
-static inline uint32_t get_mlx5_opcode(vma_ibv_wr_opcode verbs_opcode)
+static inline uint32_t get_mlx5_opcode(xlio_ibv_wr_opcode verbs_opcode)
 {
     switch (verbs_opcode) {
-    case VMA_IBV_WR_SEND:
+    case XLIO_IBV_WR_SEND:
         return MLX5_OPCODE_SEND;
-    case VMA_IBV_WR_TSO:
+    case XLIO_IBV_WR_TSO:
         return MLX5_OPCODE_TSO;
-    case VMA_IBV_WR_NOP:
+    case XLIO_IBV_WR_NOP:
         return MLX5_OPCODE_NOP;
     default:
         return MLX5_OPCODE_SEND;
@@ -542,7 +542,7 @@ inline int qp_mgr_eth_mlx5::fill_inl_segment(sg_array &sga, uint8_t *cur_seg, ui
 }
 
 //! Fill WQE dynamically, based on amount of free WQEBB in SQ
-inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
+inline int qp_mgr_eth_mlx5::fill_wqe(xlio_ibv_send_wr *pswr)
 {
     // control segment is mostly filled by preset after previous packet
     // we always inline ETH header
@@ -554,7 +554,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
     int max_inline_len = get_max_inline_data();
 
     // assume packet is full inline
-    if (likely(data_len <= max_inline_len && vma_send_wr_opcode(*pswr) == VMA_IBV_WR_SEND)) {
+    if (likely(data_len <= max_inline_len && vma_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND)) {
         uint8_t *data_addr = sga.get_data(&inline_len); // data for inlining in ETH header
         data_len -= inline_len;
         qp_logfunc(
@@ -643,7 +643,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
             return rest_space + max_inline_len;
         }
     } else {
-        if (vma_send_wr_opcode(*pswr) == VMA_IBV_WR_SEND) {
+        if (vma_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND) {
             /* data is bigger than max to inline we inlined only ETH header + uint from IP (18
              * bytes) the rest will be in data pointer segment adding data seg with pointer if there
              * still data to transfer
@@ -651,7 +651,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
             wqe_size = fill_wqe_send(pswr);
             return wqe_size;
         } else {
-            /* Support VMA_IBV_WR_SEND_TSO operation
+            /* Support XLIO_IBV_WR_SEND_TSO operation
              */
             wqe_size = fill_wqe_lso(pswr);
             return wqe_size;
@@ -660,7 +660,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(vma_ibv_send_wr *pswr)
     return 1;
 }
 
-inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr *pswr)
+inline int qp_mgr_eth_mlx5::fill_wqe_send(xlio_ibv_send_wr *pswr)
 {
     struct mlx5_wqe_ctrl_seg *ctrl = NULL;
     struct mlx5_wqe_eth_seg *eseg = NULL;
@@ -751,7 +751,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_send(vma_ibv_send_wr *pswr)
 }
 
 //! Filling wqe for LSO
-inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr *pswr)
+inline int qp_mgr_eth_mlx5::fill_wqe_lso(xlio_ibv_send_wr *pswr)
 {
     struct mlx5_wqe_ctrl_seg *ctrl = NULL;
     struct mlx5_wqe_eth_seg *eseg = NULL;
@@ -771,7 +771,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe_lso(vma_ibv_send_wr *pswr)
     /* Do usual send operation in case payload less than mss */
     if (0 == pswr->tso.mss) {
         ctrl->opmod_idx_opcode =
-            htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(VMA_IBV_WR_SEND) & 0xff));
+            htonl(((m_sq_wqe_counter & 0xffff) << 8) | (get_mlx5_opcode(XLIO_IBV_WR_SEND) & 0xff));
     }
 
     eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
@@ -846,7 +846,7 @@ void qp_mgr_eth_mlx5::store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti)
 
 //! Send one RAW packet by MLX5 BlueFlame
 //
-int qp_mgr_eth_mlx5::send_to_wire(vma_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+int qp_mgr_eth_mlx5::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
                                   bool request_comp, xlio_tis *tis)
 {
     struct vma_mlx5_wqe_ctrl_seg *ctrl = NULL;
@@ -1497,7 +1497,7 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 
         // Prepare send wr for (does not care if it is UD/IB or RAW/ETH)
         // UD requires AH+qkey, RAW requires minimal payload instead of MAC header.
-        vma_ibv_send_wr send_wr;
+        xlio_ibv_send_wr send_wr;
 
         memset(&send_wr, 0, sizeof(send_wr));
         send_wr.wr_id = (uintptr_t)p_mem_buf_desc;
@@ -1505,7 +1505,7 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
         send_wr.sg_list = sge;
         send_wr.num_sge = 1;
         send_wr.next = NULL;
-        vma_send_wr_opcode(send_wr) = VMA_IBV_WR_SEND;
+        vma_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
 
         // Close the Tx unsignaled send list
         set_unsignaled_count();

@@ -66,8 +66,8 @@ dm_mgr::dm_mgr()
 bool dm_mgr::allocate_resources(ib_ctx_handler *ib_ctx, ring_stats_t *ring_stats)
 {
     size_t allocation_size = DM_ALIGN_SIZE(safe_mce_sys().ring_dev_mem_tx, DM_MEMORY_MASK_64);
-    vma_ibv_alloc_dm_attr dm_attr;
-    vma_ibv_reg_mr_in mr_in;
+    xlio_ibv_alloc_dm_attr dm_attr;
+    xlio_ibv_reg_mr_in mr_in;
     m_p_ring_stat = ring_stats;
     if (!allocation_size) {
         // On Device Memory usage was disabled by the user
@@ -82,7 +82,7 @@ bool dm_mgr::allocate_resources(ib_ctx_handler *ib_ctx, ring_stats_t *ring_stats
     // Allocate on device memory buffer
     memset(&dm_attr, 0, sizeof(dm_attr));
     dm_attr.length = allocation_size;
-    m_p_ibv_dm = vma_ibv_alloc_dm(ib_ctx->get_ibv_context(), &dm_attr);
+    m_p_ibv_dm = xlio_ibv_alloc_dm(ib_ctx->get_ibv_context(), &dm_attr);
     if (!m_p_ibv_dm) {
         // Memory allocation can fail if we have already allocated the maximum possible.
         VLOG_PRINTF_ONCE_THEN_DEBUG(
@@ -100,12 +100,12 @@ bool dm_mgr::allocate_resources(ib_ctx_handler *ib_ctx, ring_stats_t *ring_stats
 
     // Initialize MR attributes
     memset(&mr_in, 0, sizeof(mr_in));
-    vma_ibv_init_dm_mr(mr_in, ib_ctx->get_ibv_pd(), allocation_size, m_p_ibv_dm);
+    xlio_ibv_init_dm_mr(mr_in, ib_ctx->get_ibv_pd(), allocation_size, m_p_ibv_dm);
 
     // Register On Device Memory MR
-    m_p_dm_mr = vma_ibv_reg_dm_mr(&mr_in);
+    m_p_dm_mr = xlio_ibv_reg_dm_mr(&mr_in);
     if (!m_p_dm_mr) {
-        vma_ibv_free_dm(m_p_ibv_dm);
+        xlio_ibv_free_dm(m_p_ibv_dm);
         m_p_ibv_dm = NULL;
         dm_logerr("ibv_free_dm error - dm_mr registration failed, %d %m", errno);
         return false;
@@ -136,7 +136,7 @@ void dm_mgr::release_resources()
     }
 
     if (m_p_ibv_dm) {
-        if (vma_ibv_free_dm(m_p_ibv_dm)) {
+        if (xlio_ibv_free_dm(m_p_ibv_dm)) {
             dm_logerr("ibv_free_dm failed %d %m", errno);
         } else {
             dm_logdbg("ibv_free_dm success");
@@ -199,7 +199,7 @@ void dm_mgr::release_resources()
 bool dm_mgr::copy_data(struct mlx5_wqe_data_seg *seg, uint8_t *src, uint32_t length,
                        mem_buf_desc_t *buff)
 {
-    vma_ibv_memcpy_dm_attr memcpy_attr;
+    xlio_ibv_memcpy_dm_attr memcpy_attr;
     uint32_t length_aligned_8 = DM_ALIGN_SIZE(length, DM_MEMORY_MASK_8);
     size_t continuous_left = 0;
     size_t &dev_mem_length = buff->tx.dev_mem_length = 0;
@@ -227,10 +227,10 @@ bool dm_mgr::copy_data(struct mlx5_wqe_data_seg *seg, uint8_t *src, uint32_t len
 
     // Initialize memcopy attributes
     memset(&memcpy_attr, 0, sizeof(memcpy_attr));
-    vma_ibv_init_memcpy_dm(memcpy_attr, src, m_head, length_aligned_8);
+    xlio_ibv_init_memcpy_dm(memcpy_attr, src, m_head, length_aligned_8);
 
     // Copy data into the On Device Memory buffer.
-    if (vma_ibv_memcpy_dm(m_p_ibv_dm, &memcpy_attr)) {
+    if (xlio_ibv_memcpy_dm(m_p_ibv_dm, &memcpy_attr)) {
         dm_logfunc("Failed to memcopy data into the memic buffer %m");
         return false;
     }

@@ -117,7 +117,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
                  !is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_REXMIT)))))) {
         size_t total_packet_len = 0;
         size_t tcp_hdr_len;
-        vma_ibv_send_wr send_wqe;
+        xlio_ibv_send_wr send_wqe;
         wqe_send_handler send_wqe_h;
         void *masked_addr;
 

@@ -79,7 +79,7 @@ void dst_entry_udp::configure_headers()
 bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
                                               const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
                                               size_t sz_udp_payload, int n_num_frags,
-                                              vma_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
+                                              xlio_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
                                               ibv_sge *p_sge, header *p_header,
                                               uint16_t max_ip_payload_size, ring *p_ring,
                                               uint32_t packet_id)

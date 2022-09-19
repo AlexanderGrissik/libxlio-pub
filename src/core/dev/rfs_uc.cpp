@@ -69,8 +69,8 @@ bool rfs_uc::prepare_flow_spec()
      * if one of these assumptions change, we must lock.
      */
     attach_flow_data_t *p_attach_flow_data = nullptr;
-    vma_ibv_flow_spec_eth *p_eth = nullptr;
-    vma_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
+    xlio_ibv_flow_spec_eth *p_eth = nullptr;
+    xlio_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
 
     switch (p_ring->get_transport_type()) {
     case VMA_TRANSPORT_ETH: {

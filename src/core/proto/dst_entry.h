@@ -136,9 +136,9 @@ protected:
     ip_address m_pkt_src_ip; // source IP address copied into IP header
     lock_mutex_recursive m_slow_path_lock;
     lock_mutex m_tx_migration_lock;
-    vma_ibv_send_wr m_inline_send_wqe;
-    vma_ibv_send_wr m_not_inline_send_wqe;
-    vma_ibv_send_wr m_fragmented_send_wqe;
+    xlio_ibv_send_wr m_inline_send_wqe;
+    xlio_ibv_send_wr m_not_inline_send_wqe;
+    xlio_ibv_send_wr m_fragmented_send_wqe;
     wqe_send_handler *m_p_send_wqe_handler;
     ibv_sge *m_sge;
     route_entry *m_p_rt_entry;
@@ -159,7 +159,7 @@ protected:
     uint8_t m_pcp;
     bool m_b_is_initialized;
 
-    vma_ibv_send_wr *m_p_send_wqe;
+    xlio_ibv_send_wr *m_p_send_wqe;
     uint32_t m_max_inline;
     ring_user_id_t m_id;
     uint16_t m_max_ip_payload_size;
@@ -200,13 +200,13 @@ protected:
         m_b_tx_mem_buf_desc_list_pending = is_pending;
     }
     int get_priority_by_tc_class(uint32_t tc_clas);
-    inline void send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    inline void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                  vma_wr_tx_packet_attr attr)
     {
         if (unlikely(is_set(attr, VMA_TX_PACKET_DUMMY))) {
             if (m_p_ring->get_hw_dummy_send_support(id, p_send_wqe)) {
-                vma_ibv_wr_opcode last_opcode =
-                    m_p_send_wqe_handler->set_opcode(*p_send_wqe, VMA_IBV_WR_NOP);
+                xlio_ibv_wr_opcode last_opcode =
+                    m_p_send_wqe_handler->set_opcode(*p_send_wqe, XLIO_IBV_WR_NOP);
                 m_p_ring->send_ring_buffer(id, p_send_wqe, attr);
                 m_p_send_wqe_handler->set_opcode(*p_send_wqe, last_opcode);
             } else {

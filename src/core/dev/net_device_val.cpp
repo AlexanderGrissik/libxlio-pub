@@ -1561,10 +1561,10 @@ bool net_device_val::verify_qp_creation(const char *ifname, enum ibv_qp_type qp_
     struct ibv_context *context;
     int comp_vector = 0;
 
-    vma_ibv_qp_init_attr qp_init_attr;
+    xlio_ibv_qp_init_attr qp_init_attr;
     memset(&qp_init_attr, 0, sizeof(qp_init_attr));
 
-    vma_ibv_cq_init_attr attr;
+    xlio_ibv_cq_init_attr attr;
     memset(&attr, 0, sizeof(attr));
 
     qp_init_attr.cap.max_send_wr = MCE_DEFAULT_TX_NUM_WRE;
@@ -1624,19 +1624,19 @@ bool net_device_val::verify_qp_creation(const char *ifname, enum ibv_qp_type qp_
         comp_vector = g_worker_index % context->num_comp_vectors;
     }
 #endif
-    cq = vma_ibv_create_cq(context, safe_mce_sys().tx_num_wr, (void *)this, channel, comp_vector,
-                           &attr);
+    cq = xlio_ibv_create_cq(context, safe_mce_sys().tx_num_wr, (void *)this, channel, comp_vector,
+                            &attr);
     if (!cq) {
         nd_logdbg("cq creation failed for interface %s (errno=%d %s)", ifname, errno,
                   strerror(errno));
         goto release_resources;
     }
 
-    vma_ibv_qp_init_attr_comp_mask(p_ib_ctx->get_ibv_pd(), qp_init_attr);
+    xlio_ibv_qp_init_attr_comp_mask(p_ib_ctx->get_ibv_pd(), qp_init_attr);
     qp_init_attr.recv_cq = cq;
     qp_init_attr.send_cq = cq;
 
-    qp = vma_ibv_create_qp(p_ib_ctx->get_ibv_pd(), &qp_init_attr);
+    qp = xlio_ibv_create_qp(p_ib_ctx->get_ibv_pd(), &qp_init_attr);
     if (qp) {
         success = true;
 

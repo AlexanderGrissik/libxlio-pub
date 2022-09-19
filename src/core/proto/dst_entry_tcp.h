@@ -74,13 +74,13 @@ private:
     const uint32_t m_n_sysvar_user_huge_page_size;
     uint64_t m_user_huge_page_mask;
 
-    inline int send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    inline int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                 vma_wr_tx_packet_attr attr, xlio_tis *tis)
     {
         if (unlikely(is_set(attr, VMA_TX_PACKET_DUMMY))) {
             if (m_p_ring->get_hw_dummy_send_support(id, p_send_wqe)) {
-                vma_ibv_wr_opcode last_opcode =
-                    m_p_send_wqe_handler->set_opcode(*p_send_wqe, VMA_IBV_WR_NOP);
+                xlio_ibv_wr_opcode last_opcode =
+                    m_p_send_wqe_handler->set_opcode(*p_send_wqe, XLIO_IBV_WR_NOP);
                 m_p_ring->send_lwip_buffer(id, p_send_wqe, attr, tis);
                 m_p_send_wqe_handler->set_opcode(*p_send_wqe, last_opcode);
             }

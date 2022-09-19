@@ -82,11 +82,11 @@ public:
     dpcp::adapter *set_dpcp_adapter();
     dpcp::adapter *get_dpcp_adapter() { return m_p_adapter; }
 #endif /* DEFINED_DPCP */
-    vma_ibv_device_attr *get_ibv_device_attr()
+    xlio_ibv_device_attr *get_ibv_device_attr()
     {
         return vma_get_device_orig_attr(m_p_ibv_device_attr);
     }
-    vma_ibv_device_attr_ex *get_ibv_device_attr_ex() { return m_p_ibv_device_attr; }
+    xlio_ibv_device_attr_ex *get_ibv_device_attr_ex() { return m_p_ibv_device_attr; }
     uint32_t mem_reg(void *addr, size_t length, uint64_t access);
     void mem_dereg(uint32_t lkey);
     struct ibv_mr *get_mem_reg(uint32_t lkey);
@@ -120,7 +120,7 @@ private:
 #ifdef DEFINED_DPCP
     dpcp::adapter *m_p_adapter;
 #endif /* DEFINED_DPCP */
-    vma_ibv_device_attr_ex *m_p_ibv_device_attr;
+    xlio_ibv_device_attr_ex *m_p_ibv_device_attr;
     ibv_pd *m_p_ibv_pd;
     bool m_flow_tag_enabled;
     pacing_caps_t m_pacing_caps;

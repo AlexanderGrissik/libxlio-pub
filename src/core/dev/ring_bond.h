@@ -77,9 +77,9 @@ public:
     virtual int mem_buf_tx_release(mem_buf_desc_t *p_mem_buf_desc_list, bool b_accounting,
                                    bool trylock = false);
     virtual void inc_tx_retransmissions_stats(ring_user_id_t id);
-    virtual void send_ring_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                   vma_wr_tx_packet_attr attr);
-    virtual int send_lwip_buffer(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe,
+    virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                  vma_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
@@ -89,7 +89,7 @@ public:
                                        uint16_t eth_proto, uint16_t encap_proto,
                                        const ip_address &src_ip, const ip_address &dst_ip,
                                        uint16_t src_port, uint16_t dst_port);
-    virtual bool get_hw_dummy_send_support(ring_user_id_t id, vma_ibv_send_wr *p_send_wqe);
+    virtual bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe);
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit);
     /* XXX TODO We have to support ring_bond for zerocopy. */
     virtual uint32_t get_tx_user_lkey(void *addr, size_t length, void *p_mapping = NULL)

@@ -48,12 +48,12 @@ class rfs_rule_ibv : public rfs_rule {
 public:
     virtual ~rfs_rule_ibv();
 
-    bool create(vma_ibv_flow_attr &attrs, ibv_qp *qp);
+    bool create(xlio_ibv_flow_attr &attrs, ibv_qp *qp);
 
 private:
-    static void destory_ibv_flow(vma_ibv_flow *flow);
+    static void destory_ibv_flow(xlio_ibv_flow *flow);
 
-    unique_ptr_delfunc<vma_ibv_flow> _ibv_flow {nullptr, destory_ibv_flow};
+    unique_ptr_delfunc<xlio_ibv_flow> _ibv_flow {nullptr, destory_ibv_flow};
 };
 
 #endif
