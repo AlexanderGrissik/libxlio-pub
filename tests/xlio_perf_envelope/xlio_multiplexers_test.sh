@@ -50,7 +50,7 @@ XLIO_RX_BUFS=200000
 #path
 #----------------------------------------------------
 UDP_LAT_APP=${UDP_LAT_PATH:-udp_lat}
-XLIO_LIB=${XLIO_PATH:-libvma.so}
+XLIO_LIB=${XLIO_PATH:-libxlio.so}
 
 #other
 #----------------------------------------------------

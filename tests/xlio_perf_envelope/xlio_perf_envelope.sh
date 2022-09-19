@@ -47,7 +47,7 @@ MC_GROUP_SIZES=(1 10 20 30 50 60 64 65 70 80 90 100 150 200)
 #path
 #----------------------------------------------------
 UDP_LAT_APP=${UDP_LAT_PATH:-udp_lat}
-XLIO_LIB=${XLIO_PATH:-libvma.so}
+XLIO_LIB=${XLIO_PATH:-libxlio.so}
 
 #####################################################
 #xlio default values

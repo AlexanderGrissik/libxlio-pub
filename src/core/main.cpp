@@ -76,7 +76,7 @@
 
 void check_netperf_flags();
 
-// Start of vma_version_str - used in "$ strings libvma.so | grep XLIO_VERSION"
+// Start of vma_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
 #define STR_EXPAND(x) #x
 #define STR(x)        STR_EXPAND(x)
 const char *vma_version_str = "XLIO_VERSION: " PACKAGE_VERSION "-" STR(PRJ_LIBRARY_RELEASE)
@@ -95,7 +95,7 @@ const char *vma_version_str = "XLIO_VERSION: " PACKAGE_VERSION "-" STR(PRJ_LIBRA
 #ifdef _DEBUG
     " -*- DEBUG -*-"
 #endif
-    ; // End of vma_version_str - used in "$ strings libvma.so | grep XLIO_VERSION"
+    ; // End of vma_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
 
 bool g_b_exit = false;
 bool g_init_ibv_fork_done = false;
