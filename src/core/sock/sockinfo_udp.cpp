@@ -498,12 +498,13 @@ int sockinfo_udp::bind_no_os()
     validate_and_convert_mapped_ipv4(addr);
     on_sockname_change(addr.get_p_sa(), addr_len);
     si_udp_logdbg("bound to %s", m_bound.to_str_ip_port(true).c_str());
-    dst_entry_map_t::iterator dst_entry_iter = m_dst_entry_map.begin();
-    while (dst_entry_iter != m_dst_entry_map.end()) {
-        if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
-            dst_entry_iter->second->set_bound_addr(m_bound.get_ip_addr());
-        }
-        dst_entry_iter++;
+
+    if (!m_bound.is_anyaddr() && !m_bound.is_mc()) {
+        auto bind_addr_to_dest_entry =
+            [&](std::pair<const sock_addr, dst_entry *> dst_entry_key_val) {
+                dst_entry_key_val.second->set_bound_addr(m_bound.get_ip_addr());
+            };
+        std::for_each(m_dst_entry_map.begin(), m_dst_entry_map.end(), bind_addr_to_dest_entry);
     }
 
     return 0;
