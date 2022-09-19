@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <util/libvma.h>
+#include <util/libxlio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -497,18 +497,18 @@ int yyerror(const char *msg)
 
 /* parse apollo route dump file */
 int __vma_parse_config_file (const char *fileName) {
-	extern FILE * libvma_yyin;
+	extern FILE * libxlio_yyin;
    
 	/* open the file */
 	if (access(fileName, R_OK)) {
-		printf("libvma Error: No access to open File:%s %s\n", 
+		printf("libxlio Error: No access to open File:%s %s\n", 
 				fileName, strerror(errno));
 		return(1);
 	}
 
-	libvma_yyin = fopen(fileName,"r");
-	if (!libvma_yyin) {
-		printf("libvma Error: Fail to open File:%s\n", fileName);
+	libxlio_yyin = fopen(fileName,"r");
+	if (!libxlio_yyin) {
+		printf("libxlio Error: Fail to open File:%s\n", fileName);
 		return(1);
 	}
 	__instance_list.head = NULL;
@@ -519,26 +519,26 @@ int __vma_parse_config_file (const char *fileName) {
 	/* parse it */
 	yyparse();
 
-	fclose(libvma_yyin);
+	fclose(libxlio_yyin);
 	return(parse_err);
 }
 
 int __vma_parse_config_line (char *line) {
-	extern FILE * libvma_yyin;
+	extern FILE * libxlio_yyin;
 	
 	__vma_rule_push_head = 1;
 	
-	libvma_yyin = fmemopen(line, strlen(line), "r");
+	libxlio_yyin = fmemopen(line, strlen(line), "r");
 	
-	if (!libvma_yyin) {
-		printf("libvma Error: Fail to parse line:%s\n", line);
+	if (!libxlio_yyin) {
+		printf("libxlio Error: Fail to parse line:%s\n", line);
 		return(1);
 	}
 	
 	parse_err = 0;
 	yyparse();
 	
-	fclose(libvma_yyin);
+	fclose(libxlio_yyin);
 	
 	return(parse_err);
 }

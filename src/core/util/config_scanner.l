@@ -36,15 +36,15 @@
 
 //#define DEBUG 1  
 
-#define yyparse libvma_yyparse
-#define yylex   libvma_yylex
-#define yyerror libvma_yyerror
-#define yylval  libvma_yylval
-#define yychar  libvma_yychar
-#define yydebug libvma_yydebug
-#define yynerrs libvma_yynerrs
+#define yyparse libxlio_yyparse
+#define yylex   libxlio_yylex
+#define yyerror libxlio_yyerror
+#define yylval  libxlio_yylval
+#define yychar  libxlio_yychar
+#define yydebug libxlio_yydebug
+#define yynerrs libxlio_yynerrs
 
-#define yywrap  libvma_yywrap
+#define yywrap  libxlio_yywrap
 
 #include <string.h>
 #include <stdio.h>

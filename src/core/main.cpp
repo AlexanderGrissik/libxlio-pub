@@ -107,9 +107,9 @@ static command_netlink *s_cmd_nl = NULL;
 
 global_stats_t g_global_stat_static;
 
-static int free_libvma_resources()
+static int free_libxlio_resources()
 {
-    vlog_printf(VLOG_DEBUG, "%s: Closing libvma resources\n", __FUNCTION__);
+    vlog_printf(VLOG_DEBUG, "%s: Closing libxlio resources\n", __FUNCTION__);
 
     g_b_exit = true;
 
@@ -1285,5 +1285,5 @@ extern "C" int main_init(void)
 // extern "C" int __attribute__((destructor)) sock_redirect_lib_load_destructor(void)
 extern "C" int main_destroy(void)
 {
-    return free_libvma_resources();
+    return free_libxlio_resources();
 }

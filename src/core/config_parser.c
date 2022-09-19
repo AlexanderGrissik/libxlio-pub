@@ -60,13 +60,13 @@
 
 
 /* Substitute the variable and function names.  */
-#define yyparse         libvma_yyparse
-#define yylex           libvma_yylex
-#define yyerror         libvma_yyerror
-#define yylval          libvma_yylval
-#define yychar          libvma_yychar
-#define yydebug         libvma_yydebug
-#define yynerrs         libvma_yynerrs
+#define yyparse         libxlio_yyparse
+#define yylex           libxlio_yylex
+#define yyerror         libxlio_yyerror
+#define yylval          libxlio_yylval
+#define yychar          libxlio_yychar
+#define yydebug         libxlio_yydebug
+#define yynerrs         libxlio_yynerrs
 
 /* Copy the first part of user declarations.  */
 /* Line 371 of yacc.c  */
@@ -371,7 +371,7 @@ static void __vma_add_rule(void) {
 # define YYDEBUG 0
 #endif
 #if YYDEBUG
-extern int libvma_yydebug;
+extern int libxlio_yydebug;
 #endif
 
 /* Tokens.  */
@@ -452,19 +452,19 @@ typedef union YYSTYPE
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
-extern YYSTYPE libvma_yylval;
+extern YYSTYPE libxlio_yylval;
 
 #ifdef YYPARSE_PARAM
 #if defined __STDC__ || defined __cplusplus
-int libvma_yyparse (void *YYPARSE_PARAM);
+int libxlio_yyparse (void *YYPARSE_PARAM);
 #else
-int libvma_yyparse ();
+int libxlio_yyparse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int libvma_yyparse (void);
+int libxlio_yyparse (void);
 #else
-int libvma_yyparse ();
+int libxlio_yyparse ();
 #endif
 #endif /* ! YYPARSE_PARAM */
 
@@ -2177,7 +2177,7 @@ int yyerror(const char *msg)
 
 /* parse apollo route dump file */
 int __vma_parse_config_file (const char *fileName) {
-	extern FILE * libvma_yyin;
+	extern FILE * libxlio_yyin;
    
 	/* open the file */
 	if (access(fileName, R_OK)) {
@@ -2188,8 +2188,8 @@ int __vma_parse_config_file (const char *fileName) {
 	}
 
 	/* coverity[toctou] */
-	libvma_yyin = fopen(fileName,"r");
-	if (!libvma_yyin) {
+	libxlio_yyin = fopen(fileName,"r");
+	if (!libxlio_yyin) {
 		printf("Error: Fail to open File:%s\n", fileName);
 		return(1);
 	}
@@ -2201,20 +2201,20 @@ int __vma_parse_config_file (const char *fileName) {
 	/* parse it */
 	yyparse();
 
-	fclose(libvma_yyin);
+	fclose(libxlio_yyin);
 	return(parse_err);
 }
 
 int __vma_parse_config_line (const char *line) {
-	extern FILE * libvma_yyin;
+	extern FILE * libxlio_yyin;
 	
 	__vma_rule_push_head = 1;
 	
 	/* The below casting is valid because we open the stream as read-only. */
 	/* coverity[alloc_strlen] */
-	libvma_yyin = fmemopen((void*)line, strlen(line), "r");
+	libxlio_yyin = fmemopen((void*)line, strlen(line), "r");
 	
-	if (!libvma_yyin) {
+	if (!libxlio_yyin) {
 		printf("Error: Fail to parse line:%s\n", line);
 		return(1);
 	}
@@ -2222,7 +2222,7 @@ int __vma_parse_config_line (const char *line) {
 	parse_err = 0;
 	yyparse();
 	
-	fclose(libvma_yyin);
+	fclose(libxlio_yyin);
 	
 	return(parse_err);
 }

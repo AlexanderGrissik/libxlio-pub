@@ -4,9 +4,9 @@ noinst_LTLIBRARIES = \
 libconfig_parser_la_SOURCES =
 BUILT_SOURCES =
 
-AM_LFLAGS = -Plibvma_yy
-AM_YFLAGS = -plibvma_yy -d
-LEX_OUTPUT_ROOT=lex.libvma_yy
+AM_LFLAGS = -Plibxlio_yy
+AM_YFLAGS = -plibxlio_yy -d
+LEX_OUTPUT_ROOT=lex.libxlio_yy
 
 # consider config_scanner.c, config_parser.c, config_parser.h as source (and not
 # as built) because we don't want it to be created by old version of flex/yacc
