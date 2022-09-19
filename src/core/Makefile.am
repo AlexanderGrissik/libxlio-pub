@@ -120,7 +120,7 @@ libxlio_la_SOURCES := \
 	\
 	proto/ip_frag.cpp \
 	proto/flow_tuple.cpp \
-	proto/vma_lwip.cpp \
+	proto/xlio_lwip.cpp \
 	proto/neighbour.cpp \
 	proto/neighbour_table_mgr.cpp \
 	proto/netlink_socket_mgr.cpp \
@@ -260,7 +260,7 @@ libxlio_la_SOURCES := \
 	proto/rule_table_mgr.h \
 	proto/rule_val.h \
 	proto/tls.h \
-	proto/vma_lwip.h \
+	proto/xlio_lwip.h \
 	\
 	sock/cleanable_obj.h \
 	sock/fd_collection.h \

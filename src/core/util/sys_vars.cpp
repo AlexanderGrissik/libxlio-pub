@@ -57,7 +57,7 @@
 #include "core/dev/ib_ctx_handler_collection.h"
 #include "core/dev/net_device_table_mgr.h"
 #include "core/proto/ip_frag.h"
-#include "core/proto/vma_lwip.h"
+#include "core/proto/xlio_lwip.h"
 
 #include "core/proto/neighbour_table_mgr.h"
 #include "core/netlink/netlink_wrapper.h"

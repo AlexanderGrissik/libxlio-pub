@@ -54,7 +54,7 @@
 #include <iomux/epoll_wait_call.h>
 #include <util/sys_vars.h>
 #include <proto/mapping.h>
-#include <proto/vma_lwip.h>
+#include <proto/xlio_lwip.h>
 #include <main.h>
 #include "xlio_extra.h"
 

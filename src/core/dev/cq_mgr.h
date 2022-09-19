@@ -40,7 +40,7 @@
 #include "util/sys_vars.h"
 #include "util/vma_stats.h"
 #include "proto/mem_buf_desc.h"
-#include "proto/vma_lwip.h"
+#include "proto/xlio_lwip.h"
 #include "xlio_extra.h"
 
 #if VLIST_DEBUG

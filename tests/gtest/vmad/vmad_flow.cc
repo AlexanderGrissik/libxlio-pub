@@ -72,7 +72,7 @@ protected:
 /**
  * @test vmad_flow.ti_1
  * @brief
- *    Send valid TCP 3tuple VMA_MSG_FLOW(ADD)
+ *    Send valid TCP 3tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
 TEST_F(vmad_flow, ti_1)
@@ -84,8 +84,8 @@ TEST_F(vmad_flow, ti_1)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_TCP_3T;
+    m_data.action = XLIO_MSG_FLOW_ADD;
+    m_data.type = XLIO_MSG_FLOW_TCP_3T;
     m_data.flow.dst.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.dst.addr.ipv4 = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
@@ -117,7 +117,7 @@ TEST_F(vmad_flow, ti_1)
 /**
  * @test vmad_flow.ti_2
  * @brief
- *    Send valid TCP 5tuple VMA_MSG_FLOW(ADD)
+ *    Send valid TCP 5tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
 TEST_F(vmad_flow, ti_2)
@@ -129,8 +129,8 @@ TEST_F(vmad_flow, ti_2)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_TCP_5T;
+    m_data.action = XLIO_MSG_FLOW_ADD;
+    m_data.type = XLIO_MSG_FLOW_TCP_5T;
     m_data.flow.src.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.src.addr.ipv4 = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
@@ -171,7 +171,7 @@ TEST_F(vmad_flow, ti_2)
 /**
  * @test vmad_flow.ti_3
  * @brief
- *    Send valid 3tuple VMA_MSG_FLOW(ADD) and VMA_MSG_FLOW(DEL)
+ *    Send valid 3tuple XLIO_MSG_FLOW(ADD) and XLIO_MSG_FLOW(DEL)
  * @details
  */
 TEST_F(vmad_flow, ti_3)
@@ -183,8 +183,8 @@ TEST_F(vmad_flow, ti_3)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_TCP_3T;
+    m_data.action = XLIO_MSG_FLOW_ADD;
+    m_data.type = XLIO_MSG_FLOW_TCP_3T;
     m_data.flow.dst.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.dst.addr.ipv4 = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
@@ -210,7 +210,7 @@ TEST_F(vmad_flow, ti_3)
     EXPECT_EQ(0, answer.status);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_DEL;
+    m_data.action = XLIO_MSG_FLOW_DEL;
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -233,7 +233,7 @@ TEST_F(vmad_flow, ti_3)
 /**
  * @test vmad_flow.ti_4
  * @brief
- *    Send valid 5tuple VMA_MSG_FLOW(ADD) and VMA_MSG_FLOW(DEL)
+ *    Send valid 5tuple XLIO_MSG_FLOW(ADD) and XLIO_MSG_FLOW(DEL)
  * @details
  */
 TEST_F(vmad_flow, ti_4)
@@ -245,8 +245,8 @@ TEST_F(vmad_flow, ti_4)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_TCP_5T;
+    m_data.action = XLIO_MSG_FLOW_ADD;
+    m_data.type = XLIO_MSG_FLOW_TCP_5T;
     m_data.flow.src.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.src.addr.ipv4 = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
@@ -281,7 +281,7 @@ TEST_F(vmad_flow, ti_4)
     EXPECT_EQ(0, answer.status);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_DEL;
+    m_data.action = XLIO_MSG_FLOW_DEL;
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -304,7 +304,7 @@ TEST_F(vmad_flow, ti_4)
 /**
  * @test vmad_flow.ti_51
  * @brief
- *    Send valid UDP 3tuple VMA_MSG_FLOW(ADD)
+ *    Send valid UDP 3tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
 TEST_F(vmad_flow, ti_5)
@@ -316,7 +316,7 @@ TEST_F(vmad_flow, ti_5)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
+    m_data.action = XLIO_MSG_FLOW_ADD;
     m_data.type = XLIO_MSG_FLOW_UDP_3T;
     m_data.flow.dst.family = m_family;
     if (m_family == PF_INET) {
@@ -349,7 +349,7 @@ TEST_F(vmad_flow, ti_5)
 /**
  * @test vmad_flow.ti_6
  * @brief
- *    Send valid UDP 5tuple VMA_MSG_FLOW(ADD)
+ *    Send valid UDP 5tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
 TEST_F(vmad_flow, ti_6)
@@ -361,7 +361,7 @@ TEST_F(vmad_flow, ti_6)
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
-    m_data.action = VMA_MSG_FLOW_ADD;
+    m_data.action = XLIO_MSG_FLOW_ADD;
     m_data.type = XLIO_MSG_FLOW_UDP_5T;
     m_data.flow.src.family = m_family;
     if (m_family == PF_INET) {

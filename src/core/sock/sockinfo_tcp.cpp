@@ -45,7 +45,7 @@
 #include "util/agent.h"
 #include "event/event_handler_manager.h"
 #include "proto/route_table_mgr.h"
-#include "proto/vma_lwip.h"
+#include "proto/xlio_lwip.h"
 #include "proto/dst_entry_tcp.h"
 #include "iomux/io_mux_call.h"
 

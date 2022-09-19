@@ -37,7 +37,7 @@
 #include <ifaddrs.h>
 
 #include "ib/base/verbs_extra.h"
-#include "proto/vma_lwip.h"
+#include "proto/xlio_lwip.h"
 #include "vlogger/vlogger.h"
 #include "utils/atomic.h"
 #include "util/vtypes.h"

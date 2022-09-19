@@ -37,7 +37,7 @@
 #include "core/sock/sockinfo_tcp.h"
 #include "core/lwip/init.h"
 #include "core/lwip/tcp_impl.h"
-#include "vma_lwip.h"
+#include "xlio_lwip.h"
 
 // debugging macros
 #define MODULE_NAME "lwip"

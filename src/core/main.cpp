@@ -56,7 +56,7 @@
 #include "dev/ib_ctx_handler_collection.h"
 #include "dev/net_device_table_mgr.h"
 #include "proto/ip_frag.h"
-#include "proto/vma_lwip.h"
+#include "proto/xlio_lwip.h"
 #include "proto/route_table_mgr.h"
 #include "proto/rule_table_mgr.h"
 #include "proto/mapping.h"
