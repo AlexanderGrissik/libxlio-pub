@@ -246,7 +246,7 @@ void ring_simple::create_resources()
                                               "did we run out of file descriptors? traffic may not "
                                               "be offloaded, increase ulimit -n");
         }
-        throw_vma_exception("create event channel failed");
+        throw_xlio_exception("create event channel failed");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
     VALGRIND_MAKE_MEM_DEFINED(m_p_tx_comp_event_channel, sizeof(struct ibv_comp_channel));
@@ -359,7 +359,7 @@ void ring_simple::create_resources()
                                               "did we run out of file descriptors? traffic may not "
                                               "be offloaded, increase ulimit -n");
         }
-        throw_vma_exception("create event channel failed");
+        throw_xlio_exception("create event channel failed");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
     VALGRIND_MAKE_MEM_DEFINED(m_p_rx_comp_event_channel, sizeof(struct ibv_comp_channel));
@@ -381,7 +381,7 @@ void ring_simple::create_resources()
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_p_qp_mgr == NULL) {
         ring_logerr("Failed to allocate qp_mgr!");
-        throw_vma_exception("create qp failed");
+        throw_xlio_exception("create qp failed");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 

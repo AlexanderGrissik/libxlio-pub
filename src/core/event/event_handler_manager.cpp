@@ -102,7 +102,7 @@ void *event_handler_manager::register_timer_event(int timeout_msec, timer_handle
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!node) {
         evh_logdbg("malloc failure");
-        throw_vma_exception("malloc failure");
+        throw_xlio_exception("malloc failure");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
@@ -248,7 +248,7 @@ event_handler_manager::event_handler_manager()
     if (m_epfd == -1) {
         evh_logdbg("epoll_create failed on ibv device collection (errno=%d %m)", errno);
         free_evh_resources();
-        throw_vma_exception("epoll_create failed on ibv device collection");
+        throw_xlio_exception("epoll_create failed on ibv device collection");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
@@ -922,7 +922,7 @@ void *event_handler_manager::thread_loop()
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!p_events) {
         evh_logdbg("malloc failure");
-        throw_vma_exception("malloc failure");
+        throw_xlio_exception("malloc failure");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 

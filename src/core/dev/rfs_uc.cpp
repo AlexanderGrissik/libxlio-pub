@@ -45,12 +45,12 @@ rfs_uc::rfs_uc(flow_tuple *flow_spec_5t, ring_slave *p_ring, rfs_rule_filter *ru
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (m_flow_tuple.is_udp_mc()) {
-        throw_vma_exception("rfs_uc called with MC destination ip");
+        throw_xlio_exception("rfs_uc called with MC destination ip");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     if (m_p_ring->is_simple() && !prepare_flow_spec()) {
-        throw_vma_exception("rfs_uc: Incompatible transport type");
+        throw_xlio_exception("rfs_uc: Incompatible transport type");
     }
 }
 

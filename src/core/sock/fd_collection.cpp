@@ -251,7 +251,7 @@ int fd_collection::addsocket(int fd, int domain, int type, bool check_offload /*
             fdcoll_logdbg("unsupported socket type=%d", sock_type);
             return -1;
         }
-    } catch (vma_exception &e) {
+    } catch (xlio_exception &e) {
         fdcoll_logdbg("recovering from %s", e.what());
         return -1;
     }

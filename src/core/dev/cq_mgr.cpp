@@ -137,7 +137,7 @@ void cq_mgr::configure(int cq_size)
                                    comp_vector, &attr);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!m_p_ibv_cq) {
-        throw_vma_exception("ibv_create_cq failed");
+        throw_xlio_exception("ibv_create_cq failed");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
     VALGRIND_MAKE_MEM_DEFINED(m_p_ibv_cq, sizeof(ibv_cq));

@@ -45,11 +45,11 @@ qp_mgr_eth_mlx5_dpcp::qp_mgr_eth_mlx5_dpcp(struct qp_mgr_desc *desc, uint32_t tx
     : qp_mgr_eth_mlx5(desc, tx_num_wr, vlan, false)
 {
     if (configure(desc)) {
-        throw_vma_exception("Failed creating qp_mgr_eth_mlx5_dpcp");
+        throw_xlio_exception("Failed creating qp_mgr_eth_mlx5_dpcp");
     }
 
     if (!configure_rq_dpcp()) {
-        throw_vma_exception("Failed to create qp_mgr_eth_mlx5_dpcp");
+        throw_xlio_exception("Failed to create qp_mgr_eth_mlx5_dpcp");
     }
 }
 

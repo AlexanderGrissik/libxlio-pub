@@ -261,7 +261,7 @@ public:
         , m_vlan(vlan)
     {
         if (call_configure && configure(desc)) {
-            throw_vma_exception("failed creating qp");
+            throw_xlio_exception("failed creating qp");
         }
     };
 

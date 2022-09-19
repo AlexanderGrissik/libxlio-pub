@@ -159,7 +159,7 @@ void ib_ctx_handler_collection::update_tbl(const char *ifa_name)
     if (!dev_list) {
         ibchc_logerr("Failure in vma_ibv_get_device_list() (error=%d %m)", errno);
         ibchc_logerr("Please check rdma configuration");
-        throw_vma_exception("No IB capable devices found!");
+        throw_xlio_exception("No IB capable devices found!");
     }
     if (!num_devices) {
         vlog_levels_t _level =

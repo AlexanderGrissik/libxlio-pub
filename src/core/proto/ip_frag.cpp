@@ -121,13 +121,13 @@ ip_frag_manager::ip_frag_manager()
     if (!desc_base) {
         frag_dbg("Failed to allocate descriptor");
         free_frag_resources();
-        throw_vma_exception("Failed to allocate descriptor");
+        throw_xlio_exception("Failed to allocate descriptor");
     }
     hole_base = new ip_frag_hole_desc[IP_FRAG_MAX_HOLES];
     if (!hole_base) {
         frag_dbg("Failed to allocate hole descriptor");
         free_frag_resources();
-        throw_vma_exception("Failed to allocate hole descriptor");
+        throw_xlio_exception("Failed to allocate hole descriptor");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
     for (i = 0; i < IP_FRAG_MAX_DESC; i++) {

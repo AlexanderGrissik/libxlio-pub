@@ -208,7 +208,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
             try {
                 p_tmp_rfs =
                     new (std::nothrow) rfs_uc(&flow_spec_5t, &m_ring, dst_port_filter, flow_tag_id);
-            } catch (vma_exception &e) {
+            } catch (xlio_exception &e) {
                 ring_logerr("%s", e.message);
                 return false;
             }
@@ -271,7 +271,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
             }
             try {
                 p_tmp_rfs = new rfs_mc(&flow_spec_5t, &m_ring, l2_mc_ip_filter, flow_tag_id);
-            } catch (vma_exception &e) {
+            } catch (xlio_exception &e) {
                 ring_logerr("%s", e.message);
                 return false;
             } catch (const std::bad_alloc &e) {
@@ -328,7 +328,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::attach_flow(flow_tuple &flow_spec_5t, 
                     p_tmp_rfs = new (std::nothrow)
                         rfs_uc(&flow_spec_5t, &m_ring, dst_port_filter, flow_tag_id);
                 }
-            } catch (vma_exception &e) {
+            } catch (xlio_exception &e) {
                 ring_logerr("%s", e.message);
                 return false;
             }

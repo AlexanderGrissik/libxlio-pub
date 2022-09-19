@@ -136,7 +136,7 @@ vma_lwip::vma_lwip()
     if (!node) {
         lwip_logdbg("LWIP: failed to register timer event");
         free_lwip_resources();
-        throw_vma_exception("LWIP: failed to register timer event");
+        throw_xlio_exception("LWIP: failed to register timer event");
     }
     safe_mce_sys().sysctl_reader.get_tcp_keepalive_info(true);
 }

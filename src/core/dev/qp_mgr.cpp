@@ -141,7 +141,7 @@ cq_mgr *qp_mgr::handle_cq_initialization(uint32_t *num_wr,
 
     try {
         cq = new cq_mgr(m_p_ring, m_p_ib_ctx_handler, *num_wr, comp_event_channel, is_rx);
-    } catch (vma_exception &e) {
+    } catch (xlio_exception &e) {
         // This is a workaround for an issue with cq creation of mlx4 devices on
         // upstream-driver VMs over Windows Hypervisor.
         if (safe_mce_sys().hypervisor == mce_sys_var::HYPER_MSHV && m_p_ib_ctx_handler->is_mlx4() &&
@@ -151,7 +151,7 @@ cq_mgr *qp_mgr::handle_cq_initialization(uint32_t *num_wr,
             *num_wr = MAX_UPSTREAM_CQ_MSHV_SIZE;
             try {
                 cq = new cq_mgr(m_p_ring, m_p_ib_ctx_handler, *num_wr, comp_event_channel, is_rx);
-            } catch (vma_exception &) {
+            } catch (xlio_exception &) {
             }
         }
 

@@ -490,7 +490,7 @@ uint32_t fd2inode(int fd);
  * Note: VMA code should NOT catch vma_error; VMA code should only catch exceptions of derived
  * classes
  */
-class vma_error : public std::exception {
+class xlio_error : public std::exception {
     char formatted_message[512];
 
 public:
@@ -509,10 +509,10 @@ public:
      * sock/sockinfo.cpp:61" catcher can print it to log like this: fdcoll_loginfo("recovering from
      * %s", e.what());
      */
-    vma_error(const char *_message, const char *_function, const char *_filename, int _lineno,
-              int _errnum) throw();
+    xlio_error(const char *_message, const char *_function, const char *_filename, int _lineno,
+               int _errnum) throw();
 
-    virtual ~vma_error() throw();
+    virtual ~xlio_error() throw();
 
     virtual const char *what() const throw();
 };
@@ -521,11 +521,11 @@ public:
  * @class vma_exception
  * NOTE: ALL exceptions that can be caught by VMA should be derived of this class
  */
-class vma_exception : public vma_error {
+class xlio_exception : public xlio_error {
 public:
-    vma_exception(const char *_message, const char *_function, const char *_filename, int _lineno,
-                  int _errnum) throw()
-        : vma_error(_message, _function, _filename, _lineno, _errnum)
+    xlio_exception(const char *_message, const char *_function, const char *_filename, int _lineno,
+                   int _errnum) throw()
+        : xlio_error(_message, _function, _filename, _lineno, _errnum)
     {
     }
 };
@@ -540,10 +540,10 @@ public:
         }                                                                                          \
     }
 
-create_vma_exception_class(vma_unsupported_api, vma_error);
+create_vma_exception_class(vma_unsupported_api, xlio_error);
 
-#define throw_vma_exception(msg)                                                                   \
-    throw vma_exception(msg, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
+#define throw_xlio_exception(msg)                                                                  \
+    throw xlio_exception(msg, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
 // uses for throwing  something that is derived from vma_error and has similar CTOR; msg will
 // automatically be class name
 #define vma_throw_object(_class)                                                                   \

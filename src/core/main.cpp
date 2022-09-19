@@ -946,7 +946,7 @@ extern "C" void sock_redirect_exit(void)
             ptr = new ctor;                                                                        \
             BULLSEYE_EXCLUDE_BLOCK_START                                                           \
             if (ptr == NULL) {                                                                     \
-                throw_vma_exception("Failed allocate " #ctor "\n");                                \
+                throw_xlio_exception("Failed allocate " #ctor "\n");                               \
                 return;                                                                            \
             }                                                                                      \
             BULLSEYE_EXCLUDE_BLOCK_END                                                             \
@@ -1124,18 +1124,18 @@ static void do_global_ctors_helper()
         // Open netlink socket
         BULLSEYE_EXCLUDE_BLOCK_START
         if (g_p_netlink_handler->open_channel()) {
-            throw_vma_exception("Failed in netlink open_channel()\n");
+            throw_xlio_exception("Failed in netlink open_channel()\n");
         }
 
         int fd = g_p_netlink_handler->get_channel();
         if (fd == -1) {
-            throw_vma_exception("Netlink fd == -1\n");
+            throw_xlio_exception("Netlink fd == -1\n");
         }
 
         // Register netlink fd to the event_manager
         s_cmd_nl = new command_netlink(g_p_netlink_handler);
         if (s_cmd_nl == NULL) {
-            throw_vma_exception("Failed allocating command_netlink\n");
+            throw_xlio_exception("Failed allocating command_netlink\n");
         }
         BULLSEYE_EXCLUDE_BLOCK_END
         g_p_event_handler_manager->register_command_event(fd, s_cmd_nl);
@@ -1153,7 +1153,7 @@ int do_global_ctors()
     int errno_backup = errno;
     try {
         do_global_ctors_helper();
-    } catch (const vma_exception &error) {
+    } catch (const xlio_exception &error) {
         vlog_printf(VLOG_DETAILS, "Error: %s", error.what());
         return -1;
     } catch (const std::exception &error) {

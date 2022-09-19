@@ -324,7 +324,7 @@ void xlio_allocator::align_simple_malloc(size_t sz_bytes)
         __log_info_dbg("failed allocating data memory block "
                        "(size=%lu bytes) (errno=%d %s)",
                        sz_bytes, errno, strerror(errno));
-        throw_vma_exception("failed allocating data memory block");
+        throw_xlio_exception("failed allocating data memory block");
     }
     __log_info_dbg("allocated memory using malloc()");
 }
@@ -393,7 +393,7 @@ void xlio_allocator::register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, ui
                            "(ptr=%p size=%ld) (errno=%d %s)",
                            m_data_block, size, errno, strerror(errno));
         }
-        throw_vma_exception("Failed registering memory");
+        throw_xlio_exception("Failed registering memory");
     }
 
     return;

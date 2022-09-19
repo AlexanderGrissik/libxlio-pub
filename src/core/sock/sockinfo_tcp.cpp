@@ -329,7 +329,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         try {
             int tcp_nodelay = 1;
             setsockopt(IPPROTO_TCP, TCP_NODELAY, &tcp_nodelay, sizeof(tcp_nodelay));
-        } catch (vma_error &) {
+        } catch (xlio_error &) {
             // We should not be here
         }
     }
@@ -339,7 +339,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         try {
             int tcp_quickack = 1;
             setsockopt(IPPROTO_TCP, TCP_QUICKACK, &tcp_quickack, sizeof(tcp_quickack));
-        } catch (vma_error &) {
+        } catch (xlio_error &) {
             // We should not be here
         }
     }
@@ -5276,7 +5276,7 @@ tcp_seg_pool::tcp_seg_pool(int size)
     if (m_tcp_segs_array == NULL) {
         __log_dbg("TCP segments allocation failed");
         free_tsp_resources();
-        throw_vma_exception("TCP segments allocation failed");
+        throw_xlio_exception("TCP segments allocation failed");
     }
     memset(m_tcp_segs_array, 0, sizeof(tcp_seg) * size);
     for (int i = 0; i < size - 1; i++) {
@@ -5355,7 +5355,7 @@ tcp_timers_collection::tcp_timers_collection(int period, int resolution)
     if (!m_p_intervals) {
         __log_dbg("failed to allocate memory");
         free_tta_resources();
-        throw_vma_exception("failed to allocate memory");
+        throw_xlio_exception("failed to allocate memory");
     }
 
     BULLSEYE_EXCLUDE_BLOCK_END

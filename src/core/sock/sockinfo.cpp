@@ -100,7 +100,7 @@ sockinfo::sockinfo(int fd, int domain)
     m_ring_alloc_logic = ring_allocation_logic_rx(get_fd(), m_ring_alloc_log_rx, this);
     m_rx_epfd = orig_os_api.epoll_create(128);
     if (unlikely(m_rx_epfd == -1)) {
-        throw_vma_exception("create internal epoll");
+        throw_xlio_exception("create internal epoll");
     }
     wakeup_set_epoll_fd(m_rx_epfd);
     if (m_fd == SOCKET_FAKE_FD) {

@@ -174,11 +174,11 @@ public:
      * Exception by OS IO functions.
      */
 
-    class io_error : public vma_exception {
+    class io_error : public xlio_exception {
     public:
         io_error(const char *_message, const char *_function, const char *_filename, int _lineno,
                  int _errnum) throw()
-            : vma_exception(_message, _function, _filename, _lineno, _errnum)
+            : xlio_exception(_message, _function, _filename, _lineno, _errnum)
         {
         }
     };

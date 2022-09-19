@@ -1427,7 +1427,7 @@ ring *net_device_val_eth::create_ring(resource_allocation_key *key)
             nd_logdbg("Unknown ring type");
             break;
         }
-    } catch (vma_error &error) {
+    } catch (xlio_error &error) {
         nd_logdbg("failed creating ring %s", error.message);
     }
 

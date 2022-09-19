@@ -1406,8 +1406,8 @@ uint32_t fd2inode(int fd)
 }
 
 ///////////////////////////////////////////
-vma_error::vma_error(const char *_message, const char *_function, const char *_filename,
-                     int _lineno, int _errnum) throw()
+xlio_error::xlio_error(const char *_message, const char *_function, const char *_filename,
+                       int _lineno, int _errnum) throw()
     : message(_message)
     , function(_function)
     , filename(_filename)
@@ -1419,11 +1419,11 @@ vma_error::vma_error(const char *_message, const char *_function, const char *_f
     formatted_message[sizeof(formatted_message) - 1] = '\0';
 }
 
-vma_error::~vma_error() throw()
+xlio_error::~xlio_error() throw()
 {
 }
 
-const char *vma_error::what() const throw()
+const char *xlio_error::what() const throw()
 {
     return formatted_message;
 }

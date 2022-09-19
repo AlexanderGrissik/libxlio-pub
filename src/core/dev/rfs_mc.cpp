@@ -43,12 +43,12 @@ rfs_mc::rfs_mc(flow_tuple *flow_spec_5t, ring_slave *p_ring,
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!m_flow_tuple.is_udp_mc()) {
-        throw_vma_exception("rfs_mc called with non mc destination ip");
+        throw_xlio_exception("rfs_mc called with non mc destination ip");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
     if (m_p_ring->is_simple() && !prepare_flow_spec()) {
-        throw_vma_exception("IB multicast offload is not supported");
+        throw_xlio_exception("IB multicast offload is not supported");
     }
 }
 

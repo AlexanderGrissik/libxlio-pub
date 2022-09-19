@@ -259,7 +259,7 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc, const uint32_t tx_num
     m_hw_dummy_send_support = vma_is_nop_supported(m_p_ib_ctx_handler->get_ibv_device_attr());
 
     if (call_configure && configure(desc)) {
-        throw_vma_exception("failed creating qp_mgr_eth");
+        throw_xlio_exception("failed creating qp_mgr_eth");
     }
 
     memset(&m_mlx5_qp, 0, sizeof(m_mlx5_qp));

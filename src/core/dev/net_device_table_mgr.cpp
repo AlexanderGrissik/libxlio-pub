@@ -82,18 +82,18 @@ net_device_table_mgr::net_device_table_mgr()
     if (m_global_ring_epfd == -1) {
         ndtm_logerr("epoll_create failed. (errno=%d %m)", errno);
         free_ndtm_resources();
-        throw_vma_exception("epoll_create failed");
+        throw_xlio_exception("epoll_create failed");
     }
 
     if (orig_os_api.pipe(m_global_ring_pipe_fds)) {
         ndtm_logerr("pipe create failed. (errno=%d %m)", errno);
         free_ndtm_resources();
-        throw_vma_exception("pipe create failed");
+        throw_xlio_exception("pipe create failed");
     }
     if (orig_os_api.write(m_global_ring_pipe_fds[1], "#", 1) != 1) {
         ndtm_logerr("pipe write failed. (errno=%d %m)", errno);
         free_ndtm_resources();
-        throw_vma_exception("pipe write failed");
+        throw_xlio_exception("pipe write failed");
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
@@ -109,7 +109,7 @@ net_device_table_mgr::net_device_table_mgr()
             ibv_free_device_list(dev_list);
             ndtm_logdbg("net_device_map is empty %d", num_devices);
             free_ndtm_resources();
-            throw_vma_exception("net_device_map is empty");
+            throw_xlio_exception("net_device_map is empty");
         }
     }
 
