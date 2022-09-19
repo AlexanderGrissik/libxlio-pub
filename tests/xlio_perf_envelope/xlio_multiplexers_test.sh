@@ -42,26 +42,26 @@ INTERFACE="ib0"
 OVER_VMA="yes" #[yes | not]
 UDP_LAT_MSG_SIZE="2"    #Bytes
 MC_GROUP_SIZES=(2 20)
-VMA_IGMP_ENABLE=0
-VMA_SELECT_POLL=0
-VMA_RX_BUFS=200000
+XLIO_IGMP_ENABLE=0
+XLIO_SELECT_POLL=0
+XLIO_RX_BUFS=200000
 #####################################################
 
 #path
 #----------------------------------------------------
 UDP_LAT_APP=${UDP_LAT_PATH:-udp_lat}
-VMA_LIB=${VMA_PATH:-libvma.so}
+XLIO_LIB=${XLIO_PATH:-libvma.so}
 
 #other
 #----------------------------------------------------
-VMA_SELECT_POLL_MAX_VAL=1000000
-VMA_RX_BUFS_MAX_VAL=200000
+XLIO_SELECT_POLL_MAX_VAL=1000000
+XLIO_RX_BUFS_MAX_VAL=200000
 RX_FRAMES_4_UDP_LAT=1
 RX_USEC=10
 UMCAST_VAL=1
 DST_NET="224.0.0.0"
 DST_MASK="240.0.0.0"
-VMA="vma"
+XLIO="xlio"
 TMP_DIR=/tmp
 TMP_FILE="$TMP_DIR/multiplexer_tmp"
 ERROR_MESSAGE="!!! Test Failed !!!"
@@ -73,7 +73,7 @@ COMMAND_REDIRECT="1>$TMP_FILE 2>$TMP_FILE.err"
 TRUE=1
 FALSE=0
 SUCCSESS=1
-BLOCK_FILE="$TMP_DIR/vma_tests_block_file"
+BLOCK_FILE="$TMP_DIR/xlio_tests_block_file"
 script_name=$(basename $0)
 user_name=`whoami`
 user_id=`who -am | tr " " "\n" | tail -1 | tr -d "(|)"`
@@ -82,43 +82,43 @@ SUPER_USR=root
 
 function run_udp_lat_using_select_epoll_poll_with_zero_polling
 {	
-	local vma_select_poll_old=$VMA_SELECT_POLL
-	vma_select_poll_info=""
+	local xlio_select_poll_old=$XLIO_SELECT_POLL
+	xlio_select_poll_info=""
        	save_coalesce_params
 	update_coalesce_4_udp_lat
 	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
         	print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
 	if [[ "$OVER_VMA" = yes ]]; then
-		vma_select_poll_info="With VMA_SELECT_POLL=0"
+		xlio_select_poll_info="With XLIO_SELECT_POLL=0"
 		print_message "|----------------------------------|" "$log_file"
-		print_message "|VMA_SELECT_POLL=0" "$log_file"
+		print_message "|XLIO_SELECT_POLL=0" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
 	fi
-	run_udp_lat_using_select_helper "$vma_select_poll_info"
-	run_udp_lat_using_poll_helper "$vma_select_poll_info"
-	run_udp_lat_using_epoll_helper "$vma_select_poll_info"
+	run_udp_lat_using_select_helper "$xlio_select_poll_info"
+	run_udp_lat_using_poll_helper "$xlio_select_poll_info"
+	run_udp_lat_using_epoll_helper "$xlio_select_poll_info"
 	recreate_coalesce_params 
 	tests_finish	
 }
 
-function run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
+function run_udp_lat_using_select_epoll_poll_with_full_polling_xlio_only
 {	
 	if [[ "$OVER_VMA" = yes ]]; then
-		local vma_select_poll_old=$VMA_SELECT_POLL
-		vma_select_poll_info=""
+		local xlio_select_poll_old=$XLIO_SELECT_POLL
+		xlio_select_poll_info=""
 		save_coalesce_params
 		update_coalesce_4_udp_lat
 		append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
-		change_command_prefix VMA_SELECT_POLL "$VMA_SELECT_POLL_MAX_VAL"
-		vma_select_poll_info="With VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL"
+		change_command_prefix XLIO_SELECT_POLL "$XLIO_SELECT_POLL_MAX_VAL"
+		xlio_select_poll_info="With XLIO_SELECT_POLL=$XLIO_SELECT_POLL_MAX_VAL"
 		print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
-		print_message "|VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL" "$log_file"
+		print_message "|XLIO_SELECT_POLL=$XLIO_SELECT_POLL_MAX_VAL" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
-		run_udp_lat_using_select_helper "$vma_select_poll_info"
-		run_udp_lat_using_poll_helper "$vma_select_poll_info"
-		run_udp_lat_using_epoll_helper "$vma_select_poll_info"
-		change_command_prefix VMA_SELECT_POLL vma_select_poll_old
+		run_udp_lat_using_select_helper "$xlio_select_poll_info"
+		run_udp_lat_using_poll_helper "$xlio_select_poll_info"
+		run_udp_lat_using_epoll_helper "$xlio_select_poll_info"
+		change_command_prefix XLIO_SELECT_POLL xlio_select_poll_old
 		recreate_coalesce_params 
 		tests_finish	
 	fi
@@ -280,8 +280,8 @@ function check_udp_lat_succss
 function prepare_output_files
 {
         date=`date +%Y_%m_%d_%H_%M_%S`        
-        log_file="${OUTPUT_FILES_PATH}vma_perf_${date}_logs.txt"
-        res_file="${OUTPUT_FILES_PATH}vma_perf_${date}_results.csv"
+        log_file="${OUTPUT_FILES_PATH}xlio_perf_${date}_logs.txt"
+        res_file="${OUTPUT_FILES_PATH}xlio_perf_${date}_results.csv"
      
         touch  $log_file
         touch  $res_file       
@@ -315,19 +315,19 @@ function update_command_prefix
 	
 	if [[ "$OVER_VMA" = yes ]] ; then
 	
-		if [[ $VMA_IGMP_ENABLE -eq 0 ]] ; then
-			PREFIX="$PREFIX VMA_IGMP=0 "	
+		if [[ $XLIO_IGMP_ENABLE -eq 0 ]] ; then
+			PREFIX="$PREFIX XLIO_IGMP=0 "	
 		fi
 
-		if [[ $VMA_SELECT_POLL -ne 0 ]] ; then
-			PREFIX="$PREFIX VMA_SELECT_POLL=$VMA_SELECT_POLL "	
+		if [[ $XLIO_SELECT_POLL -ne 0 ]] ; then
+			PREFIX="$PREFIX XLIO_SELECT_POLL=$XLIO_SELECT_POLL "	
 		fi
 
-		if [[ $VMA_RX_BUFS -ne 0 ]] ; then
-			PREFIX="$PREFIX VMA_RX_BUFS=$VMA_RX_BUFS "	
+		if [[ $XLIO_RX_BUFS -ne 0 ]] ; then
+			PREFIX="$PREFIX XLIO_RX_BUFS=$XLIO_RX_BUFS "	
 		fi			
 	
-		PREFIX=${PREFIX}"LD_PRELOAD=$VMA_LIB "	
+		PREFIX=${PREFIX}"LD_PRELOAD=$XLIO_LIB "	
 	fi	
 }
 
@@ -704,7 +704,7 @@ function collect_local_node_info_to_file
 	fi
 	(ifconfig $INTERFACE | grep MTU | awk '{print $5}' | tee -a $1) >& /dev/null
 	(echo -n "OFED:" >> $1;ofed_info | head -6 | grep OFED | tee -a $1) >& /dev/null
-	(echo -n "VMA:" >> $1;rpm -qa | grep $VMA | tee -a $1) >& /dev/null	
+	(echo -n "XLIO:" >> $1;rpm -qa | grep $XLIO | tee -a $1) >& /dev/null	
 
 }
 
@@ -729,7 +729,7 @@ function collect_remote_node_info_to_file
 	fi
 	(ssh $REM_HOST_IP ifconfig $INTERFACE | grep MTU | awk '{print $5}' | tee -a $1) >& /dev/null
 	(echo -n "OFED:" >> $1;ssh $REM_HOST_IP ofed_info | head -6 | grep OFED | tee -a $1) >& /dev/null
-	(echo -n "VMA:" >> $1;ssh $REM_HOST_IP rpm -qa | grep $VMA | tee -a $1) >& /dev/null
+	(echo -n "XLIO:" >> $1;ssh $REM_HOST_IP rpm -qa | grep $XLIO | tee -a $1) >& /dev/null
 }
 
 function print_message
@@ -789,7 +789,7 @@ function discover_local_work_if_ip
 
 function calc_file_age
 {
-	creation_time=`stat -c %Z /tmp/vma_utils_block_file` 
+	creation_time=`stat -c %Z /tmp/xlio_utils_block_file` 
 	now=`date +%s`
 	block_file_age=$(($now-$creation_time)) 		
 }
@@ -1064,7 +1064,7 @@ function write_date_2_log_file
 	(date | tee -a $log_file) >& /dev/null
 }
 
-function pre_vma_perf
+function pre_xlio_perf
 {	
 	pre_test_checks
 	get_hostnames
@@ -1086,7 +1086,7 @@ function final_test_message
 	echo "---------------------------------------------------------------"
 }
 
-function post_vma_perf
+function post_xlio_perf
 {
 	collect_nodes_info_to_file "$res_file"	
 	recreate_route_table
@@ -1096,19 +1096,19 @@ function post_vma_perf
 	clean	
 }
 
-function vma_perf
+function xlio_perf
 {
 	run_udp_lat_using_select_epoll_poll_with_zero_polling
-        run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
+        run_udp_lat_using_select_epoll_poll_with_full_polling_xlio_only
 }	
 
 #main
 
 if [ $# = 1 ]; then
 	block      
-        pre_vma_perf
-	vma_perf
-	post_vma_perf
+        pre_xlio_perf
+	xlio_perf
+	post_xlio_perf
 	unblock
 else
       echo "Usage: perf <ip of remote host>"

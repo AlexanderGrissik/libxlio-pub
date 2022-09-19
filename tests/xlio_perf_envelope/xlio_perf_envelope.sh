@@ -38,7 +38,7 @@ DURATION=10    #in seconds
 BW=10G
 OUTPUT_FILES_PATH="./"
 INTERFACE="ib0"
-OVER_VMA="yes" #[yes | not]
+OVER_XLIO="yes" #[yes | not]
 UDP_LAT_MSG_SIZE=(2 8 20 60 100 200 400 800 1470 2000 3000 4000 8000 16000 32000 65000)                        #Bytes
 UDP_LAT_BURST_SIZE=(2 5 10 25 50 100 250 500 1000 2500 5000 10000 16000 25000 50000 100000 250000 500000)      #Bytes
 IPERF_MSG_SIZE=(12 20 60 100 200 400 800 1470 2000 3000 4000 8000 16000 32000 65000)                            #Bytes
@@ -47,42 +47,42 @@ MC_GROUP_SIZES=(1 10 20 30 50 60 64 65 70 80 90 100 150 200)
 #path
 #----------------------------------------------------
 UDP_LAT_APP=${UDP_LAT_PATH:-udp_lat}
-VMA_LIB=${VMA_PATH:-libvma.so}
+XLIO_LIB=${XLIO_PATH:-libvma.so}
 
 #####################################################
-#vma default values
+#xlio default values
 #---------------------------------------------------
-DEFAULT_VMA_IGMP_ENABLE=1
-DEFAULT_VMA_RX_POLL_OS_RATIO=10
-DEFAULT_VMA_RX_SKIP_OS=100
-DEFAULT_VMA_SELECT_POLL=0
-DEFAULT_VMA_RX_BUFS=200000
-DEFAULT_VMA_THREAD_MODE=1
-DEFAULT_VMA_RX_WRE=16000
-DEFAULT_VMA_SELECT_POLL=0
-DEFAULT_VMA_SELECT_SKIP_OS=4
-DEFAULT_VMA_HUGETLB=1
+DEFAULT_XLIO_IGMP_ENABLE=1
+DEFAULT_XLIO_RX_POLL_OS_RATIO=10
+DEFAULT_XLIO_RX_SKIP_OS=100
+DEFAULT_XLIO_SELECT_POLL=0
+DEFAULT_XLIO_RX_BUFS=200000
+DEFAULT_XLIO_THREAD_MODE=1
+DEFAULT_XLIO_RX_WRE=16000
+DEFAULT_XLIO_SELECT_POLL=0
+DEFAULT_XLIO_SELECT_SKIP_OS=4
+DEFAULT_XLIO_HUGETLB=1
 #####################################################
-#initial vma values in test  
+#initial xlio values in test  
 #---------------------------------------------------
-VMA_IGMP_ENABLE=0
-VMA_RX_POLL_OS_RATIO=$DEFAULT_VMA_RX_POLL_OS_RATIO
-VMA_RX_SKIP_OS=$DEFAULT_VMA_RX_SKIP_OS
-VMA_RX_BUFS=$DEFAULT_VMA_RX_BUFS
-VMA_RX_WRE=$DEFAULT_VMA_RX_WRE
-VMA_SELECT_POLL=$DEFAULT_VMA_SELECT_POLL
-VMA_SELECT_SKIP_OS=$DEFAULT_VMA_SELECT_SKIP_OS
-VMA_THREAD_MODE=$DEFAULT_VMA_THREAD_MODE
-VMA_HUGETLB=$DEFAULT_VMA_HUGETLB
+XLIO_IGMP_ENABLE=0
+XLIO_RX_POLL_OS_RATIO=$DEFAULT_XLIO_RX_POLL_OS_RATIO
+XLIO_RX_SKIP_OS=$DEFAULT_XLIO_RX_SKIP_OS
+XLIO_RX_BUFS=$DEFAULT_XLIO_RX_BUFS
+XLIO_RX_WRE=$DEFAULT_XLIO_RX_WRE
+XLIO_SELECT_POLL=$DEFAULT_XLIO_SELECT_POLL
+XLIO_SELECT_SKIP_OS=$DEFAULT_XLIO_SELECT_SKIP_OS
+XLIO_THREAD_MODE=$DEFAULT_XLIO_THREAD_MODE
+XLIO_HUGETLB=$DEFAULT_XLIO_HUGETLB
 ###########################################################################
 #other								Optimal Val		
 #--------------------------------------------------------------------------
-VMA_SELECT_POLL_MAX_VAL=1000000		
-VMA_RX_BUFS_MAX_VAL=200000
-VMA_IOMUX_RX_WRE=$DEFAULT_VMA_RX_WRE				#3200
-VMA_IOMUX_RX_SKIP_OS=$DEFAULT_VMA_RX_SKIP_OS			#1000
-VMA_IOMUX_SELECT_SKIP_OS=$DEFAULT_VMA_SELECT_SKIP_OS		#500
-VMA_IOMUX_HUGETLB=$DEFAULT_VMA_HUGETLB				#1
+XLIO_SELECT_POLL_MAX_VAL=1000000		
+XLIO_RX_BUFS_MAX_VAL=200000
+XLIO_IOMUX_RX_WRE=$DEFAULT_XLIO_RX_WRE				#3200
+XLIO_IOMUX_RX_SKIP_OS=$DEFAULT_XLIO_RX_SKIP_OS			#1000
+XLIO_IOMUX_SELECT_SKIP_OS=$DEFAULT_XLIO_SELECT_SKIP_OS		#500
+XLIO_IOMUX_HUGETLB=$DEFAULT_XLIO_HUGETLB				#1
 MAX_UDP_LAT_MSG_SIZE=65000
 ACTIVITY=100000
 RX_FRAMES_4_UDP_LAT=1
@@ -92,7 +92,7 @@ RX_USEC_4_BW_TEST=10
 UMCAST_VAL=1
 DST_NET="224.0.0.0"
 DST_MASK="240.0.0.0"
-VMA="vma"
+XLIO="xlio"
 TMP_DIR=/tmp
 TMP_FILE="$TMP_DIR/perf_tmp"
 ERROR_MESSAGE="!!! Test Failed !!!"
@@ -104,7 +104,7 @@ COMMAND_REDIRECT="1>$TMP_FILE 2>$TMP_FILE.err"
 TRUE=1
 FALSE=0
 SUCCSESS=1
-BLOCK_FILE="$TMP_DIR/vma_tests_block_file"
+BLOCK_FILE="$TMP_DIR/xlio_tests_block_file"
 script_name=$(basename $0)
 user_name=`whoami`
 user_id=`who -am | tr " " "\n" | tail -1 | tr -d "(|)"`
@@ -226,8 +226,8 @@ function run_udp_lat_with_diff_burst_size
 	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
        	print_message "===================>UDP_LAT SENDING BURSTS<===================" "$log_file"
 	local size_arr_len=${#UDP_LAT_BURST_SIZE[*]}
-	local initial_rx_buffs_val=$VMA_RX_BUFS
-	VMA_RX_BUFS=$VMA_RX_BUFS_MAX_VAL
+	local initial_rx_buffs_val=$XLIO_RX_BUFS
+	XLIO_RX_BUFS=$XLIO_RX_BUFS_MAX_VAL
 	update_command_prefix
         upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -i $MC_GROUP -p $PORT -m $MAX_UDP_LAT_MSG_SIZE"
         (echo ${SRV_CMMND_LINE_PREF}$upd_lat_command_line_srv | tee -a $log_file) >& /dev/null
@@ -240,7 +240,7 @@ function run_udp_lat_with_diff_burst_size
 		sleep 5
 		parse_udp_lat_test_results  "${UDP_LAT_BURST_SIZE[$i]}" 	              
 	done
-	VMA_RX_BUFS=$initial_rx_buffs_val
+	XLIO_RX_BUFS=$initial_rx_buffs_val
 	update_command_prefix
     	clean_after_udp_lat
 	recreate_coalesce_params 
@@ -249,19 +249,19 @@ function run_udp_lat_with_diff_burst_size
 
 function run_udp_lat_using_select_epoll_poll_with_zero_polling
 {	
-	local vma_select_poll_old=$VMA_SELECT_POLL
-	vma_select_poll_info=""
+	local xlio_select_poll_old=$XLIO_SELECT_POLL
+	xlio_select_poll_info=""
        	save_coalesce_params
 	update_coalesce_4_udp_lat
 	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
         	print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
-	if [[ "$OVER_VMA" = yes ]]; then
-		vma_select_poll_info="With VMA_SELECT_POLL=0"
+	if [[ "$OVER_XLIO" = yes ]]; then
+		xlio_select_poll_info="With XLIO_SELECT_POLL=0"
 		print_message "|----------------------------------|" "$log_file"
-		print_message "|VMA_SELECT_POLL=0" "$log_file"
+		print_message "|XLIO_SELECT_POLL=0" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
 	fi
-	run_udp_lat_using_select_epoll_poll_helper "$vma_select_poll_info"
+	run_udp_lat_using_select_epoll_poll_helper "$xlio_select_poll_info"
 	recreate_coalesce_params 
 	tests_finish	
 }
@@ -313,27 +313,27 @@ function increase_number_of_hugetlb
 	clean
 }
 
-function run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
+function run_udp_lat_using_select_epoll_poll_with_full_polling_xlio_only
 {	
-	if [[ "$OVER_VMA" = yes ]]; then
-		local vma_select_poll_old=$VMA_SELECT_POLL
-		local vma_select_skip_os_old=$VMA_SELECT_SKIP_OS
-		local vma_rx_skip_os_old=$VMA_RX_SKIP_OS
-		local vma_rx_wre_old=$VMA_RX_WRE
-                local vma_hugetlb_old=$VMA_HUGETLB
+	if [[ "$OVER_XLIO" = yes ]]; then
+		local xlio_select_poll_old=$XLIO_SELECT_POLL
+		local xlio_select_skip_os_old=$XLIO_SELECT_SKIP_OS
+		local xlio_rx_skip_os_old=$XLIO_RX_SKIP_OS
+		local xlio_rx_wre_old=$XLIO_RX_WRE
+                local xlio_hugetlb_old=$XLIO_HUGETLB
 		
-		vma_select_poll_info=""
+		xlio_select_poll_info=""
 		save_coalesce_params
 		update_coalesce_4_udp_lat
 		append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
-		change_command_prefix VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL VMA_SELECT_SKIP_OS=$VMA_IOMUX_SELECT_SKIP_OS VMA_RX_WRE=$VMA_IOMUX_RX_WRE VMA_HUGETLB=$VMA_IOMUX_HUGETLB VMA_RX_SKIP_OS=$VMA_IOMUX_RX_SKIP_OS
-		vma_select_poll_info="With VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL"
+		change_command_prefix XLIO_SELECT_POLL=$XLIO_SELECT_POLL_MAX_VAL XLIO_SELECT_SKIP_OS=$XLIO_IOMUX_SELECT_SKIP_OS XLIO_RX_WRE=$XLIO_IOMUX_RX_WRE XLIO_HUGETLB=$XLIO_IOMUX_HUGETLB XLIO_RX_SKIP_OS=$XLIO_IOMUX_RX_SKIP_OS
+		xlio_select_poll_info="With XLIO_SELECT_POLL=$XLIO_SELECT_POLL_MAX_VAL"
 		print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
-		print_message "|VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL" "$log_file"
+		print_message "|XLIO_SELECT_POLL=$XLIO_SELECT_POLL_MAX_VAL" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
-		run_udp_lat_using_select_epoll_poll_helper "$vma_select_poll_info"
-		change_command_prefix VMA_SELECT_POLL=$vma_select_poll_old VMA_SELECT_SKIP_OS=$vma_select_skip_os_old VMA_RX_WRE=$vma_rx_wre_old VMA_HUGETLB=$vma_hugetlb_old VMA_RX_SKIP_OS=$vma_rx_skip_os_old
+		run_udp_lat_using_select_epoll_poll_helper "$xlio_select_poll_info"
+		change_command_prefix XLIO_SELECT_POLL=$xlio_select_poll_old XLIO_SELECT_SKIP_OS=$xlio_select_skip_os_old XLIO_RX_WRE=$xlio_rx_wre_old XLIO_HUGETLB=$xlio_hugetlb_old XLIO_RX_SKIP_OS=$xlio_rx_skip_os_old
 		recreate_coalesce_params 
 		tests_finish	
 	fi
@@ -598,8 +598,8 @@ function check_iperf_succss
 function prepare_output_files
 {
         date=`date +%Y_%m_%d_%H_%M_%S`        
-        log_file="${OUTPUT_FILES_PATH}vma_perf_${date}_logs.txt"
-        res_file="${OUTPUT_FILES_PATH}vma_perf_${date}_results.csv"
+        log_file="${OUTPUT_FILES_PATH}xlio_perf_${date}_logs.txt"
+        res_file="${OUTPUT_FILES_PATH}xlio_perf_${date}_results.csv"
      
         touch  $log_file
         touch  $res_file       
@@ -662,11 +662,11 @@ function get_hostnames
 
 }
 
-function update_vma_igmp_flag
+function update_xlio_igmp_flag
 {
 	check_if_infbnd_iface	
 	if [[ $is_infiniband -eq $FALSE ]]; then
-		VMA_IGMP_ENABLE=1	
+		XLIO_IGMP_ENABLE=1	
 	fi
 }
 
@@ -674,43 +674,43 @@ function update_command_prefix
 {
 	PREFIX=""
 	
-	update_vma_igmp_flag	
+	update_xlio_igmp_flag	
 	
-	if [[ "$OVER_VMA" = yes ]] ; then
+	if [[ "$OVER_XLIO" = yes ]] ; then
 	
-		if [[ $VMA_IGMP_ENABLE -ne $DEFAULT_VMA_IGMP_ENABLE ]] ; then
-			PREFIX="$PREFIX VMA_IGMP=$VMA_IGMP_ENABLE "	
+		if [[ $XLIO_IGMP_ENABLE -ne $DEFAULT_XLIO_IGMP_ENABLE ]] ; then
+			PREFIX="$PREFIX XLIO_IGMP=$XLIO_IGMP_ENABLE "	
 		fi
 
-		if [[ $VMA_SELECT_POLL -ne $DEFAULT_VMA_SELECT_POLL ]] ; then
-			PREFIX="$PREFIX VMA_SELECT_POLL=$VMA_SELECT_POLL "	
+		if [[ $XLIO_SELECT_POLL -ne $DEFAULT_XLIO_SELECT_POLL ]] ; then
+			PREFIX="$PREFIX XLIO_SELECT_POLL=$XLIO_SELECT_POLL "	
 		fi
 
-		if [[ $VMA_RX_SKIP_OS -ne $DEFAULT_VMA_RX_SKIP_OS ]] ; then
-                        PREFIX="$PREFIX VMA_RX_SKIP_OS=$VMA_RX_SKIP_OS "
+		if [[ $XLIO_RX_SKIP_OS -ne $DEFAULT_XLIO_RX_SKIP_OS ]] ; then
+                        PREFIX="$PREFIX XLIO_RX_SKIP_OS=$XLIO_RX_SKIP_OS "
                 fi
 		
-		if [[ $VMA_RX_BUFS -ne $DEFAULT_VMA_RX_BUFS ]] ; then
-			PREFIX="$PREFIX VMA_RX_BUFS=$VMA_RX_BUFS "	
+		if [[ $XLIO_RX_BUFS -ne $DEFAULT_XLIO_RX_BUFS ]] ; then
+			PREFIX="$PREFIX XLIO_RX_BUFS=$XLIO_RX_BUFS "	
 		fi			
 	
-		if [[ $VMA_THREAD_MODE  -ne $DEFAULT_VMA_THREAD_MODE ]] ; then
-			PREFIX="$PREFIX VMA_THREAD_MODE=$VMA_THREAD_MODE "		
+		if [[ $XLIO_THREAD_MODE  -ne $DEFAULT_XLIO_THREAD_MODE ]] ; then
+			PREFIX="$PREFIX XLIO_THREAD_MODE=$XLIO_THREAD_MODE "		
 		fi
 	
-                if [[ $VMA_RX_WRE  -ne $DEFAULT_VMA_RX_WRE ]] ; then
-                        PREFIX="$PREFIX VMA_RX_WRE=$VMA_RX_WRE "
+                if [[ $XLIO_RX_WRE  -ne $DEFAULT_XLIO_RX_WRE ]] ; then
+                        PREFIX="$PREFIX XLIO_RX_WRE=$XLIO_RX_WRE "
                 fi
 	
-		if [[ $VMA_SELECT_SKIP_OS  -ne $DEFAULT_VMA_SELECT_SKIP_OS ]] ; then
-                        PREFIX="$PREFIX VMA_SELECT_SKIP_OS=$VMA_SELECT_SKIP_OS "
+		if [[ $XLIO_SELECT_SKIP_OS  -ne $DEFAULT_XLIO_SELECT_SKIP_OS ]] ; then
+                        PREFIX="$PREFIX XLIO_SELECT_SKIP_OS=$XLIO_SELECT_SKIP_OS "
                 fi
 
-		if [[ $VMA_HUGETLB  -ne $DEFAULT_VMA_HUGETLB ]] ; then
-                        PREFIX="$PREFIX VMA_HUGETLB=$VMA_HUGETLB "
+		if [[ $XLIO_HUGETLB  -ne $DEFAULT_XLIO_HUGETLB ]] ; then
+                        PREFIX="$PREFIX XLIO_HUGETLB=$XLIO_HUGETLB "
                 fi
 	
-		PREFIX=${PREFIX}"LD_PRELOAD=$VMA_LIB "	
+		PREFIX=${PREFIX}"LD_PRELOAD=$XLIO_LIB "	
 	fi	
 }
 
@@ -960,7 +960,7 @@ function save_umcast
 	echo "========================>Umcast info<=========================" >> "$TMP_DIR/$log_file.prep"
 	check_if_infbnd_iface
 
-	if [[ "$OVER_VMA" = not ]]; then
+	if [[ "$OVER_XLIO" = not ]]; then
 		UMCAST_VAL=0
 	fi
 
@@ -1125,7 +1125,7 @@ function collect_local_node_info_to_file
 	fi
 	(ifconfig $INTERFACE | grep MTU | awk '{print $5}' | tee -a $1) >& /dev/null
 	(echo -n "OFED:" >> $1;ofed_info | head -6 | grep OFED | tee -a $1) >& /dev/null
-	(echo -n "VMA:" >> $1;rpm -qa | grep $VMA | tee -a $1) >& /dev/null	
+	(echo -n "XLIO:" >> $1;rpm -qa | grep $XLIO | tee -a $1) >& /dev/null	
 
 }
 
@@ -1150,7 +1150,7 @@ function collect_remote_node_info_to_file
 	fi
 	(ssh $REM_HOST_IP ifconfig $INTERFACE | grep MTU | awk '{print $5}' | tee -a $1) >& /dev/null
 	(echo -n "OFED:" >> $1;ssh $REM_HOST_IP ofed_info | head -6 | grep OFED | tee -a $1) >& /dev/null
-	(echo -n "VMA:" >> $1;ssh $REM_HOST_IP rpm -qa | grep $VMA | tee -a $1) >& /dev/null
+	(echo -n "XLIO:" >> $1;ssh $REM_HOST_IP rpm -qa | grep $XLIO | tee -a $1) >& /dev/null
 }
 
 function print_message
@@ -1210,7 +1210,7 @@ function discover_local_work_if_ip
 
 function calc_file_age
 {
-	creation_time=`stat -c %Z /tmp/vma_utils_block_file` 
+	creation_time=`stat -c %Z /tmp/xlio_utils_block_file` 
 	now=`date +%s`
 	block_file_age=$(($now-$creation_time)) 		
 }
@@ -1530,7 +1530,7 @@ function write_date_2_log_file
 	(date | tee -a $log_file) >& /dev/null
 }
 
-function pre_vma_perf
+function pre_xlio_perf
 {	
 	pre_test_checks
 	get_hostnames
@@ -1554,7 +1554,7 @@ function final_test_message
 	echo "---------------------------------------------------------------"
 }
 
-function post_vma_perf
+function post_xlio_perf
 {
 	collect_nodes_info_to_file "$res_file"	
 	recreate_route_table
@@ -1565,7 +1565,7 @@ function post_vma_perf
 	clean	
 }
 
-function vma_perf
+function xlio_perf
 {
 	run_udp_lat_with_diff_msg_len
 	run_udp_lat_tx_bw_with_diff_msg_len
@@ -1573,16 +1573,16 @@ function vma_perf
 	run_udp_lat_with_diff_burst_size
 	run_iperf
 	run_udp_lat_using_select_epoll_poll_with_zero_polling
-	run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
+	run_udp_lat_using_select_epoll_poll_with_full_polling_xlio_only
 }	
 
 #main
 
 if [ $# = 1 ]; then
 	block      
-        pre_vma_perf
-	vma_perf
-	post_vma_perf
+        pre_xlio_perf
+	xlio_perf
+	post_xlio_perf
 	unblock
 else
       echo "Usage: perf <ip of remote host>"
