@@ -36,7 +36,7 @@
 #include "common/base.h"
 #include "common/cmn.h"
 
-#include "vmad_base.h"
+#include "xliod_base.h"
 
 #include "tools/daemon/hash.h"
 

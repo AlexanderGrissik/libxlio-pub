@@ -122,12 +122,12 @@ gtest_SOURCES = \
 	core/vma_send_zc.cc \
 	core/vma_ioctl.cc \
 	\
-	vmad/vmad_base.cc \
-	vmad/vmad_bitmap.cc \
-	vmad/vmad_hash.cc \
-	vmad/vmad_init.cc \
-	vmad/vmad_state.cc \
-	vmad/vmad_flow.cc
+	xliod/xliod_base.cc \
+	xliod/xliod_bitmap.cc \
+	xliod/xliod_hash.cc \
+	xliod/xliod_init.cc \
+	xliod/xliod_state.cc \
+	xliod/xliod_flow.cc
 
 noinst_HEADERS = \
 	common/tap.h \
@@ -148,7 +148,7 @@ noinst_HEADERS = \
 	\
 	core/vma_base.h \
 	\
-	vmad/vmad_base.h
+	xliod/xliod_base.h
 
 gtest_DEPENDENCIES = \
 	libgtest.la
