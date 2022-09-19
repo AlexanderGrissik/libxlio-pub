@@ -277,7 +277,7 @@ libxlio_la_SOURCES := \
 	util/chunk_list.h \
 	util/if.h \
 	util/instrumentation.h \
-	util/libvma.h \
+	util/libxlio.h \
 	util/list.h \
 	util/sg_array.h \
 	util/ip_address.h \

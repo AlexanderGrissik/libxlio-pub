@@ -77,7 +77,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <util/libvma.h>
+#include <util/libxlio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

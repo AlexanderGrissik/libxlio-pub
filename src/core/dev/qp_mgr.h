@@ -42,7 +42,7 @@
 #include "utils/atomic.h"
 #include "util/vtypes.h"
 #include "util/sys_vars.h"
-#include "util/libvma.h"
+#include "util/libxlio.h"
 #include "util/if.h"
 #include "lwip/opt.h"
 #include "proto/mem_buf_desc.h"

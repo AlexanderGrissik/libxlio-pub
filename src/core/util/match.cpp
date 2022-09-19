@@ -52,7 +52,7 @@
 /*
  * Specific includes
  */
-#include "libvma.h"
+#include "libxlio.h"
 #include "core/util/sys_vars.h"
 
 // debugging macros

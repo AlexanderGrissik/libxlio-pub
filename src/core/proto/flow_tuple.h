@@ -35,7 +35,7 @@
 
 #include <list>
 #include <netinet/in.h>
-#include "core/util/libvma.h"
+#include "core/util/libxlio.h"
 #include "core/util/sock_addr.h"
 #include "core/util/sys_vars.h"
 

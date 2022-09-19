@@ -33,7 +33,7 @@
 #include <sys/resource.h>
 
 #include "utils/bullseye.h"
-#include "util/libvma.h"
+#include "util/libxlio.h"
 #include "fd_collection.h"
 #include "sock-redirect.h"
 #include "socket_fd_api.h"

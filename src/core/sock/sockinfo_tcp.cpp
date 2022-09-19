@@ -39,7 +39,7 @@
 #include "vlogger/vlogger.h"
 #include "utils/lock_wrapper.h"
 #include "utils/rdtsc.h"
-#include "util/libvma.h"
+#include "util/libxlio.h"
 #include "util/instrumentation.h"
 #include "util/list.h"
 #include "util/agent.h"

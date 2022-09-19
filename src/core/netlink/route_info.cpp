@@ -35,7 +35,7 @@
 #include "route_info.h"
 #include "config.h"
 #include "core/util/if.h"
-#include "core/util/libvma.h"
+#include "core/util/libxlio.h"
 #include "vlogger/vlogger.h"
 
 #define MODULE_NAME "route_info:"

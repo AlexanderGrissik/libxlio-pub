@@ -42,7 +42,7 @@
 
 #include "utils/bullseye.h"
 #include "utils/rdtsc.h"
-#include "util/libvma.h"
+#include "util/libxlio.h"
 #include "sock/sock-redirect.h"
 #include "sock/fd_collection.h"
 #include "event/event_handler_manager.h"
