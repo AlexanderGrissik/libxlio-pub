@@ -54,18 +54,18 @@
  * 7-bit in message code is for ACK flag in case specific
  * message requires the confirmation
  */
-#define VMA_MSG_INIT  0x01
-#define VMA_MSG_STATE 0x02
-#define VMA_MSG_EXIT  0x03
-#define VMA_MSG_FLOW  0x04
+#define XLIO_MSG_INIT  0x01
+#define XLIO_MSG_STATE 0x02
+#define XLIO_MSG_EXIT  0x03
+#define XLIO_MSG_FLOW  0x04
 
-#define VMA_MSG_ACK 0x80
+#define XLIO_MSG_ACK 0x80
 
-#define VMA_AGENT_VER 0x04
+#define XLIO_AGENT_VER 0x04
 
-#define VMA_AGENT_BASE_NAME "xlioagent"
-#define VMA_AGENT_ADDR      "/var/run/" VMA_AGENT_BASE_NAME ".sock"
-#define VMA_AGENT_PATH      "/tmp/xlio"
+#define XLIO_AGENT_BASE_NAME "xlioagent"
+#define XLIO_AGENT_ADDR      "/var/run/" XLIO_AGENT_BASE_NAME ".sock"
+#define XLIO_AGENT_PATH      "/tmp/xlio"
 
 #pragma pack(push, 1)
 struct vma_hdr {
@@ -109,14 +109,14 @@ struct vma_msg_state {
 };
 
 enum {
-    VMA_MSG_FLOW_EGRESS = 0,
-    VMA_MSG_FLOW_UDP_5T = 1,
-    VMA_MSG_FLOW_UDP_3T = 2,
-    VMA_MSG_FLOW_TCP_5T = 3,
-    VMA_MSG_FLOW_TCP_3T = 4
+    XLIO_MSG_FLOW_EGRESS = 0,
+    XLIO_MSG_FLOW_UDP_5T = 1,
+    XLIO_MSG_FLOW_UDP_3T = 2,
+    XLIO_MSG_FLOW_TCP_5T = 3,
+    XLIO_MSG_FLOW_TCP_3T = 4
 };
 
-typedef enum { VMA_MSG_FLOW_ADD = 1, VMA_MSG_FLOW_DEL = 2 } msg_flow_t;
+typedef enum { XLIO_MSG_FLOW_ADD = 1, XLIO_MSG_FLOW_DEL = 2 } msg_flow_t;
 
 struct vma_msg_flow {
     struct vma_hdr hdr;

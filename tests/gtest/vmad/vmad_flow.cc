@@ -54,8 +54,8 @@ protected:
 
         m_pid = 0x464C4F57;
         memset(&m_data, 0, sizeof(m_data));
-        m_data.hdr.code = VMA_MSG_FLOW;
-        m_data.hdr.ver = VMA_AGENT_VER;
+        m_data.hdr.code = XLIO_MSG_FLOW;
+        m_data.hdr.ver = XLIO_AGENT_VER;
         m_data.hdr.pid = m_pid;
 
         opt_val[0] = '\0';
@@ -105,8 +105,8 @@ TEST_F(vmad_flow, ti_1)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -159,8 +159,8 @@ TEST_F(vmad_flow, ti_2)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -204,8 +204,8 @@ TEST_F(vmad_flow, ti_3)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -221,8 +221,8 @@ TEST_F(vmad_flow, ti_3)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -275,8 +275,8 @@ TEST_F(vmad_flow, ti_4)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -292,8 +292,8 @@ TEST_F(vmad_flow, ti_4)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -317,7 +317,7 @@ TEST_F(vmad_flow, ti_5)
 
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_UDP_3T;
+    m_data.type = XLIO_MSG_FLOW_UDP_3T;
     m_data.flow.dst.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.dst.addr.ipv4 = ((struct sockaddr_in *)&server_addr)->sin_addr.s_addr;
@@ -337,8 +337,8 @@ TEST_F(vmad_flow, ti_5)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
@@ -362,7 +362,7 @@ TEST_F(vmad_flow, ti_6)
 
     m_data.hdr.status = 1;
     m_data.action = VMA_MSG_FLOW_ADD;
-    m_data.type = VMA_MSG_FLOW_UDP_5T;
+    m_data.type = XLIO_MSG_FLOW_UDP_5T;
     m_data.flow.src.family = m_family;
     if (m_family == PF_INET) {
         m_data.flow.src.addr.ipv4 = ((struct sockaddr_in *)&client_addr)->sin_addr.s_addr;
@@ -391,8 +391,8 @@ TEST_F(vmad_flow, ti_6)
     rc = recv(m_sock_fd, &answer, sizeof(answer), 0);
     EXPECT_EQ((int)sizeof(answer), rc);
 
-    EXPECT_EQ((VMA_MSG_FLOW | VMA_MSG_ACK), answer.code);
-    EXPECT_LE(VMA_AGENT_VER, answer.ver);
+    EXPECT_EQ((XLIO_MSG_FLOW | XLIO_MSG_ACK), answer.code);
+    EXPECT_LE(XLIO_AGENT_VER, answer.ver);
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 

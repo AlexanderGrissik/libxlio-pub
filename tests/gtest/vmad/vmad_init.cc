@@ -50,8 +50,8 @@ protected:
 
         m_pid = 0x494E4954;
         memset(&m_data, 0, sizeof(m_data));
-        m_data.hdr.code = VMA_MSG_INIT;
-        m_data.hdr.ver = VMA_AGENT_VER;
+        m_data.hdr.code = XLIO_MSG_INIT;
+        m_data.hdr.ver = XLIO_AGENT_VER;
         m_data.hdr.pid = m_pid;
         version = (uint8_t *)&m_data.ver;
         version[0] = PRJ_LIBRARY_MAJOR;
@@ -153,8 +153,8 @@ TEST_F(vmad_init, ti_4)
     rc = recv(m_sock_fd, &data, sizeof(data), 0);
     EXPECT_EQ((int)sizeof(data), rc);
 
-    EXPECT_EQ((VMA_MSG_INIT | VMA_MSG_ACK), data.hdr.code);
-    EXPECT_LE(VMA_AGENT_VER, data.hdr.ver);
+    EXPECT_EQ((XLIO_MSG_INIT | XLIO_MSG_ACK), data.hdr.code);
+    EXPECT_LE(XLIO_AGENT_VER, data.hdr.ver);
     EXPECT_EQ(m_pid, data.hdr.pid);
 }
 
@@ -170,8 +170,8 @@ TEST_F(vmad_init, ti_5)
     struct vma_msg_exit data;
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_EXIT;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_EXIT;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = m_pid;
 
     errno = 0;

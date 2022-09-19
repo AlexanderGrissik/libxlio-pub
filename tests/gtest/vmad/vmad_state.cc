@@ -49,8 +49,8 @@ protected:
 
         m_pid = 0x53544154;
         memset(&m_data, 0, sizeof(m_data));
-        m_data.hdr.code = VMA_MSG_STATE;
-        m_data.hdr.ver = VMA_AGENT_VER;
+        m_data.hdr.code = XLIO_MSG_STATE;
+        m_data.hdr.ver = XLIO_AGENT_VER;
         m_data.hdr.pid = m_pid;
     }
     void TearDown() { vmad_base::TearDown(); }

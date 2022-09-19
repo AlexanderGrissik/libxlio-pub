@@ -80,7 +80,7 @@ ring_tap::ring_tap(int if_index, ring *parent)
     memcpy(m_p_ring_stat->tap.s_tap_name, tap_if_name, IFNAMSIZ);
 
     /* create egress rule (redirect traffic from tap device to physical interface) */
-    rc = prepare_flow_message(data, VMA_MSG_FLOW_ADD);
+    rc = prepare_flow_message(data, XLIO_MSG_FLOW_ADD);
     if (rc != 0) {
         ring_logwarn("Add TC rule failed with error=%d", rc);
     }
@@ -241,7 +241,7 @@ bool ring_tap::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool f
     if (ret && (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc())) {
         int rc = 0;
         struct vma_msg_flow data;
-        rc = prepare_flow_message(data, VMA_MSG_FLOW_ADD, flow_spec_5t);
+        rc = prepare_flow_message(data, XLIO_MSG_FLOW_ADD, flow_spec_5t);
         if (rc != 0) {
             if (!g_b_exit) {
                 ring_logwarn("Add TC rule failed with error=%d", rc);
@@ -262,7 +262,7 @@ bool ring_tap::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
     if (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc()) {
         int rc = 0;
         struct vma_msg_flow data;
-        rc = prepare_flow_message(data, VMA_MSG_FLOW_DEL, flow_spec_5t);
+        rc = prepare_flow_message(data, XLIO_MSG_FLOW_DEL, flow_spec_5t);
         if (rc != 0) {
             if (!g_b_exit) {
                 ring_logwarn("Del TC rule failed with error=%d", rc);
@@ -363,8 +363,8 @@ int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action,
     int rc = 0;
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_FLOW;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_FLOW;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
 
     data.action = flow_action;
@@ -381,9 +381,9 @@ int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action,
     }
 
     if (flow_spec_5t.is_3_tuple()) {
-        data.type = flow_spec_5t.is_tcp() ? VMA_MSG_FLOW_TCP_3T : VMA_MSG_FLOW_UDP_3T;
+        data.type = flow_spec_5t.is_tcp() ? XLIO_MSG_FLOW_TCP_3T : XLIO_MSG_FLOW_UDP_3T;
     } else {
-        data.type = flow_spec_5t.is_tcp() ? VMA_MSG_FLOW_TCP_5T : VMA_MSG_FLOW_UDP_5T;
+        data.type = flow_spec_5t.is_tcp() ? XLIO_MSG_FLOW_TCP_5T : XLIO_MSG_FLOW_UDP_5T;
         data.flow.src.family = flow_spec_5t.get_family();
         data.flow.src.port = flow_spec_5t.get_src_port();
         if (data.flow.src.family == AF_INET) {
@@ -404,13 +404,13 @@ int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action)
     int rc = 0;
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_FLOW;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_FLOW;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
     data.action = flow_action;
     data.if_id = get_parent()->get_if_index();
     data.tap_id = get_if_index();
-    data.type = VMA_MSG_FLOW_EGRESS;
+    data.type = XLIO_MSG_FLOW_EGRESS;
 
     rc = g_p_agent->send_msg_flow(&data);
 

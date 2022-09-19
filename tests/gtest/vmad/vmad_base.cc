@@ -54,13 +54,13 @@ void vmad_base::SetUp()
     m_base_name = "vma_gtest";
     SKIP_TRUE((m_vmad_pid > 0), "This test requires VMA daemon running");
 
-    ASSERT_FALSE((mkdir(VMA_AGENT_PATH, 0777) != 0) && (errno != EEXIST));
+    ASSERT_FALSE((mkdir(XLIO_AGENT_PATH, 0777) != 0) && (errno != EEXIST));
 
-    rc = snprintf(m_sock_file, sizeof(m_sock_file) - 1, "%s/%s.%d.sock", VMA_AGENT_PATH,
+    rc = snprintf(m_sock_file, sizeof(m_sock_file) - 1, "%s/%s.%d.sock", XLIO_AGENT_PATH,
                   m_base_name, m_self_pid);
     ASSERT_FALSE((rc < 0) || (rc == (sizeof(m_sock_file) - 1)));
 
-    rc = snprintf(m_pid_file, sizeof(m_pid_file) - 1, "%s/%s.%d.pid", VMA_AGENT_PATH, m_base_name,
+    rc = snprintf(m_pid_file, sizeof(m_pid_file) - 1, "%s/%s.%d.pid", XLIO_AGENT_PATH, m_base_name,
                   m_self_pid);
     ASSERT_FALSE((rc < 0) || (rc == (sizeof(m_pid_file) - 1)));
 
@@ -96,7 +96,7 @@ void vmad_base::SetUp()
     /* Set server address */
     memset(&m_server_addr, 0, sizeof(m_server_addr));
     m_server_addr.sun_family = AF_UNIX;
-    strncpy(m_server_addr.sun_path, VMA_AGENT_ADDR, sizeof(m_server_addr.sun_path) - 1);
+    strncpy(m_server_addr.sun_path, XLIO_AGENT_ADDR, sizeof(m_server_addr.sun_path) - 1);
 
     rc = connect(m_sock_fd, (struct sockaddr *)&m_server_addr, sizeof(struct sockaddr_un));
     ASSERT_FALSE(rc < 0);
@@ -118,8 +118,8 @@ int vmad_base::msg_init(pid_t pid)
     uint8_t *version;
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_INIT;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_INIT;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = pid;
     version = (uint8_t *)&data.ver;
     version[0] = PRJ_LIBRARY_MAJOR;
@@ -141,7 +141,7 @@ int vmad_base::msg_init(pid_t pid)
         goto err;
     }
 
-    if (data.hdr.code != (VMA_MSG_INIT | VMA_MSG_ACK) || data.hdr.ver < VMA_AGENT_VER ||
+    if (data.hdr.code != (XLIO_MSG_INIT | XLIO_MSG_ACK) || data.hdr.ver < XLIO_AGENT_VER ||
         data.hdr.pid != pid) {
         log_error("Protocol version mismatch: code = 0x%X ver = 0x%X pid = %d\n", data.hdr.code,
                   data.hdr.ver, data.hdr.pid);
@@ -159,8 +159,8 @@ int vmad_base::msg_exit(pid_t pid)
     struct vma_msg_exit data;
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_EXIT;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_EXIT;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = pid;
 
     errno = 0;

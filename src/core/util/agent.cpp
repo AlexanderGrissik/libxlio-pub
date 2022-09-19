@@ -124,7 +124,7 @@ agent::agent()
         goto err;
     }
 
-    rc = snprintf(m_sock_file, sizeof(m_sock_file) - 1, "%s/%s.%d.sock", path, VMA_AGENT_BASE_NAME,
+    rc = snprintf(m_sock_file, sizeof(m_sock_file) - 1, "%s/%s.%d.sock", path, XLIO_AGENT_BASE_NAME,
                   getpid());
     if ((rc < 0) || (rc == (sizeof(m_sock_file) - 1))) {
         rc = -ENOMEM;
@@ -132,7 +132,7 @@ agent::agent()
         goto err;
     }
 
-    rc = snprintf(m_pid_file, sizeof(m_pid_file) - 1, "%s/%s.%d.pid", path, VMA_AGENT_BASE_NAME,
+    rc = snprintf(m_pid_file, sizeof(m_pid_file) - 1, "%s/%s.%d.pid", path, XLIO_AGENT_BASE_NAME,
                   getpid());
     if ((rc < 0) || (rc == (sizeof(m_pid_file) - 1))) {
         rc = -ENOMEM;
@@ -483,7 +483,7 @@ int agent::send_msg_init(void)
     /* Set server address */
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sun_family = AF_UNIX;
-    strncpy(server_addr.sun_path, VMA_AGENT_ADDR, sizeof(server_addr.sun_path) - 1);
+    strncpy(server_addr.sun_path, XLIO_AGENT_ADDR, sizeof(server_addr.sun_path) - 1);
 
     sys_call(rc, connect, m_sock_fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_un));
     if (rc < 0) {
@@ -493,8 +493,8 @@ int agent::send_msg_init(void)
     }
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_INIT;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_INIT;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
     data.ver = (PRJ_LIBRARY_MAJOR << 12) | (PRJ_LIBRARY_MINOR << 8) | (PRJ_LIBRARY_RELEASE << 4) |
         PRJ_LIBRARY_REVISION;
@@ -516,14 +516,14 @@ int agent::send_msg_init(void)
         goto err;
     }
 
-    if (data.hdr.code != (VMA_MSG_INIT | VMA_MSG_ACK) || data.hdr.pid != getpid()) {
+    if (data.hdr.code != (XLIO_MSG_INIT | XLIO_MSG_ACK) || data.hdr.pid != getpid()) {
         __log_dbg("Protocol is not supported: code = 0x%X pid = %d", data.hdr.code, data.hdr.pid);
         rc = -EPROTO;
         goto err;
     }
 
-    if (data.hdr.ver < VMA_AGENT_VER) {
-        __log_dbg("Protocol version mismatch: agent ver = 0x%X service ver = 0x%X", VMA_AGENT_VER,
+    if (data.hdr.ver < XLIO_AGENT_VER) {
+        __log_dbg("Protocol version mismatch: agent ver = 0x%X service ver = 0x%X", XLIO_AGENT_VER,
                   data.hdr.ver);
         rc = -EPROTONOSUPPORT;
         goto err;
@@ -553,8 +553,8 @@ int agent::send_msg_exit(void)
     __log_dbg("Agent is inactivated. state = %d", m_state);
 
     memset(&data, 0, sizeof(data));
-    data.hdr.code = VMA_MSG_EXIT;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_EXIT;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
 
     /* send(VMA_MSG_EXIT) in blocking manner */
@@ -604,7 +604,7 @@ int agent::send_msg_flow(struct vma_msg_flow *data)
     }
 
     /* reply sanity check */
-    if (!(answer.hdr.code == (data->hdr.code | VMA_MSG_ACK) && answer.hdr.ver == data->hdr.ver &&
+    if (!(answer.hdr.code == (data->hdr.code | XLIO_MSG_ACK) && answer.hdr.ver == data->hdr.ver &&
           answer.hdr.pid == data->hdr.pid)) {
         __log_dbg("Protocol version mismatch: code = 0x%X ver = 0x%X pid = %d", answer.hdr.code,
                   answer.hdr.ver, answer.hdr.pid);
@@ -683,7 +683,7 @@ void agent::check_link(void)
         flag = 1;
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sun_family = AF_UNIX;
-        strncpy(server_addr.sun_path, VMA_AGENT_ADDR, sizeof(server_addr.sun_path) - 1);
+        strncpy(server_addr.sun_path, XLIO_AGENT_ADDR, sizeof(server_addr.sun_path) - 1);
     }
 
     sys_call(rc, connect, m_sock_fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_un));

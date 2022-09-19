@@ -796,8 +796,8 @@ void sockinfo_tcp::put_agent_msg(void *arg)
         return;
     }
 
-    data.hdr.code = VMA_MSG_STATE;
-    data.hdr.ver = VMA_AGENT_VER;
+    data.hdr.code = XLIO_MSG_STATE;
+    data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
     data.hdr.status = 0;
     data.hdr.reserve[0] = 0; // suppress coverity warning
