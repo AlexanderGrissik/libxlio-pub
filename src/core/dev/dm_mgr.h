@@ -34,7 +34,7 @@
 #define DM_MGR_H
 
 #include "ib/base/verbs_extra.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 
 class mem_buf_desc_t;
 class ib_ctx_handler;

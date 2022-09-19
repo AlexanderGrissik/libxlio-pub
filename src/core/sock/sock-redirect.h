@@ -74,7 +74,7 @@
 #include <resolv.h>
 
 #include <core/util/vtypes.h>
-#include <core/util/vma_stats.h>
+#include <core/util/xlio_stats.h>
 #include <core/util/sys_vars.h>
 #include <core/util/utils.h>
 

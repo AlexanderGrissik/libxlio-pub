@@ -39,7 +39,7 @@
 #include "xlio_extra.h"
 #include "util/data_updater.h"
 #include "util/sock_addr.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 #include "util/sys_vars.h"
 #include "util/wakeup_pipe.h"
 #include "proto/flow_tuple.h"

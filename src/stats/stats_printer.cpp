@@ -36,7 +36,7 @@
 
 #include <cinttypes>
 #include "core/util/utils.h"
-#include "core/util/vma_stats.h"
+#include "core/util/xlio_stats.h"
 #include "core/lwip/tcp.h"
 #include "core/xlio_extra.h"
 #include "core/util/sys_vars.h"

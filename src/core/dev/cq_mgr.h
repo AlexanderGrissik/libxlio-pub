@@ -38,7 +38,7 @@
 #include "dev/qp_mgr.h"
 #include "dev/ib_ctx_handler.h"
 #include "util/sys_vars.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 #include "proto/mem_buf_desc.h"
 #include "proto/xlio_lwip.h"
 #include "xlio_extra.h"

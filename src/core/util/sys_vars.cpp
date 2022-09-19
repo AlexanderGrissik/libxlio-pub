@@ -49,7 +49,7 @@
 
 #include "vlogger/vlogger.h"
 #include "utils/rdtsc.h"
-#include "core/util/vma_stats.h"
+#include "core/util/xlio_stats.h"
 #include "core/util/utils.h"
 #include "core/event/event_handler_manager.h"
 #include "core/event/vlogger_timer_handler.h"

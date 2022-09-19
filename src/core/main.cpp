@@ -48,7 +48,7 @@
 
 #include "vlogger/vlogger.h"
 #include "utils/rdtsc.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 #include "util/utils.h"
 #include "event/event_handler_manager.h"
 #include "event/vlogger_timer_handler.h"

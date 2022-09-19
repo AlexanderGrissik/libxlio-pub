@@ -43,7 +43,7 @@
 #include "utils/rdtsc.h"
 #include "vlogger/vlogger.h"
 #include "core/proto/mem_buf_desc.h"
-#include "core/util/vma_stats.h"
+#include "core/util/xlio_stats.h"
 
 #define VMA_ALIGN(x, y) ((((x) + (y)-1) / (y)) * (y))
 

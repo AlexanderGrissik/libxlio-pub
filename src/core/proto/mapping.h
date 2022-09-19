@@ -35,7 +35,7 @@
 
 #include "core/dev/allocator.h"
 #include "core/proto/mem_desc.h"
-#include "core/util/vma_list.h"
+#include "core/util/xlio_list.h"
 
 #include <assert.h>
 #include <stddef.h>

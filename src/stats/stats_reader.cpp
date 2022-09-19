@@ -54,7 +54,7 @@
 #include <sys/stat.h>
 #include "utils/rdtsc.h"
 #include "core/util/utils.h"
-#include "core/util/vma_stats.h"
+#include "core/util/xlio_stats.h"
 #include "core/util/sys_vars.h"
 
 using namespace std;

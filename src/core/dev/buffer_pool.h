@@ -34,10 +34,10 @@
 #define BUFFER_POOL_H
 
 #include "utils/lock_wrapper.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 #include "proto/mem_buf_desc.h"
 #include "dev/allocator.h"
-#include "util/vma_list.h"
+#include "util/xlio_list.h"
 #include "proto/mapping.h"
 #include "proto/mem_desc.h"
 

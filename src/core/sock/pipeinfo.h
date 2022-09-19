@@ -35,7 +35,7 @@
 
 #include "socket_fd_api.h"
 #include "utils/lock_wrapper.h"
-#include <util/vma_stats.h>
+#include <util/xlio_stats.h>
 #include <event/timer_handler.h>
 
 class pipeinfo : public socket_fd_api, public timer_handler {

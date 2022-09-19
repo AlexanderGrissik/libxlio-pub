@@ -37,7 +37,7 @@
 
 #include "utils/atomic.h"
 #include "core/util/sock_addr.h"
-#include "core/util/vma_list.h"
+#include "core/util/xlio_list.h"
 #include "core/lwip/pbuf.h"
 
 // Forward declarations

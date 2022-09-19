@@ -34,7 +34,7 @@
 #define CHUNK_LIST_H_
 
 #include <stdlib.h>
-#include "core/util/vma_list.h"
+#include "core/util/xlio_list.h"
 
 #define CHUNK_LIST_CONTAINER_SIZE      64 // Amount of T elements of each container.
 #define CHUNK_LIST_CONTAINER_INIT      4 // Initial number of containers.

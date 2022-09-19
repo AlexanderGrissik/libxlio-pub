@@ -37,7 +37,7 @@
 #include <sys/time.h>
 
 #include <util/vtypes.h>
-#include <util/vma_stats.h>
+#include <util/xlio_stats.h>
 #include <sock/socket_fd_api.h>
 #include <sock/sockinfo.h>
 

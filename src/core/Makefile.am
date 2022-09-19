@@ -287,8 +287,8 @@ libxlio_la_SOURCES := \
 	util/to_str.h \
 	util/utils.h \
 	util/valgrind.h \
-	util/vma_list.h \
-	util/vma_stats.h \
+	util/xlio_list.h \
+	util/xlio_stats.h \
 	util/vtypes.h \
 	util/wakeup.h \
 	util/wakeup_pipe.h \

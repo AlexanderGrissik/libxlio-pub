@@ -35,7 +35,7 @@
 #endif
 
 #include "stats/stats_data_reader.h"
-#include "core/util/vma_stats.h"
+#include "core/util/xlio_stats.h"
 #include "core/sock/sock-redirect.h"
 #include "core/event/event_handler_manager.h"
 

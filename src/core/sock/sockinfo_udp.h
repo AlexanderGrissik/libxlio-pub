@@ -43,7 +43,7 @@
 
 #include "xlio_extra.h"
 #include "util/chunk_list.h"
-#include "util/vma_stats.h"
+#include "util/xlio_stats.h"
 #include "util/sys_vars.h"
 #include "proto/mem_buf_desc.h"
 #include "proto/dst_entry_udp.h"
