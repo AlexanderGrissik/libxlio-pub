@@ -12,6 +12,6 @@ EXTRA_DIST = \
 	mc_loop_test \
 	multithread_test \
 	server_test \
-	vma_perf_envelope \
+	xlio_perf_envelope \
 	reuse_ud_test.c \
 	select_t1.c

@@ -32,40 +32,71 @@
 
 #configurable parameters
 #---------------------------------------------------
-
-MC_GROUP=224.38.37.83
+MC_GROUP=224.18.7.81
 PORT=5001
-DURATION=10	#in seconds
+DURATION=10    #in seconds
 BW=10G
 OUTPUT_FILES_PATH="./"
 INTERFACE="ib0"
 OVER_VMA="yes" #[yes | not]
-UDP_LAT_MSG_SIZE="2"    #Bytes
-MC_GROUP_SIZES=(2 20)
-VMA_IGMP_ENABLE=0
-VMA_SELECT_POLL=0
-VMA_RX_BUFS=200000
-#####################################################
+UDP_LAT_MSG_SIZE=(2 8 20 60 100 200 400 800 1470 2000 3000 4000 8000 16000 32000 65000)                        #Bytes
+UDP_LAT_BURST_SIZE=(2 5 10 25 50 100 250 500 1000 2500 5000 10000 16000 25000 50000 100000 250000 500000)      #Bytes
+IPERF_MSG_SIZE=(12 20 60 100 200 400 800 1470 2000 3000 4000 8000 16000 32000 65000)                            #Bytes
+MC_GROUP_SIZES=(1 10 20 30 50 60 64 65 70 80 90 100 150 200)
 
 #path
 #----------------------------------------------------
 UDP_LAT_APP=${UDP_LAT_PATH:-udp_lat}
 VMA_LIB=${VMA_PATH:-libvma.so}
 
-#other
-#----------------------------------------------------
-VMA_SELECT_POLL_MAX_VAL=1000000
+#####################################################
+#vma default values
+#---------------------------------------------------
+DEFAULT_VMA_IGMP_ENABLE=1
+DEFAULT_VMA_RX_POLL_OS_RATIO=10
+DEFAULT_VMA_RX_SKIP_OS=100
+DEFAULT_VMA_SELECT_POLL=0
+DEFAULT_VMA_RX_BUFS=200000
+DEFAULT_VMA_THREAD_MODE=1
+DEFAULT_VMA_RX_WRE=16000
+DEFAULT_VMA_SELECT_POLL=0
+DEFAULT_VMA_SELECT_SKIP_OS=4
+DEFAULT_VMA_HUGETLB=1
+#####################################################
+#initial vma values in test  
+#---------------------------------------------------
+VMA_IGMP_ENABLE=0
+VMA_RX_POLL_OS_RATIO=$DEFAULT_VMA_RX_POLL_OS_RATIO
+VMA_RX_SKIP_OS=$DEFAULT_VMA_RX_SKIP_OS
+VMA_RX_BUFS=$DEFAULT_VMA_RX_BUFS
+VMA_RX_WRE=$DEFAULT_VMA_RX_WRE
+VMA_SELECT_POLL=$DEFAULT_VMA_SELECT_POLL
+VMA_SELECT_SKIP_OS=$DEFAULT_VMA_SELECT_SKIP_OS
+VMA_THREAD_MODE=$DEFAULT_VMA_THREAD_MODE
+VMA_HUGETLB=$DEFAULT_VMA_HUGETLB
+###########################################################################
+#other								Optimal Val		
+#--------------------------------------------------------------------------
+VMA_SELECT_POLL_MAX_VAL=1000000		
 VMA_RX_BUFS_MAX_VAL=200000
+VMA_IOMUX_RX_WRE=$DEFAULT_VMA_RX_WRE				#3200
+VMA_IOMUX_RX_SKIP_OS=$DEFAULT_VMA_RX_SKIP_OS			#1000
+VMA_IOMUX_SELECT_SKIP_OS=$DEFAULT_VMA_SELECT_SKIP_OS		#500
+VMA_IOMUX_HUGETLB=$DEFAULT_VMA_HUGETLB				#1
+MAX_UDP_LAT_MSG_SIZE=65000
+ACTIVITY=100000
 RX_FRAMES_4_UDP_LAT=1
-RX_USEC=10
+RX_FRAMES_4_IPERF=16
+RX_USEC_4_LAT_TEST=0
+RX_USEC_4_BW_TEST=10
 UMCAST_VAL=1
 DST_NET="224.0.0.0"
 DST_MASK="240.0.0.0"
 VMA="vma"
 TMP_DIR=/tmp
-TMP_FILE="$TMP_DIR/multiplexer_tmp"
+TMP_FILE="$TMP_DIR/perf_tmp"
 ERROR_MESSAGE="!!! Test Failed !!!"
-ERORR_PROMT="vma_perf_envelope:"
+ERORR_PROMT="xlio_perf_envelope:"
 ERROR_RESULT="null"
 PREFIX=""
 REM_HOST_IP=$1
@@ -79,6 +110,142 @@ user_name=`whoami`
 user_id=`who -am | tr " " "\n" | tail -1 | tr -d "(|)"`
 SUPER_USR=root
 #####################################################
+
+function run_iperf_with_diff_msg_len
+{
+        wait_time=0 
+	local size_arr_len=${#IPERF_MSG_SIZE[*]}
+	
+ 	prepare_iperf_headlines 
+	save_coalesce_params
+	update_coalesce_4_tr_test
+	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
+	
+	print_message "============================>IPERF<============================" "$log_file"    
+        
+	for((i=0; $i < $size_arr_len; i=$((i=$i+1)))) 
+	do
+		curr_msg_size=${IPERF_MSG_SIZE[$i]}
+		iperf_cycle
+		parse_iperf_test_results
+	done
+	recreate_coalesce_params
+	clean_after_iperf
+	tests_finish
+}
+
+function iperf_cycle
+{
+	print_cycle_info  $curr_msg_size  message
+	killall iperf  >& /dev/null
+	ssh $REM_HOST_IP killall iperf >& /dev/null
+	iperf_command_line_srv=${PREFIX}"iperf -usB $MC_GROUP -p $PORT -l $curr_msg_size -i 1 -f M" 
+	iperf_command_line_clt=${PREFIX}"iperf -uc $MC_GROUP -p $PORT -l $curr_msg_size -t $DURATION -b $BW -i 1 -f M"
+	(echo "${SRV_CMMND_LINE_PREF}$iperf_command_line_srv" | tee -a $log_file) >& /dev/null 
+	(ssh $REM_HOST_IP "echo ${CLT_CMMND_LINE_PREF}$iperf_command_line_clt|tee -a $TMP_DIR/$log_file.tmp")>& /dev/null
+	(ssh $REM_HOST_IP "sleep 10;$iperf_command_line_clt 2>&1 | tee >> $TMP_DIR/$log_file.tmp " &)
+	wait_time=$DURATION
+        let "wait_time += 20"
+        (sleep $wait_time;killall -9 iperf >& /dev/null)| (eval "$iperf_command_line_srv 2>&1 | tee >> $TMP_FILE") 		     	
+}
+
+function run_udp_lat_with_diff_msg_len
+{
+	prepare_udp_lat_headlines
+	save_coalesce_params
+	update_coalesce_4_udp_lat
+	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
+	print_message "===========================>UDP_LAT<==========================" "$log_file"    
+        
+	local size_arr_len=${#UDP_LAT_MSG_SIZE[*]}
+        upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -i $MC_GROUP -p $PORT -m $MAX_UDP_LAT_MSG_SIZE"
+        (echo ${SRV_CMMND_LINE_PREF}$upd_lat_command_line_srv | tee -a $log_file) >& /dev/null
+        (eval "$upd_lat_command_line_srv 2>&1 | tee >> $log_file &") 
+
+	for((i=0; $i < $size_arr_len; i=$((i=$i+1))))
+	do
+		curr_msg_size=${UDP_LAT_MSG_SIZE[$i]}
+		udp_lat_cycle 
+		sleep 5
+		parse_udp_lat_test_results  "${UDP_LAT_MSG_SIZE[$i]}" 	              
+	done
+    	clean_after_udp_lat
+	recreate_coalesce_params 
+	tests_finish
+}
+
+function run_udp_lat_tx_bw_with_diff_msg_len
+{
+        prepare_udp_lat_tx_bw_headlines
+        save_coalesce_params
+        update_coalesce_4_tr_test
+        append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
+        print_message "========================>UDP_LAT TX BW<=======================" "$log_file"
+
+        local size_arr_len=${#UDP_LAT_MSG_SIZE[*]}
+
+        for((i=0; $i < $size_arr_len; i=$((i=$i+1))))
+        do
+                curr_msg_size=${UDP_LAT_MSG_SIZE[$i]}
+                udp_lat_tx_bw_cycle
+                sleep 5
+                parse_udp_lat_tx_bw_test_results "${UDP_LAT_MSG_SIZE[$i]}"
+        done
+        clean_after_udp_lat
+        recreate_coalesce_params
+        tests_finish
+}
+
+function run_udp_lat_bw_with_diff_msg_len
+{
+        prepare_udp_lat_bw_headlines
+        save_coalesce_params
+        update_coalesce_4_tr_test
+        append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
+        print_message "========================>UDP_LAT BW<=========================" "$log_file"
+
+        local size_arr_len=${#UDP_LAT_MSG_SIZE[*]}
+
+        for((i=0; $i < $size_arr_len; i=$((i=$i+1))))
+	do
+                curr_msg_size=${UDP_LAT_MSG_SIZE[$i]}
+                udp_lat_bw_cycle
+                sleep 5
+                parse_udp_lat_bw_test_results "${UDP_LAT_MSG_SIZE[$i]}"
+	done
+	clean_after_udp_lat
+	recreate_coalesce_params
+	tests_finish
+}
+
+function run_udp_lat_with_diff_burst_size
+{
+	prepare_udp_lat_sending_bursts_headlines
+	save_coalesce_params
+	update_coalesce_4_udp_lat
+	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
+       	print_message "===================>UDP_LAT SENDING BURSTS<===================" "$log_file"
+	local size_arr_len=${#UDP_LAT_BURST_SIZE[*]}
+	local initial_rx_buffs_val=$VMA_RX_BUFS
+	VMA_RX_BUFS=$VMA_RX_BUFS_MAX_VAL
+	update_command_prefix
+        upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -i $MC_GROUP -p $PORT -m $MAX_UDP_LAT_MSG_SIZE"
+        (echo ${SRV_CMMND_LINE_PREF}$upd_lat_command_line_srv | tee -a $log_file) >& /dev/null
+        (eval "$upd_lat_command_line_srv 2>&1 | tee >> $log_file &") 
+
+	for((i=0; $i < $size_arr_len; i=$((i=$i+1))))
+	do
+		curr_burst_size=${UDP_LAT_BURST_SIZE[$i]}
+		udp_lat_sending_bursts_cycle 
+		sleep 5
+		parse_udp_lat_test_results  "${UDP_LAT_BURST_SIZE[$i]}" 	              
+	done
+	VMA_RX_BUFS=$initial_rx_buffs_val
+	update_command_prefix
+    	clean_after_udp_lat
+	recreate_coalesce_params 
+	tests_finish
+}
 
 function run_udp_lat_using_select_epoll_poll_with_zero_polling
 {	
@@ -94,103 +261,92 @@ function run_udp_lat_using_select_epoll_poll_with_zero_polling
 		print_message "|VMA_SELECT_POLL=0" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
 	fi
-	run_udp_lat_using_select_helper "$vma_select_poll_info"
-	run_udp_lat_using_poll_helper "$vma_select_poll_info"
-	run_udp_lat_using_epoll_helper "$vma_select_poll_info"
+	run_udp_lat_using_select_epoll_poll_helper "$vma_select_poll_info"
 	recreate_coalesce_params 
 	tests_finish	
+}
+
+function save_shmem_prop
+{
+	eval "save_local_hugetlb=`cat /proc/sys/vm/nr_hugepages 2>/dev/null`;save_local_shmax=`cat /proc/sys/kernel/shmmax 2>/dev/null`"
+        eval "save_remote_hugetlb=`ssh  $REM_HOST_IP 'cat /proc/sys/vm/nr_hugepages 2>/dev/null'`;save_remote_shmax=`ssh $REM_HOST_IP 'cat /proc/sys/kernel/shmmax 2>/dev/null'`"
+}
+
+function recreate_mem_prop
+{
+	echo "" >> "$TMP_DIR/$log_file.post"
+        echo "================>Recreate number of huge pages <==============" >> "$TMP_DIR/$log_file.post"
+        command="echo $save_local_hugetlb > /proc/sys/kernel/shmmax;echo $save_local_shmax > /proc/sys/vm/nr_hugepages"
+        (echo "${SRV_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.post") >& /dev/null
+        eval "$command 2>&1 | tee >> $TMP_DIR/$log_file.post"
+	command="echo $save_remote_hugetlb > /proc/sys/kernel/shmmax;echo $save_remote_shmax > /proc/sys/vm/nr_hugepages"
+        (echo "${CLT_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.post") >& /dev/null
+        eval "ssh  $REM_HOST_IP "$command" 2>&1 | tee >>  $TMP_DIR/$log_file.post"
+        print_huge_tlb_info "${TMP_DIR}/${log_file}.post"
+	eval "cat $TMP_DIR/$log_file.post" | tee -a $log_file >& /dev/null
+        clean
+}
+
+function print_huge_tlb_info 
+{
+	local file=$1
+	echo "" >> "$file"
+        echo "=======================>Huge pages info<======================" >> "$file"
+        command="cat /proc/meminfo |  grep -i HugePage"
+        (echo "${SRV_CMMND_LINE_PREF} $command" | tee -a "$file") >& /dev/null
+        eval "$command 2>&1 | tee >> $file"
+        (echo "${CLT_CMMND_LINE_PREF} $command" | tee -a "$file") >& /dev/null
+        eval "ssh  $REM_HOST_IP "$command" 2>&1 | tee >>  $file"
+}
+
+function increase_number_of_hugetlb
+{
+	print_huge_tlb_info "${TMP_DIR}/${log_file}.prep"
+	echo "" >> "$TMP_DIR/$log_file.prep"
+	echo "================>Update number of huge pages <================" >> "$TMP_DIR/$log_file.prep"
+	command="echo 1000000000 > /proc/sys/kernel/shmmax;echo 400 > /proc/sys/vm/nr_hugepages;cat /proc/meminfo |  grep -i HugePage"
+	(echo "${SRV_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.prep") >& /dev/null
+ 	eval "$command 2>&1 | tee >> $TMP_DIR/$log_file.prep"	
+	(echo "${CLT_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.prep") >& /dev/null
+	eval "ssh  $REM_HOST_IP "$command" 2>&1 | tee >>  $TMP_DIR/$log_file.prep"
+	eval "cat $TMP_DIR/$log_file.prep" | tee -a $log_file >& /dev/null
+	clean
 }
 
 function run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
 {	
 	if [[ "$OVER_VMA" = yes ]]; then
 		local vma_select_poll_old=$VMA_SELECT_POLL
+		local vma_select_skip_os_old=$VMA_SELECT_SKIP_OS
+		local vma_rx_skip_os_old=$VMA_RX_SKIP_OS
+		local vma_rx_wre_old=$VMA_RX_WRE
+                local vma_hugetlb_old=$VMA_HUGETLB
+		
 		vma_select_poll_info=""
 		save_coalesce_params
 		update_coalesce_4_udp_lat
 		append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
-		change_command_prefix VMA_SELECT_POLL "$VMA_SELECT_POLL_MAX_VAL"
+		change_command_prefix VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL VMA_SELECT_SKIP_OS=$VMA_IOMUX_SELECT_SKIP_OS VMA_RX_WRE=$VMA_IOMUX_RX_WRE VMA_HUGETLB=$VMA_IOMUX_HUGETLB VMA_RX_SKIP_OS=$VMA_IOMUX_RX_SKIP_OS
 		vma_select_poll_info="With VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL"
 		print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
 		print_message "|VMA_SELECT_POLL=$VMA_SELECT_POLL_MAX_VAL" "$log_file"
 		print_message "|----------------------------------|" "$log_file"
-		run_udp_lat_using_select_helper "$vma_select_poll_info"
-		run_udp_lat_using_poll_helper "$vma_select_poll_info"
-		run_udp_lat_using_epoll_helper "$vma_select_poll_info"
-		change_command_prefix VMA_SELECT_POLL vma_select_poll_old
+		run_udp_lat_using_select_epoll_poll_helper "$vma_select_poll_info"
+		change_command_prefix VMA_SELECT_POLL=$vma_select_poll_old VMA_SELECT_SKIP_OS=$vma_select_skip_os_old VMA_RX_WRE=$vma_rx_wre_old VMA_HUGETLB=$vma_hugetlb_old VMA_RX_SKIP_OS=$vma_rx_skip_os_old
 		recreate_coalesce_params 
 		tests_finish	
 	fi
 }
 
-function run_udp_lat_using_select_helper
-{
-	command_str="s"
-        log_str="Select (default timeout 1msec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="s --timeout 0"
-        log_str="Select (timeout zero)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="s --timeout 1000"
-        log_str="Select (timeout 1 sec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="s --timeout -1"
-        log_str="Select (timeout infinite)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-}
-
-function run_udp_lat_using_poll_helper
-{
-	command_str="p"
-        log_str="Poll (default timeout 1msec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="p --timeout 0"
-        log_str="Poll (timeout zero)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="p --timeout 1000"
-        log_str="Poll (timeout 1 sec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="p --timeout -1"
-        log_str="Poll (timeout infinite)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-}
-
-function run_udp_lat_using_epoll_helper
-{
-	command_str="e"
-        log_str="Epoll (default timeout 1msec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="e --timeout 0"
-        log_str="Epoll (timeout zero)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="e --timeout 1000"
-        log_str="Epoll (timeout 1 sec)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
-
-	command_str="e --timeout -1"
-        log_str="Epoll (timeout infinite)"
-	prepare_udp_lat_using_feed_file_headlines "$log_str" "$1" 
-	run_udp_lat_with_diff_mc_feed_files "$command_str" "$log_str"
+function run_udp_lat_using_select_epoll_poll_helper
+{	
+	prepare_udp_lat_using_feed_file_headlines "Select" "$1" 
+	run_udp_lat_with_diff_mc_feed_files "s" "Select"
+	prepare_udp_lat_using_feed_file_headlines "Epoll" "$1"
+	run_udp_lat_with_diff_mc_feed_files "e" "Epoll " 
+	prepare_udp_lat_using_feed_file_headlines "Poll" "$1"
+	run_udp_lat_with_diff_mc_feed_files "p"	"Poll  " 
 }
 
 function run_udp_lat_with_diff_mc_feed_files
@@ -201,7 +357,7 @@ function run_udp_lat_with_diff_mc_feed_files
 	do
         	curr_feed_file_size=${MC_GROUP_SIZES[$i]}
 		feed_file_name="$TMP_DIR/feed_file_$curr_feed_file_size"
-		print_cycle_info $curr_feed_file_size "mc group"
+		print_cycle_info "$curr_feed_file_size" "mc group"
 		create_mc_feed_files "$curr_feed_file_size" "$feed_file_name"
 		run_udp_lat_with_feed_file "$feed_file_name" "$1"
 		parse_udp_lat_test_results "${MC_GROUP_SIZES[$i]}"
@@ -213,8 +369,8 @@ function run_udp_lat_with_diff_mc_feed_files
 
 function run_udp_lat_with_feed_file
 {
-	upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -m $UDP_LAT_MSG_SIZE -f $1 -F $2"
-	upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -m $UDP_LAT_MSG_SIZE -f $1 -F $2 -t $DURATION"
+	upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -f $1 -F $2"
+	upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -f $1 -F $2 -t $DURATION"
 	
         (echo ${SRV_CMMND_LINE_PREF}$upd_lat_command_line_srv | tee -a $log_file) >& /dev/null
 	(eval "$upd_lat_command_line_srv 2>&1 | tee >> $log_file &")
@@ -238,6 +394,56 @@ function tests_finish
 	clean
 }
 
+function udp_lat_cycle
+{
+	print_cycle_info $curr_msg_size	message	
+	(ssh $REM_HOST_IP "killall udp_lat") >& /dev/null
+        upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -i $MC_GROUP -p $PORT -m $curr_msg_size -t $DURATION"
+        (echo "${CLT_CMMND_LINE_PREF} $upd_lat_command_line_clt" | tee -a "$TMP_DIR/$log_file.tmp") >& /dev/null
+        (ssh $REM_HOST_IP "sleep 10;$upd_lat_command_line_clt 2>&1 | tee >> $TMP_FILE")    
+   
+}
+
+function udp_lat_tx_bw_cycle
+{
+        print_cycle_info $curr_msg_size message
+        (ssh $REM_HOST_IP "killall udp_lat") >& /dev/null
+        upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -i $MC_GROUP -p $PORT -m $curr_msg_size -t $DURATION -k -A $ACTIVITY"
+        (echo "${CLT_CMMND_LINE_PREF} $upd_lat_command_line_clt" | tee -a "$TMP_DIR/$log_file.tmp") >& /dev/null
+        (ssh $REM_HOST_IP "sleep 10;$upd_lat_command_line_clt 2>&1 | tee >> $TMP_FILE")
+}
+
+function udp_lat_bw_cycle
+{
+        print_cycle_info $curr_msg_size message
+        killall -9 udp_lat  >& /dev/null
+        ssh $REM_HOST_IP killall -9 udp_lat >& /dev/null
+
+        upd_lat_command_line_srv=${PREFIX}"${UDP_LAT_APP} -s -i $MC_GROUP -p $PORT -m $curr_msg_size -k -A $ACTIVITY"
+        upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -i $MC_GROUP -p $PORT -m $curr_msg_size -t $DURATION -k -A $ACTIVITY"
+
+        (echo ${SRV_CMMND_LINE_PREF}$upd_lat_command_line_srv | tee -a $log_file) >& /dev/null
+        (ssh $REM_HOST_IP "echo ${CLT_CMMND_LINE_PREF} $upd_lat_command_line_clt | tee -a $TMP_DIR/$log_file.tmp") >& /dev/null
+        (eval "$upd_lat_command_line_srv 2>&1 | tee >> $log_file &")
+        (ssh $REM_HOST_IP "killall udp_lat") >& /dev/null
+        (echo "${CLT_CMMND_LINE_PREF} $upd_lat_command_line_clt" | tee -a "$TMP_DIR/$log_file.tmp") >& /dev/null
+        (ssh $REM_HOST_IP "sleep 5;$upd_lat_command_line_clt 2>&1 | tee >> $TMP_FILE")
+        local wait_time=$DURATION
+        let "wait_time += 20"
+        sleep $wait_time
+        killall -2 udp_lat
+}
+
+function udp_lat_sending_bursts_cycle
+{
+	print_cycle_info $curr_burst_size burst	
+	(ssh $REM_HOST_IP "killall udp_lat") >& /dev/null
+        upd_lat_command_line_clt=${PREFIX}"${UDP_LAT_APP} -c -i $MC_GROUP -p $PORT -t $DURATION -b $curr_burst_size"
+        (echo "${CLT_CMMND_LINE_PREF} $upd_lat_command_line_clt" | tee -a "$TMP_DIR/$log_file.tmp") >& /dev/null
+        (ssh $REM_HOST_IP "sleep 10;$upd_lat_command_line_clt 2>&1 | tee >> $TMP_FILE")    
+   
+}
+
 function print_cycle_info
 {
 	let "cycle_num=$i+1"
@@ -245,9 +451,44 @@ function print_cycle_info
 	echo "#$2 size is $1"
 }
 
+function parse_iperf_test_results 
+{
+	local start_time=0
+	local end_time=0
+	local warning_msg=""
+        check_iperf_succss
+	if [[ $success -eq $TRUE ]]; then
+
+        	loss=`cat $TMP_FILE | grep % | tail -1 | tr " " "\n" | tail -1 | tr  -d '(-)'`
+		avg_pps=`cat $TMP_FILE | grep % | tail -1 | tr "-" " " | tr  -s " " | tr '/' '\n' | tail -1 | tr  " " '\n' | tail -2 | head -1`
+                #avg_pps=`cat $TMP_FILE | grep % | tail -1 | tr "-" " " | tr  -s " " | cut --d=" " -f 12 | cut -d "/" -f 2`
+		start_time=`cat $TMP_FILE|grep %|tail -1|tr "-" " "|tr -s " " | cut --d=" " -f 3 | cut --d="." -f 1`
+		end_time=`cat $TMP_FILE|grep %|tail -1|tr "-" " "|tr -s " " | cut --d=" " -f 4 | cut --d="." -f 1`
+		let "actual_duration=$end_time-$start_time"
+		let "avg_pps=avg_pps/$actual_duration"	
+	 	avg_bw=`cat $TMP_FILE | grep % | tail -1 | tr "-" " " | tr -s " " | cut --d=" " -f 8`
+        	echo "#average loss is $loss"
+       		echo "#average BW is $avg_bw MBps"
+		echo "#average packet rate is $avg_pps pps"
+		if [[ "$actual_duration" -ne $DURATION ]]; then
+			warning_msg="#xlio_perf_envelope:WARNING:missing summarize in iperf"
+			echo "$warning_msg"
+			warning_msg=",$warning_msg"
+		fi
+
+	     	echo "${IPERF_MSG_SIZE[$i]},$avg_bw,$loss,${avg_pps}${warning_msg}" >> $res_file        	      	 			
+        else
+		echo "#$ERROR_MESSAGE"
+		echo "${IPERF_MSG_SIZE[$i]},${ERROR_RESULT},${ERROR_RESULT},${ERROR_RESULT}" >> $res_file
+	fi
+
+	cat $TMP_FILE | tee -a $log_file >& /dev/null  			
+       	rm -rf $TMP_FILE >& /dev/null
+}
+
 function parse_udp_lat_test_results 
 { 
-	check_udp_lat_succss
+	check_udp_lat_succss latency $TMP_FILE
 	if [[ $success -eq $TRUE ]]; then
   
 	        latency=`ssh $REM_HOST_IP cat $TMP_FILE |tr A-Z a-z|grep latency|tr [="="=] " " |tr -s " "|tr " " "\n"|tail -2|head -1`
@@ -263,18 +504,95 @@ function parse_udp_lat_test_results
        	ssh $REM_HOST_IP "rm -rf $TMP_FILE" >& /dev/null	
 }
 
+function parse_udp_lat_tx_bw_test_results
+{
+        check_udp_lat_succss rate $TMP_FILE
+        if [[ $success -eq $TRUE ]]; then
+
+                local pps=`ssh $REM_HOST_IP cat $TMP_FILE |tr A-Z a-z|tail -2|grep "rate"| tr -s " " |cut -d " " -f 6`
+                local bw=`ssh $REM_HOST_IP cat $TMP_FILE |tr A-Z a-z|tail -2|grep "bandwidth"| tr -s " " |cut -d " " -f 5`
+                echo "#average message rate is $pps [msg/sec]"
+                echo "#average bw is $bw MBps"
+                echo $1,$pps,$bw >> $res_file
+        else
+                echo "#$ERROR_MESSAGE"
+                echo "$1,${ERROR_RESULT}" >> $res_file
+
+        fi
+
+        ssh $REM_HOST_IP "cat $TMP_FILE" | tee -a "$TMP_DIR/$log_file.tmp" >& /dev/null
+        ssh $REM_HOST_IP "rm -rf $TMP_FILE" >& /dev/null
+}
+
+function parse_udp_lat_bw_test_results
+{
+        check_udp_lat_succss total $log_file
+        if [[ $success -eq $TRUE ]]; then
+
+		local pps=`ssh $REM_HOST_IP cat $TMP_FILE |tr A-Z a-z|tail -2|grep "rate"| tr -s " " |cut -d " " -f 6`
+		local bw=`ssh $REM_HOST_IP cat $TMP_FILE |tr A-Z a-z|tail -2|grep "bandwidth"| tr -s " " |cut -d " " -f 5`
+		local rx_recived=`cat $log_file| grep received  |tail -1|tr -s " "|cut -d " " -f 4`
+		local tx_send=`ssh $REM_HOST_IP cat $TMP_FILE| grep sent| tail -1 |tr -s " "| cut -d " " -f 4`
+		local diff=$(($tx_send-$rx_recived))
+		
+		if [ $diff -lt 0 ]; then
+			diff=0
+		fi
+		
+		local loss=$(echo "scale=5;($diff/$tx_send)*100"| bc)
+
+		if [[ $loss =~ "^\." ]];
+			then loss="0${loss}"
+		fi
+
+		local d_point=`expr index $loss "\."`
+		d_point=$(($d_point+3))
+		loss=`expr substr $loss 1 $d_point`
+		
+		echo "#message rate is $pps [msg/sec]"
+		echo "#bw is $bw MBps"
+		echo "#packet loss is ${loss}%"
+		echo $1,$pps,$bw,$loss >> $res_file
+        else
+		echo "#$ERROR_MESSAGE"
+		echo "$1,${ERROR_RESULT}" >> $res_file
+
+        fi
+
+        ssh $REM_HOST_IP "cat $TMP_FILE" | tee -a "$TMP_DIR/$log_file.tmp" >& /dev/null
+        ssh $REM_HOST_IP "rm -rf $TMP_FILE" >& /dev/null
+}
+
 function check_udp_lat_succss
 {
 	local res=0
-	
-	res=`ssh $REM_HOST_IP "cat $TMP_FILE |tr A-Z a-z |grep latency | wc -l"`
+	local look_for=$1
+	local res_file=$2
+
+	if [ $res_file = $log_file ]; then
+		res=`cat $res_file |tr A-Z a-z |grep $look_for | wc -l`
+	else
+		res=`ssh $REM_HOST_IP "cat $res_file |tr A-Z a-z |grep $look_for | wc -l"`
+	fi
 
 	if [[ $res -gt 0 ]]; then
 		success=$TRUE
 	else
+		success=$FALSE
+	fi
+}
+
+function check_iperf_succss
+{
+	local res=0
+	
+	res=`cat $TMP_FILE | grep % | wc -l`
+
+	if [ $res -gt 0 ]; then
+		success=$TRUE
+	else
 		success=$FALSE		
-	fi 
-	 
+	fi	 
 }
 
 function prepare_output_files
@@ -285,6 +603,41 @@ function prepare_output_files
      
         touch  $log_file
         touch  $res_file       
+}
+
+function prepare_iperf_headlines
+{
+	echo "" >> $res_file
+        echo Iperf Test Results >> $res_file 
+        echo Msg size,Averag RX BW,Average Loss,Packet Rate >> $res_file	
+}
+
+function prepare_udp_lat_headlines
+{
+	echo "" >> $res_file
+	echo Udp_lat Test Results >> $res_file 
+        echo Message size,Latency >> $res_file
+}
+
+function prepare_udp_lat_tx_bw_headlines
+{
+        echo "" >> $res_file
+        echo Udp_lat TX BW Test Results >> $res_file
+        echo Msg size,TX Packet Rate,TX BW >> $res_file
+}
+
+function prepare_udp_lat_bw_headlines
+{
+        echo "" >> $res_file
+        echo Udp_lat BW Test Results >> $res_file
+        echo Msg size,TX Packet Rate,TX BW,RX Average Loss %>> $res_file
+}
+
+function prepare_udp_lat_sending_bursts_headlines
+{
+	echo "" >> $res_file
+	echo Udp_lat Sending Bursts Test Results >> $res_file 
+        echo Burst size,Latency >> $res_file
 }
 
 function prepare_udp_lat_using_feed_file_headlines
@@ -309,23 +662,53 @@ function get_hostnames
 
 }
 
+function update_vma_igmp_flag
+{
+	check_if_infbnd_iface	
+	if [[ $is_infiniband -eq $FALSE ]]; then
+		VMA_IGMP_ENABLE=1	
+	fi
+}
+
 function update_command_prefix
 {
 	PREFIX=""
 	
+	update_vma_igmp_flag	
+	
 	if [[ "$OVER_VMA" = yes ]] ; then
 	
-		if [[ $VMA_IGMP_ENABLE -eq 0 ]] ; then
-			PREFIX="$PREFIX VMA_IGMP=0 "	
+		if [[ $VMA_IGMP_ENABLE -ne $DEFAULT_VMA_IGMP_ENABLE ]] ; then
+			PREFIX="$PREFIX VMA_IGMP=$VMA_IGMP_ENABLE "	
 		fi
 
-		if [[ $VMA_SELECT_POLL -ne 0 ]] ; then
+		if [[ $VMA_SELECT_POLL -ne $DEFAULT_VMA_SELECT_POLL ]] ; then
 			PREFIX="$PREFIX VMA_SELECT_POLL=$VMA_SELECT_POLL "	
 		fi
 
-		if [[ $VMA_RX_BUFS -ne 0 ]] ; then
+		if [[ $VMA_RX_SKIP_OS -ne $DEFAULT_VMA_RX_SKIP_OS ]] ; then
+                        PREFIX="$PREFIX VMA_RX_SKIP_OS=$VMA_RX_SKIP_OS "
+                fi
+		
+		if [[ $VMA_RX_BUFS -ne $DEFAULT_VMA_RX_BUFS ]] ; then
 			PREFIX="$PREFIX VMA_RX_BUFS=$VMA_RX_BUFS "	
 		fi			
+	
+		if [[ $VMA_THREAD_MODE  -ne $DEFAULT_VMA_THREAD_MODE ]] ; then
+			PREFIX="$PREFIX VMA_THREAD_MODE=$VMA_THREAD_MODE "		
+		fi
+	
+                if [[ $VMA_RX_WRE  -ne $DEFAULT_VMA_RX_WRE ]] ; then
+                        PREFIX="$PREFIX VMA_RX_WRE=$VMA_RX_WRE "
+                fi
+	
+		if [[ $VMA_SELECT_SKIP_OS  -ne $DEFAULT_VMA_SELECT_SKIP_OS ]] ; then
+                        PREFIX="$PREFIX VMA_SELECT_SKIP_OS=$VMA_SELECT_SKIP_OS "
+                fi
+
+		if [[ $VMA_HUGETLB  -ne $DEFAULT_VMA_HUGETLB ]] ; then
+                        PREFIX="$PREFIX VMA_HUGETLB=$VMA_HUGETLB "
+                fi
 	
 		PREFIX=${PREFIX}"LD_PRELOAD=$VMA_LIB "	
 	fi	
@@ -333,7 +716,10 @@ function update_command_prefix
 
 function change_command_prefix
 {
-	eval "$1=$2"
+	for curr in $*;
+        do
+       		eval "$curr"
+        done;
 	update_command_prefix	
 }
 
@@ -422,9 +808,10 @@ function save_coalesce_params
 	echo "" >> "$TMP_DIR/$log_file.prep"
 	echo "===================>Coalesce params info<=====================" >> "$TMP_DIR/$log_file.prep"
 
-	save_local_coalesce_params "$command1" rx-frames: initial_rx_frames_local
-	save_remote_coalesce_params "$command1" rx-frames: initial_rx_frames_remote
-	
+	save_local_coalesce_params "$command1" rx-frames: initial_rx_frames_local 
+	save_remote_coalesce_params "$command1" rx-frames: initial_rx_frames_remote 
+	save_local_coalesce_params "$command1" rx-usecs: initial_rx_usecs_local 
+	save_remote_coalesce_params "$command1" rx-usecs: initial_rx_usecs_remote 
 	rm -f $TMP_FILE >& /dev/null
 	rm -f $TMP_FILE.err >& /dev/null
 
@@ -469,12 +856,32 @@ function update_coalesce_4_udp_lat
 	remote_coalesce_params_changed=$FALSE
 	echo "" >> "$TMP_DIR/$log_file.prep"
 	echo "============>Prepare coalesce params for udp_lat<=============" >> "$TMP_DIR/$log_file.prep"
-	update_coalesce_params $RX_FRAMES_4_UDP_LAT	
+	update_coalesce_params $RX_FRAMES_4_UDP_LAT $RX_USEC_4_LAT_TEST	
+}
+
+function update_coalesce_4_tr_test
+{	
+	local_coalesce_params_changed=$FALSE
+	remote_coalesce_params_changed=$FALSE
+	echo "" >> "$TMP_DIR/$log_file.prep"
+	echo "========>Prepare coalesce params for throughput test<=========" >> "$TMP_DIR/$log_file.prep"
+	update_coalesce_params $RX_FRAMES_4_IPERF $RX_USEC_4_BW_TEST
 }
 
 function update_coalesce_params
 {
-	command="ethtool -C $INTERFACE rx-frames $1"
+	local rx_frames_val=$1
+	local rx_usecs_val=$2
+
+	update_coalesce_param rx-frames $rx_frames_val
+	update_coalesce_param rx-usecs $rx_usecs_val
+}
+
+function update_coalesce_param
+{
+	local param_name=$1
+	local param_val=$2
+	command="ethtool -C $INTERFACE $param_name $param_val"
 
 	if [[ $local_coalesce_params_saved -eq $TRUE ]]; then
 		if [[ $initial_rx_frames_local -ne $1 ]]; then
@@ -531,7 +938,7 @@ function recreate_coalesce_params
 
 function recreate_local_coalesce_params
 {
-	local command="ethtool -C $INTERFACE rx-frames $initial_rx_frames_local"
+	local command="ethtool -C $INTERFACE rx-frames $initial_rx_frames_local rx-usecs $initial_rx_usecs_local"
 
 	(echo "${SRV_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.post") >& /dev/null
 	eval $command >& /dev/null	
@@ -539,7 +946,7 @@ function recreate_local_coalesce_params
 
 function recreate_remote_coalesce_params
 {
-	local command="ethtool -C $INTERFACE rx-frames $initial_rx_frames_remote"
+	local command="ethtool -C $INTERFACE rx-frames $initial_rx_frames_remote rx-usecs $initial_rx_usecs_remote"
 
 	(echo "${CLT_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.post") >& /dev/null
 	ssh  $REM_HOST_IP "$command" >& /dev/null
@@ -552,6 +959,11 @@ function save_umcast
 	echo "" >> "$TMP_DIR/$log_file.prep"
 	echo "========================>Umcast info<=========================" >> "$TMP_DIR/$log_file.prep"
 	check_if_infbnd_iface
+
+	if [[ "$OVER_VMA" = not ]]; then
+		UMCAST_VAL=0
+	fi
+
 	if [[ $is_infiniband -eq $TRUE ]]; then
 		save_local_umcast_val
 		save_remote_umcast_val				
@@ -627,7 +1039,7 @@ function update_remote_umcast
 {
 	local command="echo $UMCAST_VAL 1>&/sys/class/net/$INTERFACE/umcast"
 	if [[ $local_umcast_saved -eq $TRUE ]]; then
-		(echo "${SRV_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.prep") >& /dev/null
+		(echo "${CLT_CMMND_LINE_PREF} $command" | tee -a "$TMP_DIR/$log_file.prep") >& /dev/null
 		ssh $REM_HOST_IP "$command" | eval "1>$TMP_FILE 2>$TMP_FILE.err "	
 		check_command_succss
 		if [[ $SUCCSESS -eq $TRUE ]]; then
@@ -668,14 +1080,23 @@ function recreate_remote_umcast_val
 	ssh  $REM_HOST_IP $command >& /dev/null
 }
 
+function clean_after_iperf
+{
+	killall iperf >& /dev/null
+	ssh $REM_HOST_IP killall iperf >& /dev/null
+	ssh $REM_HOST_IP "cat $TMP_DIR/$log_file.tmp" | tee -a $log_file >& /dev/null 
+	ssh $REM_HOST_IP rm -f "$TMP_DIR/$log_file.tmp" >& /dev/null
+	rm -f $TMP_FILE.err >& /dev/null 
+	rm -f "$TMP_DIR/$log_file.prep" >& /dev/null
+}
+
 function clean_after_udp_lat
 {	
 	ssh $REM_HOST_IP killall udp_lat >& /dev/null
-       	pkill -2 -f udp_lat >& /dev/null 
-        sleep 10 
-        cat "$TMP_DIR/$log_file.tmp" | tee -a $log_file >& /dev/null 
+       	pkill -2 -f udp_lat >& /dev/null
+        sleep 10
+        cat "$TMP_DIR/$log_file.tmp" | tee -a $log_file >& /dev/null
         rm -f "$TMP_DIR/$log_file.tmp" >& /dev/null
-
 }
 
 function collect_nodes_info_to_file
@@ -797,7 +1218,6 @@ function calc_file_age
 function get_operator_pid
 {
 	pid=$$
-	#pid=`ps -eF |grep $script_name| tr -s ' ' | cut -d  ' ' -f 2|head -1`
 }
 
 function write_to_file_operator_details
@@ -996,6 +1416,7 @@ function block
 function pre_test_checks
 {
 	check_connection_2_remote_ip
+	check_if_iperf_avaibale	
 	clean
 }
 
@@ -1004,7 +1425,7 @@ function check_connection_2_remote_ip
 	ssh -o "BatchMode yes" $REM_HOST_IP exit 2>$TMP_FILE.err
 	check_command_succss	
 	if [[ $SUCCSESS -ne $TRUE ]]; then
-		echo "vma_perf_envelope error:$LAST_ERROR"
+		echo "xlio_perf_envelope error:$LAST_ERROR"
 		clean
 		unblock
 		exit 1	
@@ -1013,23 +1434,28 @@ function check_connection_2_remote_ip
 
 function write_mc_feed_file
 {
-	x=0  # num of mc groups
-	y=1  # the third number of the mc group
-	port=10005
-	num=3  # the last number of the mc group
+	local mc_grp_ctr=0  	# num of mc groups
+	local mc_addr_part_3=1  # the third number of the mc group
+	local port=10005
+	local mc_addr_part_4=3  # the last number of the mc group
+	local mc_grp_num=$1
+	local file_name=$2
+	
+	if [ -e $file_name ]; then
+		rm -f $file_name >& /dev/null
+	fi
 
-
-	while [ $x -lt $1 ]
+	while [ $mc_grp_ctr -lt $mc_grp_num ]
 	do
-		if [ $num -ge 254 ]; then
-			y=$(($y+1)) 
-			num=3
+		if [ $mc_addr_part_4 -ge 254 ]; then
+			mc_addr_part_3=$(($mc_addr_part_3+1)) 
+			mc_addr_part_4=3
 		fi
 		
-		echo 224.4.$y.$num:$port >> $2
-		x=$(($x+1))
+		echo 224.4.$mc_addr_part_3.$mc_addr_part_4:$port >> $file_name
+		mc_grp_ctr=$(($mc_grp_ctr+1))
 		port=$(($port+1))
-		num=$(($num+1))
+		mc_addr_part_4=$(($mc_addr_part_4+1))
 	done
 }
 
@@ -1050,11 +1476,51 @@ function remove_mc_feed_files
 	ssh $REM_HOST_IP "rm -f $1" >& /dev/null
 }
 
+function run_iperf
+{
+	if [[ $iperf_is_installed -ne $TRUE ]]; then
+		echo "$ERORR_PROMT iperf tool not found on one of the machines, skipping iperf test"
+	else
+		run_iperf_with_diff_msg_len
+	fi	
+}
+
+
+function check_if_iperf_avaibale
+{
+	local_iperf_is_installed=$FALSE	
+	remote_iperf_is_installed=$FALSE
+	iperf_is_installed=$FALSE	
+	which iperf 2>$TMP_FILE.err 1>/dev/null
+	check_command_succss
+	if [[ $SUCCSESS -ne $FALSE ]]; then
+		local_iperf_is_installed=$TRUE
+	else
+		echo "$ERORR_PROMT iperf not found on local machine "			
+	fi
+
+	ssh $REM_HOST_IP "which iperf" 2>$TMP_FILE.err 1>/dev/null
+	check_command_succss					
+	if [[ $SUCCSESS -ne $FALSE ]]; then
+		remote_iperf_is_installed=$TRUE
+	else
+		echo "$ERORR_PROMT iperf not found on remote machine "		
+	fi
+	
+	if [[ $local_iperf_is_installed -eq $TRUE ]]; then
+		if [[ $remote_iperf_is_installed -eq $TRUE ]]; then
+			iperf_is_installed=$TRUE
+		fi	
+	fi
+}
+
 function clean
 {
 	rm -f $TMP_FILE.err >& /dev/null 
 	rm -f "$TMP_DIR/$log_file.prep" >& /dev/null 
 	rm -f "$TMP_DIR/$log_file.post" >& /dev/null	
+	ssh $REM_HOST_IP rm -f "$TMP_DIR/$log_file.tmp" >& /dev/null
+	rm -rf $TMP_FILE >& /dev/null
 }
 
 function write_date_2_log_file
@@ -1072,6 +1538,8 @@ function pre_vma_perf
 	write_date_2_log_file
 	collect_nodes_info_to_file "$log_file"	
 	prepare_route_table
+	save_shmem_prop
+	increase_number_of_hugetlb
 	save_umcast
 	update_umcast
 	clean			
@@ -1090,6 +1558,7 @@ function post_vma_perf
 {
 	collect_nodes_info_to_file "$res_file"	
 	recreate_route_table
+	recreate_mem_prop
 	recreate_umcast
 	final_test_message
 	write_date_2_log_file
@@ -1098,8 +1567,13 @@ function post_vma_perf
 
 function vma_perf
 {
+	run_udp_lat_with_diff_msg_len
+	run_udp_lat_tx_bw_with_diff_msg_len
+	run_udp_lat_bw_with_diff_msg_len
+	run_udp_lat_with_diff_burst_size
+	run_iperf
 	run_udp_lat_using_select_epoll_poll_with_zero_polling
-        run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
+	run_udp_lat_using_select_epoll_poll_with_full_polling_vma_only
 }	
 
 #main
