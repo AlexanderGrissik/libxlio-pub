@@ -144,7 +144,7 @@ int xlio_ib_mlx5_get_cq(struct ibv_cq *cq, xlio_ib_mlx5_cq_t *mlx5_cq)
     /* Move buffer forward for 128b CQE, so we would get pointer to the 2nd
      * 64b when polling.
      */
-    mlx5_cq->cq_buf = (uint8_t *)dcq.buf + dcq.cqe_size - sizeof(struct vma_mlx5_cqe);
+    mlx5_cq->cq_buf = (uint8_t *)dcq.buf + dcq.cqe_size - sizeof(struct xlio_mlx5_cqe);
 
     return 0;
 }

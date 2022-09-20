@@ -331,7 +331,7 @@ private:
     tcp_sock_state_e m_sock_state;
     sockinfo_tcp *m_parent;
     // received packet source (true if its from internal thread)
-    bool m_vma_thr;
+    bool m_xlio_thr;
     bool m_b_incoming;
     bool m_b_attached;
     /* connection state machine */

@@ -158,7 +158,7 @@ void cq_mgr::configure(int cq_size)
 
     if (m_b_is_rx) {
         m_b_is_rx_hw_csum_on =
-            vma_is_rx_hw_csum_supported(m_p_ib_ctx_handler->get_ibv_device_attr());
+            xlio_is_rx_hw_csum_supported(m_p_ib_ctx_handler->get_ibv_device_attr());
         cq_logdbg("RX CSUM support = %d", m_b_is_rx_hw_csum_on);
     }
 
@@ -424,11 +424,11 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
         for (int i = 0; i < ret; i++) {
             cq_logfuncall("wce[%d] info wr_id=%x, status=%x, opcode=%x, vendor_err=%x, "
                           "byte_len=%d, imm_data=%x",
-                          i, p_wce[i].wr_id, p_wce[i].status, vma_wc_opcode(p_wce[i]),
+                          i, p_wce[i].wr_id, p_wce[i].status, xlio_wc_opcode(p_wce[i]),
                           p_wce[i].vendor_err, p_wce[i].byte_len, p_wce[i].imm_data);
             cq_logfuncall("qp_num=%x, src_qp=%x, wc_flags=%x, pkey_index=%x, slid=%x, sl=%x, "
                           "dlid_path_bits=%x",
-                          p_wce[i].qp_num, p_wce[i].src_qp, vma_wc_flags(p_wce[i]),
+                          p_wce[i].qp_num, p_wce[i].src_qp, xlio_wc_flags(p_wce[i]),
                           p_wce[i].pkey_index, p_wce[i].slid, p_wce[i].sl, p_wce[i].dlid_path_bits);
         }
     }
@@ -456,11 +456,11 @@ void cq_mgr::process_cq_element_log_helper(mem_buf_desc_t *p_mem_buf_desc, xlio_
     if (p_wce->status == IBV_WC_SUCCESS) {
         cq_logdbg("wce: wr_id=%#lx, status=%#x, vendor_err=%#x, qp_num=%#x", p_wce->wr_id,
                   p_wce->status, p_wce->vendor_err, p_wce->qp_num);
-        if (m_b_is_rx_hw_csum_on && !vma_wc_rx_hw_csum_ok(*p_wce)) {
+        if (m_b_is_rx_hw_csum_on && !xlio_wc_rx_hw_csum_ok(*p_wce)) {
             cq_logdbg("wce: bad rx_csum");
         }
-        cq_logdbg("wce: opcode=%#x, byte_len=%u, src_qp=%#x, wc_flags=%#lx", vma_wc_opcode(*p_wce),
-                  p_wce->byte_len, p_wce->src_qp, (unsigned long)vma_wc_flags(*p_wce));
+        cq_logdbg("wce: opcode=%#x, byte_len=%u, src_qp=%#x, wc_flags=%#lx", xlio_wc_opcode(*p_wce),
+                  p_wce->byte_len, p_wce->src_qp, (unsigned long)xlio_wc_flags(*p_wce));
         cq_logdbg("wce: pkey_index=%#x, slid=%#x, sl=%#x, dlid_path_bits=%#x, imm_data=%#x",
                   p_wce->pkey_index, p_wce->slid, p_wce->sl, p_wce->dlid_path_bits,
                   p_wce->imm_data);
@@ -469,8 +469,9 @@ void cq_mgr::process_cq_element_log_helper(mem_buf_desc_t *p_mem_buf_desc, xlio_
     } else if (p_wce->status != IBV_WC_WR_FLUSH_ERR) {
         cq_logwarn("wce: wr_id=%#lx, status=%#x, vendor_err=%#x, qp_num=%#x", p_wce->wr_id,
                    p_wce->status, p_wce->vendor_err, p_wce->qp_num);
-        cq_loginfo("wce: opcode=%#x, byte_len=%u, src_qp=%#x, wc_flags=%#lx", vma_wc_opcode(*p_wce),
-                   p_wce->byte_len, p_wce->src_qp, (unsigned long)vma_wc_flags(*p_wce));
+        cq_loginfo("wce: opcode=%#x, byte_len=%u, src_qp=%#x, wc_flags=%#lx",
+                   xlio_wc_opcode(*p_wce), p_wce->byte_len, p_wce->src_qp,
+                   (unsigned long)xlio_wc_flags(*p_wce));
         cq_loginfo("wce: pkey_index=%#x, slid=%#x, sl=%#x, dlid_path_bits=%#x, imm_data=%#x",
                    p_wce->pkey_index, p_wce->slid, p_wce->sl, p_wce->dlid_path_bits,
                    p_wce->imm_data);
@@ -565,21 +566,21 @@ mem_buf_desc_t *cq_mgr::process_cq_element_rx(xlio_ibv_wc *p_wce)
         p_mem_buf_desc->p_prev_desc = NULL;
     }
 
-    p_mem_buf_desc->rx.is_sw_csum_need = !(m_b_is_rx_hw_csum_on && vma_wc_rx_hw_csum_ok(*p_wce));
+    p_mem_buf_desc->rx.is_sw_csum_need = !(m_b_is_rx_hw_csum_on && xlio_wc_rx_hw_csum_ok(*p_wce));
 
-    if (likely(vma_wc_opcode(*p_wce) & XLIO_IBV_WC_RECV)) {
+    if (likely(xlio_wc_opcode(*p_wce) & XLIO_IBV_WC_RECV)) {
         // Save recevied total bytes
         p_mem_buf_desc->sz_data = p_wce->byte_len;
 
         // we use context to verify that on reclaim rx buffer path we return the buffer to the right
         // CQ
-        p_mem_buf_desc->rx.is_vma_thr = false;
+        p_mem_buf_desc->rx.is_xlio_thr = false;
         p_mem_buf_desc->rx.context = this;
 
         // this is not a deadcode if timestamping is defined in verbs API
         // coverity[dead_error_condition]
-        if (vma_wc_flags(*p_wce) & XLIO_IBV_WC_WITH_TIMESTAMP) {
-            p_mem_buf_desc->rx.timestamps.hw_raw = vma_wc_timestamp(*p_wce);
+        if (xlio_wc_flags(*p_wce) & XLIO_IBV_WC_WITH_TIMESTAMP) {
+            p_mem_buf_desc->rx.timestamps.hw_raw = xlio_wc_timestamp(*p_wce);
         }
 
         VALGRIND_MAKE_MEM_DEFINED(p_mem_buf_desc->p_buffer, p_mem_buf_desc->sz_data);
@@ -713,7 +714,7 @@ int cq_mgr::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *pv_fd_read
         for (int i = 0; i < ret; i++) {
             mem_buf_desc_t *buff = process_cq_element_rx((&wce[i]));
             if (buff) {
-                if (vma_wc_opcode(wce[i]) & XLIO_IBV_WC_RECV) {
+                if (xlio_wc_opcode(wce[i]) & XLIO_IBV_WC_RECV) {
                     if ((++m_qp_rec.debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
                         !compensate_qp_poll_success(buff)) {
                         process_recv_buffer(buff, pv_fd_ready_array);
@@ -865,7 +866,7 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
                     }
                     // We process immediately all non udp/ip traffic..
                     if (procces_now) {
-                        buff->rx.is_vma_thr = true;
+                        buff->rx.is_xlio_thr = true;
                         if ((++m_qp_rec.debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
                             !compensate_qp_poll_success(buff)) {
                             process_recv_buffer(buff, NULL);

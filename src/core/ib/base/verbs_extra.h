@@ -151,17 +151,17 @@ typedef struct ibv_qp_attr xlio_ibv_qp_attr;
 // ibv_poll_cq
 #define xlio_ibv_poll_cq(cq, num, wc) ibv_poll_cq(cq, num, wc)
 typedef struct ibv_wc xlio_ibv_wc;
-#define vma_wc_flags(wc)  (wc).wc_flags
-#define vma_wc_opcode(wc) (wc).opcode
+#define xlio_wc_flags(wc)  (wc).wc_flags
+#define xlio_wc_opcode(wc) (wc).opcode
 #define XLIO_IBV_WC_RECV  IBV_WC_RECV
 // csum offload
 #ifdef DEFINED_IBV_DEVICE_RAW_IP_CSUM
-#define vma_is_rx_hw_csum_supported(attr)                                                          \
+#define xlio_is_rx_hw_csum_supported(attr)                                                          \
     ((attr)->device_cap_flags & (IBV_DEVICE_RAW_IP_CSUM | IBV_DEVICE_UD_IP_CSUM))
-#define vma_wc_rx_hw_csum_ok(wc) (vma_wc_flags(wc) & IBV_WC_IP_CSUM_OK)
+#define xlio_wc_rx_hw_csum_ok(wc) (xlio_wc_flags(wc) & IBV_WC_IP_CSUM_OK)
 #else
-#define vma_is_rx_hw_csum_supported(attr) 0
-#define vma_wc_rx_hw_csum_ok(wc)          (1)
+#define xlio_is_rx_hw_csum_supported(attr) 0
+#define xlio_wc_rx_hw_csum_ok(wc)          (1)
 #endif
 
 typedef int xlio_ibv_cq_init_attr;
@@ -170,7 +170,7 @@ typedef int xlio_ibv_cq_init_attr;
 
 // rx hw timestamp
 #define XLIO_IBV_WC_WITH_TIMESTAMP 0
-#define vma_wc_timestamp(wc)       0
+#define xlio_wc_timestamp(wc)       0
 #define xlio_ibv_cq_init_ts_attr(attr)                                                             \
     {                                                                                              \
         NOT_IN_USE(attr);                                                                          \
@@ -247,11 +247,11 @@ typedef struct ibv_flow_spec_tcp_udp xlio_ibv_flow_spec_tcp_udp;
 #ifdef DEFINED_IBV_FLOW_TAG
 #define XLIO_IBV_FLOW_SPEC_ACTION_TAG IBV_FLOW_SPEC_ACTION_TAG
 typedef struct ibv_flow_spec_action_tag xlio_ibv_flow_spec_action_tag;
-#define vma_get_flow_tag(cqe) ntohl((uint32_t)(cqe->sop_drop_qpn))
+#define xlio_get_flow_tag(cqe) ntohl((uint32_t)(cqe->sop_drop_qpn))
 #else
 typedef struct ibv_flow_spec_action_tag_dummy {
 } xlio_ibv_flow_spec_action_tag;
-#define vma_get_flow_tag(cqe) 0
+#define xlio_get_flow_tag(cqe) 0
 #endif // DEFINED_IBV_FLOW_TAG
 
 #ifdef DEFINED_IBV_CQ_ATTR_MODERATE

@@ -89,7 +89,7 @@ protected:
 
 private:
     inline bool set_current_hot_buffer();
-    inline bool strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe, enum buff_status_e &status,
+    inline bool strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe, enum buff_status_e &status,
                                           bool &is_filler);
     inline int drain_and_proccess_helper(mem_buf_desc_t *buff, mem_buf_desc_t *buff_wqe,
                                          buff_status_e status,

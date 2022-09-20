@@ -308,7 +308,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     m_rcvbuff_current = 0;
     m_rcvbuff_non_tcp_recved = 0;
     m_received_syn_num = 0;
-    m_vma_thr = false;
+    m_xlio_thr = false;
 
     m_ready_conn_cnt = 0;
     m_backlog = INT_MAX;
@@ -1491,7 +1491,7 @@ bool sockinfo_tcp::process_peer_ctl_packets(vma_desc_list_t &peer_packets)
 
         // 2.1.3 process the packet and remove it from list
         peer_packets.pop_front();
-        sock->m_vma_thr = true;
+        sock->m_xlio_thr = true;
         // -- start loop
         desc->inc_ref_count();
         L3_level_tcp_input((pbuf *)desc, pcb);
@@ -1500,7 +1500,7 @@ bool sockinfo_tcp::process_peer_ctl_packets(vma_desc_list_t &peer_packets)
             sock->m_rx_ctl_reuse_list.push_back(desc); // under sock's lock
         }
         // -- end loop
-        sock->m_vma_thr = false;
+        sock->m_xlio_thr = false;
 
         sock->m_tcp_con_lock.unlock();
     }
@@ -1598,7 +1598,7 @@ void sockinfo_tcp::process_children_ctl_packets()
         if (sock->m_tcp_con_lock.trylock()) {
             break;
         }
-        sock->m_vma_thr = true;
+        sock->m_xlio_thr = true;
 
         while (!sock->m_rx_ctl_packets_list.empty()) {
             sock->m_rx_ctl_packets_list_lock.lock();
@@ -1614,7 +1614,7 @@ void sockinfo_tcp::process_children_ctl_packets()
                 sock->m_rx_ctl_reuse_list.push_back(desc);
             }
         }
-        sock->m_vma_thr = false;
+        sock->m_xlio_thr = false;
         sock->m_tcp_con_lock.unlock();
 
         if (m_tcp_con_lock.trylock()) {
@@ -2233,7 +2233,7 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
         sock->m_tcp_con_lock.lock();
     }
 
-    sock->m_vma_thr = p_rx_pkt_mem_buf_desc_info->rx.is_vma_thr;
+    sock->m_xlio_thr = p_rx_pkt_mem_buf_desc_info->rx.is_xlio_thr;
 #ifdef RDTSC_MEASURE_RX_READY_POLL_TO_LWIP
     RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_READY_POLL_TO_LWIP]);
 #endif // RDTSC_MEASURE_RX_READY_POLL_TO_LWIP
@@ -2250,7 +2250,7 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
 #ifdef RDTSC_MEASURE_RX_LWIP_TO_RECEVEFROM
     RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_LWIP_TO_RECEVEFROM]);
 #endif // RDTSC_MEASURE_RX_LWIP_TO_RECEVEFROM
-    sock->m_vma_thr = false;
+    sock->m_xlio_thr = false;
 
     if (sock != this) {
         sock->m_tcp_con_lock.unlock();
@@ -3045,7 +3045,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
     }
 
     if (new_sock->m_sysvar_tcp_ctl_thread > CTL_THREAD_DISABLE) {
-        new_sock->m_vma_thr = true;
+        new_sock->m_xlio_thr = true;
 
         // Before handling packets from flow steering the child should process everything it got
         // from parent
@@ -3064,7 +3064,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
                 }
             }
         }
-        new_sock->m_vma_thr = false;
+        new_sock->m_xlio_thr = false;
     }
 
     new_sock->unlock_tcp_con();

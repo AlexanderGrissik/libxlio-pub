@@ -256,8 +256,8 @@ private:
     // Finds and sets the local if to which the buff is addressed (according to qpn and vlan id).
     inline void find_buff_dest_local_if(mem_buf_desc_t *buff);
 
-    // Finds and sets the vma if to which the buff is addressed (according to qpn).
-    inline void find_buff_dest_vma_if_ctx(mem_buf_desc_t *buff);
+    // Finds and sets the xlio if to which the buff is addressed (according to qpn).
+    inline void find_buff_dest_xlio_if_ctx(mem_buf_desc_t *buff);
 
     void process_cq_element_log_helper(mem_buf_desc_t *p_mem_buf_desc, xlio_ibv_wc *p_wce);
 

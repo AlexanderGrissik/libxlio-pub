@@ -271,7 +271,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
                  ((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1)) << m_mlx5_cq.cqe_size_log));
     }
 
-    vma_mlx5_cqe *cqe = check_cqe();
+    xlio_mlx5_cqe *cqe = check_cqe();
     if (likely(cqe)) {
         /* Update the consumer index */
         ++m_mlx5_cq.cq_ci;
@@ -328,7 +328,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
     return buff;
 }
 
-inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe,
+inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
                                                         enum buff_status_e &status, bool &is_filler)
 {
     struct mlx5_err_cqe *ecqe;
@@ -357,7 +357,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct vma_mlx5_cqe *cqe
         _current_wqe_consumed_bytes += _hot_buffer_stride->sz_buffer;
 
         _hot_buffer_stride->rx.timestamps.hw_raw = ntohll(cqe->timestamp);
-        _hot_buffer_stride->rx.flow_tag_id = vma_get_flow_tag(cqe);
+        _hot_buffer_stride->rx.flow_tag_id = xlio_get_flow_tag(cqe);
         _hot_buffer_stride->rx.is_sw_csum_need =
             !(m_b_is_rx_hw_csum_on && (cqe->hds_ip_ext & MLX5_CQE_L4_OK) &&
               (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
@@ -463,7 +463,7 @@ inline int cq_mgr_mlx5_strq::drain_and_proccess_helper(mem_buf_desc_t *buff,
 
                 // We process immediately all non udp/ip traffic..
                 if (procces_now) {
-                    buff->rx.is_vma_thr = true;
+                    buff->rx.is_xlio_thr = true;
                     process_recv_buffer(buff, nullptr);
                 } else { // udp/ip traffic we just put in the cq's rx queue
                     m_rx_queue.push_back(buff);
@@ -534,7 +534,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::process_strq_cq_element_rx(mem_buf_desc_t *p_m
 
     /* we use context to verify that on reclaim rx buffer path we return the buffer to the right CQ
      */
-    p_mem_buf_desc->rx.is_vma_thr = false;
+    p_mem_buf_desc->rx.is_xlio_thr = false;
     p_mem_buf_desc->rx.context = nullptr;
 
     if (unlikely(status != BS_OK)) {

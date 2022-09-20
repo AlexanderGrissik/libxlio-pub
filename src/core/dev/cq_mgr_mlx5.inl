@@ -40,10 +40,10 @@
 /**/
 /** inlining functions can only help if they are implemented before their usage **/
 /**/
-inline struct vma_mlx5_cqe *cq_mgr_mlx5::check_cqe(void)
+inline struct xlio_mlx5_cqe *cq_mgr_mlx5::check_cqe(void)
 {
-    struct vma_mlx5_cqe *cqe =
-        (struct vma_mlx5_cqe *)(((uint8_t *)m_mlx5_cq.cq_buf) +
+    struct xlio_mlx5_cqe *cqe =
+        (struct xlio_mlx5_cqe *)(((uint8_t *)m_mlx5_cq.cq_buf) +
                                 ((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1))
                                  << m_mlx5_cq.cqe_size_log));
     /*
