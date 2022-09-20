@@ -118,7 +118,7 @@ public:
     virtual void down();
     virtual void post_recv_buffer(
         mem_buf_desc_t *p_mem_buf_desc); // Post for receive single mem_buf_desc
-    vma_ib_mlx5_qp_t m_mlx5_qp;
+    xlio_ib_mlx5_qp_t m_mlx5_qp;
 
 #ifdef DEFINED_UTLS
     xlio_tis *tls_context_setup_tx(const xlio_tls_info *info);

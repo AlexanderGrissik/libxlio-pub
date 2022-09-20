@@ -38,7 +38,7 @@
 
 #include "ib/mlx5/ib_mlx5.h"
 
-int vma_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type)
+int xlio_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type)
 {
     int ret = 0;
 
@@ -47,7 +47,7 @@ int vma_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type)
     return ret;
 }
 
-int vma_ib_mlx5_req_notify_cq(vma_ib_mlx5_cq_t *mlx5_cq, int solicited)
+int xlio_ib_mlx5_req_notify_cq(xlio_ib_mlx5_cq_t *mlx5_cq, int solicited)
 {
     uint64_t doorbell;
     uint32_t sn;
@@ -77,7 +77,7 @@ int vma_ib_mlx5_req_notify_cq(vma_ib_mlx5_cq_t *mlx5_cq, int solicited)
     return 0;
 }
 
-void vma_ib_mlx5_get_cq_event(vma_ib_mlx5_cq_t *mlx5_cq, int count)
+void xlio_ib_mlx5_get_cq_event(xlio_ib_mlx5_cq_t *mlx5_cq, int count)
 {
     mlx5_cq->cq_sn += count;
 }

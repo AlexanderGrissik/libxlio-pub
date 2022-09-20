@@ -63,14 +63,14 @@ extern "C" {
 /**
  * Get internal verbs information.
  */
-int vma_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type);
+int xlio_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type);
 
 enum { VMA_IB_MLX5_QP_FLAGS_USE_UNDERLAY = 0x01 };
 
 enum { VMA_IB_MLX5_CQ_SET_CI = 0, VMA_IB_MLX5_CQ_ARM_DB = 1 };
 
 /* Queue pair */
-typedef struct vma_ib_mlx5_qp {
+typedef struct xlio_ib_mlx5_qp {
     struct ibv_qp *qp;
     uint32_t qpn;
     uint32_t flags;
@@ -99,10 +99,10 @@ typedef struct vma_ib_mlx5_qp {
     uint32_t tisn;
     uint32_t rqn;
     uint32_t sqn;
-} vma_ib_mlx5_qp_t;
+} xlio_ib_mlx5_qp_t;
 
 /* Completion queue */
-typedef struct vma_ib_mlx5_cq {
+typedef struct xlio_ib_mlx5_cq {
     struct ibv_cq *cq;
     void *cq_buf;
     unsigned cq_num;
@@ -113,7 +113,7 @@ typedef struct vma_ib_mlx5_cq {
     unsigned cqe_size_log;
     volatile uint32_t *dbrec;
     void *uar;
-} vma_ib_mlx5_cq_t;
+} xlio_ib_mlx5_cq_t;
 
 /* TLS PRM structures */
 
@@ -387,13 +387,13 @@ enum {
 /*
  * Interfaces
  */
-int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
-int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr,
-                          struct ibv_recv_wr **bad_wr);
+int xlio_ib_mlx5_get_qp(struct ibv_qp *qp, xlio_ib_mlx5_qp_t *mlx5_qp, uint32_t flags = 0);
+int xlio_ib_mlx5_post_recv(xlio_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr,
+                           struct ibv_recv_wr **bad_wr);
 
-int vma_ib_mlx5_get_cq(struct ibv_cq *cq, vma_ib_mlx5_cq_t *mlx5_cq);
-int vma_ib_mlx5_req_notify_cq(vma_ib_mlx5_cq_t *mlx5_cq, int solicited);
-void vma_ib_mlx5_get_cq_event(vma_ib_mlx5_cq_t *mlx5_cq, int count);
+int xlio_ib_mlx5_get_cq(struct ibv_cq *cq, xlio_ib_mlx5_cq_t *mlx5_cq);
+int xlio_ib_mlx5_req_notify_cq(xlio_ib_mlx5_cq_t *mlx5_cq, int solicited);
+void xlio_ib_mlx5_get_cq_event(xlio_ib_mlx5_cq_t *mlx5_cq, int count);
 
 #endif /* DEFINED_DIRECT_VERBS */
 

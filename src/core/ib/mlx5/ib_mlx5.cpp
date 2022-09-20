@@ -40,7 +40,7 @@
 #include "util/utils.h"
 #include "ib/mlx5/ib_mlx5.h"
 
-int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t flags)
+int xlio_ib_mlx5_get_qp(struct ibv_qp *qp, xlio_ib_mlx5_qp_t *mlx5_qp, uint32_t flags)
 {
     int ret = 0;
     struct mlx5dv_obj obj;
@@ -57,7 +57,7 @@ int vma_ib_mlx5_get_qp(struct ibv_qp *qp, vma_ib_mlx5_qp_t *mlx5_qp, uint32_t fl
 #if defined(DEFINED_DV_RAW_QP_HANDLES)
     dqp.comp_mask |= MLX5DV_QP_MASK_RAW_QP_HANDLES;
 #endif /* DEFINED_DV_RAW_QP_HANDLES */
-    ret = vma_ib_mlx5dv_init_obj(&obj, MLX5DV_OBJ_QP);
+    ret = xlio_ib_mlx5dv_init_obj(&obj, MLX5DV_OBJ_QP);
     if (ret != 0) {
         goto out;
     }
@@ -104,7 +104,7 @@ out:
     return ret;
 }
 
-int vma_ib_mlx5_get_cq(struct ibv_cq *cq, vma_ib_mlx5_cq_t *mlx5_cq)
+int xlio_ib_mlx5_get_cq(struct ibv_cq *cq, xlio_ib_mlx5_cq_t *mlx5_cq)
 {
     int ret = 0;
     struct mlx5dv_obj obj;
@@ -126,7 +126,7 @@ int vma_ib_mlx5_get_cq(struct ibv_cq *cq, vma_ib_mlx5_cq_t *mlx5_cq)
 
     obj.cq.in = cq;
     obj.cq.out = &dcq;
-    ret = vma_ib_mlx5dv_init_obj(&obj, MLX5DV_OBJ_CQ);
+    ret = xlio_ib_mlx5dv_init_obj(&obj, MLX5DV_OBJ_CQ);
     if (ret != 0) {
         return ret;
     }
@@ -149,8 +149,8 @@ int vma_ib_mlx5_get_cq(struct ibv_cq *cq, vma_ib_mlx5_cq_t *mlx5_cq)
     return 0;
 }
 
-int vma_ib_mlx5_post_recv(vma_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr,
-                          struct ibv_recv_wr **bad_wr)
+int xlio_ib_mlx5_post_recv(xlio_ib_mlx5_qp_t *mlx5_qp, struct ibv_recv_wr *wr,
+                           struct ibv_recv_wr **bad_wr)
 {
     struct mlx5_wqe_data_seg *scat;
     int err = 0;

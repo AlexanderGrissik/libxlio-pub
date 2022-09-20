@@ -64,9 +64,9 @@ bool qp_mgr_eth_mlx5_dpcp::configure_rq_dpcp()
     qp_logdbg("Requested RQ parameters: wre: rx = %d sge: rx = %d", m_qp_cap.max_recv_wr,
               m_qp_cap.max_recv_sge);
 
-    vma_ib_mlx5_cq_t mlx5_cq;
+    xlio_ib_mlx5_cq_t mlx5_cq;
     memset(&mlx5_cq, 0, sizeof(mlx5_cq));
-    vma_ib_mlx5_get_cq(m_p_cq_mgr_rx->get_ibv_cq_hndl(), &mlx5_cq);
+    xlio_ib_mlx5_get_cq(m_p_cq_mgr_rx->get_ibv_cq_hndl(), &mlx5_cq);
 
     qp_logdbg("Configuring dpcp RQ, cq-rx: %p, cqn-rx: %u", m_p_cq_mgr_rx,
               static_cast<unsigned int>(mlx5_cq.cq_num));
@@ -82,7 +82,7 @@ bool qp_mgr_eth_mlx5_dpcp::configure_rq_dpcp()
             m_ibv_rx_wr_array[wr_idx].num_sge = m_qp_cap.max_recv_sge;
             memset(m_ibv_rx_wr_array[wr_idx].sg_list, 0, sizeof(ibv_sge));
             m_ibv_rx_wr_array[wr_idx].sg_list[0].length =
-                1U; // To bypass a check inside vma_ib_mlx5_post_recv.
+                1U; // To bypass a check inside xlio_ib_mlx5_post_recv.
         }
     }
 

@@ -73,11 +73,11 @@ public:
     void set_qp_rq(qp_mgr *qp);
     virtual void add_qp_tx(qp_mgr *qp);
     virtual uint32_t clean_cq();
-    virtual void get_cq_event(int count = 1) { vma_ib_mlx5_get_cq_event(&m_mlx5_cq, count); };
+    virtual void get_cq_event(int count = 1) { xlio_ib_mlx5_get_cq_event(&m_mlx5_cq, count); };
 
 protected:
     qp_mgr_eth_mlx5 *m_qp;
-    vma_ib_mlx5_cq_t m_mlx5_cq;
+    xlio_ib_mlx5_cq_t m_mlx5_cq;
     mem_buf_desc_t *m_rx_hot_buffer;
 
     inline struct vma_mlx5_cqe *check_cqe(void);
@@ -96,7 +96,7 @@ protected:
 private:
     void handle_sq_wqe_prop(unsigned index);
 
-    virtual int req_notify_cq() { return vma_ib_mlx5_req_notify_cq(&m_mlx5_cq, 0); };
+    virtual int req_notify_cq() { return xlio_ib_mlx5_req_notify_cq(&m_mlx5_cq, 0); };
 };
 
 inline void cq_mgr_mlx5::update_global_sn(uint64_t &cq_poll_sn, uint32_t num_polled_cqes)

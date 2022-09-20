@@ -327,7 +327,7 @@ dpcp::adapter *ib_ctx_handler::set_dpcp_adapter()
                 mlx5dv_pd out_pd;
                 mlx5_obj.pd.out = &out_pd;
 
-                ret = vma_ib_mlx5dv_init_obj(&mlx5_obj, MLX5DV_OBJ_PD);
+                ret = xlio_ib_mlx5dv_init_obj(&mlx5_obj, MLX5DV_OBJ_PD);
                 if (ret) {
                     ibch_logerr("failed getting mlx5_pd for %p (errno=%d %m) ", m_p_ibv_pd, errno);
                     ibv_dealloc_pd(pd);

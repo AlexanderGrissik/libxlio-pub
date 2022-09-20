@@ -272,8 +272,8 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc, const uint32_t tx_num
 
 void qp_mgr_eth_mlx5::init_qp()
 {
-    if (0 != vma_ib_mlx5_get_qp(m_qp, &m_mlx5_qp)) {
-        qp_logpanic("vma_ib_mlx5_get_qp failed (errno=%d %m)", errno);
+    if (0 != xlio_ib_mlx5_get_qp(m_qp, &m_mlx5_qp)) {
+        qp_logpanic("xlio_ib_mlx5_get_qp failed (errno=%d %m)", errno);
     }
 
     m_sq_wqes = (struct mlx5_eth_wqe(*)[])(uintptr_t)m_mlx5_qp.sq.buf;
@@ -424,7 +424,7 @@ void qp_mgr_eth_mlx5::post_recv_buffer_rq(mem_buf_desc_t *p_mem_buf_desc)
 
         m_curr_rx_wr = 0;
         struct ibv_recv_wr *bad_wr = NULL;
-        IF_VERBS_FAILURE(vma_ib_mlx5_post_recv(&m_mlx5_qp, &m_ibv_rx_wr_array[0], &bad_wr))
+        IF_VERBS_FAILURE(xlio_ib_mlx5_post_recv(&m_mlx5_qp, &m_ibv_rx_wr_array[0], &bad_wr))
         {
             uint32_t n_pos_bad_rx_wr =
                 ((uint8_t *)bad_wr - (uint8_t *)m_ibv_rx_wr_array) / sizeof(struct ibv_recv_wr);
