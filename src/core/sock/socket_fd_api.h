@@ -148,7 +148,7 @@ public:
     socket_fd_api(int fd);
     virtual ~socket_fd_api();
 
-    virtual void setPassthrough() { }
+    virtual void setPassthrough() {}
     virtual bool isPassthrough() { return false; }
 
     virtual int prepareListen() { return 0; }
@@ -199,7 +199,7 @@ public:
 
 #if defined(DEFINED_NGINX)
     virtual void prepare_to_close_socket_pool(bool _push_pop) { NOT_IN_USE(_push_pop); }
-    virtual void set_params_for_socket_pool() { }
+    virtual void set_params_for_socket_pool() {}
 #endif
 
     // In some cases we need the socket can't be deleted immidiatly
@@ -236,7 +236,7 @@ public:
     virtual void copy_sockopt_fork(const socket_fd_api *copy_from) = 0;
 #endif
 
-    virtual void consider_rings_migration() { }
+    virtual void consider_rings_migration() {}
     virtual int add_epoll_context(epfd_info *epfd);
     virtual void remove_epoll_context(epfd_info *epfd);
     int get_epoll_context_fd();

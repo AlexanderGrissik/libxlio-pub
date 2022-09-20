@@ -141,7 +141,7 @@ public:
             uint32_t flow_tag_id; // Flow Tag ID of this received packet
             int8_t n_frags; // number of fragments
             bool is_xlio_thr; // specify whether packet drained from VMA internal thread or from user
-                             // app thread
+                              // app thread
             bool is_sw_csum_need; // specify if software checksum is need for this packet
 #ifdef DEFINED_UTLS
             uint8_t tls_decrypted;

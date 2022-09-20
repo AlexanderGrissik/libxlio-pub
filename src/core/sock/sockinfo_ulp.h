@@ -57,7 +57,7 @@ public:
 class sockinfo_tcp_ops {
 public:
     sockinfo_tcp_ops(sockinfo_tcp *sock);
-    virtual ~sockinfo_tcp_ops() { }
+    virtual ~sockinfo_tcp_ops() {}
 
     inline ring *get_tx_ring(void);
 

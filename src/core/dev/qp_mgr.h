@@ -188,7 +188,7 @@ public:
         NOT_IN_USE(first);
     }
 #endif /* DEFINED_UTLS */
-    virtual void post_nop_fence(void) { }
+    virtual void post_nop_fence(void) {}
 
     virtual void reset_inflight_zc_buffers_ctx(void *ctx) { NOT_IN_USE(ctx); }
 
@@ -265,7 +265,7 @@ public:
         }
     };
 
-    virtual ~qp_mgr_eth() { }
+    virtual ~qp_mgr_eth() {}
 
     virtual void modify_qp_to_ready_state();
     virtual uint16_t get_partiton() const { return m_vlan; };

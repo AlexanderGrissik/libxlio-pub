@@ -237,7 +237,7 @@ class xlio_tir : public xlio_ti {
 public:
     /* A stub class to compile without uTLS support. */
     inline uint32_t get_tirn(void) { return 0; }
-    inline void reset(void) { }
+    inline void reset(void) {}
 };
 #endif /* DEFINED_UTLS */
 
