@@ -56,7 +56,7 @@ qp_mgr_eth_mlx5_dpcp::qp_mgr_eth_mlx5_dpcp(struct qp_mgr_desc *desc, uint32_t tx
 bool qp_mgr_eth_mlx5_dpcp::configure_rq_dpcp()
 {
     qp_logdbg("Creating RQ of transport type '%s' on ibv device '%s' [%p] on port %d",
-              priv_vma_transport_type_str(m_p_ring->get_transport_type()),
+              priv_xlio_transport_type_str(m_p_ring->get_transport_type()),
               m_p_ib_ctx_handler->get_ibname(), m_p_ib_ctx_handler->get_ibv_device(), m_port_num);
 
     m_qp_cap.max_recv_wr = m_rx_num_wr;

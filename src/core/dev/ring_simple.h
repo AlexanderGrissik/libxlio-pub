@@ -83,7 +83,7 @@ public:
     void mem_buf_desc_return_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     void mem_buf_desc_return_to_owner_rx(mem_buf_desc_t *p_mem_buf_desc,
                                          void *pv_fd_ready_array = NULL);
-    inline int send_buffer(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
+    inline int send_buffer(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual bool is_up();
     void start_active_qp_mgr();
     void stop_active_qp_mgr();
@@ -92,9 +92,9 @@ public:
     virtual int mem_buf_tx_release(mem_buf_desc_t *p_mem_buf_desc_list, bool b_accounting,
                                    bool trylock = false);
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                  vma_wr_tx_packet_attr attr);
+                                  xlio_wr_tx_packet_attr attr);
     virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                 vma_wr_tx_packet_attr attr, xlio_tis *tis);
+                                 xlio_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
     virtual bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe);

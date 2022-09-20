@@ -1185,7 +1185,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
     dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
     int max_count = p_si_tcp->m_pcb.tso.max_send_sge;
     tcp_iovec lwip_iovec[max_count];
-    vma_send_attr attr = {(vma_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
+    vma_send_attr attr = {(xlio_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
     int count = 0;
     void *cur_end;
 
@@ -1281,7 +1281,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
     sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)(((struct tcp_pcb *)v_p_conn)->my_container);
     dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
     int count = 1;
-    vma_wr_tx_packet_attr attr;
+    xlio_wr_tx_packet_attr attr;
 
     NOT_IN_USE(seg);
     // ASSERT_NOT_LOCKED(p_si_tcp->m_tcp_con_lock);
@@ -1306,7 +1306,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
         }
     }
 
-    attr = (vma_wr_tx_packet_attr)flags;
+    attr = (xlio_wr_tx_packet_attr)flags;
     if (is_set(attr, VMA_TX_PACKET_REXMIT)) {
         p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
     }

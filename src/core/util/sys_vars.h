@@ -145,7 +145,7 @@ typedef enum {
 // See ibv_transport_type for general verbs transport types
 typedef enum { VMA_TRANSPORT_UNKNOWN = -1, VMA_TRANSPORT_ETH } transport_type_t;
 
-static inline const char *priv_vma_transport_type_str(transport_type_t transport_type)
+static inline const char *priv_xlio_transport_type_str(transport_type_t transport_type)
 {
     BULLSEYE_EXCLUDE_BLOCK_START
     switch (transport_type) {

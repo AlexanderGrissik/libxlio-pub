@@ -47,14 +47,14 @@ public:
 
     inline xlio_ibv_wr_opcode set_opcode(xlio_ibv_send_wr &wqe, xlio_ibv_wr_opcode opcode)
     {
-        xlio_ibv_wr_opcode last_opcode = vma_send_wr_opcode(wqe);
-        vma_send_wr_opcode(wqe) = opcode;
+        xlio_ibv_wr_opcode last_opcode = xlio_send_wr_opcode(wqe);
+        xlio_send_wr_opcode(wqe) = opcode;
         return last_opcode;
     }
 
     inline void enable_tso(xlio_ibv_send_wr &wr, void *hdr, uint16_t hdr_sz, uint16_t mss)
     {
-        vma_send_wr_opcode(wr) = XLIO_IBV_WR_TSO;
+        xlio_send_wr_opcode(wr) = XLIO_IBV_WR_TSO;
         wr.tso.hdr = hdr;
         wr.tso.hdr_sz = hdr_sz;
         wr.tso.mss = mss;
@@ -62,7 +62,7 @@ public:
 
     inline void enable_inline(xlio_ibv_send_wr &send_wqe)
     {
-        vma_send_wr_send_flags(send_wqe) |= XLIO_IBV_SEND_INLINE;
+        xlio_send_wr_send_flags(send_wqe) |= XLIO_IBV_SEND_INLINE;
     }
 };
 

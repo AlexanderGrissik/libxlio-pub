@@ -78,9 +78,9 @@ public:
                                    bool trylock = false);
     virtual void inc_tx_retransmissions_stats(ring_user_id_t id);
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                  vma_wr_tx_packet_attr attr);
+                                  xlio_wr_tx_packet_attr attr);
     virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                 vma_wr_tx_packet_attr attr, xlio_tis *tis);
+                                 xlio_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
     virtual bool is_member(ring_slave *rng);

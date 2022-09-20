@@ -81,9 +81,9 @@ public:
         buffer_pool::free_rx_lwip_pbuf_custom(&p_mem_buf_desc->lwip_pbuf.pbuf);
     };
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                  vma_wr_tx_packet_attr attr) = 0;
+                                  xlio_wr_tx_packet_attr attr) = 0;
     virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                 vma_wr_tx_packet_attr attr, xlio_tis *tis) = 0;
+                                 xlio_wr_tx_packet_attr attr, xlio_tis *tis) = 0;
 
     // Funcs taken from cq_mgr.h
     virtual int get_num_resources() const = 0;

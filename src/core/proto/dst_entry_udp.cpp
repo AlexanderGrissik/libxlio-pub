@@ -77,7 +77,7 @@ void dst_entry_udp::configure_headers()
 
 // Static function to server both neigh (slow) path and dst_entry (fast) path
 bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
-                                              const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                              const ssize_t sz_iov, xlio_wr_tx_packet_attr attr,
                                               size_t sz_udp_payload, int n_num_frags,
                                               xlio_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
                                               ibv_sge *p_sge, header *p_header,
@@ -128,12 +128,12 @@ bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, co
             p_udp_hdr->len = htons((uint16_t)sz_udp_payload);
 
             // temporary sum of the entire payload
-            // final checksum is calculated by attr VMA_TX_PACKET_L4_CSUM
+            // final checksum is calculated by attr XLIO_TX_PACKET_L4_CSUM
             p_udp_hdr->check = calc_sum_of_payload(p_iov, sz_iov);
-            attr = (vma_wr_tx_packet_attr)(attr | VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
+            attr = (xlio_wr_tx_packet_attr)(attr | XLIO_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
         } else {
             get_ipv6_hdrs_frag_ext_ptr(p_pkt, p_ip_hdr, p_frag_h);
-            attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
+            attr = (xlio_wr_tx_packet_attr)(attr & ~(XLIO_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
         }
 
         memcpy(p_frag_h, &frag_h, sizeof(ip6_frag));
@@ -197,7 +197,7 @@ bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, co
 }
 
 inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const ssize_t sz_iov,
-                                                       vma_wr_tx_packet_attr attr,
+                                                       xlio_wr_tx_packet_attr attr,
                                                        size_t sz_udp_payload,
                                                        ssize_t sz_data_payload)
 {
@@ -317,7 +317,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
 
 inline bool dst_entry_udp::fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_desc,
                                                      const iovec *p_iov, const ssize_t sz_iov,
-                                                     vma_wr_tx_packet_attr attr,
+                                                     xlio_wr_tx_packet_attr attr,
                                                      size_t sz_udp_payload, int n_num_frags)
 {
     void *p_pkt;
@@ -424,7 +424,7 @@ inline bool dst_entry_udp::fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_d
 }
 
 ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz_iov,
-                                            vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
+                                            xlio_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                             ssize_t sz_data_payload)
 {
     bool b_blocked = is_set(attr, VMA_TX_PACKET_BLOCK);
@@ -478,18 +478,18 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
 ssize_t dst_entry_udp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr)
 {
     /* Suppress flags that should not be used anymore
-     * to avoid conflicts with VMA_TX_PACKET_L3_CSUM and VMA_TX_PACKET_L4_CSUM
+     * to avoid conflicts with XLIO_TX_PACKET_L3_CSUM and XLIO_TX_PACKET_L4_CSUM
      */
-    attr.flags = (vma_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
+    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
 
     // Calc udp payload size
     size_t sz_udp_payload = attr.length + sizeof(struct udphdr);
     if (sz_udp_payload <= (size_t)m_max_udp_payload_size) {
         attr.flags =
-            (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
+            (xlio_wr_tx_packet_attr)(attr.flags | XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM);
         return fast_send_not_fragmented(p_iov, sz_iov, attr.flags, sz_udp_payload, attr.length);
     } else {
-        attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM);
+        attr.flags = (xlio_wr_tx_packet_attr)(attr.flags | XLIO_TX_PACKET_L3_CSUM);
         return fast_send_fragmented(p_iov, sz_iov, attr.flags, sz_udp_payload, attr.length);
     }
 }

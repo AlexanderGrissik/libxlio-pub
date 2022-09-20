@@ -59,7 +59,7 @@ void wqe_send_handler::init_wqe(xlio_ibv_send_wr &wqe_to_init, struct ibv_sge *s
     memset(&wqe_to_init, 0, sizeof(wqe_to_init));
 
     wqe_to_init.num_sge = num_sge;
-    vma_send_wr_opcode(wqe_to_init) = XLIO_IBV_WR_SEND;
+    xlio_send_wr_opcode(wqe_to_init) = XLIO_IBV_WR_SEND;
     wqe_to_init.next = NULL;
     wqe_to_init.sg_list = sge_list;
     wqe_to_init.wr_id = 0;

@@ -332,11 +332,11 @@ bool ring_tap::reclaim_recv_buffers(mem_buf_desc_t *buff)
 }
 
 void ring_tap::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                vma_wr_tx_packet_attr attr)
+                                xlio_wr_tx_packet_attr attr)
 {
     NOT_IN_USE(id);
-    compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
-                        attr & VMA_TX_PACKET_L4_CSUM);
+    compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & XLIO_TX_PACKET_L3_CSUM,
+                        attr & XLIO_TX_PACKET_L4_CSUM);
 
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr);
@@ -344,12 +344,12 @@ void ring_tap::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
 }
 
 int ring_tap::send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                               vma_wr_tx_packet_attr attr, xlio_tis *tis)
+                               xlio_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     NOT_IN_USE(id);
     NOT_IN_USE(tis);
-    compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
-                        attr & VMA_TX_PACKET_L4_CSUM);
+    compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & XLIO_TX_PACKET_L3_CSUM,
+                        attr & XLIO_TX_PACKET_L4_CSUM);
 
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
     int ret = send_buffer(p_send_wqe, attr);
@@ -595,7 +595,7 @@ int ring_tap::mem_buf_tx_release(mem_buf_desc_t *buff_list, bool b_accounting, b
     return count;
 }
 
-int ring_tap::send_buffer(xlio_ibv_send_wr *wr, vma_wr_tx_packet_attr attr)
+int ring_tap::send_buffer(xlio_ibv_send_wr *wr, xlio_wr_tx_packet_attr attr)
 {
     int ret = 0;
     iovec iovec[wr->num_sge];

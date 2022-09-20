@@ -682,7 +682,7 @@ void ring_simple::mem_buf_rx_release(mem_buf_desc_t *p_mem_buf_desc)
 }
 
 /* note that this function is inline, so keep it above the functions using it */
-inline int ring_simple::send_buffer(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+inline int ring_simple::send_buffer(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr,
                                     xlio_tis *tis)
 {
     // Note: this is debatable logic as it count of WQEs waiting completion but
@@ -716,14 +716,14 @@ bool ring_simple::get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr 
 }
 
 void ring_simple::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                   vma_wr_tx_packet_attr attr)
+                                   xlio_wr_tx_packet_attr attr)
 {
     NOT_IN_USE(id);
 
     if (attr & VMA_TX_SW_L4_CSUM) {
-        compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & VMA_TX_PACKET_L3_CSUM,
-                            attr & VMA_TX_PACKET_L4_CSUM);
-        attr = (vma_wr_tx_packet_attr)(attr & ~(VMA_TX_PACKET_L4_CSUM));
+        compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & XLIO_TX_PACKET_L3_CSUM,
+                            attr & XLIO_TX_PACKET_L4_CSUM);
+        attr = (xlio_wr_tx_packet_attr)(attr & ~(XLIO_TX_PACKET_L4_CSUM));
     }
 
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
@@ -732,7 +732,7 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_w
 }
 
 int ring_simple::send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                  vma_wr_tx_packet_attr attr, xlio_tis *tis)
+                                  xlio_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     NOT_IN_USE(id);
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);

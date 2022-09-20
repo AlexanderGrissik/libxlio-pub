@@ -38,7 +38,7 @@
 #include "core/sock/pkt_rcvr_sink.h"
 #include "core/lwip/tcp.h"
 
-typedef enum vma_wr_tx_packet_attr {
+typedef enum xlio_wr_tx_packet_attr {
     /* 8 bits are reserved for TCP flags (see lwip/tcp.h)
      * this option should be synchronized with lwip/tcp value
      */
@@ -60,7 +60,7 @@ typedef enum vma_wr_tx_packet_attr {
      *    VMA_TX_FILE is passed into dst_entry::fast_send() operation
      *    and it is not needed later doing send to wire
      */
-    VMA_TX_PACKET_L3_CSUM = (1 << 6),
+    XLIO_TX_PACKET_L3_CSUM = (1 << 6),
     /* MLX5_ETH_WQE_L4_CSUM offload to HW L4 (TCP/UDP) header checksum
      * Important:
      *  - hardcoded value used directly to program send to wire
@@ -68,14 +68,14 @@ typedef enum vma_wr_tx_packet_attr {
      *    TCP_WRITE_ZEROCOPY is passed into dst_entry::fast_send() operation
      *    and it is not needed later doing send to wire
      */
-    VMA_TX_PACKET_L4_CSUM = (1 << 7),
+    XLIO_TX_PACKET_L4_CSUM = (1 << 7),
     /* blocking send operation */
     VMA_TX_PACKET_BLOCK = (1 << 8),
     /* Force SW checksum */
     VMA_TX_SW_L4_CSUM = (1 << 9),
-} vma_wr_tx_packet_attr;
+} xlio_wr_tx_packet_attr;
 
-static inline bool is_set(vma_wr_tx_packet_attr state_, vma_wr_tx_packet_attr tx_mode_)
+static inline bool is_set(xlio_wr_tx_packet_attr state_, xlio_wr_tx_packet_attr tx_mode_)
 {
     return (uint32_t)state_ & (uint32_t)tx_mode_;
 }

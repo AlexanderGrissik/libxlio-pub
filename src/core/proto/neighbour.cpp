@@ -172,7 +172,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
     , m_p_dev(key.get_net_device_val())
     , m_p_ring(NULL)
     , m_is_loopback(false)
-    , m_to_str(std::string(priv_vma_transport_type_str(m_trans_type)) + ":" + get_key().to_str())
+    , m_to_str(std::string(priv_xlio_transport_type_str(m_trans_type)) + ":" + get_key().to_str())
     , m_id(0)
     , m_is_first_send_arp(true)
     , m_ch_fd(-1)
@@ -555,7 +555,7 @@ bool neigh_entry::post_send_udp_ipv4(neigh_send_data *n_send_data)
 
         // We don't check the return value of post send when we reach the HW we consider that we
         // completed our job
-        m_p_ring->send_ring_buffer(m_id, &m_send_wqe, VMA_TX_PACKET_L3_CSUM);
+        m_p_ring->send_ring_buffer(m_id, &m_send_wqe, XLIO_TX_PACKET_L3_CSUM);
 
         p_mem_buf_desc = tmp;
 
@@ -586,7 +586,7 @@ bool neigh_entry::post_send_udp_ipv6_fragmented(neigh_send_data *n_send_data, si
     }
 
     return dst_entry_udp::fast_send_fragmented_ipv6(
-        p_mem_buf_desc, &n_send_data->m_iov, 1, VMA_TX_PACKET_L3_CSUM, sz_udp_payload, n_num_frags,
+        p_mem_buf_desc, &n_send_data->m_iov, 1, XLIO_TX_PACKET_L3_CSUM, sz_udp_payload, n_num_frags,
         &m_send_wqe, m_id, &m_sge, n_send_data->m_header, max_ip_payload_size, m_p_ring,
         n_send_data->m_packet_id);
 }
@@ -640,8 +640,8 @@ bool neigh_entry::post_send_udp_ipv6_not_fragmented(neigh_send_data *n_send_data
     BULLSEYE_EXCLUDE_BLOCK_END
 
     wqe_send_handler wqe_sh;
-    vma_wr_tx_packet_attr attr =
-        (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L4_CSUM | VMA_TX_PACKET_L3_CSUM);
+    xlio_wr_tx_packet_attr attr =
+        (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L4_CSUM | XLIO_TX_PACKET_L3_CSUM);
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h->m_transport_header_tx_offset);
     m_sge.length = sz_data_payload + hdr_len;
@@ -719,8 +719,8 @@ bool neigh_entry::post_send_tcp(neigh_send_data *p_data)
     }
 
     m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
-    vma_wr_tx_packet_attr attr =
-        (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
+    xlio_wr_tx_packet_attr attr =
+        (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM);
     p_mem_buf_desc->tx.p_ip_h = p_ip_hdr;
     p_mem_buf_desc->tx.p_tcp_h = reinterpret_cast<tcphdr *>(p_tcp_hdr);
 
@@ -1658,7 +1658,7 @@ bool neigh_eth::send_arp_request(bool is_broadcast)
     p_mem_buf_desc->p_next_desc = NULL;
     m_send_wqe.wr_id = (uintptr_t)p_mem_buf_desc;
 
-    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (vma_wr_tx_packet_attr)0);
+    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (xlio_wr_tx_packet_attr)0);
 
     neigh_logdbg("ARP Sent");
     return true;
@@ -1792,7 +1792,7 @@ bool neigh_eth::send_neighbor_solicitation()
     neigh_logdbg("NS request: base=%p addr=%p length=%" PRIu32, p_mem_buf_desc->p_buffer,
                  (void *)m_sge.addr, m_sge.length);
 
-    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (vma_wr_tx_packet_attr)0);
+    m_p_ring->send_ring_buffer(m_id, &m_send_wqe, (xlio_wr_tx_packet_attr)0);
 
     neigh_logdbg("Neighbor solicitation has been sent");
     return true;

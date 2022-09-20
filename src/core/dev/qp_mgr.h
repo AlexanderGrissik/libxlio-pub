@@ -110,7 +110,7 @@ public:
         mem_buf_desc_t *p_mem_buf_desc); // Post for receive single mem_buf_desc
     void post_recv_buffers(descq_t *p_buffers,
                            size_t count); // Post for receive a list of mem_buf_desc
-    int send(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis);
+    int send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio_tis *tis);
 
     inline uint32_t get_max_inline_data() const { return m_qp_cap.max_inline_data; }
     inline uint32_t get_max_send_sge() const { return m_qp_cap.max_send_sge; }
@@ -248,7 +248,7 @@ protected:
     cq_mgr *handle_cq_initialization(uint32_t *num_wr, struct ibv_comp_channel *comp_event_channel,
                                      bool is_rx);
 
-    virtual int send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+    virtual int send_to_wire(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr,
                              bool request_comp, xlio_tis *tis);
     virtual bool is_completion_need() { return !m_n_unsignaled_count; };
 };

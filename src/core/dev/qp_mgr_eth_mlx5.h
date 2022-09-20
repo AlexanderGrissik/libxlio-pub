@@ -176,7 +176,7 @@ private:
     virtual void dm_release_data(mem_buf_desc_t *buff) { m_dm_mgr.release_data(buff); }
 
     inline void set_signal_in_next_send_wqe();
-    int send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, bool request_comp,
+    int send_to_wire(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, bool request_comp,
                      xlio_tis *tis);
     inline int fill_wqe(xlio_ibv_send_wr *p_send_wqe);
     inline void store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti);

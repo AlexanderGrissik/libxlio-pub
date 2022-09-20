@@ -184,7 +184,7 @@ typedef struct xlio_mlx5_cqe {
 
 /* WQE segments structures */
 
-typedef struct vma_mlx5_wqe_ctrl_seg {
+typedef struct xlio_mlx5_wqe_ctrl_seg {
     __be32 opmod_idx_opcode;
     __be32 qpn_ds;
     uint8_t signature;
@@ -196,9 +196,9 @@ typedef struct vma_mlx5_wqe_ctrl_seg {
         __be32 umr_mkey;
         __be32 tis_tir_num;
     };
-} vma_mlx5_wqe_ctrl_seg;
+} xlio_mlx5_wqe_ctrl_seg;
 
-typedef struct vma_mlx5_wqe_umr_ctrl_seg {
+typedef struct xlio_mlx5_wqe_umr_ctrl_seg {
     uint8_t flags;
     uint8_t rsvd0[3];
     __be16 xlt_octowords;
@@ -209,7 +209,7 @@ typedef struct vma_mlx5_wqe_umr_ctrl_seg {
     __be64 mkey_mask;
     __be32 xlt_offset_47_16;
     uint8_t rsvd1[28];
-} vma_mlx5_wqe_umr_ctrl_seg;
+} xlio_mlx5_wqe_umr_ctrl_seg;
 
 typedef struct mlx5_mkey_seg {
     /* This is a two bit field occupying bits 31-30.
@@ -246,7 +246,7 @@ typedef struct mlx5_wqe_tls_progress_params_seg {
 
 typedef struct mlx5_wqe {
     union {
-        struct vma_mlx5_wqe_ctrl_seg ctrl;
+        struct xlio_mlx5_wqe_ctrl_seg ctrl;
         uint32_t data[4];
     };
 } mlx5_wqe;
@@ -259,7 +259,7 @@ typedef struct mlx5_eth_wqe {
 
 typedef struct mlx5_set_tls_static_params_wqe {
     struct mlx5_wqe ctrl;
-    struct vma_mlx5_wqe_umr_ctrl_seg uctrl;
+    struct xlio_mlx5_wqe_umr_ctrl_seg uctrl;
     struct mlx5_mkey_seg mkc;
     struct mlx5_wqe_tls_static_params_seg params;
 } mlx5_set_tls_static_params_wqe;
@@ -274,17 +274,17 @@ struct mlx5_dump_wqe {
     struct mlx5_wqe_data_seg data;
 };
 
-typedef struct vma_mlx5_seg_get_psv {
+typedef struct xlio_mlx5_seg_get_psv {
     uint8_t rsvd[19];
     uint8_t num_psv;
     __be32 l_key;
     __be64 va;
     __be32 psv_index[4];
-} vma_mlx5_seg_get_psv;
+} xlio_mlx5_seg_get_psv;
 
 typedef struct mlx5_get_tls_progress_params_wqe {
     struct mlx5_wqe ctrl;
-    struct vma_mlx5_seg_get_psv psv;
+    struct xlio_mlx5_seg_get_psv psv;
 } mlx5_get_tls_progress_params_wqe;
 
 /* WQEs sizes */

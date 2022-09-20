@@ -61,9 +61,9 @@ public:
         return -1;
     }
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                  vma_wr_tx_packet_attr attr);
+                                  xlio_wr_tx_packet_attr attr);
     virtual int send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
-                                 vma_wr_tx_packet_attr attr, xlio_tis *tis);
+                                 xlio_wr_tx_packet_attr attr, xlio_tis *tis);
     virtual void mem_buf_desc_return_single_to_owner_tx(mem_buf_desc_t *p_mem_buf_desc);
     virtual void mem_buf_desc_return_single_multi_ref(mem_buf_desc_t *p_mem_buf_desc, unsigned ref);
     virtual mem_buf_desc_t *mem_buf_tx_get(ring_user_id_t id, bool b_block, pbuf_type type,
@@ -123,7 +123,7 @@ private:
     int prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action);
     int process_element_rx(void *pv_fd_ready_array);
     bool request_more_rx_buffers();
-    int send_buffer(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr);
+    int send_buffer(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr);
     void send_status_handler(int ret, xlio_ibv_send_wr *p_send_wqe);
     void tap_create(net_device_val *p_ndev);
     void tap_destroy();

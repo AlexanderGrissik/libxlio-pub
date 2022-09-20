@@ -256,7 +256,7 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(struct qp_mgr_desc *desc, const uint32_t tx_num
     , m_dm_enabled(0)
 {
     // Check device capabilities for dummy send support
-    m_hw_dummy_send_support = vma_is_nop_supported(m_p_ib_ctx_handler->get_ibv_device_attr());
+    m_hw_dummy_send_support = xlio_is_nop_supported(m_p_ib_ctx_handler->get_ibv_device_attr());
 
     if (call_configure && configure(desc)) {
         throw_xlio_exception("failed creating qp_mgr_eth");
@@ -316,7 +316,7 @@ void qp_mgr_eth_mlx5::init_qp()
     m_sq_wqe_hot->ctrl.data[1] = htonl((m_mlx5_qp.qpn << 8) | 4);
     m_sq_wqe_hot->ctrl.data[2] = 0;
     m_sq_wqe_hot->eseg.inline_hdr_sz = htons(MLX5_ETH_INLINE_HEADER_SIZE);
-    m_sq_wqe_hot->eseg.cs_flags = VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM;
+    m_sq_wqe_hot->eseg.cs_flags = XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM;
 
     qp_logfunc("%p allocated for %d QPs sq_wqes:%p sq_wqes_end: %p and configured %d WRs "
                "BlueFlame: %p buf_size: %d offset: %d",
@@ -554,7 +554,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(xlio_ibv_send_wr *pswr)
     int max_inline_len = get_max_inline_data();
 
     // assume packet is full inline
-    if (likely(data_len <= max_inline_len && vma_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND)) {
+    if (likely(data_len <= max_inline_len && xlio_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND)) {
         uint8_t *data_addr = sga.get_data(&inline_len); // data for inlining in ETH header
         data_len -= inline_len;
         qp_logfunc(
@@ -643,7 +643,7 @@ inline int qp_mgr_eth_mlx5::fill_wqe(xlio_ibv_send_wr *pswr)
             return rest_space + max_inline_len;
         }
     } else {
-        if (vma_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND) {
+        if (xlio_send_wr_opcode(*pswr) == XLIO_IBV_WR_SEND) {
             /* data is bigger than max to inline we inlined only ETH header + uint from IP (18
              * bytes) the rest will be in data pointer segment adding data seg with pointer if there
              * still data to transfer
@@ -846,21 +846,21 @@ void qp_mgr_eth_mlx5::store_current_wqe_prop(uint64_t wr_id, xlio_ti *ti)
 
 //! Send one RAW packet by MLX5 BlueFlame
 //
-int qp_mgr_eth_mlx5::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+int qp_mgr_eth_mlx5::send_to_wire(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr,
                                   bool request_comp, xlio_tis *tis)
 {
-    struct vma_mlx5_wqe_ctrl_seg *ctrl = NULL;
+    struct xlio_mlx5_wqe_ctrl_seg *ctrl = NULL;
     struct mlx5_wqe_eth_seg *eseg = NULL;
     uint32_t tisn = tis ? tis->get_tisn() : 0;
 
-    ctrl = (struct vma_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
+    ctrl = (struct xlio_mlx5_wqe_ctrl_seg *)m_sq_wqe_hot;
     eseg = (struct mlx5_wqe_eth_seg *)((uint8_t *)m_sq_wqe_hot + sizeof(*ctrl));
 
     /* Configure ctrl segment
      * qpn_ds or ctrl.data[1] is set inside fill_wqe()
      */
     ctrl->opmod_idx_opcode = htonl(((m_sq_wqe_counter & 0xffff) << 8) |
-                                   (get_mlx5_opcode(vma_send_wr_opcode(*p_send_wqe)) & 0xff));
+                                   (get_mlx5_opcode(xlio_send_wr_opcode(*p_send_wqe)) & 0xff));
     m_sq_wqe_hot->ctrl.data[2] = 0;
     ctrl->fm_ce_se = (request_comp ? (uint8_t)MLX5_WQE_CTRL_CQ_UPDATE : 0);
     ctrl->tis_tir_num = htobe32(tisn << 8);
@@ -871,7 +871,7 @@ int qp_mgr_eth_mlx5::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet
      */
     *((uint64_t *)eseg) = 0;
     eseg->rsvd2 = 0;
-    eseg->cs_flags = (uint8_t)(attr & (VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM) & 0xff);
+    eseg->cs_flags = (uint8_t)(attr & (XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM) & 0xff);
 
     /* Complete WQE */
     fill_wqe(p_send_wqe);
@@ -1153,8 +1153,8 @@ inline void qp_mgr_eth_mlx5::tls_post_static_params_wqe(xlio_ti *ti,
 {
     struct mlx5_set_tls_static_params_wqe *wqe =
         reinterpret_cast<struct mlx5_set_tls_static_params_wqe *>(m_sq_wqe_hot);
-    struct vma_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
-    struct vma_mlx5_wqe_umr_ctrl_seg *ucseg = &wqe->uctrl;
+    struct xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
+    struct xlio_mlx5_wqe_umr_ctrl_seg *ucseg = &wqe->uctrl;
     struct mlx5_mkey_seg *mkcseg = &wqe->mkc;
     struct mlx5_wqe_tls_static_params_seg *tspseg = &wqe->params;
     uint8_t opmod = is_tx ? MLX5_OPC_MOD_TLS_TIS_STATIC_PARAMS : MLX5_OPC_MOD_TLS_TIR_STATIC_PARAMS;
@@ -1270,7 +1270,7 @@ inline void qp_mgr_eth_mlx5::tls_post_progress_params_wqe(xlio_ti *ti, uint32_t 
 
     struct mlx5_set_tls_progress_params_wqe *wqe =
         reinterpret_cast<struct mlx5_set_tls_progress_params_wqe *>(m_sq_wqe_hot);
-    struct vma_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
+    struct xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
     uint8_t opmod =
         is_tx ? MLX5_OPC_MOD_TLS_TIS_PROGRESS_PARAMS : MLX5_OPC_MOD_TLS_TIR_PROGRESS_PARAMS;
 
@@ -1309,8 +1309,8 @@ inline void qp_mgr_eth_mlx5::tls_get_progress_params_wqe(xlio_ti *ti, uint32_t t
 
     struct mlx5_get_tls_progress_params_wqe *wqe =
         reinterpret_cast<struct mlx5_get_tls_progress_params_wqe *>(m_sq_wqe_hot);
-    struct vma_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
-    struct vma_mlx5_seg_get_psv *psv = &wqe->psv;
+    struct xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
+    struct xlio_mlx5_seg_get_psv *psv = &wqe->psv;
     uint8_t opmod = MLX5_OPC_MOD_TLS_TIR_PROGRESS_PARAMS;
 
     memset(wqe, 0, sizeof(*wqe));
@@ -1346,7 +1346,7 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t l
                                            bool first)
 {
     struct mlx5_dump_wqe *wqe = reinterpret_cast<struct mlx5_dump_wqe *>(m_sq_wqe_hot);
-    struct vma_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
+    struct xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
     struct mlx5_wqe_data_seg *dseg = &wqe->data;
     uint32_t tisn = tis ? tis->get_tisn() : 0;
     uint16_t num_wqebbs = TLS_DUMP_WQEBBS;
@@ -1437,7 +1437,7 @@ void qp_mgr_eth_mlx5::put_tir_in_cache(xlio_tir *tir)
 void qp_mgr_eth_mlx5::post_nop_fence(void)
 {
     struct mlx5_wqe *wqe = reinterpret_cast<struct mlx5_wqe *>(m_sq_wqe_hot);
-    struct vma_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl;
+    struct xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl;
 
     memset(wqe, 0, sizeof(*wqe));
 
@@ -1505,7 +1505,7 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
         send_wr.sg_list = sge;
         send_wr.num_sge = 1;
         send_wr.next = NULL;
-        vma_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
+        xlio_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
 
         // Close the Tx unsignaled send list
         set_unsignaled_count();
@@ -1518,7 +1518,7 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 
         set_signal_in_next_send_wqe();
         send_to_wire(&send_wr,
-                     (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM), true,
+                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM), true,
                      0);
     }
 }

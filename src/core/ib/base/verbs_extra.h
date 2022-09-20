@@ -193,10 +193,10 @@ typedef struct ibv_values_ex vma_ts_values;
 #define DEFINED_SW_CSUM
 #endif
 #define xlio_ibv_send_flags        ibv_send_flags
-#define vma_send_wr_send_flags(wr) (wr).send_flags
+#define xlio_send_wr_send_flags(wr) (wr).send_flags
 #define XLIO_IBV_WR_SEND           IBV_WR_SEND
 #define xlio_ibv_wr_opcode         ibv_wr_opcode
-#define vma_send_wr_opcode(wr)     (wr).opcode
+#define xlio_send_wr_opcode(wr)     (wr).opcode
 
 #define XLIO_IBV_WR_TSO               (xlio_ibv_wr_opcode) IBV_WR_TSO
 #define vma_check_dev_attr_tso(_attr) 1
@@ -210,10 +210,10 @@ typedef struct ibv_tso_caps xlio_ibv_tso_caps;
 
 // Dummy send
 #ifdef DEFINED_IBV_WR_NOP
-#define vma_is_nop_supported(device_attr) 1
+#define xlio_is_nop_supported(device_attr) 1
 #define XLIO_IBV_WR_NOP                   (xlio_ibv_wr_opcode) MLX5_OPCODE_NOP
 #else
-#define vma_is_nop_supported(device_attr) 0
+#define xlio_is_nop_supported(device_attr) 0
 #define XLIO_IBV_WR_NOP                                                                            \
     (xlio_ibv_wr_opcode)(0) // Use 0 as "default" opcode when NOP is not defined.
 #endif

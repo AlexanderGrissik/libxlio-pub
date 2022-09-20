@@ -84,9 +84,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
     p_tcp_iov = (tcp_iovec *)p_iov;
 
     /* Suppress flags that should not be used anymore
-     * to avoid conflicts with VMA_TX_PACKET_L3_CSUM and VMA_TX_PACKET_L4_CSUM
+     * to avoid conflicts with XLIO_TX_PACKET_L3_CSUM and XLIO_TX_PACKET_L4_CSUM
      */
-    attr.flags = (vma_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
+    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
 
     /* ZC uses multiple IOVs, only the mlx5 TSO path supports that */
     /* for small (< mss) ZC sends, must turn off CX5.SXP.disable_lso_on_only_packets
@@ -95,11 +95,11 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
      * When set, single packet LSO WQEs are not treated as LSO. This prevents wrong handling of
      * packets with padding by SW */
     if (is_zerocopy) {
-        attr.flags = (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
+        attr.flags = (xlio_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
     }
 
     attr.flags =
-        (vma_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM);
+        (xlio_wr_tx_packet_attr)(attr.flags | XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM);
 
     /* Supported scenarios:
      * 1. Standard:
@@ -112,9 +112,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
      *    Use intermediate buffers for data send
      */
     if (likely(m_p_ring->is_active_member(p_tcp_iov->p_desc->p_desc_owner, m_id) &&
-               (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO)) ||
+               (is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_TSO)) ||
                 (sz_iov == 1 &&
-                 !is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_REXMIT)))))) {
+                 !is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_REXMIT)))))) {
         size_t total_packet_len = 0;
         size_t tcp_hdr_len;
         xlio_ibv_send_wr send_wqe;
@@ -154,7 +154,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_s
             m_p_send_wqe = &m_inline_send_wqe;
             p_tcp_iov[0].iovec.iov_base = (uint8_t *)p_pkt + hdr_alignment_diff;
             p_tcp_iov[0].iovec.iov_len = total_packet_len;
-        } else if (is_set(attr.flags, (vma_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
+        } else if (is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
             /* update send work request. do not expect noninlined scenario */
             send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
             if (attr.mss < (attr.length - tcp_hdr_len)) {

@@ -46,7 +46,7 @@ public:
                       struct xlio_rate_limit_t &rate_limit, int flags = 0, socket_fd_api *sock = 0,
                       tx_call_t call_type = TX_UNDEF);
     static bool fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
-                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          const ssize_t sz_iov, xlio_wr_tx_packet_attr attr,
                                           size_t sz_udp_payload, int n_num_frags,
                                           xlio_ibv_send_wr *p_send_wqe, ring_user_id_t user_id,
                                           ibv_sge *p_sge, header *p_header,
@@ -82,16 +82,16 @@ private:
         return htonl(packet_id);
     }
     inline ssize_t fast_send_not_fragmented(const iovec *p_iov, const ssize_t sz_iov,
-                                            vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
+                                            xlio_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                             ssize_t sz_data_payload);
     inline bool fast_send_fragmented_ipv4(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
-                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          const ssize_t sz_iov, xlio_wr_tx_packet_attr attr,
                                           size_t sz_udp_payload, int n_num_frags);
     inline bool fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, const iovec *p_iov,
-                                          const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+                                          const ssize_t sz_iov, xlio_wr_tx_packet_attr attr,
                                           size_t sz_udp_payload, int n_num_frags);
     ssize_t fast_send_fragmented(const iovec *p_iov, const ssize_t sz_iov,
-                                 vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
+                                 xlio_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                  ssize_t sz_data_payload);
 
     const uint32_t m_n_sysvar_tx_bufs_batch_udp;

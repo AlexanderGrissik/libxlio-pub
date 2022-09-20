@@ -176,7 +176,7 @@ cq_mgr *qp_mgr::init_tx_cq_mgr()
 int qp_mgr::configure(struct qp_mgr_desc *desc)
 {
     qp_logdbg("Creating QP of transport type '%s' on ibv device '%s' [%p] on port %d",
-              priv_vma_transport_type_str(m_p_ring->get_transport_type()),
+              priv_xlio_transport_type_str(m_p_ring->get_transport_type()),
               m_p_ib_ctx_handler->get_ibname(), m_p_ib_ctx_handler->get_ibv_device(), m_port_num);
 
     // Check device capabilities for max QP work requests
@@ -475,7 +475,7 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         send_wr.sg_list = sge;
         send_wr.num_sge = 1;
         send_wr.next = NULL;
-        vma_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
+        xlio_send_wr_opcode(send_wr) = XLIO_IBV_WR_SEND;
         qp_logdbg("IBV_SEND_SIGNALED");
 
         // Close the Tx unsignaled send list
@@ -488,7 +488,7 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         m_p_ring->m_tx_num_wr_free--;
 
         send_to_wire(&send_wr,
-                     (vma_wr_tx_packet_attr)(VMA_TX_PACKET_L3_CSUM | VMA_TX_PACKET_L4_CSUM), true,
+                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM), true,
                      NULL);
     }
 }
@@ -555,7 +555,7 @@ void qp_mgr::post_recv_buffers(descq_t *p_buffers, size_t count)
     }
 }
 
-inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr,
+inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr,
                                 bool request_comp, xlio_tis *tis)
 {
     NOT_IN_USE(attr);
@@ -564,19 +564,19 @@ inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_a
     xlio_ibv_send_wr *bad_wr = NULL;
 
     if (request_comp) {
-        vma_send_wr_send_flags(*p_send_wqe) =
-            (xlio_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) | XLIO_IBV_SEND_SIGNALED);
+        xlio_send_wr_send_flags(*p_send_wqe) =
+            (xlio_ibv_send_flags)(xlio_send_wr_send_flags(*p_send_wqe) | XLIO_IBV_SEND_SIGNALED);
     }
 
     IF_VERBS_FAILURE(xlio_ibv_post_send(m_qp, p_send_wqe, &bad_wr))
     {
         qp_logerr("failed post_send%s (errno=%d %m)\n",
-                  ((vma_send_wr_send_flags(*p_send_wqe) & XLIO_IBV_SEND_INLINE) ? "(+inline)" : ""),
+                  ((xlio_send_wr_send_flags(*p_send_wqe) & XLIO_IBV_SEND_INLINE) ? "(+inline)" : ""),
                   errno);
         if (bad_wr) {
             qp_logerr("bad_wr info: wr_id=%#lx, send_flags=%#lx, addr=%#lx, length=%d, lkey=%#x, "
                       "max_inline_data=%d",
-                      bad_wr->wr_id, (unsigned long)vma_send_wr_send_flags(*bad_wr),
+                      bad_wr->wr_id, (unsigned long)xlio_send_wr_send_flags(*bad_wr),
                       bad_wr->sg_list[0].addr, bad_wr->sg_list[0].length, bad_wr->sg_list[0].lkey,
                       get_max_inline_data());
         }
@@ -585,13 +585,13 @@ inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_a
     ENDIF_VERBS_FAILURE;
 
     // Clear the SINGAL request
-    vma_send_wr_send_flags(*p_send_wqe) =
-        (xlio_ibv_send_flags)(vma_send_wr_send_flags(*p_send_wqe) & ~XLIO_IBV_SEND_SIGNALED);
+    xlio_send_wr_send_flags(*p_send_wqe) =
+        (xlio_ibv_send_flags)(xlio_send_wr_send_flags(*p_send_wqe) & ~XLIO_IBV_SEND_SIGNALED);
 
     return ret;
 }
 
-int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, vma_wr_tx_packet_attr attr, xlio_tis *tis)
+int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio_tis *tis)
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)p_send_wqe->wr_id;
     /* Control tx completions:
