@@ -145,7 +145,7 @@ public:
      * until the connection info is ready or a tx buffer is releast (if sockinfo::m_b_blocking ==
      * true)
      */
-    ssize_t tx(vma_tx_call_attr_t &tx_arg);
+    ssize_t tx(xlio_tx_call_attr_t &tx_arg);
     /**
      * Check that a call to this sockinof rx() will not block
      * -> meaning, we got a ready rx packet

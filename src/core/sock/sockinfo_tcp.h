@@ -113,7 +113,7 @@ struct socket_option_t {
 typedef std::deque<socket_option_t *> socket_options_list_t;
 typedef std::map<tcp_pcb *, int> ready_pcb_map_t;
 typedef std::map<flow_tuple, tcp_pcb *> syn_received_map_t;
-typedef std::map<sock_addr, vma_desc_list_t> peer_map_t;
+typedef std::map<sock_addr, xlio_desc_list_t> peer_map_t;
 
 /* taken from inet_ecn.h in kernel */
 enum inet_ecns {
@@ -182,8 +182,8 @@ public:
 
     inline unsigned get_mss(void) { return m_pcb.mss; }
 
-    ssize_t tx(vma_tx_call_attr_t &tx_arg);
-    ssize_t tcp_tx(vma_tx_call_attr_t &tx_arg);
+    ssize_t tx(xlio_tx_call_attr_t &tx_arg);
+    ssize_t tcp_tx(xlio_tx_call_attr_t &tx_arg);
     ssize_t rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov, int *p_flags,
                sockaddr *__from = NULL, socklen_t *__fromlen = NULL, struct msghdr *__msg = NULL);
     static err_t ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_conn, uint16_t flags);
@@ -383,14 +383,14 @@ private:
     int m_tcp_seg_count;
     int m_tcp_seg_in_use;
 
-    vma_desc_list_t m_rx_pkt_ready_list;
-    vma_desc_list_t m_rx_cb_dropped_list;
+    xlio_desc_list_t m_rx_pkt_ready_list;
+    xlio_desc_list_t m_rx_cb_dropped_list;
 
     lock_spin_recursive m_rx_ctl_packets_list_lock;
     tscval_t m_last_syn_tsc;
-    vma_desc_list_t m_rx_ctl_packets_list;
+    xlio_desc_list_t m_rx_ctl_packets_list;
     peer_map_t m_rx_peer_packets;
-    vma_desc_list_t m_rx_ctl_reuse_list;
+    xlio_desc_list_t m_rx_ctl_reuse_list;
     ready_pcb_map_t m_ready_pcbs;
     static const unsigned TX_CONSECUTIVE_EAGAIN_THREASHOLD = 10;
     unsigned m_tx_consecutive_eagain_count;
@@ -550,7 +550,7 @@ private:
     inline void put_tcp_seg(struct tcp_seg *seg);
 
     void queue_rx_ctl_packet(struct tcp_pcb *pcb, mem_buf_desc_t *p_desc);
-    bool process_peer_ctl_packets(vma_desc_list_t &peer_packets);
+    bool process_peer_ctl_packets(xlio_desc_list_t &peer_packets);
     void process_my_ctl_packets();
     void process_children_ctl_packets();
     void process_reuse_ctl_packets();

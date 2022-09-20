@@ -91,7 +91,7 @@ enum {
  * attr.file - is used by TX_FILE
  * attr.msg - is used by TX_WRITE, TX_WRITEV, TX_SEND, TX_SENDTO, TX_SENDMSG
  */
-typedef struct vma_tx_call_attr {
+typedef struct xlio_tx_call_attr {
     tx_call_t opcode;
     union {
         struct {
@@ -104,7 +104,7 @@ typedef struct vma_tx_call_attr {
         } msg;
     } attr;
 
-    unsigned vma_flags;
+    unsigned xlio_flags;
     pbuf_desc priv;
 
     void clear(void)
@@ -113,11 +113,11 @@ typedef struct vma_tx_call_attr {
         memset(&attr, 0, sizeof(attr));
         memset(&priv, 0, sizeof(priv));
         priv.attr = PBUF_DESC_NONE;
-        vma_flags = 0;
+        xlio_flags = 0;
     }
 
-    vma_tx_call_attr() { clear(); }
-} vma_tx_call_attr_t;
+    xlio_tx_call_attr() { clear(); }
+} xlio_tx_call_attr_t;
 
 typedef enum { RX_READ = 23, RX_READV, RX_RECV, RX_RECVFROM, RX_RECVMSG } rx_call_t;
 
@@ -135,7 +135,7 @@ enum fd_type_t {
     FD_TYPE_PIPE,
 };
 
-typedef xlio_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> vma_desc_list_t;
+typedef xlio_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> xlio_desc_list_t;
 
 /**
  *
@@ -148,7 +148,7 @@ public:
     socket_fd_api(int fd);
     virtual ~socket_fd_api();
 
-    virtual void setPassthrough() {}
+    virtual void setPassthrough() { }
     virtual bool isPassthrough() { return false; }
 
     virtual int prepareListen() { return 0; }
@@ -199,7 +199,7 @@ public:
 
 #if defined(DEFINED_NGINX)
     virtual void prepare_to_close_socket_pool(bool _push_pop) { NOT_IN_USE(_push_pop); }
-    virtual void set_params_for_socket_pool() {}
+    virtual void set_params_for_socket_pool() { }
 #endif
 
     // In some cases we need the socket can't be deleted immidiatly
@@ -212,7 +212,7 @@ public:
         return is_closable();
     }
 
-    virtual ssize_t tx(vma_tx_call_attr_t &tx_arg) = 0;
+    virtual ssize_t tx(xlio_tx_call_attr_t &tx_arg) = 0;
 
     virtual void statistics_print(vlog_levels_t log_level = VLOG_DEBUG);
 
@@ -236,7 +236,7 @@ public:
     virtual void copy_sockopt_fork(const socket_fd_api *copy_from) = 0;
 #endif
 
-    virtual void consider_rings_migration() {}
+    virtual void consider_rings_migration() { }
     virtual int add_epoll_context(epfd_info *epfd);
     virtual void remove_epoll_context(epfd_info *epfd);
     int get_epoll_context_fd();

@@ -1642,8 +1642,8 @@ void mce_sys_var::get_env_params()
 
     // TODO: this should be replaced by calling "exception_handling.init()" that will be called from
     // init()
-    if ((env_ptr = getenv(vma_exception_handling::getSysVar())) != NULL) {
-        exception_handling = vma_exception_handling(
+    if ((env_ptr = getenv(xlio_exception_handling::getSysVar())) != NULL) {
+        exception_handling = xlio_exception_handling(
             strtol(env_ptr, NULL, 10)); // vma_exception_handling is responsible for its invariant
     }
 

@@ -68,7 +68,7 @@ typedef struct {
     uint16_t mss;
     size_t length;
     xlio_tis *tis;
-} vma_send_attr;
+} xlio_send_attr;
 
 class dst_entry : public cache_observer, public tostr, public neigh_observer {
 
@@ -81,8 +81,8 @@ public:
 
     virtual bool prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_rules = false,
                                  bool is_connect = false);
-    virtual ssize_t fast_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr) = 0;
-    virtual ssize_t slow_send(const iovec *p_iov, const ssize_t sz_iov, vma_send_attr attr,
+    virtual ssize_t fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_send_attr attr) = 0;
+    virtual ssize_t slow_send(const iovec *p_iov, const ssize_t sz_iov, xlio_send_attr attr,
                               struct xlio_rate_limit_t &rate_limit, int flags = 0,
                               socket_fd_api *sock = 0, tx_call_t call_type = TX_UNDEF) = 0;
 

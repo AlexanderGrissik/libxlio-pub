@@ -488,8 +488,8 @@ void qp_mgr::trigger_completion_for_all_sent_packets()
         m_p_ring->m_tx_num_wr_free--;
 
         send_to_wire(&send_wr,
-                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM), true,
-                     NULL);
+                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM),
+                     true, NULL);
     }
 }
 
@@ -570,9 +570,10 @@ inline int qp_mgr::send_to_wire(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_
 
     IF_VERBS_FAILURE(xlio_ibv_post_send(m_qp, p_send_wqe, &bad_wr))
     {
-        qp_logerr("failed post_send%s (errno=%d %m)\n",
-                  ((xlio_send_wr_send_flags(*p_send_wqe) & XLIO_IBV_SEND_INLINE) ? "(+inline)" : ""),
-                  errno);
+        qp_logerr(
+            "failed post_send%s (errno=%d %m)\n",
+            ((xlio_send_wr_send_flags(*p_send_wqe) & XLIO_IBV_SEND_INLINE) ? "(+inline)" : ""),
+            errno);
         if (bad_wr) {
             qp_logerr("bad_wr info: wr_id=%#lx, send_flags=%#lx, addr=%#lx, length=%d, lkey=%#x, "
                       "max_inline_data=%d",

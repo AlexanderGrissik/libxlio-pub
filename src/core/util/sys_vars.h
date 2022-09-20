@@ -239,7 +239,7 @@ OPTIONS_FROM_TO_STR_DEF;
 } // namespace option_strq
 
 ////////////////////////////////////////////////////////////////////////////////
-class vma_exception_handling {
+class xlio_exception_handling {
 public:
     static const char *getName() { return "Exception handling mode"; }
 
@@ -300,7 +300,7 @@ public:
     // cast constructors and cast operators
     //
 
-    vma_exception_handling(mode _mode = MODE_DEFAULT)
+    xlio_exception_handling(mode _mode = MODE_DEFAULT)
         : m_mode(_mode)
     {
         if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST) {
@@ -308,7 +308,7 @@ public:
         }
     }
 
-    explicit vma_exception_handling(int _mode)
+    explicit xlio_exception_handling(int _mode)
         : m_mode((mode)_mode)
     {
         if (m_mode >= MODE_LAST || m_mode <= MODE_FIRST) {
@@ -441,7 +441,7 @@ public:
     bool tcp_nodelay;
     bool tcp_quickack;
     bool tcp_push_flag;
-    vma_exception_handling exception_handling;
+    xlio_exception_handling exception_handling;
     bool avoid_sys_calls_on_tcp_fd;
     bool allow_privileged_sock_opt;
     uint32_t wait_after_join_msec;

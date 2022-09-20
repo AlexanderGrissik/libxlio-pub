@@ -46,7 +46,7 @@ typedef struct agent_msg {
     int length; /**< actual length of valuable data */
     intptr_t tag; /**< unique identifier of the message */
     union {
-        struct vma_msg_state state;
+        struct xlio_msg_state state;
         char raw[1];
     } data; /**< data to be sent to daemon */
 } agent_msg_t;

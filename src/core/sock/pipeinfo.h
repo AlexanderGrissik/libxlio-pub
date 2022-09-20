@@ -62,7 +62,7 @@ public:
     // Process a Tx request, handle all that is needed to send the packet, we might block
     // until the connection info is ready or a tx buffer is releast (if sockinfo::m_b_blocking ==
     // true)
-    ssize_t tx(vma_tx_call_attr_t &tx_arg);
+    ssize_t tx(xlio_tx_call_attr_t &tx_arg);
 
     void statistics_print();
 

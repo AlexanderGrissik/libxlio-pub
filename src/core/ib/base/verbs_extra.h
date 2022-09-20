@@ -153,10 +153,10 @@ typedef struct ibv_qp_attr xlio_ibv_qp_attr;
 typedef struct ibv_wc xlio_ibv_wc;
 #define xlio_wc_flags(wc)  (wc).wc_flags
 #define xlio_wc_opcode(wc) (wc).opcode
-#define XLIO_IBV_WC_RECV  IBV_WC_RECV
+#define XLIO_IBV_WC_RECV   IBV_WC_RECV
 // csum offload
 #ifdef DEFINED_IBV_DEVICE_RAW_IP_CSUM
-#define xlio_is_rx_hw_csum_supported(attr)                                                          \
+#define xlio_is_rx_hw_csum_supported(attr)                                                         \
     ((attr)->device_cap_flags & (IBV_DEVICE_RAW_IP_CSUM | IBV_DEVICE_UD_IP_CSUM))
 #define xlio_wc_rx_hw_csum_ok(wc) (xlio_wc_flags(wc) & IBV_WC_IP_CSUM_OK)
 #else
@@ -170,7 +170,7 @@ typedef int xlio_ibv_cq_init_attr;
 
 // rx hw timestamp
 #define XLIO_IBV_WC_WITH_TIMESTAMP 0
-#define xlio_wc_timestamp(wc)       0
+#define xlio_wc_timestamp(wc)      0
 #define xlio_ibv_cq_init_ts_attr(attr)                                                             \
     {                                                                                              \
         NOT_IN_USE(attr);                                                                          \
@@ -192,10 +192,10 @@ typedef struct ibv_values_ex vma_ts_values;
 #else
 #define DEFINED_SW_CSUM
 #endif
-#define xlio_ibv_send_flags        ibv_send_flags
+#define xlio_ibv_send_flags         ibv_send_flags
 #define xlio_send_wr_send_flags(wr) (wr).send_flags
-#define XLIO_IBV_WR_SEND           IBV_WR_SEND
-#define xlio_ibv_wr_opcode         ibv_wr_opcode
+#define XLIO_IBV_WR_SEND            IBV_WR_SEND
+#define xlio_ibv_wr_opcode          ibv_wr_opcode
 #define xlio_send_wr_opcode(wr)     (wr).opcode
 
 #define XLIO_IBV_WR_TSO               (xlio_ibv_wr_opcode) IBV_WR_TSO
@@ -211,7 +211,7 @@ typedef struct ibv_tso_caps xlio_ibv_tso_caps;
 // Dummy send
 #ifdef DEFINED_IBV_WR_NOP
 #define xlio_is_nop_supported(device_attr) 1
-#define XLIO_IBV_WR_NOP                   (xlio_ibv_wr_opcode) MLX5_OPCODE_NOP
+#define XLIO_IBV_WR_NOP                    (xlio_ibv_wr_opcode) MLX5_OPCODE_NOP
 #else
 #define xlio_is_nop_supported(device_attr) 0
 #define XLIO_IBV_WR_NOP                                                                            \
@@ -348,7 +348,7 @@ typedef enum {
     RL_PKT_SIZE = 1 << 2,
 } vma_rl_changed;
 
-int vma_rdma_lib_reset();
+int xlio_rdma_lib_reset();
 
 static inline void ibv_flow_spec_eth_set(xlio_ibv_flow_spec_eth *eth, uint8_t *dst_mac,
                                          uint16_t vlan_tag, bool is_ipv4)

@@ -575,11 +575,11 @@ protected:
         if (safe_mce_sys().exception_handling.is_suit_un_offloading()) {
             try_un_offloading();
         }
-        if (safe_mce_sys().exception_handling == vma_exception_handling::MODE_RETURN_ERROR) {
+        if (safe_mce_sys().exception_handling == xlio_exception_handling::MODE_RETURN_ERROR) {
             errno = EINVAL;
             return -1;
         }
-        if (safe_mce_sys().exception_handling == vma_exception_handling::MODE_ABORT) {
+        if (safe_mce_sys().exception_handling == xlio_exception_handling::MODE_ABORT) {
             return -2;
         }
         return 0;

@@ -1518,8 +1518,8 @@ void qp_mgr_eth_mlx5::trigger_completion_for_all_sent_packets()
 
         set_signal_in_next_send_wqe();
         send_to_wire(&send_wr,
-                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM), true,
-                     0);
+                     (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_L3_CSUM | XLIO_TX_PACKET_L4_CSUM),
+                     true, 0);
     }
 }
 

@@ -540,7 +540,7 @@ public:
         }                                                                                          \
     }
 
-create_vma_exception_class(vma_unsupported_api, xlio_error);
+create_vma_exception_class(xlio_unsupported_api, xlio_error);
 
 #define throw_xlio_exception(msg)                                                                  \
     throw xlio_exception(msg, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
@@ -548,7 +548,7 @@ create_vma_exception_class(vma_unsupported_api, xlio_error);
 // automatically be class name
 #define vma_throw_object(_class)                                                                   \
     throw _class(#_class, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
-#define vma_throw_object_with_msg(_class, _msg)                                                    \
+#define xlio_throw_object_with_msg(_class, _msg)                                                   \
     throw _class(_msg, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
 
 /* Rounding up to nearest power of 2 */

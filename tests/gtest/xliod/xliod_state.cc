@@ -56,7 +56,7 @@ protected:
     void TearDown() { vmad_base::TearDown(); }
 
 protected:
-    struct vma_msg_state m_data;
+    struct xlio_msg_state m_data;
     pid_t m_pid;
 };
 

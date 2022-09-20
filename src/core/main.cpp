@@ -726,8 +726,8 @@ void print_vma_global_settings()
                       SYS_VAR_TCP_NODELAY);
     VLOG_PARAM_NUMBER("TCP quickack", safe_mce_sys().tcp_quickack, MCE_DEFAULT_TCP_QUICKACK,
                       SYS_VAR_TCP_QUICKACK);
-    VLOG_PARAM_NUMSTR(vma_exception_handling::getName(), (int)safe_mce_sys().exception_handling,
-                      vma_exception_handling::MODE_DEFAULT, vma_exception_handling::getSysVar(),
+    VLOG_PARAM_NUMSTR(xlio_exception_handling::getName(), (int)safe_mce_sys().exception_handling,
+                      xlio_exception_handling::MODE_DEFAULT, xlio_exception_handling::getSysVar(),
                       safe_mce_sys().exception_handling.to_str());
     VLOG_PARAM_STRING("Avoid sys-calls on tcp fd", safe_mce_sys().avoid_sys_calls_on_tcp_fd,
                       MCE_DEFAULT_AVOID_SYS_CALLS_ON_TCP_FD, SYS_VAR_AVOID_SYS_CALLS_ON_TCP_FD,

@@ -272,7 +272,7 @@ void pipeinfo::handle_timer_expired(void *user_data)
     m_lock_tx.unlock();
 }
 
-ssize_t pipeinfo::tx(vma_tx_call_attr_t &tx_arg)
+ssize_t pipeinfo::tx(xlio_tx_call_attr_t &tx_arg)
 {
     const iovec *p_iov = tx_arg.attr.msg.iov;
     const ssize_t sz_iov = tx_arg.attr.msg.sz_iov;

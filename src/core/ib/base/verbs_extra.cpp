@@ -344,7 +344,7 @@ int priv_ibv_query_flow_tag_supported(struct ibv_qp *qp, uint8_t port_num, sa_fa
     return res;
 }
 
-int vma_rdma_lib_reset()
+int xlio_rdma_lib_reset()
 {
 #ifdef HAVE_RDMA_LIB_RESET
     vlog_printf(VLOG_DEBUG, "rdma_lib_reset called\n");

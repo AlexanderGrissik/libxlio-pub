@@ -85,7 +85,7 @@ struct vma_msg_exit {
     struct vma_hdr hdr;
 };
 
-struct vma_msg_state {
+struct xlio_msg_state {
     struct vma_hdr hdr;
     uint32_t fid;
     struct {

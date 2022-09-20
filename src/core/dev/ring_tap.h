@@ -82,7 +82,7 @@ public:
         NOT_IN_USE(poll_sn);
         return 0;
     }
-    virtual void adapt_cq_moderation() {}
+    virtual void adapt_cq_moderation() { }
 
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit)
     {

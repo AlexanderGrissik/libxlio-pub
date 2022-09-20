@@ -290,7 +290,7 @@ static int proc_msg_exit(struct vma_hdr *msg_hdr, size_t size)
 
 static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
 {
-    struct vma_msg_state *data;
+    struct xlio_msg_state *data;
     struct store_pid *pid_value;
     struct store_fid *value;
 
@@ -298,7 +298,7 @@ static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
     assert(msg_hdr->code == XLIO_MSG_STATE);
     assert(size);
 
-    data = (struct vma_msg_state *)msg_hdr;
+    data = (struct xlio_msg_state *)msg_hdr;
     if (size < sizeof(*data)) {
         return -EBADMSG;
     }

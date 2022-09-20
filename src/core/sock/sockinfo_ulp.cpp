@@ -68,13 +68,13 @@ int sockinfo_tcp_ops::setsockopt(int __level, int __optname, const void *__optva
 }
 
 /*virtual*/
-ssize_t sockinfo_tcp_ops::tx(vma_tx_call_attr_t &tx_arg)
+ssize_t sockinfo_tcp_ops::tx(xlio_tx_call_attr_t &tx_arg)
 {
     return m_p_sock->tcp_tx(tx_arg);
 }
 
 /*virtual*/
-int sockinfo_tcp_ops::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr)
+int sockinfo_tcp_ops::postrouting(struct pbuf *p, struct tcp_seg *seg, xlio_send_attr &attr)
 {
     NOT_IN_USE(p);
     NOT_IN_USE(seg);
@@ -725,7 +725,7 @@ err_t sockinfo_tcp_ops_tls::tls_rx_consume_ready_packets(void)
     return ret;
 }
 
-ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
+ssize_t sockinfo_tcp_ops_tls::tx(xlio_tx_call_attr_t &tx_arg)
 {
     /*
      * TODO This method must be called under socket lock to avoid situation
@@ -734,7 +734,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
      * updated).
      */
 
-    vma_tx_call_attr_t tls_arg;
+    xlio_tx_call_attr_t tls_arg;
     struct iovec *p_iov;
     struct iovec tls_iov[3];
     uint64_t last_recno;
@@ -754,7 +754,7 @@ ssize_t sockinfo_tcp_ops_tls::tx(vma_tx_call_attr_t &tx_arg)
 
     tls_arg.opcode = TX_FILE; /* Not to use hugepage zerocopy path */
     tls_arg.attr.msg.flags = MSG_ZEROCOPY;
-    tls_arg.vma_flags = TX_FLAG_NO_PARTIAL_WRITE;
+    tls_arg.xlio_flags = TX_FLAG_NO_PARTIAL_WRITE;
     tls_arg.attr.msg.iov = tls_iov;
     tls_arg.attr.msg.sz_iov = is_zerocopy ? 3 : 1;
     tls_arg.priv.attr = PBUF_DESC_MDESC;
@@ -889,7 +889,7 @@ done:
     return ret;
 }
 
-int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr)
+int sockinfo_tcp_ops_tls::postrouting(struct pbuf *p, struct tcp_seg *seg, xlio_send_attr &attr)
 {
     if (m_is_tls_tx && seg && p->type != PBUF_RAM) {
         if (seg->len != 0) {
@@ -1016,7 +1016,7 @@ int sockinfo_tcp_ops_tls::send_alert(uint8_t alert_type)
     msg.msg_iovlen = 1;
 
     /* Send alert through TLS offloaded sendmsg() path. */
-    vma_tx_call_attr_t tx_arg;
+    xlio_tx_call_attr_t tx_arg;
     tx_arg.opcode = TX_SENDMSG;
     tx_arg.attr.msg.iov = msg.msg_iov;
     tx_arg.attr.msg.sz_iov = (ssize_t)msg.msg_iovlen;

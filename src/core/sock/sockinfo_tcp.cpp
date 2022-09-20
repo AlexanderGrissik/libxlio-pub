@@ -533,7 +533,7 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
 
     for (peer_map_t::iterator itr = m_rx_peer_packets.begin(); itr != m_rx_peer_packets.end();
          ++itr) {
-        vma_desc_list_t &peer_packets = itr->second;
+        xlio_desc_list_t &peer_packets = itr->second;
         // loop on packets of a peer
         while (!peer_packets.empty()) {
             // get packet from list and reuse them
@@ -786,7 +786,7 @@ bool sockinfo_tcp::check_dummy_send_conditions(const int flags, const iovec *p_i
 void sockinfo_tcp::put_agent_msg(void *arg)
 {
     sockinfo_tcp *p_si_tcp = (sockinfo_tcp *)arg;
-    struct vma_msg_state data;
+    struct xlio_msg_state data;
 
     /* Ignore listen socket at the moment */
     if (p_si_tcp->is_server() || get_tcp_state(&p_si_tcp->m_pcb) == LISTEN) {
@@ -824,12 +824,12 @@ void sockinfo_tcp::put_agent_msg(void *arg)
     g_p_agent->put((const void *)&data, sizeof(data), (intptr_t)data.fid);
 }
 
-ssize_t sockinfo_tcp::tx(vma_tx_call_attr_t &tx_arg)
+ssize_t sockinfo_tcp::tx(xlio_tx_call_attr_t &tx_arg)
 {
     return m_ops->tx(tx_arg);
 }
 
-ssize_t sockinfo_tcp::tcp_tx(vma_tx_call_attr_t &tx_arg)
+ssize_t sockinfo_tcp::tcp_tx(xlio_tx_call_attr_t &tx_arg)
 {
     iovec *p_iov = tx_arg.attr.msg.iov;
     ssize_t sz_iov = tx_arg.attr.msg.sz_iov;
@@ -925,7 +925,7 @@ retry_is_ready:
         apiflags |= VMA_TX_FILE;
     }
 
-    no_partial_write = ((!block_this_run) && (tx_arg.vma_flags & TX_FLAG_NO_PARTIAL_WRITE));
+    no_partial_write = ((!block_this_run) && (tx_arg.xlio_flags & TX_FLAG_NO_PARTIAL_WRITE));
 
 #ifdef DEFINED_TCP_TX_WND_AVAILABILITY
 #else
@@ -1185,7 +1185,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
     dst_entry *p_dst = p_si_tcp->m_p_connected_dst_entry;
     int max_count = p_si_tcp->m_pcb.tso.max_send_sge;
     tcp_iovec lwip_iovec[max_count];
-    vma_send_attr attr = {(xlio_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
+    xlio_send_attr attr = {(xlio_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
     int count = 0;
     void *cur_end;
 
@@ -1446,7 +1446,7 @@ void sockinfo_tcp::err_lwip_cb(void *pcb_container, err_t err)
     conn->do_wakeup();
 }
 
-bool sockinfo_tcp::process_peer_ctl_packets(vma_desc_list_t &peer_packets)
+bool sockinfo_tcp::process_peer_ctl_packets(xlio_desc_list_t &peer_packets)
 {
     // 2.1 loop on packets of a peer
     while (!peer_packets.empty()) {
@@ -1512,7 +1512,7 @@ void sockinfo_tcp::process_my_ctl_packets()
     si_tcp_logfunc("");
 
     // 0. fast swap of m_rx_ctl_packets_list with temp_list under lock
-    vma_desc_list_t temp_list;
+    xlio_desc_list_t temp_list;
 
     m_rx_ctl_packets_list_lock.lock();
     temp_list.splice_tail(m_rx_ctl_packets_list);
@@ -1564,7 +1564,7 @@ void sockinfo_tcp::process_my_ctl_packets()
     // 2. loop on map of peers and process list of packets per peer
     peer_map_t::iterator itr = m_rx_peer_packets.begin();
     while (itr != m_rx_peer_packets.end()) {
-        vma_desc_list_t &peer_packets = itr->second;
+        xlio_desc_list_t &peer_packets = itr->second;
         if (!process_peer_ctl_packets(peer_packets)) {
             return;
         }
@@ -3050,7 +3050,7 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
         // Before handling packets from flow steering the child should process everything it got
         // from parent
         while (!new_sock->m_rx_ctl_packets_list.empty()) {
-            vma_desc_list_t temp_list;
+            xlio_desc_list_t temp_list;
             new_sock->m_rx_ctl_packets_list_lock.lock();
             temp_list.splice_tail(new_sock->m_rx_ctl_packets_list);
             new_sock->m_rx_ctl_packets_list_lock.unlock();
@@ -4450,7 +4450,7 @@ int sockinfo_tcp::getsockopt(int __level, int __optname, void *__optval, socklen
         case -1:
             return rc;
         case -2:
-            vma_throw_object_with_msg(vma_unsupported_api, buf);
+            xlio_throw_object_with_msg(xlio_unsupported_api, buf);
         }
     }
 

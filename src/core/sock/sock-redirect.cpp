@@ -111,7 +111,7 @@ template <typename T> void assign_dlsym(T &ptr, const char *name)
         if (__res) {                                                                               \
             vlog_printf(VLOG_ERROR, "%s " PRODUCT_NAME " failed to start errno: %s\n",             \
                         __FUNCTION__, strerror(errno));                                            \
-            if (safe_mce_sys().exception_handling == vma_exception_handling::MODE_EXIT) {          \
+            if (safe_mce_sys().exception_handling == xlio_exception_handling::MODE_EXIT) {         \
                 exit(-1);                                                                          \
             }                                                                                      \
             return -1;                                                                             \
@@ -416,8 +416,8 @@ int init_child_process_for_nginx()
 // extended API functions
 //-----------------------------------------------------------------------------
 
-extern "C" int vma_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *__flags,
-                                  struct sockaddr *__from, socklen_t *__fromlen)
+extern "C" int xlio_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *__flags,
+                                   struct sockaddr *__from, socklen_t *__fromlen)
 {
     srdr_logfuncall_entry("fd=%d", __fd);
 
@@ -438,8 +438,8 @@ extern "C" int vma_recvfrom_zcopy(int __fd, void *__buf, size_t __nbytes, int *_
     return orig_os_api.recvfrom(__fd, __buf, __nbytes, *__flags, __from, __fromlen);
 }
 
-extern "C" int vma_recvfrom_zcopy_free_packets(int __fd, struct xlio_recvfrom_zcopy_packet_t *pkts,
-                                               size_t count)
+extern "C" int xlio_recvfrom_zcopy_free_packets(int __fd, struct xlio_recvfrom_zcopy_packet_t *pkts,
+                                                size_t count)
 {
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
@@ -451,7 +451,7 @@ extern "C" int vma_recvfrom_zcopy_free_packets(int __fd, struct xlio_recvfrom_zc
     return -1;
 }
 
-extern "C" int vma_get_socket_rings_num(int fd)
+extern "C" int xlio_get_socket_rings_num(int fd)
 {
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(fd);
@@ -462,7 +462,7 @@ extern "C" int vma_get_socket_rings_num(int fd)
     return 0;
 }
 
-extern "C" int vma_get_socket_rings_fds(int fd, int *ring_fds, int ring_fds_sz)
+extern "C" int xlio_get_socket_rings_fds(int fd, int *ring_fds, int ring_fds_sz)
 {
     int *p_rings_fds = NULL;
     socket_fd_api *p_socket_object = NULL;
@@ -483,7 +483,7 @@ extern "C" int vma_get_socket_rings_fds(int fd, int *ring_fds, int ring_fds_sz)
     return min(ring_fds_sz, rings_num);
 }
 
-extern "C" int vma_add_conf_rule(const char *config_line)
+extern "C" int xlio_add_conf_rule(const char *config_line)
 {
     srdr_logdbg("adding conf rule: %s", config_line);
 
@@ -496,7 +496,7 @@ extern "C" int vma_add_conf_rule(const char *config_line)
     return ret;
 }
 
-extern "C" int vma_thread_offload(int offload, pthread_t tid)
+extern "C" int xlio_thread_offload(int offload, pthread_t tid)
 {
     if (g_p_fd_collection) {
         g_p_fd_collection->offloading_rule_change_thread(offload, tid);
@@ -507,7 +507,7 @@ extern "C" int vma_thread_offload(int offload, pthread_t tid)
     return 0;
 }
 
-extern "C" int vma_dump_fd_stats(int fd, int log_level)
+extern "C" int xlio_dump_fd_stats(int fd, int log_level)
 {
     if (g_p_fd_collection) {
         g_p_fd_collection->statistics_print(fd, log_level::from_int(log_level));
@@ -528,7 +528,7 @@ static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct c
     return __ptr;
 }
 
-extern "C" int vma_ioctl(void *cmsg_hdr, size_t cmsg_len)
+extern "C" int xlio_ioctl(void *cmsg_hdr, size_t cmsg_len)
 {
     struct cmsghdr *cmsg = (struct cmsghdr *)cmsg_hdr;
 
@@ -916,17 +916,17 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             memset(xlio_api, 0, sizeof(struct xlio_api_t));
             xlio_api->magic = XLIO_MAGIC_NUMBER;
             xlio_api->cap_mask = 0;
-            SET_EXTRA_API(recvfrom_zcopy, vma_recvfrom_zcopy, XLIO_EXTRA_API_RECVFROM_ZCOPY);
-            SET_EXTRA_API(recvfrom_zcopy_free_packets, vma_recvfrom_zcopy_free_packets,
+            SET_EXTRA_API(recvfrom_zcopy, xlio_recvfrom_zcopy, XLIO_EXTRA_API_RECVFROM_ZCOPY);
+            SET_EXTRA_API(recvfrom_zcopy_free_packets, xlio_recvfrom_zcopy_free_packets,
                           XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS);
-            SET_EXTRA_API(add_conf_rule, vma_add_conf_rule, XLIO_EXTRA_API_ADD_CONF_RULE);
-            SET_EXTRA_API(thread_offload, vma_thread_offload, XLIO_EXTRA_API_THREAD_OFFLOAD);
-            SET_EXTRA_API(get_socket_rings_num, vma_get_socket_rings_num,
+            SET_EXTRA_API(add_conf_rule, xlio_add_conf_rule, XLIO_EXTRA_API_ADD_CONF_RULE);
+            SET_EXTRA_API(thread_offload, xlio_thread_offload, XLIO_EXTRA_API_THREAD_OFFLOAD);
+            SET_EXTRA_API(get_socket_rings_num, xlio_get_socket_rings_num,
                           XLIO_EXTRA_API_GET_SOCKET_RINGS_NUM);
-            SET_EXTRA_API(get_socket_rings_fds, vma_get_socket_rings_fds,
+            SET_EXTRA_API(get_socket_rings_fds, xlio_get_socket_rings_fds,
                           XLIO_EXTRA_API_GET_SOCKET_RINGS_FDS);
-            SET_EXTRA_API(dump_fd_stats, vma_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
-            SET_EXTRA_API(ioctl, vma_ioctl, XLIO_EXTRA_API_IOCTL);
+            SET_EXTRA_API(dump_fd_stats, xlio_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
+            SET_EXTRA_API(ioctl, xlio_ioctl, XLIO_EXTRA_API_IOCTL);
         }
 
         *((xlio_api_t **)__optval) = xlio_api;
@@ -1530,7 +1530,7 @@ extern "C" EXPORT_SYMBOL ssize_t write(int __fd, __const void *__buf, size_t __n
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
         struct iovec piov[1] = {{(void *)__buf, __nbytes}};
-        vma_tx_call_attr_t tx_arg;
+        xlio_tx_call_attr_t tx_arg;
 
         tx_arg.opcode = TX_WRITE;
         tx_arg.attr.msg.iov = piov;
@@ -1558,7 +1558,7 @@ extern "C" EXPORT_SYMBOL ssize_t writev(int __fd, const struct iovec *iov, int i
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
-        vma_tx_call_attr_t tx_arg;
+        xlio_tx_call_attr_t tx_arg;
 
         tx_arg.opcode = TX_WRITEV;
         tx_arg.attr.msg.iov = (struct iovec *)iov;
@@ -1587,7 +1587,7 @@ extern "C" EXPORT_SYMBOL ssize_t send(int __fd, __const void *__buf, size_t __nb
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
         struct iovec piov[1] = {{(void *)__buf, __nbytes}};
-        vma_tx_call_attr_t tx_arg;
+        xlio_tx_call_attr_t tx_arg;
 
         tx_arg.opcode = TX_SEND;
         tx_arg.attr.msg.iov = piov;
@@ -1623,7 +1623,7 @@ extern "C" EXPORT_SYMBOL ssize_t sendmsg(int __fd, __const struct msghdr *__msg,
     socket_fd_api *p_socket_object = NULL;
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
-        vma_tx_call_attr_t tx_arg;
+        xlio_tx_call_attr_t tx_arg;
 
         tx_arg.opcode = TX_SENDMSG;
         tx_arg.attr.msg.iov = __msg->msg_iov;
@@ -1687,7 +1687,7 @@ extern "C" EXPORT_SYMBOL int sendmmsg(int __fd, struct mmsghdr *__mmsghdr, unsig
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
         for (unsigned int i = 0; i < __vlen; i++) {
-            vma_tx_call_attr_t tx_arg;
+            xlio_tx_call_attr_t tx_arg;
 
             tx_arg.opcode = TX_SENDMSG;
             tx_arg.attr.msg.iov = __mmsghdr[i].msg_hdr.msg_iov;
@@ -1746,7 +1746,7 @@ extern "C" EXPORT_SYMBOL ssize_t sendto(int __fd, __const void *__buf, size_t __
     p_socket_object = fd_collection_get_sockfd(__fd);
     if (p_socket_object) {
         struct iovec piov[1] = {{(void *)__buf, __nbytes}};
-        vma_tx_call_attr_t tx_arg;
+        xlio_tx_call_attr_t tx_arg;
 
         tx_arg.opcode = TX_SENDTO;
         tx_arg.attr.msg.iov = piov;
@@ -1780,7 +1780,7 @@ static ssize_t sendfile_helper(socket_fd_api *p_socket_object, int in_fd, __off6
     __off64_t orig_offset = 0;
     __off64_t cur_offset;
     struct iovec piov[1];
-    vma_tx_call_attr_t tx_arg;
+    xlio_tx_call_attr_t tx_arg;
     sockinfo *s = (sockinfo *)p_socket_object;
 
     if (p_socket_object->get_type() != FD_TYPE_SOCKET) {
@@ -2243,7 +2243,7 @@ extern "C" EXPORT_SYMBOL int __ppoll_chk(struct pollfd *__fds, nfds_t __nfds,
 }
 #endif
 
-static void vma_epoll_create(int epfd, int size)
+static void xlio_epoll_create(int epfd, int size)
 {
     if (g_p_fd_collection) {
         // Sanity check to remove any old sockinfo object using the same fd!!
@@ -2281,7 +2281,7 @@ extern "C" EXPORT_SYMBOL int epoll_create(int __size)
         return epfd;
     }
 
-    vma_epoll_create(epfd, 8);
+    xlio_epoll_create(epfd, 8);
 
     return epfd;
 }
@@ -2303,7 +2303,7 @@ extern "C" EXPORT_SYMBOL int epoll_create1(int __flags)
         return epfd;
     }
 
-    vma_epoll_create(epfd, 8);
+    xlio_epoll_create(epfd, 8);
 
     return epfd;
 }
@@ -2631,7 +2631,7 @@ extern "C" EXPORT_SYMBOL pid_t fork(void)
         safe_mce_sys().get_env_params();
         vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename,
                    safe_mce_sys().log_details, safe_mce_sys().log_colors);
-        if (vma_rdma_lib_reset()) {
+        if (xlio_rdma_lib_reset()) {
             srdr_logerr("Child Process: rdma_lib_reset failed %d %s", errno, strerror(errno));
         }
         srdr_logdbg_exit("Child Process: starting with %d", getpid());
@@ -2706,7 +2706,7 @@ extern "C" EXPORT_SYMBOL int daemon(int __nochdir, int __noclose)
         safe_mce_sys().get_env_params();
         vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename,
                    safe_mce_sys().log_details, safe_mce_sys().log_colors);
-        if (vma_rdma_lib_reset()) {
+        if (xlio_rdma_lib_reset()) {
             srdr_logerr("Child Process: rdma_lib_reset failed %d %s", errno, strerror(errno));
         }
         srdr_logdbg_exit("Child Process: starting with %d", getpid());
@@ -2755,12 +2755,12 @@ extern "C" EXPORT_SYMBOL int sigaction(int signum, const struct sigaction *act,
                 *oldact = g_act_prev;
             }
             if (act) {
-                struct sigaction vma_action;
-                vma_action.sa_handler = handler_intr;
-                vma_action.sa_flags = 0;
-                sigemptyset(&vma_action.sa_mask);
+                struct sigaction xlio_action;
+                xlio_action.sa_handler = handler_intr;
+                xlio_action.sa_flags = 0;
+                sigemptyset(&xlio_action.sa_mask);
 
-                ret = orig_os_api.sigaction(SIGINT, &vma_action, NULL);
+                ret = orig_os_api.sigaction(SIGINT, &xlio_action, NULL);
 
                 if (ret < 0) {
                     srdr_logdbg("Failed to register SIGINT handler, calling to original sigaction "

@@ -1650,7 +1650,7 @@ int sockinfo_udp::getsockopt(int __level, int __optname, void *__optval, socklen
         case -1:
             return rc;
         case -2:
-            vma_throw_object_with_msg(vma_unsupported_api, buf);
+            xlio_throw_object_with_msg(xlio_unsupported_api, buf);
         }
     }
 
@@ -1991,7 +1991,7 @@ int sockinfo_udp::rx_request_notification(uint64_t poll_sn)
     return ring_ready_count;
 }
 
-ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
+ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
 {
     const iovec *p_iov = tx_arg.attr.msg.iov;
     const ssize_t sz_iov = tx_arg.attr.msg.sz_iov;
@@ -2125,7 +2125,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
     }
 
     {
-        vma_send_attr attr = {(xlio_wr_tx_packet_attr)0, 0, 0, 0};
+        xlio_send_attr attr = {(xlio_wr_tx_packet_attr)0, 0, 0, 0};
         bool b_blocking = m_b_blocking;
         if (unlikely(__flags & MSG_DONTWAIT)) {
             b_blocking = false;
@@ -2133,7 +2133,7 @@ ssize_t sockinfo_udp::tx(vma_tx_call_attr_t &tx_arg)
 
         attr.length = static_cast<size_t>(sz_data_payload);
         attr.flags = (xlio_wr_tx_packet_attr)((b_blocking * VMA_TX_PACKET_BLOCK) |
-                                             (is_dummy * VMA_TX_PACKET_DUMMY));
+                                              (is_dummy * VMA_TX_PACKET_DUMMY));
         if (likely(p_dst_entry->is_valid())) {
             // All set for fast path packet sending - this is our best performance flow
             ret = p_dst_entry->fast_send(p_iov, sz_iov, attr);

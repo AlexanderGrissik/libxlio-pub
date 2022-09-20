@@ -189,7 +189,7 @@ public:
         NOT_IN_USE(first);
     }
 #endif /* DEFINED_UTLS */
-    virtual void post_nop_fence(void) {}
+    virtual void post_nop_fence(void) { }
 
     virtual void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
     {

@@ -33,8 +33,8 @@
 #ifndef VMA_SOCKINFO_ULP_H
 #define VMA_SOCKINFO_ULP_H
 
-#include "socket_fd_api.h" /* vma_tx_call_attr_t */
-#include "proto/dst_entry.h" /* vma_send_attr */
+#include "socket_fd_api.h" /* xlio_tx_call_attr_t */
+#include "proto/dst_entry.h" /* xlio_send_attr */
 #include "proto/tls.h" /* xlio_tls_info */
 #include "lwip/err.h" /* err_t */
 
@@ -57,13 +57,13 @@ public:
 class sockinfo_tcp_ops {
 public:
     sockinfo_tcp_ops(sockinfo_tcp *sock);
-    virtual ~sockinfo_tcp_ops() {}
+    virtual ~sockinfo_tcp_ops() { }
 
     inline ring *get_tx_ring(void);
 
     virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
-    virtual ssize_t tx(vma_tx_call_attr_t &tx_arg);
-    virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
+    virtual ssize_t tx(xlio_tx_call_attr_t &tx_arg);
+    virtual int postrouting(struct pbuf *p, struct tcp_seg *seg, xlio_send_attr &attr);
     virtual bool handle_send_ret(ssize_t ret, struct tcp_seg *seg);
 
     virtual err_t recv(struct pbuf *p)
@@ -97,8 +97,8 @@ public:
     ~sockinfo_tcp_ops_tls();
 
     int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
-    ssize_t tx(vma_tx_call_attr_t &tx_arg);
-    int postrouting(struct pbuf *p, struct tcp_seg *seg, vma_send_attr &attr);
+    ssize_t tx(xlio_tx_call_attr_t &tx_arg);
+    int postrouting(struct pbuf *p, struct tcp_seg *seg, xlio_send_attr &attr);
     bool handle_send_ret(ssize_t ret, struct tcp_seg *seg);
 
     void get_record_buf(mem_buf_desc_t *&buf, uint8_t *&data, bool is_zerocopy);
@@ -191,7 +191,7 @@ private:
     void *m_p_cipher_ctx;
 
     /* List of RX buffers that contain unhandled records. */
-    vma_desc_list_t m_rx_bufs;
+    xlio_desc_list_t m_rx_bufs;
     /* Record number of current or incomplete TLS record. */
     uint64_t m_next_recno_rx;
     /* Offset of the first unhandled record. */

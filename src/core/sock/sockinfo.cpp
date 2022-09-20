@@ -219,7 +219,7 @@ int sockinfo::fcntl_helper(int __cmd, unsigned long int __arg, bool &bexit)
             break;
         case -2:
             bexit = true;
-            vma_throw_object_with_msg(vma_unsupported_api, buf);
+            xlio_throw_object_with_msg(xlio_unsupported_api, buf);
         }
         break;
     }
@@ -328,7 +328,7 @@ int sockinfo::ioctl(unsigned long int __request, unsigned long int __arg)
         case -1:
             return rc;
         case -2:
-            vma_throw_object_with_msg(vma_unsupported_api, buf);
+            xlio_throw_object_with_msg(xlio_unsupported_api, buf);
         }
         break;
     }
@@ -1928,7 +1928,7 @@ int sockinfo::setsockopt_kernel(int __level, int __optname, const void *__optval
         case -1:
             return rc;
         case -2:
-            vma_throw_object_with_msg(vma_unsupported_api, buf);
+            xlio_throw_object_with_msg(xlio_unsupported_api, buf);
         }
     }
 
