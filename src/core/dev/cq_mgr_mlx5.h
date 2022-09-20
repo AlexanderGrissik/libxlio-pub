@@ -89,7 +89,7 @@ protected:
                                      enum buff_status_e &status);
     void cqe_to_xlio_wc(struct xlio_mlx5_cqe *cqe, xlio_ibv_wc *wc);
     inline struct xlio_mlx5_cqe *check_error_completion(struct xlio_mlx5_cqe *cqe, uint32_t *ci,
-                                                       uint8_t op_own);
+                                                        uint8_t op_own);
     inline void update_global_sn(uint64_t &cq_poll_sn, uint32_t rettotal);
     void lro_update_hdr(struct xlio_mlx5_cqe *cqe, mem_buf_desc_t *p_rx_wc_buf_desc);
 
@@ -121,7 +121,7 @@ inline void cq_mgr_mlx5::update_global_sn(uint64_t &cq_poll_sn, uint32_t num_pol
 }
 
 inline struct xlio_mlx5_cqe *cq_mgr_mlx5::check_error_completion(struct xlio_mlx5_cqe *cqe,
-                                                                uint32_t *ci, uint8_t op_own)
+                                                                 uint32_t *ci, uint8_t op_own)
 {
     switch (op_own >> 4) {
     case MLX5_CQE_REQ_ERR:
@@ -141,8 +141,8 @@ inline struct xlio_mlx5_cqe *cq_mgr_mlx5::get_cqe(struct xlio_mlx5_cqe **cqe_err
 {
     struct xlio_mlx5_cqe *cqe =
         (struct xlio_mlx5_cqe *)(((uint8_t *)m_mlx5_cq.cq_buf) +
-                                ((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1))
-                                 << m_mlx5_cq.cqe_size_log));
+                                 ((m_mlx5_cq.cq_ci & (m_mlx5_cq.cqe_count - 1))
+                                  << m_mlx5_cq.cqe_size_log));
     uint8_t op_own = cqe->op_own;
 
     /* Check ownership and invalid opcode
