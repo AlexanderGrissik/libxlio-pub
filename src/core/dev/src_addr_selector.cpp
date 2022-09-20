@@ -177,7 +177,8 @@ void src_addr_selector::ipv6_select_saddr_by_dev(const net_device_val &dev,
         }
 
         // Sanity check for illegal configuration.
-        if (ip_addr->local_addr.is_mc(AF_INET6) || ip_addr->local_addr.is_anyaddr()) {
+        if (ip_addr->local_addr.is_mc(AF_INET6) || ip_addr->local_addr.is_anyaddr() ||
+            ip_addr->local_addr.is_mapped_ipv4()) {
             src_sel_logfunc("Illegal addr skipped: %s",
                             ip_addr->local_addr.to_str(AF_INET6).c_str());
             continue;
