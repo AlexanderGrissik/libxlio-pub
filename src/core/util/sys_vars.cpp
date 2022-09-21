@@ -84,7 +84,7 @@ mce_sys_var &safe_mce_sys()
 #define MAX_VERSION_STR_LEN 128
 #define MAX_CMD_LINE        2048
 
-void mce_sys_var::print_vma_load_failure_msg()
+void mce_sys_var::print_xlio_load_failure_msg()
 {
     vlog_printf(VLOG_ERROR,
                 "***************************************************************************\n");
@@ -102,7 +102,7 @@ typedef struct {
     xlio_spec_t level;
     const char *output_name;
     const char **input_names;
-} vma_spec_names;
+} xlio_spec_names;
 
 static const char *names_none[] = {"none", "0", NULL};
 static const char *spec_names_ulatency[] = {"ultra-latency", "10", NULL};
@@ -118,7 +118,7 @@ static const char *spec_names_nginx[] = {"nginx", "669", NULL};
 static const char *spec_names_nginx_dpu[] = {"nginx_dpu", "670", NULL};
 
 // must be by order because "to_str" relies on that!
-static const vma_spec_names specs[] = {
+static const xlio_spec_names specs[] = {
     {MCE_SPEC_NONE, "NONE", (const char **)names_none},
     {MCE_SPEC_SOCKPERF_ULTRA_LATENCY_10, "Ultra Latency", (const char **)spec_names_ulatency},
     {MCE_SPEC_SOCKPERF_LATENCY_15, "Latency", (const char **)spec_names_latency},
@@ -447,14 +447,14 @@ bool mce_sys_var::check_cpuinfo_flag(const char *flag)
     fp = fopen("/proc/cpuinfo", "r");
     if (!fp) {
         vlog_printf(VLOG_ERROR, "error while fopen\n");
-        print_vma_load_failure_msg();
+        print_xlio_load_failure_msg();
         return false;
     }
     line = (char *)malloc(MAX_CMD_LINE);
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!line) {
         vlog_printf(VLOG_ERROR, "error while malloc\n");
-        print_vma_load_failure_msg();
+        print_xlio_load_failure_msg();
         goto exit;
     }
     BULLSEYE_EXCLUDE_BLOCK_END
@@ -610,7 +610,7 @@ void mce_sys_var::get_env_params()
     fp = fopen("/proc/self/cmdline", "r");
     if (!fp) {
         vlog_printf(VLOG_ERROR, "error while fopen\n");
-        print_vma_load_failure_msg();
+        print_xlio_load_failure_msg();
         exit(1);
     }
 
@@ -618,7 +618,7 @@ void mce_sys_var::get_env_params()
     BULLSEYE_EXCLUDE_BLOCK_START
     if (!app_name) {
         vlog_printf(VLOG_ERROR, "error while malloc\n");
-        print_vma_load_failure_msg();
+        print_xlio_load_failure_msg();
         exit(1);
     }
     BULLSEYE_EXCLUDE_BLOCK_END
@@ -630,7 +630,7 @@ void mce_sys_var::get_env_params()
             BULLSEYE_EXCLUDE_BLOCK_START
             if (!app_name) {
                 vlog_printf(VLOG_ERROR, "error while malloc\n");
-                print_vma_load_failure_msg();
+                print_xlio_load_failure_msg();
                 exit(1);
             }
             BULLSEYE_EXCLUDE_BLOCK_END
@@ -640,8 +640,8 @@ void mce_sys_var::get_env_params()
     app_name[len - 1] = '\0';
     fclose(fp);
 
-    memset(vma_time_measure_filename, 0, sizeof(vma_time_measure_filename));
-    strcpy(vma_time_measure_filename, MCE_DEFAULT_TIME_MEASURE_DUMP_FILE);
+    memset(xlio_time_measure_filename, 0, sizeof(xlio_time_measure_filename));
+    strcpy(xlio_time_measure_filename, MCE_DEFAULT_TIME_MEASURE_DUMP_FILE);
     memset(log_filename, 0, sizeof(log_filename));
     memset(stats_filename, 0, sizeof(stats_filename));
     memset(stats_shmem_dirname, 0, sizeof(stats_shmem_dirname));
@@ -1644,7 +1644,7 @@ void mce_sys_var::get_env_params()
     // init()
     if ((env_ptr = getenv(xlio_exception_handling::getSysVar())) != NULL) {
         exception_handling = xlio_exception_handling(
-            strtol(env_ptr, NULL, 10)); // vma_exception_handling is responsible for its invariant
+            strtol(env_ptr, NULL, 10)); // xlio_exception_handling is responsible for its invariant
     }
 
     if ((env_ptr = getenv(SYS_VAR_AVOID_SYS_CALLS_ON_TCP_FD)) != NULL) {
@@ -1875,7 +1875,7 @@ void mce_sys_var::get_env_params()
     }
 
     if ((env_ptr = getenv(SYS_VAR_TIME_MEASURE_DUMP_FILE)) != NULL) {
-        read_env_variable_with_pid(vma_time_measure_filename, sizeof(vma_time_measure_filename),
+        read_env_variable_with_pid(xlio_time_measure_filename, sizeof(xlio_time_measure_filename),
                                    env_ptr);
     }
 #endif

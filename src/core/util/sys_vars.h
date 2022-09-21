@@ -480,7 +480,7 @@ public:
     uint32_t neigh_num_err_retries;
 
     uint32_t xlio_time_measure_num_samples;
-    char vma_time_measure_filename[PATH_MAX];
+    char xlio_time_measure_filename[PATH_MAX];
     sysctl_reader_t &sysctl_reader;
     bool tcp_abort_on_close;
     bool rx_poll_on_tx_tcp;
@@ -507,7 +507,7 @@ public:
     } m_ioctl;
 
 private:
-    void print_vma_load_failure_msg();
+    void print_xlio_load_failure_msg();
     int list_to_cpuset(char *cpulist, cpu_set_t *cpu_set);
     int hex_to_cpuset(char *start, cpu_set_t *cpu_set);
     int env_to_cpuset(char *orig_start, cpu_set_t *cpu_set);
