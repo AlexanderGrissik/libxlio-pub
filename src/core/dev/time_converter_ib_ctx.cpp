@@ -109,7 +109,7 @@ uint64_t time_converter_ib_ctx::get_hca_core_clock()
 bool time_converter_ib_ctx::sync_clocks(struct timespec *st, uint64_t *hw_clock)
 {
     struct timespec st1, st2, diff, st_min = TIMESPEC_INITIALIZER;
-    vma_ts_values queried_values;
+    xlio_ts_values queried_values;
     int64_t interval, best_interval = 0;
     uint64_t hw_clock_min = 0;
 
@@ -118,7 +118,7 @@ bool time_converter_ib_ctx::sync_clocks(struct timespec *st, uint64_t *hw_clock)
     for (int i = 0; i < 10; i++) {
         clock_gettime(CLOCK_REALTIME, &st1);
         if (xlio_ibv_query_values(m_p_ibv_context, &queried_values) ||
-            !vma_get_ts_val(queried_values)) {
+            !xlio_get_ts_val(queried_values)) {
             return false;
         }
 
@@ -127,7 +127,7 @@ bool time_converter_ib_ctx::sync_clocks(struct timespec *st, uint64_t *hw_clock)
 
         if (!best_interval || interval < best_interval) {
             best_interval = interval;
-            hw_clock_min = vma_get_ts_val(queried_values);
+            hw_clock_min = xlio_get_ts_val(queried_values);
 
             interval /= 2;
             diff.tv_sec = interval / NSEC_PER_SEC;

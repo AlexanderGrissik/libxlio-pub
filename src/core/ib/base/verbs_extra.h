@@ -180,8 +180,8 @@ typedef int xlio_ibv_cq_init_attr;
 #define XLIO_IBV_DEVICE_ATTR_HCA_CORE_CLOCK 0
 #define XLIO_IBV_VALUES_MASK_RAW_CLOCK      IBV_VALUES_MASK_RAW_CLOCK
 #define xlio_ibv_query_values(ctx, values)  ibv_query_rt_values_ex(ctx, values)
-#define vma_get_ts_val(values)              values.raw_clock.tv_nsec
-typedef struct ibv_values_ex vma_ts_values;
+#define xlio_get_ts_val(values)              values.raw_clock.tv_nsec
+typedef struct ibv_values_ex xlio_ts_values;
 #endif
 
 // ibv_post_send

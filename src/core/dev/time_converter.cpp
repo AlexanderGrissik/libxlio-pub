@@ -73,10 +73,10 @@ uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
         dev_status |= VMA_QUERY_DEVICE_SUPPORTED;
     }
 
-    vma_ts_values queried_values;
+    xlio_ts_values queried_values;
     memset(&queried_values, 0, sizeof(queried_values));
     queried_values.comp_mask = XLIO_IBV_VALUES_MASK_RAW_CLOCK;
-    if ((rval = xlio_ibv_query_values(ctx, &queried_values)) || !vma_get_ts_val(queried_values)) {
+    if ((rval = xlio_ibv_query_values(ctx, &queried_values)) || !xlio_get_ts_val(queried_values)) {
         ibchtc_logdbg(
             "time_converter::get_single_converter_status :Error in querying hw clock, can't convert"
             " hw time to system time (xlio_ibv_query_values() return value=%d ) (ibv context %p) "
