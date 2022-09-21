@@ -792,7 +792,7 @@ void mce_sys_var::get_env_params()
     trigger_dummy_send_getsockname = MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME;
     tcp_send_buffer_size = MCE_DEFAULT_TCP_SEND_BUFFER_SIZE;
 #ifdef VMA_TIME_MEASURE
-    vma_time_measure_num_samples = MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES;
+    xlio_time_measure_num_samples = MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES;
 #endif
 
     read_hv();
@@ -1865,8 +1865,8 @@ void mce_sys_var::get_env_params()
 
 #ifdef VMA_TIME_MEASURE
     if ((env_ptr = getenv(SYS_VAR_TIME_MEASURE_NUM_SAMPLES)) != NULL) {
-        vma_time_measure_num_samples = (uint32_t)atoi(env_ptr);
-        if (vma_time_measure_num_samples > INST_SIZE) {
+        xlio_time_measure_num_samples = (uint32_t)atoi(env_ptr);
+        if (xlio_time_measure_num_samples > INST_SIZE) {
             vlog_printf(
                 VLOG_WARNING,
                 "The value of '%s' is bigger than %d. Time samples over %d will be dropped.\n",

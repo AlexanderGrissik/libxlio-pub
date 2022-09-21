@@ -479,7 +479,7 @@ public:
     uint32_t neigh_wait_till_send_arp_msec;
     uint32_t neigh_num_err_retries;
 
-    uint32_t vma_time_measure_num_samples;
+    uint32_t xlio_time_measure_num_samples;
     char vma_time_measure_filename[PATH_MAX];
     sysctl_reader_t &sysctl_reader;
     bool tcp_abort_on_close;
