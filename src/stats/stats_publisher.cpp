@@ -155,13 +155,13 @@ void *stats_data_reader::pop_data_reader(void *local_addr)
 
 void write_version_details_to_shmem(version_info_t *p_ver_info)
 {
-    p_ver_info->vma_lib_maj = PRJ_LIBRARY_MAJOR;
-    p_ver_info->vma_lib_min = PRJ_LIBRARY_MINOR;
-    p_ver_info->vma_lib_rev = PRJ_LIBRARY_REVISION;
-    p_ver_info->vma_lib_rel = PRJ_LIBRARY_RELEASE;
+    p_ver_info->xlio_lib_maj = PRJ_LIBRARY_MAJOR;
+    p_ver_info->xlio_lib_min = PRJ_LIBRARY_MINOR;
+    p_ver_info->xlio_lib_rev = PRJ_LIBRARY_REVISION;
+    p_ver_info->xlio_lib_rel = PRJ_LIBRARY_RELEASE;
 }
 
-void xlio_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_log_details)
+void xlio_shmem_stats_open(vlog_levels_t **p_p_xlio_log_level, uint8_t **p_p_xlio_log_details)
 {
     void *buf = NULL;
     void *p_shmem = NULL;
@@ -272,16 +272,16 @@ success:
               safe_mce_sys().stats_fd_num_max);
 
     // Update the shmem initial log values
-    g_sh_mem->log_level = **p_p_vma_log_level;
-    g_sh_mem->log_details_level = **p_p_vma_log_details;
+    g_sh_mem->log_level = **p_p_xlio_log_level;
+    g_sh_mem->log_details_level = **p_p_xlio_log_details;
 
     // Update the shmem with initial fd dump values
     g_sh_mem->fd_dump = STATS_FD_STATISTICS_DISABLED;
     g_sh_mem->fd_dump_log_level = STATS_FD_STATISTICS_LOG_LEVEL_DEFAULT;
 
     // ReMap internal log level to ShMem area
-    *p_p_vma_log_level = &g_sh_mem->log_level;
-    *p_p_vma_log_details = &g_sh_mem->log_details_level;
+    *p_p_xlio_log_level = &g_sh_mem->log_level;
+    *p_p_xlio_log_details = &g_sh_mem->log_details_level;
 
     g_p_stats_data_reader->register_to_timer();
 
@@ -294,8 +294,8 @@ shmem_error:
     g_sh_mem_info.p_sh_stats = MAP_FAILED;
     g_sh_mem = &g_local_sh_mem;
     g_sh_mem->reset();
-    *p_p_vma_log_level = &g_sh_mem->log_level;
-    *p_p_vma_log_details = &g_sh_mem->log_details_level;
+    *p_p_xlio_log_level = &g_sh_mem->log_level;
+    *p_p_xlio_log_details = &g_sh_mem->log_details_level;
     BULLSEYE_EXCLUDE_BLOCK_END
 }
 
@@ -383,7 +383,7 @@ void xlio_stats_instance_remove_socket_block(socket_stats_t *local_addr)
         (socket_stats_t *)g_p_stats_data_reader->pop_data_reader(local_addr);
 
     if (p_skt_stats == NULL) {
-        __log_dbg("application vma_stats pointer is NULL");
+        __log_dbg("application xlio_stats pointer is NULL");
         g_lock_skt_inst_arr.unlock();
         return;
     }
@@ -499,7 +499,7 @@ void xlio_stats_instance_remove_ring_block(ring_stats_t *local_stats_addr)
         (ring_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_ring_stats == NULL) { // happens on the tx cq (why don't we keep tx cq stats?)
-        __log_dbg("application vma_stats pointer is NULL");
+        __log_dbg("application xlio_stats pointer is NULL");
         g_lock_ring_inst_arr.unlock();
         return;
     }
@@ -560,7 +560,7 @@ void xlio_stats_instance_remove_cq_block(cq_stats_t *local_stats_addr)
     cq_stats_t *p_cq_stats = (cq_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_cq_stats == NULL) { // happens on the tx cq (why don't we keep tx cq stats?)
-        __log_dbg("application vma_stats pointer is NULL");
+        __log_dbg("application xlio_stats pointer is NULL");
         g_lock_cq_inst_arr.unlock();
         return;
     }
@@ -623,7 +623,7 @@ void xlio_stats_instance_remove_bpool_block(bpool_stats_t *local_stats_addr)
         (bpool_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (p_bpool_stats == NULL) {
-        __log_dbg("application vma_stats pointer is NULL");
+        __log_dbg("application xlio_stats pointer is NULL");
         g_lock_bpool_inst_arr.unlock();
         return;
     }
@@ -737,7 +737,7 @@ void xlio_stats_instance_remove_epoll_block(iomux_func_stats_t *local_stats_addr
         (iomux_func_stats_t *)g_p_stats_data_reader->pop_data_reader(local_stats_addr);
 
     if (NULL == ep_func_stats) {
-        __log_dbg("application vma_stats pointer is NULL");
+        __log_dbg("application xlio_stats pointer is NULL");
         g_lock_iomux.unlock();
         return;
     }

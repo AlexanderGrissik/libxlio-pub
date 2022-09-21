@@ -87,15 +87,15 @@ struct user_params_t {
     print_details_mode_t print_details_mode;
     view_mode_t view_mode;
     bool forbid_cleaning;
-    vlog_levels_t vma_log_level;
-    int vma_details_level;
+    vlog_levels_t xlio_log_level;
+    int xlio_details_level;
     bool zero_counters;
     proc_ident_mode_t proc_ident_mode;
     bool write_auth;
     int cycles;
     int fd_dump;
     vlog_levels_t fd_dump_log_level;
-    std::string vma_stats_path;
+    std::string xlio_stats_path;
 };
 
 extern user_params_t user_params;
@@ -369,10 +369,10 @@ typedef struct {
 
 // Version info
 typedef struct {
-    uint8_t vma_lib_maj;
-    uint8_t vma_lib_min;
-    uint8_t vma_lib_rev;
-    uint8_t vma_lib_rel;
+    uint8_t xlio_lib_maj;
+    uint8_t xlio_lib_min;
+    uint8_t xlio_lib_rev;
+    uint8_t xlio_lib_rel;
 } version_info_t;
 
 typedef struct sh_mem_t {
@@ -451,7 +451,7 @@ typedef struct sh_mem_info {
 } sh_mem_info_t;
 
 // publisher functions
-void xlio_shmem_stats_open(vlog_levels_t **p_p_vma_log_level, uint8_t **p_p_vma_log_details);
+void xlio_shmem_stats_open(vlog_levels_t **p_p_xlio_log_level, uint8_t **p_p_xlio_log_details);
 void xlio_shmem_stats_close();
 
 void xlio_stats_instance_create_socket_block(socket_stats_t *);
