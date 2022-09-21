@@ -378,7 +378,7 @@ static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
 static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr)
 {
     int rc = 0;
-    struct vma_msg_flow *data;
+    struct xlio_msg_flow *data;
     struct store_pid *pid_value;
     struct store_flow *value = NULL;
     struct store_flow *cur_flow = NULL;
@@ -390,7 +390,7 @@ static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_u
     assert((msg_hdr->code & ~XLIO_MSG_ACK) == XLIO_MSG_FLOW);
     assert(size);
 
-    data = (struct vma_msg_flow *)msg_hdr;
+    data = (struct xlio_msg_flow *)msg_hdr;
     if (size < sizeof(*data)) {
         rc = -EBADMSG;
         goto err;

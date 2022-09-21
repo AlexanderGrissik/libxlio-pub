@@ -116,7 +116,7 @@ ib_ctx_handler::ib_ctx_handler(struct ib_ctx_handler_desc *desc)
     m_on_device_memory = xlio_ibv_dm_size(m_p_ibv_device_attr);
 
 #ifdef DEFINED_IBV_PACKET_PACING_CAPS
-    if (vma_is_pacing_caps_supported(m_p_ibv_device_attr)) {
+    if (xlio_is_pacing_caps_supported(m_p_ibv_device_attr)) {
         m_pacing_caps.rate_limit_min = m_p_ibv_device_attr->packet_pacing_caps.qp_rate_limit_min;
         m_pacing_caps.rate_limit_max = m_p_ibv_device_attr->packet_pacing_caps.qp_rate_limit_max;
     }

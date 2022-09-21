@@ -119,8 +119,8 @@ public:
 
 private:
     inline void return_to_global_pool();
-    int prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action, flow_tuple &flow_spec_5t);
-    int prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action);
+    int prepare_flow_message(xlio_msg_flow &data, msg_flow_t flow_action, flow_tuple &flow_spec_5t);
+    int prepare_flow_message(xlio_msg_flow &data, msg_flow_t flow_action);
     int process_element_rx(void *pv_fd_ready_array);
     bool request_more_rx_buffers();
     int send_buffer(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr);

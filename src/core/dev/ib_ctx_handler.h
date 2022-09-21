@@ -84,7 +84,7 @@ public:
 #endif /* DEFINED_DPCP */
     xlio_ibv_device_attr *get_ibv_device_attr()
     {
-        return vma_get_device_orig_attr(m_p_ibv_device_attr);
+        return xlio_get_device_orig_attr(m_p_ibv_device_attr);
     }
     xlio_ibv_device_attr_ex *get_ibv_device_attr_ex() { return m_p_ibv_device_attr; }
     uint32_t mem_reg(void *addr, size_t length, uint64_t access);

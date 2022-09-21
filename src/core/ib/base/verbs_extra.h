@@ -130,7 +130,7 @@ typedef struct ibv_qp_init_attr_ex xlio_ibv_qp_init_attr;
 
 #define xlio_ibv_query_device(context, attr) ibv_query_device_ex(context, NULL, attr)
 typedef struct ibv_device_attr_ex xlio_ibv_device_attr_ex;
-#define vma_get_device_orig_attr(device_attr) &device_attr->orig_attr
+#define xlio_get_device_orig_attr(device_attr) &device_attr->orig_attr
 #else
 #define xlio_ibv_create_qp(pd, attr) ibv_create_qp(pd, attr)
 typedef struct ibv_qp_init_attr xlio_ibv_qp_init_attr;
@@ -142,7 +142,7 @@ typedef struct ibv_qp_init_attr xlio_ibv_qp_init_attr;
 
 #define xlio_ibv_query_device(context, attr)  ibv_query_device(context, attr)
 typedef xlio_ibv_device_attr xlio_ibv_device_attr_ex;
-#define vma_get_device_orig_attr(device_attr) device_attr
+#define xlio_get_device_orig_attr(device_attr) device_attr
 #endif
 
 // ibv_modify_qp
@@ -199,8 +199,8 @@ typedef struct ibv_values_ex vma_ts_values;
 #define xlio_send_wr_opcode(wr)     (wr).opcode
 
 #define XLIO_IBV_WR_TSO               (xlio_ibv_wr_opcode) IBV_WR_TSO
-#define vma_check_dev_attr_tso(_attr) 1
-#define vma_get_tso_caps(_attr)       (((xlio_ibv_device_attr_ex *)(_attr))->tso_caps)
+#define xlio_check_dev_attr_tso(_attr) 1
+#define xlio_get_tso_caps(_attr)       (((xlio_ibv_device_attr_ex *)(_attr))->tso_caps)
 #define xlio_ibv_qp_init_attr_tso(_attr, _max_tso_header)                                          \
     do {                                                                                           \
         _attr.comp_mask |= IBV_QP_INIT_ATTR_MAX_TSO_HEADER;                                        \
@@ -306,7 +306,7 @@ typedef struct {
 
 #ifdef DEFINED_IBV_PACKET_PACING_CAPS
 #define XLIO_IBV_QP_RATE_LIMIT             IBV_QP_RATE_LIMIT
-#define vma_is_pacing_caps_supported(attr) (attr->packet_pacing_caps.qp_rate_limit_min)
+#define xlio_is_pacing_caps_supported(attr) (attr->packet_pacing_caps.qp_rate_limit_min)
 
 #ifdef DEFINED_IBV_QP_SUPPORT_BURST
 #define xlio_ibv_init_burst_attr(qp_attr, rate_limit)                                              \

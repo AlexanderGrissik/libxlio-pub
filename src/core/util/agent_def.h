@@ -118,7 +118,7 @@ enum {
 
 typedef enum { XLIO_MSG_FLOW_ADD = 1, XLIO_MSG_FLOW_DEL = 2 } msg_flow_t;
 
-struct vma_msg_flow {
+struct xlio_msg_flow {
     struct vma_hdr hdr;
     uint8_t type; /* format of tc rule command */
     uint8_t action; /* add, del */

@@ -267,8 +267,8 @@ void ring_simple::create_resources()
     memset(&m_tso, 0, sizeof(m_tso));
     if ((safe_mce_sys().enable_tso == option_3::ON) ||
         ((safe_mce_sys().enable_tso == option_3::AUTO) && (1 == validate_tso(get_if_index())))) {
-        if (vma_check_dev_attr_tso(m_p_ib_ctx->get_ibv_device_attr())) {
-            const xlio_ibv_tso_caps *caps = &vma_get_tso_caps(m_p_ib_ctx->get_ibv_device_attr_ex());
+        if (xlio_check_dev_attr_tso(m_p_ib_ctx->get_ibv_device_attr())) {
+            const xlio_ibv_tso_caps *caps = &xlio_get_tso_caps(m_p_ib_ctx->get_ibv_device_attr_ex());
             if (ibv_is_qpt_supported(caps->supported_qpts, IBV_QPT_RAW_PACKET)) {
                 m_tso.max_payload_sz = caps->max_tso;
                 /* ETH(14) + IP(20) + TCP(20) + TCP OPTIONS(40) */

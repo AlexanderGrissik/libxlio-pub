@@ -42,7 +42,7 @@
 
 class vmad_flow : public vmad_base {
 protected:
-    struct vma_msg_flow m_data;
+    struct xlio_msg_flow m_data;
     pid_t m_pid;
     int m_if;
     int m_tap;

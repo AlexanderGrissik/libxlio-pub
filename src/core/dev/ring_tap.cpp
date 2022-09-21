@@ -50,7 +50,7 @@ ring_tap::ring_tap(int if_index, ring *parent)
     , m_tap_data_available(false)
 {
     int rc = 0;
-    struct vma_msg_flow data;
+    struct xlio_msg_flow data;
     char tap_if_name[IFNAMSIZ] = {0};
     net_device_val *p_ndev = g_p_net_device_table_mgr->get_net_device_val(m_parent->get_if_index());
 
@@ -240,7 +240,7 @@ bool ring_tap::attach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink, bool f
 
     if (ret && (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc())) {
         int rc = 0;
-        struct vma_msg_flow data;
+        struct xlio_msg_flow data;
         rc = prepare_flow_message(data, XLIO_MSG_FLOW_ADD, flow_spec_5t);
         if (rc != 0) {
             if (!g_b_exit) {
@@ -261,7 +261,7 @@ bool ring_tap::detach_flow(flow_tuple &flow_spec_5t, pkt_rcvr_sink *sink)
 
     if (flow_spec_5t.is_tcp() || flow_spec_5t.is_udp_uc()) {
         int rc = 0;
-        struct vma_msg_flow data;
+        struct xlio_msg_flow data;
         rc = prepare_flow_message(data, XLIO_MSG_FLOW_DEL, flow_spec_5t);
         if (rc != 0) {
             if (!g_b_exit) {
@@ -357,7 +357,7 @@ int ring_tap::send_lwip_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
     return ret;
 }
 
-int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action,
+int ring_tap::prepare_flow_message(xlio_msg_flow &data, msg_flow_t flow_action,
                                    flow_tuple &flow_spec_5t)
 {
     int rc = 0;
@@ -399,7 +399,7 @@ int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action,
     return rc;
 }
 
-int ring_tap::prepare_flow_message(vma_msg_flow &data, msg_flow_t flow_action)
+int ring_tap::prepare_flow_message(xlio_msg_flow &data, msg_flow_t flow_action)
 {
     int rc = 0;
 

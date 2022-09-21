@@ -570,10 +570,10 @@ err:
     return rc;
 }
 
-int agent::send_msg_flow(struct vma_msg_flow *data)
+int agent::send_msg_flow(struct xlio_msg_flow *data)
 {
     int rc = 0;
-    struct vma_msg_flow answer;
+    struct xlio_msg_flow answer;
 
     if (AGENT_ACTIVE != m_state) {
         return -ENODEV;
