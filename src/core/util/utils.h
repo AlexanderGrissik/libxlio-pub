@@ -484,7 +484,7 @@ private:
 uint32_t fd2inode(int fd);
 
 /**
- * @class vma_error
+ * @class xlio_error
  *
  * base class for xlio exceptions classes.
  * Note: xlio code should NOT catch xlio_error; xlio code should only catch exceptions of derived
@@ -544,7 +544,7 @@ create_xlio_exception_class(xlio_unsupported_api, xlio_error);
 
 #define throw_xlio_exception(msg)                                                                  \
     throw xlio_exception(msg, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)
-// uses for throwing  something that is derived from vma_error and has similar CTOR; msg will
+// uses for throwing  something that is derived from xlio_error and has similar CTOR; msg will
 // automatically be class name
 #define xlio_throw_object(_class)                                                                  \
     throw _class(#_class, __PRETTY_FUNCTION__, __FILE__, __LINE__, errno)

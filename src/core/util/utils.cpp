@@ -1414,7 +1414,7 @@ xlio_error::xlio_error(const char *_message, const char *_function, const char *
     , lineno(_lineno)
     , errnum(_errnum)
 {
-    snprintf(formatted_message, sizeof(formatted_message), "vma_error <%s> (errno=%d %s) in %s:%d",
+    snprintf(formatted_message, sizeof(formatted_message), "xlio_error <%s> (errno=%d %s) in %s:%d",
              message, errnum, strerror(errnum), filename, lineno);
     formatted_message[sizeof(formatted_message) - 1] = '\0';
 }
