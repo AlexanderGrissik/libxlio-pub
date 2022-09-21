@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_LIBVMA_YY_CONFIG_PARSER_H_INCLUDED
-#define YY_LIBVMA_YY_CONFIG_PARSER_H_INCLUDED
+#ifndef YY_CONFIG_PARSER_H_INCLUDED
+#define YY_CONFIG_PARSER_H_INCLUDED
 /* Enabling traces.  */
 #ifndef YYDEBUG
 #define YYDEBUG 0
@@ -130,4 +130,4 @@ int libxlio_yyparse();
 #endif
 #endif /* ! YYPARSE_PARAM */
 
-#endif /* !YY_LIBVMA_YY_CONFIG_PARSER_H_INCLUDED  */
+#endif /* !YY_CONFIG_PARSER_H_INCLUDED  */

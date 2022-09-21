@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_IF_H_
-#define VMA_IF_H_
+#ifndef _IF_H_
+#define _IF_H_
 
 #include <sys/socket.h>
 #include <linux/if.h>

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef TESTS_GTEST_VMAD_BASE_H_
-#define TESTS_GTEST_VMAD_BASE_H_
+#ifndef _XLIOD_BASE_H_
+#define _XLIOD_BASE_H_
 
 /**
  * VMAD Base class for tests
@@ -68,4 +68,4 @@ protected:
     struct sockaddr_un m_server_addr;
 };
 
-#endif /* TESTS_GTEST_VMAD_BASE_H_ */
+#endif /* _XLIOD_BASE_H_ */

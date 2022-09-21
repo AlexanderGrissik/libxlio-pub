@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_UTIL_AGENT_H_
-#define SRC_VMA_UTIL_AGENT_H_
+#ifndef _AGENT_H_
+#define _AGENT_H_
 
 #include "core/util/agent_def.h"
 
@@ -147,4 +147,4 @@ private:
 
 extern agent *g_p_agent;
 
-#endif /* SRC_VMA_UTIL_AGENT_H_ */
+#endif /* _AGENT_H_ */

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_MAPPING_H
-#define VMA_MAPPING_H
+#ifndef _MAPPING_H
+#define _MAPPING_H
 
 #include "core/dev/allocator.h"
 #include "core/proto/mem_desc.h"
@@ -149,4 +149,4 @@ private:
 
 extern mapping_cache *g_zc_cache;
 
-#endif /* VMA_MAPPING_H */
+#endif /* _MAPPING_H */

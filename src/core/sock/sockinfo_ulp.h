@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_SOCKINFO_ULP_H
-#define VMA_SOCKINFO_ULP_H
+#ifndef _SOCKINFO_ULP_H
+#define _SOCKINFO_ULP_H
 
 #include "socket_fd_api.h" /* xlio_tx_call_attr_t */
 #include "proto/dst_entry.h" /* xlio_send_attr */
@@ -214,4 +214,4 @@ private:
 
 #endif /* DEFINED_UTLS */
 
-#endif /* VMA_SOCKINFO_ULP_H */
+#endif /* _SOCKINFO_ULP_H */

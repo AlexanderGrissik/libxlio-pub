@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_VALGRIND_H_
-#define VMA_VALGRIND_H_
+#ifndef _VALGRIND_H_
+#define _VALGRIND_H_
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

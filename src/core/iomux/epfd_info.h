@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_EPOLL_H
-#define VMA_EPOLL_H
+#ifndef _EPFD_INFO_H
+#define _EPFD_INFO_H
 
 #include <util/wakeup_pipe.h>
 #include <sock/cleanable_obj.h>
@@ -152,4 +152,4 @@ public:
     void decrease_ring_ref_count(ring *ring);
 };
 
-#endif
+#endif /* _EPFD_INFO_H */

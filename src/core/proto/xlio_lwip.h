@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef _VMA_LWIP_H
-#define _VMA_LWIP_H
+#ifndef _XLIO_LWIP_H
+#define _XLIO_LWIP_H
 
 #include "core/event/timer_handler.h"
 #include "core/proto/mem_buf_desc.h"

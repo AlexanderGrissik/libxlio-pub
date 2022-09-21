@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_IB_MLX5_H_
-#define SRC_VMA_IB_MLX5_H_
+#ifndef _IB_MLX5_H_
+#define _IB_MLX5_H_
 
 #if defined(DEFINED_DIRECT_VERBS)
 
@@ -397,4 +397,4 @@ void xlio_ib_mlx5_get_cq_event(xlio_ib_mlx5_cq_t *mlx5_cq, int count);
 
 #endif /* DEFINED_DIRECT_VERBS */
 
-#endif /* SRC_VMA_IB_MLX5_H_ */
+#endif /* _IB_MLX5_H_ */

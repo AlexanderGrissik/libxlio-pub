@@ -364,8 +364,8 @@ static void __xlio_add_rule(void) {
 
 /* In a future release of Bison, this section will be replaced
    by #include "y.tab.h".  */
-#ifndef YY_LIBVMA_YY_Y_TAB_H_INCLUDED
-# define YY_LIBVMA_YY_Y_TAB_H_INCLUDED
+#ifndef YY_Y_TAB_H_INCLUDED
+# define YY_Y_TAB_H_INCLUDED
 /* Enabling traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -468,7 +468,7 @@ int libxlio_yyparse ();
 #endif
 #endif /* ! YYPARSE_PARAM */
 
-#endif /* !YY_LIBVMA_YY_Y_TAB_H_INCLUDED  */
+#endif /* !YY_Y_TAB_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 /* Line 390 of yacc.c  */

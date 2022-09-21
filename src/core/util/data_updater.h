@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_UTIL_DATA_UPDATER_H_
-#define SRC_VMA_UTIL_DATA_UPDATER_H_
+#ifndef _DATA_UPDATER_H_
+#define _DATA_UPDATER_H_
 
 #include "core/proto/dst_entry.h"
 
@@ -87,4 +87,4 @@ private:
     resource_allocation_key &m_key;
     socket_stats_t *m_sock_stats;
 };
-#endif /* SRC_VMA_UTIL_DATA_UPDATER_H_ */
+#endif /* _DATA_UPDATER_H_ */

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_LIST_H
-#define VMA_LIST_H
+#ifndef XLIO_LIST_H
+#define XLIO_LIST_H
 
 #include "core/util/list.h"
 #include "vlogger/vlogger.h"
@@ -421,4 +421,4 @@ private:
     }
 };
 
-#endif /* VMA_LIST_H */
+#endif /* XLIO_LIST_H */

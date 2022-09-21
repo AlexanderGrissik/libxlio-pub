@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_DEV_ALLOCATOR_H_
-#define SRC_VMA_DEV_ALLOCATOR_H_
+#ifndef _ALLOCATOR_H_
+#define _ALLOCATOR_H_
 
 #include "vlogger/vlogger.h"
 #include "ib_ctx_handler_collection.h"
@@ -63,4 +63,4 @@ private:
     free_t m_memfree;
 };
 
-#endif /* SRC_VMA_DEV_ALLOCATOR_H_ */
+#endif /* _ALLOCATOR_H_ */

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_VMA_UTIL_AGENT_DEF_H_
-#define SRC_VMA_UTIL_AGENT_DEF_H_
+#ifndef _AGENT_DEF_H_
+#define _AGENT_DEF_H_
 
 #ifndef offsetof
 #define offsetof(type, member) ((uintptr_t) & ((type *)0)->member)
@@ -146,4 +146,4 @@ struct xlio_msg_flow {
 
 #pragma pack(pop)
 
-#endif /* SRC_VMA_UTIL_AGENT_DEF_H_ */
+#endif /* _AGENT_DEF_H_ */

@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#ifndef VMA_MEM_DESC_H
-#define VMA_MEM_DESC_H
+#ifndef _MEM_DESC_H
+#define _MEM_DESC_H
 
 #include <stdint.h>
 
@@ -207,4 +207,4 @@ private:
     std::unordered_map<void *, zcopy_hugepage *> m_hugepage_map;
 };
 
-#endif /* VMA_MEM_DESC_H */
+#endif /* _MEM_DESC_H */
