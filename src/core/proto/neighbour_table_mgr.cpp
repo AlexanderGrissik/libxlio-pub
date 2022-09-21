@@ -114,7 +114,7 @@ neigh_entry *neigh_table_mgr::create_new_entry(neigh_key neigh_key, const observ
 
     transport_type_t transport = dst->get_obs_transport_type();
 
-    if (transport == VMA_TRANSPORT_ETH) {
+    if (transport == XLIO_TRANSPORT_ETH) {
         neigh_mgr_logdbg("Creating new neigh_eth");
         return (new neigh_eth(neigh_key));
     } else {

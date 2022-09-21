@@ -929,7 +929,7 @@ void *event_handler_manager::thread_loop()
     poll_fd.events = POLLIN | POLLPRI;
     poll_fd.revents = 0;
     while (m_b_continue_running) {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         if (g_inst_cnt >= m_n_sysvar_xlio_time_measure_num_samples)
             finit_instrumentation(safe_mce_sys().xlio_time_measure_filename);
 #endif

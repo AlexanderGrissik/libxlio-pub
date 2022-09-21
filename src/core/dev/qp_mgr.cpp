@@ -608,7 +608,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
 
     qp_logfunc("VERBS send, unsignaled_count: %d", m_n_unsignaled_count);
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_TX_POST_SEND_START;
 #endif
 
@@ -617,7 +617,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
 #endif // RDTSC_MEASURE_TX_SENDTO_TO_AFTER_POST_SEND
 
     if (send_to_wire(p_send_wqe, attr, request_comp, tis)) {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_ERR_TX_COUNT;
 #endif
         return -1;
@@ -631,7 +631,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
     RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_SENDTO_TO_AFTER_POST_SEND]);
 #endif // RDTSC_MEASURE_TX_SENDTO_TO_AFTER_POST_SEND
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_TX_POST_SEND_END;
 #endif
     // Link this new mem_buf_desc to the previous one sent

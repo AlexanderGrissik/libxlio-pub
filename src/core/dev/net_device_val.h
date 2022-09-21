@@ -319,7 +319,7 @@ public:
         : net_device_val(desc)
         , m_vlan(0)
     {
-        set_transport_type(VMA_TRANSPORT_ETH);
+        set_transport_type(XLIO_TRANSPORT_ETH);
         if (INVALID != get_state()) {
             set_slave_array();
             configure();

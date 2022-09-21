@@ -73,7 +73,7 @@ bool rfs_uc::prepare_flow_spec()
     xlio_ibv_flow_spec_tcp_udp *p_tcp_udp = nullptr;
 
     switch (p_ring->get_transport_type()) {
-    case VMA_TRANSPORT_ETH: {
+    case XLIO_TRANSPORT_ETH: {
         bool is_ipv4 = (m_flow_tuple.get_family() == AF_INET);
         if (is_ipv4) {
             prepare_flow_spec_by_ip<attach_flow_data_eth_ipv4_tcp_udp_t>(

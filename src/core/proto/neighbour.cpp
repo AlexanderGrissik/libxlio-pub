@@ -1410,7 +1410,7 @@ void neigh_entry::priv_unregister_timer()
 //==================================================
 
 neigh_eth::neigh_eth(neigh_key key)
-    : neigh_entry(key, VMA_TRANSPORT_ETH)
+    : neigh_entry(key, XLIO_TRANSPORT_ETH)
 {
     neigh_logdbg("");
     m_rdma_port_space = RDMA_PS_UDP;

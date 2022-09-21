@@ -859,7 +859,7 @@ ssize_t sockinfo_tcp::tcp_tx(xlio_tx_call_attr_t &tx_arg)
         goto tx_packet_to_os;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_TX_START;
 #endif
 
@@ -889,7 +889,7 @@ retry_is_ready:
             errno = EPIPE;
         }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_ERR_TX_COUNT;
 #endif
 
@@ -1069,7 +1069,7 @@ retry_is_ready:
                     }
                     errno = EPIPE;
                     unlock_tcp_con();
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
                     INC_ERR_TX_COUNT;
 #endif
                     return -1;
@@ -1134,7 +1134,7 @@ done:
 
     unlock_tcp_con();
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_TX_END;
 #endif
     /* Restore errno on function entry in case success */
@@ -1143,7 +1143,7 @@ done:
     return total_tx;
 
 err:
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     INC_ERR_TX_COUNT;
 #endif
 
@@ -1157,7 +1157,7 @@ err:
     return ret;
 
 tx_packet_to_os:
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     INC_GO_TO_OS_TX_COUNT;
 #endif
 
@@ -1955,7 +1955,7 @@ int sockinfo_tcp::handle_rx_error(bool blocking)
         errno = EAGAIN;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     INC_ERR_RX_COUNT;
 #endif
 
@@ -1990,7 +1990,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
     si_tcp_logfuncall("");
     if (unlikely(m_sock_offload != TCP_SOCK_LWIP)) {
         int ret = 0;
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_GO_TO_OS_RX_COUNT;
 #endif
         ret = socket_fd_api::rx_os(call_type, p_iov, sz_iov, in_flags, __from, __fromlen, __msg);
@@ -1998,7 +1998,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
         return ret;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_RX_START;
 #endif
 
@@ -2113,7 +2113,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
 
     si_tcp_logfunc("rx completed, %d bytes sent", total_rx);
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     if (0 < total_rx)
         TAKE_T_RX_END;
 #endif

@@ -791,7 +791,7 @@ void mce_sys_var::get_env_params()
     rx_cq_wait_ctrl = MCE_DEFAULT_RX_CQ_WAIT_CTRL;
     trigger_dummy_send_getsockname = MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME;
     tcp_send_buffer_size = MCE_DEFAULT_TCP_SEND_BUFFER_SIZE;
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     xlio_time_measure_num_samples = MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES;
 #endif
 
@@ -1236,8 +1236,11 @@ void mce_sys_var::get_env_params()
                     SYS_VAR_TX_MAX_INLINE, MAX_SUPPORTED_IB_INLINE_SIZE, tx_max_inline);
         tx_max_inline = MAX_SUPPORTED_IB_INLINE_SIZE;
     }
+
+#define _ALIGN(x, y) ((((x) + (y)-1) / (y)) * (y))
     unsigned int cx4_max_tx_wre_for_inl =
-        (16 * 1024 * 64) / (VMA_ALIGN(VMA_ALIGN(tx_max_inline - 12, 64) + 12, 64));
+        (16 * 1024 * 64) / (_ALIGN(_ALIGN(tx_max_inline - 12, 64) + 12, 64));
+#undef _ALIGN
     if (tx_num_wr > cx4_max_tx_wre_for_inl) {
         vlog_printf(VLOG_WARNING, "For the given %s [%d], %s [%d] must be smaller than %d\n",
                     SYS_VAR_TX_MAX_INLINE, tx_max_inline, SYS_VAR_TX_NUM_WRE, tx_num_wr,
@@ -1863,7 +1866,7 @@ void mce_sys_var::get_env_params()
         tcp_send_buffer_size = (uint32_t)atoi(env_ptr);
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     if ((env_ptr = getenv(SYS_VAR_TIME_MEASURE_NUM_SAMPLES)) != NULL) {
         xlio_time_measure_num_samples = (uint32_t)atoi(env_ptr);
         if (xlio_time_measure_num_samples > INST_SIZE) {

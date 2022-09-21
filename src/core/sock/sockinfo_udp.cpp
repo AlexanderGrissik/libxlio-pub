@@ -1718,7 +1718,7 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec *p_iov, ssize_t sz_iov
         goto out;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_RX_START;
 #endif
     save_stats_threadid_rx();
@@ -1806,7 +1806,7 @@ os:
         goto out;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     INC_GO_TO_OS_RX_COUNT;
 #endif
 
@@ -1829,12 +1829,12 @@ out:
     }
 
     if (ret < 0) {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_ERR_RX_COUNT;
 #endif
         si_udp_logfunc("returning with: %d (errno=%d %m)", ret, errno);
     } else {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         TAKE_T_RX_END;
 #endif
         /* Restore errno on function entry in case success */
@@ -2030,7 +2030,7 @@ ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
         si_udp_logdbg("MSG_OOB not supported in UDP (tx-ing to os)");
         goto tx_packet_to_os;
     }
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_TX_START;
 #endif
     if (__dst != NULL) {
@@ -2073,7 +2073,7 @@ ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
                     sock_addr addr;
                     addr.set_sa_family(m_family);
                     if (bind(addr.get_p_sa(), addr.get_socklen())) {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
                         INC_ERR_TX_COUNT;
 #endif
                         errno = EAGAIN;
@@ -2159,7 +2159,7 @@ ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
 
         save_stats_tx_offload(ret, is_dummy);
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         TAKE_T_TX_END;
 #endif
         m_lock_snd.unlock();
@@ -2175,7 +2175,7 @@ ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
     }
 
 tx_packet_to_os:
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     INC_GO_TO_OS_TX_COUNT;
 #endif
     // Calling OS transmit

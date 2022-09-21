@@ -241,8 +241,8 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
 {
     mem_buf_desc_t *buff = NULL;
 
-#ifdef RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
-    RDTSC_TAKE_END(RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL);
+#ifdef RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL
+    RDTSC_TAKE_END(RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL);
 #endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
 
 #if defined(RDTSC_MEASURE_RX_VERBS_READY_POLL) || defined(RDTSC_MEASURE_RX_VERBS_IDLE_POLL)
@@ -255,10 +255,10 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
             RDTSC_TAKE_END(RDTSC_FLOW_RX_VERBS_IDLE_POLL);
 #endif
 
-#if defined(RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL) || defined(RDTSC_MEASURE_RX_CQE_RECEIVEFROM)
-            RDTSC_TAKE_START_VMA_IDLE_POLL_CQE_TO_RECVFROM(RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL,
-                                                           RDTSC_FLOW_RX_CQE_TO_RECEIVEFROM);
-#endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL || RDTSC_MEASURE_RX_CQE_RECEIVEFROM
+#if defined(RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL) || defined(RDTSC_MEASURE_RX_CQE_RECEIVEFROM)
+            RDTSC_TAKE_START_XLIO_IDLE_POLL_CQE_TO_RECVFROM(RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL,
+                                                            RDTSC_FLOW_RX_CQE_TO_RECEIVEFROM);
+#endif // RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL || RDTSC_MEASURE_RX_CQE_RECEIVEFROM
 
             return NULL;
         }
@@ -314,10 +314,10 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
         RDTSC_TAKE_END(RDTSC_FLOW_RX_VERBS_IDLE_POLL);
 #endif
 
-#if defined(RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL) || defined(RDTSC_MEASURE_RX_CQE_RECEIVEFROM)
-        RDTSC_TAKE_START_VMA_IDLE_POLL_CQE_TO_RECVFROM(RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL,
-                                                       RDTSC_FLOW_RX_CQE_TO_RECEIVEFROM);
-#endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL || RDTSC_MEASURE_RX_CQE_RECEIVEFROM
+#if defined(RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL) || defined(RDTSC_MEASURE_RX_CQE_RECEIVEFROM)
+        RDTSC_TAKE_START_XLIO_IDLE_POLL_CQE_TO_RECVFROM(RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL,
+                                                        RDTSC_FLOW_RX_CQE_TO_RECEIVEFROM);
+#endif // RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL || RDTSC_MEASURE_RX_CQE_RECEIVEFROM
 
         prefetch((void *)_hot_buffer_stride);
     }
@@ -459,7 +459,7 @@ inline int cq_mgr_mlx5_strq::drain_and_proccess_helper(mem_buf_desc_t *buff,
                 reclaim_recv_buffer_helper(buff);
             } else {
                 bool procces_now =
-                    (m_transport_type == VMA_TRANSPORT_ETH ? is_eth_tcp_frame(buff) : false);
+                    (m_transport_type == XLIO_TRANSPORT_ETH ? is_eth_tcp_frame(buff) : false);
 
                 // We process immediately all non udp/ip traffic..
                 if (procces_now) {

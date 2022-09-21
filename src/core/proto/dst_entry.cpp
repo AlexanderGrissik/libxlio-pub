@@ -480,7 +480,7 @@ bool dst_entry::conf_l2_hdr_and_snd_wqe_eth()
 
 bool dst_entry::conf_hdrs_and_snd_wqe()
 {
-    transport_type_t tranposrt = VMA_TRANSPORT_ETH;
+    transport_type_t tranposrt = XLIO_TRANSPORT_ETH;
     bool ret_val = true;
 
     dst_logdbg("dst_entry %s configuring the header template", to_str().c_str());
@@ -492,7 +492,7 @@ bool dst_entry::conf_hdrs_and_snd_wqe()
     }
 
     switch (tranposrt) {
-    case VMA_TRANSPORT_ETH:
+    case XLIO_TRANSPORT_ETH:
         ret_val = conf_l2_hdr_and_snd_wqe_eth();
         break;
     default:
@@ -508,7 +508,7 @@ transport_type_t dst_entry::get_obs_transport_type() const
     if (m_p_net_dev_val) {
         return (m_p_net_dev_val->get_transport_type());
     }
-    return VMA_TRANSPORT_UNKNOWN;
+    return XLIO_TRANSPORT_UNKNOWN;
 }
 
 bool dst_entry::offloaded_according_to_rules()
@@ -552,7 +552,7 @@ bool dst_entry::prepare_to_send(struct xlio_rate_limit_t &rate_limit, bool skip_
                 b_is_offloaded = true;
                 modify_ratelimit(rate_limit);
                 if (resolve_neigh()) {
-                    if (get_obs_transport_type() == VMA_TRANSPORT_ETH) {
+                    if (get_obs_transport_type() == XLIO_TRANSPORT_ETH) {
                         dst_logdbg("local mac: %s peer mac: %s",
                                    m_p_net_dev_val->get_l2_address()->to_str().c_str(),
                                    m_p_neigh_val->get_l2_address()->to_str().c_str());
@@ -753,7 +753,7 @@ bool dst_entry::alloc_neigh_val(transport_type_t tranport)
     }
 
     switch (tranport) {
-    case VMA_TRANSPORT_ETH:
+    case XLIO_TRANSPORT_ETH:
     default:
         m_p_neigh_val = new neigh_eth_val;
         break;

@@ -31,12 +31,12 @@
  */
 
 /*
- * VMA instrumental - measure the times that certain actions takes.
+ * XLIO instrumental - measure the times that certain actions takes.
  * Currently support: RX,TX,IOMUX
  * Enable: use --enable-time-measure in ./configure
  * Parameters:
- * 	VMA_TIME_MEASURE_DUMP_FILE - Name of the results file. Default: /tmp/VMA_inst.dump
- * 	VMA_TIME_MEASURE_NUM_SAMPLES - Number of samples for a dump file. Default: 10000
+ * 	XLIO_TIME_MEASURE_DUMP_FILE - Name of the results file. Default: /tmp/XLIO_inst.dump
+ * 	XLIO_TIME_MEASURE_NUM_SAMPLES - Number of samples for a dump file. Default: 10000
  * Limitations:
  * 	- No support for multi-threading
  * 	- Support only one socket
@@ -78,7 +78,7 @@ enum rdtsc_flow_type {
     RDTSC_FLOW_MEASURE_RX_LWIP = 5,
     RDTSC_FLOW_RX_DISPATCH_PACKET = 6,
     RDTSC_FLOW_PROCCESS_RX_BUFFER_TO_RECIVEFROM = 7,
-    RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL = 8,
+    RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL = 8,
     RDTSC_FLOW_RX_READY_POLL_TO_LWIP = 9,
     RDTSC_FLOW_RX_LWIP_TO_RECEVEFROM = 10,
     RDTSC_FLOW_RX_VERBS_READY_POLL = 11,
@@ -100,8 +100,8 @@ extern instr_info g_rdtsc_instr_info_arr[RDTSC_FLOW_MAX];
 
 #endif // RDTS_MEASURE
 
-//#define VMA_TIME_MEASURE 1
-#ifdef VMA_TIME_MEASURE
+//#define XLIO_TIME_MEASURE 1
+#ifdef XLIO_TIME_MEASURE
 
 #define POLL_START         0
 #define CQ_IN_START        1
@@ -182,6 +182,6 @@ extern uint32_t g_dump_cnt;
 void init_instrumentation();
 void finit_instrumentation(char *dump_file_name);
 
-#endif // VMA_TIME_MEASURE
+#endif // XLIO_TIME_MEASURE
 
 #endif // INSTRUMENTATION

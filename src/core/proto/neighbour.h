@@ -107,7 +107,7 @@ public:
 class neigh_val {
 public:
     neigh_val()
-        : m_trans_type(VMA_TRANSPORT_UNKNOWN)
+        : m_trans_type(XLIO_TRANSPORT_UNKNOWN)
         , m_l2_address(NULL) {};
     virtual ~neigh_val() {};
 
@@ -140,7 +140,7 @@ class neigh_eth_val : public neigh_val {
 public:
     neigh_eth_val()
     {
-        m_trans_type = VMA_TRANSPORT_ETH;
+        m_trans_type = XLIO_TRANSPORT_ETH;
         zero_all_members();
     }
 

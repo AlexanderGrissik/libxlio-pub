@@ -292,7 +292,7 @@ void io_mux_call::polling_loops()
         return;
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_T_POLL_START;
     ZERO_POLL_COUNT;
 #endif
@@ -319,7 +319,7 @@ void io_mux_call::polling_loops()
     }
 
     do {
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_POLL_COUNT;
 #endif
         __log_funcall("2nd scenario loop %d", poll_counter);
@@ -400,7 +400,7 @@ void io_mux_call::polling_loops()
         ++m_p_stats->n_iomux_poll_hit;
         __log_func("polling_loops found %d ready fds (rfds=%d, wfds=%d, efds=%d)",
                    m_n_all_ready_fds, m_n_ready_rfds, m_n_ready_wfds, m_n_ready_efds);
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         TAKE_T_POLL_END;
 #endif
     } else {

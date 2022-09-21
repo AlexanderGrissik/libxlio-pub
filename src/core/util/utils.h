@@ -45,8 +45,6 @@
 #include "core/proto/mem_buf_desc.h"
 #include "core/util/xlio_stats.h"
 
-#define VMA_ALIGN(x, y) ((((x) + (y)-1) / (y)) * (y))
-
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 /**

@@ -46,7 +46,7 @@ header::header()
     : m_actual_hdr_addr(0)
     , m_transport_header_tx_offset(0)
     , m_is_vlan_enabled(false)
-    , m_transport_type(VMA_TRANSPORT_UNKNOWN)
+    , m_transport_type(XLIO_TRANSPORT_UNKNOWN)
 {
     header::init();
 }

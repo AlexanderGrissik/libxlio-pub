@@ -163,7 +163,7 @@ AC_MSG_CHECKING(
 AC_ARG_ENABLE([time_measure],
     AS_HELP_STRING([--enable-time-measure],
         [turn on time measuring]),
-    [CPPFLAGS+=" -DVMA_TIME_MEASURE";
+    [CPPFLAGS+=" -DXLIO_TIME_MEASURE";
      AC_MSG_RESULT([yes])],
     [AC_MSG_RESULT([no])]
 )

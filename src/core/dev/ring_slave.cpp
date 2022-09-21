@@ -702,7 +702,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
 
     // Validate transport type headers
     switch (m_transport_type) {
-    case VMA_TRANSPORT_ETH: {
+    case XLIO_TRANSPORT_ETH: {
         uint16_t h_proto = p_eth_h->h_proto;
 
         ring_logfunc("Rx buffer Ethernet dst=" ETH_HW_ADDR_PRINT_FMT

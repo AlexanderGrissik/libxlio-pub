@@ -850,7 +850,7 @@ void print_xlio_global_settings()
         MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME, SYS_VAR_TRIGGER_DUMMY_SEND_GETSOCKNAME,
         safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().xlio_time_measure_num_samples,
                       MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES, SYS_VAR_TIME_MEASURE_NUM_SAMPLES);
     VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().xlio_time_measure_filename,
@@ -918,7 +918,7 @@ extern "C" void sock_redirect_main(void)
     init_rdtsc();
 #endif
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     init_instrumentation();
 #endif
 }
@@ -928,7 +928,7 @@ extern "C" void sock_redirect_exit(void)
 #ifdef RDTSC_MEASURE
     print_rdtsc_summary();
 #endif
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     finit_instrumentation(safe_mce_sys().xlio_time_measure_filename);
 #endif
     vlog_printf(VLOG_DEBUG, "%s()\n", __FUNCTION__);

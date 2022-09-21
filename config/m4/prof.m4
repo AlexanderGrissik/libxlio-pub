@@ -50,8 +50,8 @@ AS_IF([test "x$with_ibprof" == xno],
     [AC_CHECK_HEADER(
         [$with_ibprof/include/ibprof_api.h],
         [
-         CFLAGS="$CFLAGS -DVMA_TIME_IBPROF"
-         CXXFLAGS="$CXXFLAGS -DVMA_TIME_IBPROF"
+         CFLAGS="$CFLAGS -DXLIO_TIME_IBPROF"
+         CXXFLAGS="$CXXFLAGS -DXLIO_TIME_IBPROF"
          CPPFLAGS="$CPPFLAGS -I$with_ibprof/include"
          if test -d "$with_ibprof/lib64"; then
              LDFLAGS="$LDFLAGS -L$with_ibprof/lib64 -Wl,--rpath,$with_ibprof/lib64"
@@ -68,7 +68,7 @@ AS_IF([test "x$with_ibprof" == xno],
 #
 # RDTSC measurements support
 #
-# ****** Total VMA RX******** 
+# ****** Total XLIO RX******** 
 # RDTSC_MEASURE_RX_CQE_RECEIVEFROM
 #
 # ******* Verbs Poll ***********
@@ -81,11 +81,11 @@ AS_IF([test "x$with_ibprof" == xno],
 # ******* Other RX ***********
 # RDTSC_MEASURE_RX_DISPATCH_PACKET 
 # RDTSC_MEASURE_RX_AFTER_PROCCESS_BUFFER_TO_RECIVEFROM 
-# RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL 
+# RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL 
 # RDTSC_MEASURE_RX_READY_POLL_TO_LWIP 
 # RDTSC_MEASURE_RX_LWIP_TO_RECEVEFROM 
 #
-# ****** Total VMA TX ******** 
+# ****** Total XLIO TX ******** 
 # RDTSC_MEASURE_TX_SENDTO_TO_AFTER_POST_SEND 
 
 # ******* Verbs Post Send ***********

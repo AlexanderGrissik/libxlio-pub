@@ -142,7 +142,7 @@ void cq_mgr::configure(int cq_size)
     BULLSEYE_EXCLUDE_BLOCK_END
     VALGRIND_MAKE_MEM_DEFINED(m_p_ibv_cq, sizeof(ibv_cq));
     switch (m_transport_type) {
-    case VMA_TRANSPORT_ETH:
+    case XLIO_TRANSPORT_ETH:
         m_sz_transport_header = ETH_HDR_LEN;
         break;
         BULLSEYE_EXCLUDE_BLOCK_START
@@ -384,8 +384,8 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
     RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VERBS_IDLE_POLL]);
 #endif // RDTSC_MEASURE_RX_VERBS_IDLE_POLL
 
-#ifdef RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
-    RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL]);
+#ifdef RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL
+    RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL]);
 #endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
     int ret = xlio_ibv_poll_cq(m_p_ibv_cq, num_entries, p_wce);
     if (ret <= 0) {
@@ -393,8 +393,8 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
         RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VERBS_IDLE_POLL]);
 #endif
 
-#ifdef RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
-        RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL]);
+#ifdef RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL
+        RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL]);
 #endif
         // Zero polled wce    OR    ibv_poll_cq() has driver specific errors
         // so we can't really do anything with them
@@ -402,7 +402,7 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
         RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_CQE_TO_RECEIVEFROM]);
 #endif
         *p_cq_poll_sn = m_n_global_sn;
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
         INC_ERR_POLL_COUNT;
 #endif
         return 0;
@@ -416,7 +416,7 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
 #endif
     }
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
     TAKE_POLL_CQ_IN;
 #endif
 
@@ -861,7 +861,7 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
                     reclaim_recv_buffer_helper(buff);
                 } else {
                     bool procces_now = false;
-                    if (m_transport_type == VMA_TRANSPORT_ETH) {
+                    if (m_transport_type == XLIO_TRANSPORT_ETH) {
                         procces_now = is_eth_tcp_frame(buff);
                     }
                     // We process immediately all non udp/ip traffic..

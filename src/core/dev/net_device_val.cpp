@@ -178,7 +178,7 @@ net_device_val::net_device_val(struct net_device_val_desc *desc)
     m_if_active = 0;
     m_bond_xmit_hash_policy = XHP_LAYER_2;
     m_bond_fail_over_mac = 0;
-    m_transport_type = VMA_TRANSPORT_UNKNOWN;
+    m_transport_type = XLIO_TRANSPORT_UNKNOWN;
 
     if (NULL == desc) {
         nd_logerr("Invalid net_device_val name=%s", "NA");

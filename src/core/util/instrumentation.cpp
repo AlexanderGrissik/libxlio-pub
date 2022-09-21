@@ -88,7 +88,7 @@ void print_rdtsc_summary()
 
 #endif // RDTSC_MEASURE
 
-#ifdef VMA_TIME_MEASURE
+#ifdef XLIO_TIME_MEASURE
 
 #include <string.h>
 #include <stdlib.h>
@@ -381,4 +381,4 @@ void finit_instrumentation(char *dump_file_name)
     init_instrumentation();
 }
 
-#endif // VMA_TIME_MEASURE
+#endif // XLIO_TIME_MEASURE
