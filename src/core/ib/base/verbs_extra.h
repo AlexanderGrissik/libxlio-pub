@@ -180,7 +180,7 @@ typedef int xlio_ibv_cq_init_attr;
 #define XLIO_IBV_DEVICE_ATTR_HCA_CORE_CLOCK 0
 #define XLIO_IBV_VALUES_MASK_RAW_CLOCK      IBV_VALUES_MASK_RAW_CLOCK
 #define xlio_ibv_query_values(ctx, values)  ibv_query_rt_values_ex(ctx, values)
-#define xlio_get_ts_val(values)              values.raw_clock.tv_nsec
+#define xlio_get_ts_val(values)             values.raw_clock.tv_nsec
 typedef struct ibv_values_ex xlio_ts_values;
 #endif
 
@@ -257,8 +257,8 @@ typedef struct ibv_flow_spec_action_tag_dummy {
 #ifdef DEFINED_IBV_CQ_ATTR_MODERATE
 typedef struct ibv_modify_cq_attr xlio_ibv_cq_attr;
 #define xlio_ibv_modify_cq(cq, cq_attr, mask) ibv_modify_cq(cq, cq_attr)
-#define vma_cq_attr_mask(cq_attr)             (cq_attr).attr_mask
-#define vma_cq_attr_moderation(cq_attr)       (cq_attr).moderate
+#define xlio_cq_attr_mask(cq_attr)            (cq_attr).attr_mask
+#define xlio_cq_attr_moderation(cq_attr)      (cq_attr).moderate
 #define XLIO_IBV_CQ_MODERATION                IBV_CQ_ATTR_MODERATE
 #endif
 
@@ -346,7 +346,7 @@ typedef enum {
     RL_RATE = 1 << 0,
     RL_BURST_SIZE = 1 << 1,
     RL_PKT_SIZE = 1 << 2,
-} vma_rl_changed;
+} xlio_rl_changed;
 
 int xlio_rdma_lib_reset();
 

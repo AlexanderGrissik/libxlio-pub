@@ -61,7 +61,7 @@ typedef enum {
     MCE_SPEC_NGINX_DPU_670,
 
     MCE_SPEC_ALL /* last element */
-} vma_spec_t;
+} xlio_spec_t;
 
 typedef enum {
     ALLOC_TYPE_ANON = 0,
@@ -211,15 +211,15 @@ static inline const char *internal_thread_tcp_timer_handling_str(
     return "unsupported";
 }
 
-namespace vma_spec {
+namespace xlio_spec {
 // convert str to vVMA_spec_t; upon error - returns the given 'def_value'
-vma_spec_t from_str(const char *str, vma_spec_t def_value = MCE_SPEC_NONE);
+xlio_spec_t from_str(const char *str, xlio_spec_t def_value = MCE_SPEC_NONE);
 
 // convert int to vVMA_spec_t; upon error - returns the given 'def_value'
-vma_spec_t from_int(const int int_spec, vma_spec_t def_value = MCE_SPEC_NONE);
+xlio_spec_t from_int(const int int_spec, xlio_spec_t def_value = MCE_SPEC_NONE);
 
-const char *to_str(vma_spec_t level);
-} // namespace vma_spec
+const char *to_str(xlio_spec_t level);
+} // namespace xlio_spec
 
 #define AUTO_ON_OFF_DEF AUTO = -1, OFF = 0, ON = 1
 

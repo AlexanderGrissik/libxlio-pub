@@ -76,10 +76,10 @@
 
 void check_netperf_flags();
 
-// Start of vma_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
+// Start of xlio_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
 #define STR_EXPAND(x) #x
 #define STR(x)        STR_EXPAND(x)
-const char *vma_version_str = "XLIO_VERSION: " PACKAGE_VERSION "-" STR(PRJ_LIBRARY_RELEASE)
+const char *xlio_version_str = "XLIO_VERSION: " PACKAGE_VERSION "-" STR(PRJ_LIBRARY_RELEASE)
 
 #if _BullseyeCoverage
     " Bullseye"
@@ -95,7 +95,7 @@ const char *vma_version_str = "XLIO_VERSION: " PACKAGE_VERSION "-" STR(PRJ_LIBRA
 #ifdef _DEBUG
     " -*- DEBUG -*-"
 #endif
-    ; // End of vma_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
+    ; // End of xlio_version_str - used in "$ strings libxlio.so | grep XLIO_VERSION"
 
 bool g_b_exit = false;
 bool g_init_ibv_fork_done = false;
@@ -406,7 +406,7 @@ int get_ofed_version_info(char *ofed_version_str, int len)
                                            ofed_version_str, len);
 }
 
-void print_vma_global_settings()
+void print_xlio_global_settings()
 {
     struct utsname sys_info;
     time_t clock = time(NULL);
@@ -414,7 +414,7 @@ void print_vma_global_settings()
 
     vlog_printf(VLOG_INFO,
                 "---------------------------------------------------------------------------\n");
-    vlog_printf(VLOG_INFO, "%s\n", vma_version_str);
+    vlog_printf(VLOG_INFO, "%s\n", xlio_version_str);
     if (PRJ_GIT_VERSION[0]) {
         vlog_printf(VLOG_INFO, "%s\n", "Git: " PRJ_GIT_VERSION);
     }
@@ -446,7 +446,7 @@ void print_vma_global_settings()
 
     if (safe_mce_sys().mce_spec != MCE_SPEC_NONE) {
         vlog_printf(VLOG_INFO, FORMAT_STRING, "Spec",
-                    vma_spec::to_str((vma_spec_t)safe_mce_sys().mce_spec), SYS_VAR_SPEC);
+                    xlio_spec::to_str((xlio_spec_t)safe_mce_sys().mce_spec), SYS_VAR_SPEC);
 
         if (safe_mce_sys().mce_spec == MCE_SPEC_29WEST_LBM_29 ||
             safe_mce_sys().mce_spec == MCE_SPEC_WOMBAT_FH_LBM_554) {
@@ -851,11 +851,11 @@ void print_vma_global_settings()
         safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
 
 #ifdef VMA_TIME_MEASURE
-    VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().vma_time_measure_num_samples,
+    VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().xlio_time_measure_num_samples,
                       MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES, SYS_VAR_TIME_MEASURE_NUM_SAMPLES);
-    VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().vma_time_measure_filename,
+    VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().xlio_time_measure_filename,
                           MCE_DEFAULT_TIME_MEASURE_DUMP_FILE, SYS_VAR_TIME_MEASURE_DUMP_FILE,
-                          safe_mce_sys().vma_time_measure_filename);
+                          safe_mce_sys().xlio_time_measure_filename);
 #endif
 
     vlog_printf(VLOG_INFO,
@@ -929,7 +929,7 @@ extern "C" void sock_redirect_exit(void)
     print_rdtsc_summary();
 #endif
 #ifdef VMA_TIME_MEASURE
-    finit_instrumentation(safe_mce_sys().vma_time_measure_filename);
+    finit_instrumentation(safe_mce_sys().xlio_time_measure_filename);
 #endif
     vlog_printf(VLOG_DEBUG, "%s()\n", __FUNCTION__);
 
@@ -1118,7 +1118,7 @@ static void do_global_ctors_helper()
     }
 
     // initialize LWIP tcp/ip stack
-    NEW_CTOR(g_p_lwip, vma_lwip());
+    NEW_CTOR(g_p_lwip, xlio_lwip());
 
     if (g_p_netlink_handler) {
         // Open netlink socket
@@ -1193,7 +1193,7 @@ void reset_globals()
 }
 
 // checks that netserver runs with flags: -D, -f. Otherwise, warn user for wrong usage
-// this test is performed since vma does not support fork, and these flags make sure the netserver
+// this test is performed since xlio does not support fork, and these flags make sure the netserver
 // application will not use fork.
 void check_netperf_flags()
 {
@@ -1257,7 +1257,7 @@ extern "C" int main_init(void)
     vlog_start(PRODUCT_NAME, safe_mce_sys().log_level, safe_mce_sys().log_filename,
                safe_mce_sys().log_details, safe_mce_sys().log_colors);
 
-    print_vma_global_settings();
+    print_xlio_global_settings();
 
     check_debug();
     check_cpu_speed();

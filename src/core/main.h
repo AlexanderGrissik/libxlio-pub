@@ -38,7 +38,7 @@
 #include <util/utils.h>
 #include <sock/sock-redirect.h>
 
-void print_vma_global_settings();
+void print_xlio_global_settings();
 void check_locked_mem();
 void set_env_params();
 void prepare_fork();

@@ -266,7 +266,7 @@ protected:
     /// poll sn
     uint64_t m_poll_sn;
 
-    /// vma statistics. each implementation must initialize this.
+    /// xlio statistics. each implementation must initialize this.
     iomux_func_stats_t *m_p_stats;
 
     /// timer managment

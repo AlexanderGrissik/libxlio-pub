@@ -97,9 +97,9 @@ void mce_sys_var::print_vma_load_failure_msg()
                 "***************************************************************************\n");
 }
 
-namespace vma_spec {
+namespace xlio_spec {
 typedef struct {
-    vma_spec_t level;
+    xlio_spec_t level;
     const char *output_name;
     const char **input_names;
 } vma_spec_names;
@@ -134,7 +134,7 @@ static const vma_spec_names specs[] = {
 };
 
 // convert str to _spec_t; upon error - returns the given 'def_value'
-vma_spec_t from_str(const char *str, vma_spec_t def_value)
+xlio_spec_t from_str(const char *str, xlio_spec_t def_value)
 {
     size_t num_levels = sizeof(specs) / sizeof(specs[0]);
     for (size_t i = 0; i < num_levels; ++i) {
@@ -151,21 +151,21 @@ vma_spec_t from_str(const char *str, vma_spec_t def_value)
 }
 
 // convert int to _spec_t; upon error - returns the given 'def_value'
-vma_spec_t from_int(const int int_spec, vma_spec_t def_value)
+xlio_spec_t from_int(const int int_spec, xlio_spec_t def_value)
 {
     if (int_spec >= MCE_SPEC_NONE && int_spec <= MCE_SPEC_ALL) {
-        return static_cast<vma_spec_t>(int_spec);
+        return static_cast<xlio_spec_t>(int_spec);
     }
     return def_value; // not found. use given def_value
 }
 
-const char *to_str(vma_spec_t level)
+const char *to_str(xlio_spec_t level)
 {
     static int base = MCE_SPEC_NONE;
     return specs[level - base].output_name;
 }
 
-} // namespace vma_spec
+} // namespace xlio_spec
 
 namespace option_x {
 template <typename MODE, typename OPT, size_t N>
@@ -815,7 +815,7 @@ void mce_sys_var::get_env_params()
     }
 
     if ((env_ptr = getenv(SYS_VAR_SPEC)) != NULL) {
-        mce_spec = (uint32_t)vma_spec::from_str(env_ptr, MCE_SPEC_NONE);
+        mce_spec = (uint32_t)xlio_spec::from_str(env_ptr, MCE_SPEC_NONE);
     }
 
 #if defined(DEFINED_NGINX)

@@ -409,9 +409,9 @@ void priv_ibv_modify_cq_moderation(struct ibv_cq *cq, uint32_t period, uint32_t 
 #ifdef DEFINED_IBV_CQ_ATTR_MODERATE
     xlio_ibv_cq_attr cq_attr;
     memset(&cq_attr, 0, sizeof(cq_attr));
-    vma_cq_attr_mask(cq_attr) = XLIO_IBV_CQ_MODERATION;
-    vma_cq_attr_moderation(cq_attr).cq_count = count;
-    vma_cq_attr_moderation(cq_attr).cq_period = period;
+    xlio_cq_attr_mask(cq_attr) = XLIO_IBV_CQ_MODERATION;
+    xlio_cq_attr_moderation(cq_attr).cq_count = count;
+    xlio_cq_attr_moderation(cq_attr).cq_period = period;
 
     vlog_printf(VLOG_FUNC, "modify cq moderation, period=%d, count=%d\n", period, count);
 

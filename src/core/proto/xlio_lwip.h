@@ -93,10 +93,10 @@ static inline const char *lwip_cc_algo_str(uint32_t algo)
     }
 }
 
-class vma_lwip : public timer_handler {
+class xlio_lwip : public timer_handler {
 public:
-    vma_lwip();
-    virtual ~vma_lwip();
+    xlio_lwip();
+    virtual ~xlio_lwip();
 
     virtual void handle_timer_expired(void *user_data);
 
@@ -110,7 +110,7 @@ private:
     static u8_t read_tcp_timestamp_option(void);
 };
 
-extern vma_lwip *g_p_lwip;
+extern xlio_lwip *g_p_lwip;
 
 uint32_t get_lwip_tcp_mss(uint32_t mtu, uint32_t lwip_mss);
 

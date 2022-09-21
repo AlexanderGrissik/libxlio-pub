@@ -57,7 +57,7 @@
 int32_t enable_wnd_scale = 0;
 u32_t rcv_wnd_scale = 0;
 
-u32_t vma_lwip::sys_now(void)
+u32_t xlio_lwip::sys_now(void)
 {
     struct timespec now;
 
@@ -65,7 +65,7 @@ u32_t vma_lwip::sys_now(void)
     return now.tv_sec * 1000 + now.tv_nsec / 1000000;
 }
 
-u8_t vma_lwip::read_tcp_timestamp_option(void)
+u8_t xlio_lwip::read_tcp_timestamp_option(void)
 {
     u8_t res = (safe_mce_sys().tcp_ts_opt == TCP_TS_OPTION_FOLLOW_OS)
         ? safe_mce_sys().sysctl_reader.get_net_ipv4_tcp_timestamps()
@@ -82,13 +82,13 @@ u8_t vma_lwip::read_tcp_timestamp_option(void)
     return res;
 }
 
-vma_lwip *g_p_lwip = 0;
+xlio_lwip *g_p_lwip = 0;
 
 /**
  * LWIP "network" driver code
  */
 
-vma_lwip::vma_lwip()
+xlio_lwip::xlio_lwip()
 {
     m_run_timers = false;
 
@@ -141,17 +141,17 @@ vma_lwip::vma_lwip()
     safe_mce_sys().sysctl_reader.get_tcp_keepalive_info(true);
 }
 
-vma_lwip::~vma_lwip()
+xlio_lwip::~xlio_lwip()
 {
     free_lwip_resources();
 }
 
-void vma_lwip::free_lwip_resources(void)
+void xlio_lwip::free_lwip_resources(void)
 {
     /* TODO - revert the constructor */
 }
 
-void vma_lwip::handle_timer_expired(void *user_data)
+void xlio_lwip::handle_timer_expired(void *user_data)
 {
     NOT_IN_USE(user_data);
     tcp_ticks++;
