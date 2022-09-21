@@ -53,10 +53,10 @@ int proc_message(void);
 extern int add_flow(struct store_pid *pid_value, struct store_flow *value);
 extern int del_flow(struct store_pid *pid_value, struct store_flow *value);
 
-static int proc_msg_init(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr);
-static int proc_msg_exit(struct vma_hdr *msg_hdr, size_t size);
-static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size);
-static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr);
+static int proc_msg_init(struct xlio_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr);
+static int proc_msg_exit(struct xlio_hdr *msg_hdr, size_t size);
+static int proc_msg_state(struct xlio_hdr *msg_hdr, size_t size);
+static int proc_msg_flow(struct xlio_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr);
 
 int open_message(void)
 {
@@ -126,7 +126,7 @@ int proc_message(void)
     socklen_t addrlen = sizeof(peeraddr);
     char msg_recv[4096];
     int len = 0;
-    struct vma_hdr *msg_hdr = NULL;
+    struct xlio_hdr *msg_hdr = NULL;
 
 again:
     len = recvfrom(daemon_cfg.sock_fd, &msg_recv, sizeof(msg_recv), 0, (struct sockaddr *)&peeraddr,
@@ -142,13 +142,13 @@ again:
 
     /* Parse and process messages */
     while (len > 0) {
-        if (len < (int)sizeof(struct vma_hdr)) {
+        if (len < (int)sizeof(struct xlio_hdr)) {
             rc = -EBADMSG;
             log_error("Invalid message lenght from %s as %d errno %d (%s)\n",
                       (addrlen > 0 ? peeraddr.sun_path : "n/a"), len, errno, strerror(errno));
             goto err;
         }
-        msg_hdr = (struct vma_hdr *)&msg_recv;
+        msg_hdr = (struct xlio_hdr *)&msg_recv;
         log_debug("getting message ([%d] ver: %d pid: %d)\n", msg_hdr->code, msg_hdr->ver,
                   msg_hdr->pid);
 
@@ -188,9 +188,9 @@ err:
     return rc;
 }
 
-static int proc_msg_init(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr)
+static int proc_msg_init(struct xlio_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr)
 {
-    struct vma_msg_init *data;
+    struct xlio_msg_init *data;
     struct store_pid *value;
     size_t err = 0;
 
@@ -198,7 +198,7 @@ static int proc_msg_init(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_u
     assert(msg_hdr->code == XLIO_MSG_INIT);
     assert(size);
 
-    data = (struct vma_msg_init *)msg_hdr;
+    data = (struct xlio_msg_init *)msg_hdr;
     if (size < sizeof(*data)) {
         return -EBADMSG;
     }
@@ -253,16 +253,16 @@ send_response:
     return err ? err : (sizeof(*data));
 }
 
-static int proc_msg_exit(struct vma_hdr *msg_hdr, size_t size)
+static int proc_msg_exit(struct xlio_hdr *msg_hdr, size_t size)
 {
-    struct vma_msg_exit *data;
+    struct xlio_msg_exit *data;
     struct store_pid *pid_value = NULL;
 
     assert(msg_hdr);
     assert(msg_hdr->code == XLIO_MSG_EXIT);
     assert(size);
 
-    data = (struct vma_msg_exit *)msg_hdr;
+    data = (struct xlio_msg_exit *)msg_hdr;
     if (size < sizeof(*data)) {
         return -EBADMSG;
     }
@@ -288,7 +288,7 @@ static int proc_msg_exit(struct vma_hdr *msg_hdr, size_t size)
     return (sizeof(*data));
 }
 
-static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
+static int proc_msg_state(struct xlio_hdr *msg_hdr, size_t size)
 {
     struct xlio_msg_state *data;
     struct store_pid *pid_value;
@@ -375,7 +375,7 @@ static int proc_msg_state(struct vma_hdr *msg_hdr, size_t size)
     return (sizeof(*data));
 }
 
-static int proc_msg_flow(struct vma_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr)
+static int proc_msg_flow(struct xlio_hdr *msg_hdr, size_t size, struct sockaddr_un *peeraddr)
 {
     int rc = 0;
     struct xlio_msg_flow *data;

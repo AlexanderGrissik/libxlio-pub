@@ -78,7 +78,7 @@ protected:
 TEST_F(vmad_flow, ti_1)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
@@ -123,7 +123,7 @@ TEST_F(vmad_flow, ti_1)
 TEST_F(vmad_flow, ti_2)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
@@ -177,7 +177,7 @@ TEST_F(vmad_flow, ti_2)
 TEST_F(vmad_flow, ti_3)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
@@ -239,7 +239,7 @@ TEST_F(vmad_flow, ti_3)
 TEST_F(vmad_flow, ti_4)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
@@ -310,7 +310,7 @@ TEST_F(vmad_flow, ti_4)
 TEST_F(vmad_flow, ti_5)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
@@ -355,7 +355,7 @@ TEST_F(vmad_flow, ti_5)
 TEST_F(vmad_flow, ti_6)
 {
     int rc = 0;
-    struct vma_hdr answer;
+    struct xlio_hdr answer;
 
     rc = vmad_base::msg_init(m_pid);
     ASSERT_LT(0, rc);

@@ -114,7 +114,7 @@ void vmad_base::TearDown()
 int vmad_base::msg_init(pid_t pid)
 {
     int rc = 0;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
     uint8_t *version;
 
     memset(&data, 0, sizeof(data));
@@ -156,7 +156,7 @@ err:
 int vmad_base::msg_exit(pid_t pid)
 {
     int rc = 0;
-    struct vma_msg_exit data;
+    struct xlio_msg_exit data;
 
     memset(&data, 0, sizeof(data));
     data.hdr.code = XLIO_MSG_EXIT;

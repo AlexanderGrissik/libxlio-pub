@@ -68,7 +68,7 @@
 #define XLIO_AGENT_PATH      "/tmp/xlio"
 
 #pragma pack(push, 1)
-struct vma_hdr {
+struct xlio_hdr {
     uint8_t code; /* code of message */
     uint8_t ver; /* format version */
     uint8_t status; /* status (require answer or return code for reply message) */
@@ -76,17 +76,17 @@ struct vma_hdr {
     int32_t pid; /* process id */
 };
 
-struct vma_msg_init {
-    struct vma_hdr hdr;
+struct xlio_msg_init {
+    struct xlio_hdr hdr;
     uint32_t ver;
 };
 
-struct vma_msg_exit {
-    struct vma_hdr hdr;
+struct xlio_msg_exit {
+    struct xlio_hdr hdr;
 };
 
 struct xlio_msg_state {
-    struct vma_hdr hdr;
+    struct xlio_hdr hdr;
     uint32_t fid;
     struct {
         uint16_t family;
@@ -119,7 +119,7 @@ enum {
 typedef enum { XLIO_MSG_FLOW_ADD = 1, XLIO_MSG_FLOW_DEL = 2 } msg_flow_t;
 
 struct xlio_msg_flow {
-    struct vma_hdr hdr;
+    struct xlio_hdr hdr;
     uint8_t type; /* format of tc rule command */
     uint8_t action; /* add, del */
     uint32_t if_id; /* interface index */

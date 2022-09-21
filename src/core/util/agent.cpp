@@ -470,7 +470,7 @@ int agent::send_msg_init(void)
 {
     int rc = 0;
     struct sockaddr_un server_addr;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
 
     if (AGENT_ACTIVE == m_state) {
         return 0;
@@ -539,7 +539,7 @@ err:
 int agent::send_msg_exit(void)
 {
     int rc = 0;
-    struct vma_msg_exit data;
+    struct xlio_msg_exit data;
 
     if (AGENT_ACTIVE != m_state) {
         return -ENODEV;

@@ -62,7 +62,7 @@ protected:
     void TearDown() { vmad_base::TearDown(); }
 
 protected:
-    struct vma_msg_init m_data;
+    struct xlio_msg_init m_data;
     pid_t m_pid;
 };
 
@@ -75,7 +75,7 @@ protected:
 TEST_F(vmad_init, ti_1)
 {
     int rc = 0;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data.hdr) - 1, 0);
@@ -97,7 +97,7 @@ TEST_F(vmad_init, ti_1)
 TEST_F(vmad_init, ti_2)
 {
     int rc = 0;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data) - 1, 0);
@@ -119,7 +119,7 @@ TEST_F(vmad_init, ti_2)
 TEST_F(vmad_init, ti_3)
 {
     int rc = 0;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
 
     errno = 0;
     m_data.hdr.ver = 0xFF;
@@ -142,7 +142,7 @@ TEST_F(vmad_init, ti_3)
 TEST_F(vmad_init, ti_4)
 {
     int rc = 0;
-    struct vma_msg_init data;
+    struct xlio_msg_init data;
 
     errno = 0;
     rc = send(m_sock_fd, &m_data, sizeof(m_data), 0);
@@ -167,7 +167,7 @@ TEST_F(vmad_init, ti_4)
 TEST_F(vmad_init, ti_5)
 {
     int rc = 0;
-    struct vma_msg_exit data;
+    struct xlio_msg_exit data;
 
     memset(&data, 0, sizeof(data));
     data.hdr.code = XLIO_MSG_EXIT;

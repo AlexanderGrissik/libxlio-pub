@@ -44,7 +44,7 @@
 #include "core/util/utils.h"
 #include "core/util/vtypes.h"
 
-// This include should be after vma includes
+// This include should be after xlio includes
 #include <netinet/tcp.h>
 #include <netinet/icmp6.h>
 
