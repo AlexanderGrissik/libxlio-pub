@@ -63,7 +63,7 @@ protected:
 /**
  * @test xliod_state.ti_1
  * @brief
- *    Send valid VMA_MSG_STATE
+ *    Send valid XLIO_MSG_STATE
  * @details
  */
 TEST_F(xliod_state, ti_1)

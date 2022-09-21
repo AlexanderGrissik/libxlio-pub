@@ -1279,7 +1279,7 @@ inline void qp_mgr_eth_mlx5::tls_post_progress_params_wqe(xlio_ti *ti, uint32_t 
 #define PROGRESS_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
 
     cseg->opmod_idx_opcode =
-        htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_SET_PSV | (opmod << 24));
+        htobe32(((m_sq_wqe_counter & 0xffff) << 8) | XLIO_MLX5_OPCODE_SET_PSV | (opmod << 24));
     cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
     /* Request completion for TLS RX offload to create TLS rule ASAP. */
     cseg->fm_ce_se =
@@ -1318,7 +1318,7 @@ inline void qp_mgr_eth_mlx5::tls_get_progress_params_wqe(xlio_ti *ti, uint32_t t
 #define PROGRESS_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
 
     cseg->opmod_idx_opcode =
-        htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_GET_PSV | (opmod << 24));
+        htobe32(((m_sq_wqe_counter & 0xffff) << 8) | XLIO_MLX5_OPCODE_GET_PSV | (opmod << 24));
     cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | PROGRESS_PARAMS_DS_CNT);
     cseg->fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
 
@@ -1354,7 +1354,7 @@ void qp_mgr_eth_mlx5::tls_tx_post_dump_wqe(xlio_tis *tis, void *addr, uint32_t l
 
     memset(wqe, 0, sizeof(*wqe));
 
-    cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | VMA_MLX5_OPCODE_DUMP);
+    cseg->opmod_idx_opcode = htobe32(((m_sq_wqe_counter & 0xffff) << 8) | XLIO_MLX5_OPCODE_DUMP);
     cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | ds_cnt);
     cseg->fm_ce_se = first ? MLX5_FENCE_MODE_INITIATOR_SMALL : 0;
     cseg->tis_tir_num = htobe32(tisn << 8);

@@ -136,7 +136,7 @@ TEST_F(xliod_init, ti_3)
 /**
  * @test xliod_init.ti_4
  * @brief
- *    Send valid VMA_MSG_INIT
+ *    Send valid XLIO_MSG_INIT
  * @details
  */
 TEST_F(xliod_init, ti_4)
@@ -161,7 +161,7 @@ TEST_F(xliod_init, ti_4)
 /**
  * @test xliod_init.ti_5
  * @brief
- *    Send valid VMA_MSG_EXIT
+ *    Send valid XLIO_MSG_EXIT
  * @details
  */
 TEST_F(xliod_init, ti_5)

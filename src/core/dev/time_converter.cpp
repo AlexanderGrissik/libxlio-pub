@@ -51,8 +51,8 @@
 
 #define IB_CTX_TC_DEVIATION_THRESHOLD 10
 
-#define VMA_QUERY_DEVICE_SUPPORTED (1 << 0)
-#define VMA_QUERY_VALUES_SUPPORTED (1 << 1)
+#define XLIO_QUERY_DEVICE_SUPPORTED (1 << 0)
+#define XLIO_QUERY_VALUES_SUPPORTED (1 << 1)
 
 uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
 {
@@ -70,7 +70,7 @@ uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
             "(xlio_ibv_query_device() return value=%d ) (ibv context %p) (errno=%d %m)\n",
             rval, ctx, errno);
     } else {
-        dev_status |= VMA_QUERY_DEVICE_SUPPORTED;
+        dev_status |= XLIO_QUERY_DEVICE_SUPPORTED;
     }
 
     xlio_ts_values queried_values;
@@ -83,7 +83,7 @@ uint32_t time_converter::get_single_converter_status(struct ibv_context *ctx)
             "(errno=%d %m)\n",
             rval, ctx, errno);
     } else {
-        dev_status |= VMA_QUERY_VALUES_SUPPORTED;
+        dev_status |= XLIO_QUERY_VALUES_SUPPORTED;
     }
 #else
     NOT_IN_USE(ctx);
@@ -105,7 +105,7 @@ ts_conversion_mode_t time_converter::update_device_converters_status(net_device_
 #ifdef DEFINED_IBV_CQ_TIMESTAMP
 
     if (safe_mce_sys().hw_ts_conversion_mode != TS_CONVERSION_MODE_DISABLE) {
-        uint32_t devs_status = VMA_QUERY_DEVICE_SUPPORTED | VMA_QUERY_VALUES_SUPPORTED;
+        uint32_t devs_status = XLIO_QUERY_DEVICE_SUPPORTED | XLIO_QUERY_VALUES_SUPPORTED;
 
         /* Get common time conversion mode for all devices */
         for (net_device_map_index_t::iterator dev_iter = net_devices.begin();
@@ -122,28 +122,28 @@ ts_conversion_mode_t time_converter::update_device_converters_status(net_device_
 
         switch (safe_mce_sys().hw_ts_conversion_mode) {
         case TS_CONVERSION_MODE_RAW:
-            ts_conversion_mode = devs_status & VMA_QUERY_DEVICE_SUPPORTED
+            ts_conversion_mode = devs_status & XLIO_QUERY_DEVICE_SUPPORTED
                 ? TS_CONVERSION_MODE_RAW
                 : TS_CONVERSION_MODE_DISABLE;
             break;
         case TS_CONVERSION_MODE_BEST_POSSIBLE:
-            if (devs_status == (VMA_QUERY_DEVICE_SUPPORTED | VMA_QUERY_VALUES_SUPPORTED)) {
+            if (devs_status == (XLIO_QUERY_DEVICE_SUPPORTED | XLIO_QUERY_VALUES_SUPPORTED)) {
                 ts_conversion_mode = TS_CONVERSION_MODE_SYNC;
             } else {
-                ts_conversion_mode = devs_status & VMA_QUERY_DEVICE_SUPPORTED
+                ts_conversion_mode = devs_status & XLIO_QUERY_DEVICE_SUPPORTED
                     ? TS_CONVERSION_MODE_RAW
                     : TS_CONVERSION_MODE_DISABLE;
             }
             break;
         case TS_CONVERSION_MODE_SYNC:
             ts_conversion_mode =
-                devs_status == (VMA_QUERY_DEVICE_SUPPORTED | VMA_QUERY_VALUES_SUPPORTED)
+                devs_status == (XLIO_QUERY_DEVICE_SUPPORTED | XLIO_QUERY_VALUES_SUPPORTED)
                 ? TS_CONVERSION_MODE_SYNC
                 : TS_CONVERSION_MODE_DISABLE;
             break;
         case TS_CONVERSION_MODE_PTP:
             ts_conversion_mode =
-                devs_status == (VMA_QUERY_DEVICE_SUPPORTED | VMA_QUERY_VALUES_SUPPORTED)
+                devs_status == (XLIO_QUERY_DEVICE_SUPPORTED | XLIO_QUERY_VALUES_SUPPORTED)
                 ? TS_CONVERSION_MODE_PTP
                 : TS_CONVERSION_MODE_DISABLE;
             break;

@@ -324,7 +324,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     }
     m_tx_consecutive_eagain_count = 0;
 
-    // Disable Nagle algorithm if VMA_TCP_NODELAY flag was set.
+    // Disable Nagle algorithm if XLIO_TCP_NODELAY flag was set.
     if (safe_mce_sys().tcp_nodelay) {
         try {
             int tcp_nodelay = 1;
@@ -334,7 +334,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         }
     }
 
-    // Enable Quickack if VMA_TCP_QUICKACK flag was set.
+    // Enable Quickack if XLIO_TCP_QUICKACK flag was set.
     if (safe_mce_sys().tcp_quickack) {
         try {
             int tcp_quickack = 1;
@@ -907,7 +907,7 @@ retry_is_ready:
     block_this_run = BLOCK_THIS_RUN(m_b_blocking, __flags);
 
     if (unlikely(is_dummy)) {
-        apiflags |= VMA_TX_PACKET_DUMMY;
+        apiflags |= XLIO_TX_PACKET_DUMMY;
         if (!check_dummy_send_conditions(__flags, p_iov, sz_iov)) {
             unlock_tcp_con();
             errno = EAGAIN;
@@ -922,7 +922,7 @@ retry_is_ready:
          * to be read. Pointer to the file descriptor is passed via
          * tx_arg.priv.
          */
-        apiflags |= VMA_TX_FILE;
+        apiflags |= XLIO_TX_FILE;
     }
 
     no_partial_write = ((!block_this_run) && (tx_arg.xlio_flags & TX_FLAG_NO_PARTIAL_WRITE));
@@ -958,7 +958,7 @@ retry_is_ready:
      * - sendfile() MSG_SEROCOPY flag set internally with opcode TX_FILE
      */
     if ((__flags & MSG_ZEROCOPY) && ((m_b_zc) || (tx_arg.opcode == TX_FILE))) {
-        apiflags |= VMA_TX_PACKET_ZEROCOPY;
+        apiflags |= XLIO_TX_PACKET_ZEROCOPY;
         is_send_zerocopy = tx_arg.opcode != TX_FILE;
         pd_key_array =
             (tx_arg.priv.attr == PBUF_DESC_MKEY ? (struct xlio_pd_key *)tx_arg.priv.map : NULL);
@@ -971,7 +971,7 @@ retry_is_ready:
         }
 
         pos = 0;
-        if ((tx_arg.opcode == TX_FILE) && !(apiflags & VMA_TX_PACKET_ZEROCOPY)) {
+        if ((tx_arg.opcode == TX_FILE) && !(apiflags & XLIO_TX_PACKET_ZEROCOPY)) {
             file_offset = *(__off64_t *)p_iov[i].iov_base;
             tx_ptr = &file_offset;
         } else {
@@ -1100,7 +1100,7 @@ retry_is_ready:
 
                 goto retry_write;
             }
-            if (tx_arg.opcode == TX_FILE && !(apiflags & VMA_TX_PACKET_ZEROCOPY)) {
+            if (tx_arg.opcode == TX_FILE && !(apiflags & XLIO_TX_PACKET_ZEROCOPY)) {
                 file_offset += tx_size;
             } else {
                 tx_ptr = (void *)((char *)tx_ptr + tx_size);
@@ -1264,7 +1264,7 @@ send_iov:
         p_si_tcp->m_p_socket_stats->counters.n_tx_migrations++;
     }
 
-    if (rc && is_set(attr.flags, VMA_TX_PACKET_REXMIT)) {
+    if (rc && is_set(attr.flags, XLIO_TX_PACKET_REXMIT)) {
         p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
     }
 
@@ -1307,7 +1307,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
     }
 
     attr = (xlio_wr_tx_packet_attr)flags;
-    if (is_set(attr, VMA_TX_PACKET_REXMIT)) {
+    if (is_set(attr, XLIO_TX_PACKET_REXMIT)) {
         p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
     }
 
@@ -2607,7 +2607,7 @@ int sockinfo_tcp::prepareListen()
         m_sock_state = TCP_SOCK_ACCEPT_READY;
     } else {
 
-        // if (target_family == USE_VMA || target_family == USE_ULP || arget_family == USE_DEFAULT)
+        // if (target_family == USE_XLIO || target_family == USE_ULP || arget_family == USE_DEFAULT)
         setPassthrough(false);
         m_sock_state = TCP_SOCK_LISTEN_READY;
     }
@@ -2652,7 +2652,7 @@ int sockinfo_tcp::listen(int backlog)
         return 0;
     }
     if (m_sock_state != TCP_SOCK_LISTEN_READY) {
-        // print error so we can better track bugs in VMA)
+        // print error so we can better track bugs in XLIO)
         si_tcp_logerr("socket is in wrong state for listen: %d", m_sock_state);
         errno = EINVAL;
         unlock_tcp_con();
@@ -3024,7 +3024,8 @@ err_t sockinfo_tcp::accept_lwip_cb(void *arg, struct tcp_pcb *child_pcb, err_t e
               get_tcp_state(&conn->m_pcb), new_sock->m_fd, get_tcp_state(&new_sock->m_pcb));
 
     /* Configure Nagle algorithm settings as they were set at the parent socket.
-       This can happened if VMA_TCP_NAGLE flag was set, but we disabled it for the parent socket. */
+       This can happened if XLIO_TCP_NAGLE flag was set, but we disabled it for the parent socket.
+     */
     if ((conn_nagle_disabled = tcp_nagle_disabled(&conn->m_pcb)) !=
         tcp_nagle_disabled(&new_sock->m_pcb)) {
         conn_nagle_disabled ? tcp_nagle_disable(&new_sock->m_pcb)
@@ -3853,7 +3854,7 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
     if ((ret = sockinfo::setsockopt(__level, __optname, __optval, __optlen)) !=
         SOCKOPT_PASS_TO_OS) {
         if (!is_incoming() &&
-            (ret == SOCKOPT_INTERNAL_VMA_SUPPORT || ret == SOCKOPT_HANDLE_BY_OS) &&
+            (ret == SOCKOPT_INTERNAL_XLIO_SUPPORT || ret == SOCKOPT_HANDLE_BY_OS) &&
             m_sock_state <= TCP_SOCK_ACCEPT_READY && __optval != NULL &&
             is_inherited_option(__level, __optname)) {
             socket_option_t *opt_curr = new socket_option_t(__level, __optname, __optval, __optlen);

@@ -221,7 +221,7 @@ out:
          * and for RDY state without a TIR incomming messages never reach RQ (PRM 8.14.1).
          */
         if (likely(!((mlx5_qp->qp->qp_type == IBV_QPT_RAW_PACKET ||
-                      mlx5_qp->flags & VMA_IB_MLX5_QP_FLAGS_USE_UNDERLAY) &&
+                      mlx5_qp->flags & XLIO_IB_MLX5_QP_FLAGS_USE_UNDERLAY) &&
                      mlx5_qp->qp->state < IBV_QPS_RTR))) {
             *mlx5_qp->rq.dbrec = htonl(mlx5_qp->rq.head & 0xffff);
         }

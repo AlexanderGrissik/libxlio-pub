@@ -613,7 +613,7 @@ void net_device_table_mgr::del_link_event(const netlink_link_info *info)
     /* This flow is actual when interface is removed quickly
      * w/o moving it in DOWN state.
      * Usually interface is removed during sequence of RTM_NEWLINK events
-     * that puts it in DOWN state. In this case VMA has more time to release
+     * that puts it in DOWN state. In this case XLIO has more time to release
      * resources correctly.
      */
     if (info->flags & IFF_SLAVE) {

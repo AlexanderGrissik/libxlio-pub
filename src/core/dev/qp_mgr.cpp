@@ -596,7 +596,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
 {
     mem_buf_desc_t *p_mem_buf_desc = (mem_buf_desc_t *)p_send_wqe->wr_id;
     /* Control tx completions:
-     * - VMA_TX_WRE_BATCHING - The number of Tx Work Request Elements used
+     * - XLIO_TX_WRE_BATCHING - The number of Tx Work Request Elements used
      *   until a completion signal is requested.
      * - ZCOPY packets should notify application as soon as possible to
      *   confirm one that user buffers are free to reuse. So force completion

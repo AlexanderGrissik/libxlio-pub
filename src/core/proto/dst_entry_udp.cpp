@@ -130,10 +130,10 @@ bool dst_entry_udp::fast_send_fragmented_ipv6(mem_buf_desc_t *p_mem_buf_desc, co
             // temporary sum of the entire payload
             // final checksum is calculated by attr XLIO_TX_PACKET_L4_CSUM
             p_udp_hdr->check = calc_sum_of_payload(p_iov, sz_iov);
-            attr = (xlio_wr_tx_packet_attr)(attr | XLIO_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM);
+            attr = (xlio_wr_tx_packet_attr)(attr | XLIO_TX_PACKET_L4_CSUM | XLIO_TX_SW_L4_CSUM);
         } else {
             get_ipv6_hdrs_frag_ext_ptr(p_pkt, p_ip_hdr, p_frag_h);
-            attr = (xlio_wr_tx_packet_attr)(attr & ~(XLIO_TX_PACKET_L4_CSUM | VMA_TX_SW_L4_CSUM));
+            attr = (xlio_wr_tx_packet_attr)(attr & ~(XLIO_TX_PACKET_L4_CSUM | XLIO_TX_SW_L4_CSUM));
         }
 
         memcpy(p_frag_h, &frag_h, sizeof(ip6_frag));
@@ -202,7 +202,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
                                                        ssize_t sz_data_payload)
 {
     mem_buf_desc_t *p_mem_buf_desc;
-    bool b_blocked = is_set(attr, VMA_TX_PACKET_BLOCK);
+    bool b_blocked = is_set(attr, XLIO_TX_PACKET_BLOCK);
 
     // Get a bunch of tx buf descriptor and data buffers
     if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
@@ -233,7 +233,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec *p_iov, const
     // Check if inline is possible
     // Skip inlining in case of L4 SW checksum because headers and data are not contiguous in memory
     if (sz_iov == 1 && ((sz_data_payload + m_header->m_total_hdr_len) < m_max_inline) &&
-        !is_set(attr, VMA_TX_SW_L4_CSUM)) {
+        !is_set(attr, XLIO_TX_SW_L4_CSUM)) {
         m_p_send_wqe = &m_inline_send_wqe;
 
         m_header->get_udp_hdr()->len = htons((uint16_t)sz_udp_payload);
@@ -427,7 +427,7 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec *p_iov, const ssize_t sz
                                             xlio_wr_tx_packet_attr attr, size_t sz_udp_payload,
                                             ssize_t sz_data_payload)
 {
-    bool b_blocked = is_set(attr, VMA_TX_PACKET_BLOCK);
+    bool b_blocked = is_set(attr, XLIO_TX_PACKET_BLOCK);
     bool is_ipv6 = (get_sa_family() == AF_INET6);
     uint16_t max_payload_size_per_packet = m_max_ip_payload_size - (is_ipv6 ? FRAG_EXT_HLEN : 0);
 
@@ -480,7 +480,7 @@ ssize_t dst_entry_udp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
     /* Suppress flags that should not be used anymore
      * to avoid conflicts with XLIO_TX_PACKET_L3_CSUM and XLIO_TX_PACKET_L4_CSUM
      */
-    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
+    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(XLIO_TX_PACKET_ZEROCOPY | XLIO_TX_FILE));
 
     // Calc udp payload size
     size_t sz_udp_payload = attr.length + sizeof(struct udphdr);

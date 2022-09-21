@@ -67,7 +67,7 @@ void xliod_base::SetUp()
     m_pid_fd = open(m_pid_file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP);
     ASSERT_FALSE(m_pid_fd < 0);
 
-    /* Create UNIX UDP socket to receive data from VMA processes */
+    /* Create UNIX UDP socket to receive data from XLIO processes */
     memset(&sock_addr, 0, sizeof(sock_addr));
     sock_addr.sun_family = AF_UNIX;
     strncpy(sock_addr.sun_path, m_sock_file, sizeof(sock_addr.sun_path) - 1);

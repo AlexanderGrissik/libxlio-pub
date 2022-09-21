@@ -222,7 +222,7 @@ public:
     virtual int get_fd() const { return m_fd; };
 
     // true if fd must be skipped from OS select()
-    // If m_n_sysvar_select_poll_os_ratio == 0, it means that user configured VMA not to poll os
+    // If m_n_sysvar_select_poll_os_ratio == 0, it means that user configured XLIO not to poll os
     // (i.e. TRUE...)
     virtual bool skip_os_select() { return (!m_n_sysvar_select_poll_os_ratio); };
 

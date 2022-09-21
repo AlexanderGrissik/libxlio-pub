@@ -186,7 +186,7 @@ public:
     void offloading_rule_change_thread(bool offloaded, pthread_t tid);
 
     /**
-     * Dump fd statistics using VMA logger.
+     * Dump fd statistics using XLIO logger.
      */
     void statistics_print(int fd, vlog_levels_t log_level);
 

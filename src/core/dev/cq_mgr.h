@@ -230,7 +230,7 @@ protected:
 
     /* This fields are needed to track internal memory buffers
      * represented as struct xlio_buff_t
-     * from user application by special VMA extended API
+     * from user application by special XLIO extended API
      */
     mem_buf_desc_t *m_rx_buffs_rdy_for_free_head;
     mem_buf_desc_t *m_rx_buffs_rdy_for_free_tail;

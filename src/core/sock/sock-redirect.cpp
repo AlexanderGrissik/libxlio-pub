@@ -962,10 +962,10 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
 
    This function is a cancellation point and therefore not marked with
    __THROW.
-   NOTE: VMA throw will never occur during handling of any command.
-   VMA will only throw in case VMA doesn't know to handle a command and the
-   user requested explicitly that VMA will throw an exception in such a case
-   by setting VMA_EXCEPTION_HANDLING accordingly (see README.txt)
+   NOTE: XLIO throw will never occur during handling of any command.
+   XLIO will only throw in case XLIO doesn't know to handle a command and the
+   user requested explicitly that XLIO will throw an exception in such a case
+   by setting XLIO_EXCEPTION_HANDLING accordingly (see README.txt)
    */
 extern "C" EXPORT_SYMBOL int fcntl(int __fd, int __cmd, ...)
 {
@@ -1008,10 +1008,10 @@ extern "C" EXPORT_SYMBOL int fcntl(int __fd, int __cmd, ...)
 
    This function is a cancellation point and therefore not marked with
    __THROW.
-   NOTE: VMA throw will never occur during handling of any command.
-   VMA will only throw in case VMA doesn't know to handle a command and the
-   user requested explicitly that VMA will throw an exception in such a case
-   by setting VMA_EXCEPTION_HANDLING accordingly (see README.txt)
+   NOTE: XLIO throw will never occur during handling of any command.
+   XLIO will only throw in case XLIO doesn't know to handle a command and the
+   user requested explicitly that XLIO will throw an exception in such a case
+   by setting XLIO_EXCEPTION_HANDLING accordingly (see README.txt)
    */
 
 extern "C" EXPORT_SYMBOL int fcntl64(int __fd, int __cmd, ...)
@@ -2362,7 +2362,7 @@ inline int epoll_wait_helper(int __epfd, struct epoll_event *__events, int __max
 
         int rc = epcall.get_current_events(); // returns ready nfds
         if (rc <= 0) {
-            // if no ready nfds available then check all lower level queues (VMA ring's and OS
+            // if no ready nfds available then check all lower level queues (XLIO ring's and OS
             // queues)
             epcall.init_offloaded_fds();
             rc = epcall.call();
@@ -2522,7 +2522,7 @@ extern "C" EXPORT_SYMBOL int dup(int __fd)
 extern "C" EXPORT_SYMBOL int dup2(int __fd, int __fd2)
 {
     if (safe_mce_sys().close_on_dup2 && __fd != __fd2) {
-        srdr_logdbg("oldfd=%d, newfd=%d. Closing %d in VMA.", __fd, __fd2, __fd2);
+        srdr_logdbg("oldfd=%d, newfd=%d. Closing %d in XLIO.", __fd, __fd2, __fd2);
         handle_close(__fd2);
     }
 

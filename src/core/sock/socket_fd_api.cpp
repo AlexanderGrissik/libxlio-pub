@@ -311,7 +311,7 @@ int socket_fd_api::add_epoll_context(epfd_info *epfd)
         m_econtext = epfd;
         return 0;
     } else {
-        // Currently VMA does not support more then 1 epfd listed
+        // Currently XLIO does not support more then 1 epfd listed
         errno = (m_econtext == epfd) ? EEXIST : ENOMEM;
         return -1;
     }

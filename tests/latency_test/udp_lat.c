@@ -2262,7 +2262,7 @@ int main(int argc, char *argv[])
 		if (xlio_api == NULL)
 			log_err("Extra API not found - working with default socket APIs");
 		else
-			log_msg("Extra API found - using VMA's receive zero copy and packet filter APIs");
+			log_msg("Extra API found - using XLIO's receive zero copy and packet filter APIs");
 
 		xlio_dgram_desc_size = sizeof(struct xlio_recvfrom_zcopy_packets_t) + sizeof(struct xlio_recvfrom_zcopy_packet_t) + sizeof(struct iovec) * 16;
 #else

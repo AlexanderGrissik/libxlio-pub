@@ -299,7 +299,7 @@ TEST_F(xlio_send_zc, ti_1)
 /**
  * @test xlio_send_zc.ti_2
  * @brief
- *    Wrong parameter sendmsg(SOL_VMA_PD)
+ *    Wrong parameter sendmsg(SOL_XLIO_PD)
  * @details
  */
 TEST_F(xlio_send_zc, ti_2)

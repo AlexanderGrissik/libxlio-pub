@@ -1306,7 +1306,7 @@ int neigh_entry::priv_enter_ready()
 
     int state = 0;
     // Need to send ARP in case neigh state is not REACHABLE and this is not MC neigh
-    // This is the case when VMA was started with neigh in STALE state and
+    // This is the case when XLIO was started with neigh in STALE state and
     // rdma_adress_resolve() in this case will not initiate ARP
     if (m_type == UC && !m_is_loopback) {
         if (priv_get_neigh_state(state) && !priv_is_reachable(state)) {

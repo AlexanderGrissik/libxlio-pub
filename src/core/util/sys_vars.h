@@ -212,10 +212,10 @@ static inline const char *internal_thread_tcp_timer_handling_str(
 }
 
 namespace xlio_spec {
-// convert str to vVMA_spec_t; upon error - returns the given 'def_value'
+// convert str to vXLIO_spec_t; upon error - returns the given 'def_value'
 xlio_spec_t from_str(const char *str, xlio_spec_t def_value = MCE_SPEC_NONE);
 
-// convert int to vVMA_spec_t; upon error - returns the given 'def_value'
+// convert int to vXLIO_spec_t; upon error - returns the given 'def_value'
 xlio_spec_t from_int(const int int_spec, xlio_spec_t def_value = MCE_SPEC_NONE);
 
 const char *to_str(xlio_spec_t level);
@@ -796,7 +796,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_WAIT_AFTER_JOIN_MSEC           (0)
 #define MCE_DEFAULT_THREAD_MODE                    (THREAD_MODE_MULTI)
 #define MCE_DEFAULT_BUFFER_BATCHING_MODE           (BUFFER_BATCHING_WITH_RECLAIM)
-#ifndef VMA_IBV_ACCESS_ALLOCATE_MR
+#ifndef XLIO_IBV_ACCESS_ALLOCATE_MR
 #define MCE_DEFAULT_MEM_ALLOC_TYPE (ALLOC_TYPE_HUGEPAGES)
 #else
 #define MCE_DEFAULT_MEM_ALLOC_TYPE (ALLOC_TYPE_CONTIG)

@@ -88,12 +88,12 @@
 #include <math.h>
 
 /*
- * once we add support for ECN and ABC rfc in VMA/LWIP, need to add support in the algorithm.
+ * once we add support for ECN and ABC rfc in XLIO/LWIP, need to add support in the algorithm.
  */
 
 typedef unsigned long long tscval_t;
 
-#define hz 100 // according to VMA internal thread
+#define hz 100 // according to XLIO internal thread
 
 /* Number of bits of precision for fixed point math calcs. */
 #define CUBIC_SHIFT 8

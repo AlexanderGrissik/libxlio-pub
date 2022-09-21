@@ -114,14 +114,14 @@ int main(int argc, char *argv[])
 
 	if (argc != 2) {
 		printf("--> Usage: ./2epoll_1socket <with_xlio>\n");
-		printf("--> With VMA run ./2epoll_1socket 1\n");
+		printf("--> With XLIO run ./2epoll_1socket 1\n");
 		printf("--> With  OS run ./2epoll_1socket 0\n");
 		return EXIT_FAILURE;
 	}
 
 	with_xlio = atoi(argv[1]);
 	if (with_xlio)
-		printf("--> running with VMA\n");
+		printf("--> running with XLIO\n");
 	else
 		printf("--> running with OS\n");
 
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 				goto failure;
 			}
 		} else {
-			printf("--> epoll_ctl didnot return with error, VMA support only 1 epfd for each socket\n", sfd, efd, efd2, errno);
+			printf("--> epoll_ctl didnot return with error, XLIO support only 1 epfd for each socket\n", sfd, efd, efd2, errno);
 			goto failure;
 		}
 	} else {

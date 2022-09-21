@@ -209,7 +209,7 @@ void reset_globals();
 bool handle_close(int fd, bool cleanup = false, bool passthrough = false);
 
 // allow calling our socket(...) implementation safely from within libxlio.so
-// this is critical in case VMA was loaded using dlopen and not using LD_PRELOAD
+// this is critical in case XLIO was loaded using dlopen and not using LD_PRELOAD
 // TODO: look for additional such functions/calls
 int socket_internal(int __domain, int __type, int __protocol, bool shadow, bool check_offload);
 

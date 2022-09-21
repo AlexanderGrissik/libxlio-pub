@@ -74,7 +74,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
     tcp_iovec *p_tcp_iov = NULL;
     size_t hdr_alignment_diff = 0;
 
-    bool is_zerocopy = is_set(attr.flags, VMA_TX_PACKET_ZEROCOPY);
+    bool is_zerocopy = is_set(attr.flags, XLIO_TX_PACKET_ZEROCOPY);
 
     /* The header is aligned for fast copy but we need to maintain this diff
      * in order to get the real header pointer easily
@@ -86,7 +86,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
     /* Suppress flags that should not be used anymore
      * to avoid conflicts with XLIO_TX_PACKET_L3_CSUM and XLIO_TX_PACKET_L4_CSUM
      */
-    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(VMA_TX_PACKET_ZEROCOPY | VMA_TX_FILE));
+    attr.flags = (xlio_wr_tx_packet_attr)(attr.flags & ~(XLIO_TX_PACKET_ZEROCOPY | XLIO_TX_FILE));
 
     /* ZC uses multiple IOVs, only the mlx5 TSO path supports that */
     /* for small (< mss) ZC sends, must turn off CX5.SXP.disable_lso_on_only_packets
@@ -95,7 +95,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
      * When set, single packet LSO WQEs are not treated as LSO. This prevents wrong handling of
      * packets with padding by SW */
     if (is_zerocopy) {
-        attr.flags = (xlio_wr_tx_packet_attr)(attr.flags | VMA_TX_PACKET_TSO);
+        attr.flags = (xlio_wr_tx_packet_attr)(attr.flags | XLIO_TX_PACKET_TSO);
     }
 
     attr.flags =
@@ -112,9 +112,9 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
      *    Use intermediate buffers for data send
      */
     if (likely(m_p_ring->is_active_member(p_tcp_iov->p_desc->p_desc_owner, m_id) &&
-               (is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_TSO)) ||
+               (is_set(attr.flags, (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_TSO)) ||
                 (sz_iov == 1 &&
-                 !is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_REXMIT)))))) {
+                 !is_set(attr.flags, (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_REXMIT)))))) {
         size_t total_packet_len = 0;
         size_t tcp_hdr_len;
         xlio_ibv_send_wr send_wqe;
@@ -154,7 +154,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
             m_p_send_wqe = &m_inline_send_wqe;
             p_tcp_iov[0].iovec.iov_base = (uint8_t *)p_pkt + hdr_alignment_diff;
             p_tcp_iov[0].iovec.iov_len = total_packet_len;
-        } else if (is_set(attr.flags, (xlio_wr_tx_packet_attr)(VMA_TX_PACKET_TSO))) {
+        } else if (is_set(attr.flags, (xlio_wr_tx_packet_attr)(XLIO_TX_PACKET_TSO))) {
             /* update send work request. do not expect noninlined scenario */
             send_wqe_h.init_not_inline_wqe(send_wqe, m_sge, sz_iov);
             if (attr.mss < (attr.length - tcp_hdr_len)) {
@@ -197,7 +197,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
             pbuf_type type = (pbuf_type)p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.type;
             mem_buf_desc_t *p_mem_buf_desc =
                 get_buffer(type, &(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.desc),
-                           is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+                           is_set(attr.flags, XLIO_TX_PACKET_BLOCK));
             if (!p_mem_buf_desc) {
                 return -1;
             }
@@ -234,7 +234,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
                     }
                 } else {
                     /* Do not check desc.attr for specific type because
-                     * PBUF_DESC_FD - is not possible for VMA_TX_PACKET_ZEROCOPY
+                     * PBUF_DESC_FD - is not possible for XLIO_TX_PACKET_ZEROCOPY
                      * PBUF_DESC_NONE - map should be initialized to NULL in
                      * dst_entry_tcp::get_buffer() PBUF_DESC_MAP - map should point on mapping
                      * object
@@ -254,7 +254,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
         mem_buf_desc_t *p_mem_buf_desc;
         size_t total_packet_len = 0;
 
-        p_mem_buf_desc = get_buffer(PBUF_RAM, NULL, is_set(attr.flags, VMA_TX_PACKET_BLOCK));
+        p_mem_buf_desc = get_buffer(PBUF_RAM, NULL, is_set(attr.flags, XLIO_TX_PACKET_BLOCK));
         if (p_mem_buf_desc == NULL) {
             ret = -1;
             goto out;
@@ -298,11 +298,11 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
 
     if (unlikely(m_p_tx_mem_buf_desc_list == NULL)) {
         m_p_tx_mem_buf_desc_list = m_p_ring->mem_buf_tx_get(
-            m_id, is_set(attr.flags, VMA_TX_PACKET_BLOCK), PBUF_RAM, m_n_sysvar_tx_bufs_batch_tcp);
+            m_id, is_set(attr.flags, XLIO_TX_PACKET_BLOCK), PBUF_RAM, m_n_sysvar_tx_bufs_batch_tcp);
     }
 
 out:
-    if (unlikely(is_set(attr.flags, VMA_TX_PACKET_REXMIT))) {
+    if (unlikely(is_set(attr.flags, XLIO_TX_PACKET_REXMIT))) {
         m_p_ring->inc_tx_retransmissions_stats(m_id);
     }
 

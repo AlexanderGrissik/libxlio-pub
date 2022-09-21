@@ -243,7 +243,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::poll(enum buff_status_e &status, mem_buf_desc_
 
 #ifdef RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL
     RDTSC_TAKE_END(RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL);
-#endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
+#endif // RDTSC_MEASURE_RX_TCP_IDLE_POLLL
 
 #if defined(RDTSC_MEASURE_RX_VERBS_READY_POLL) || defined(RDTSC_MEASURE_RX_VERBS_IDLE_POLL)
     RDTSC_TAKE_START_RX_VERBS_POLL(RDTSC_FLOW_RX_VERBS_READY_POLL, RDTSC_FLOW_RX_VERBS_IDLE_POLL);
@@ -491,7 +491,7 @@ int cq_mgr_mlx5_strq::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id
     // drain_and_proccess() is mainly called in following cases as
     // Internal thread:
     //   Frequency of real polling can be controlled by
-    //   VMA_PROGRESS_ENGINE_INTERVAL and VMA_PROGRESS_ENGINE_WCE_MAX.
+    //   PROGRESS_ENGINE_INTERVAL and PROGRESS_ENGINE_WCE_MAX.
     // Cleanup:
     //   QP down logic to release rx buffers should force polling to do this.
     //   Not null argument indicates one.

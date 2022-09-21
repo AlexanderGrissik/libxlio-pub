@@ -139,8 +139,8 @@ void set_fd_block_mode(int fd, bool block);
 bool compare_double(double a, double b);
 
 /**
- * Run a system command while bypassing LD_PRELOADed with VMA
- * @param cmd_line to be exceuted wiout VMA in process space
+ * Run a system command while bypassing LD_PRELOADed with XLIO
+ * @param cmd_line to be exceuted wiout XLIO in process space
  * @param return_str is the output of the system call
  */
 int run_and_retreive_system_command(const char *cmd_line, char *return_str, int return_str_len);
@@ -517,7 +517,7 @@ public:
 
 /**
  * @class xlio_exception
- * NOTE: ALL exceptions that can be caught by VMA should be derived of this class
+ * NOTE: ALL exceptions that can be caught by XLIO should be derived of this class
  */
 class xlio_exception : public xlio_error {
 public:

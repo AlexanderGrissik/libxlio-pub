@@ -318,7 +318,7 @@ dpcp::tir *qp_mgr_eth_mlx5_dpcp::create_tir(bool is_tls /*=false*/)
 
     if (m_p_ring->m_lro.cap && m_p_ring->m_lro.max_payload_sz) {
         tir_attr.flags |= dpcp::TIR_ATTR_LRO;
-        tir_attr.lro.timeout_period_usecs = VMA_MLX5_PARAMS_LRO_TIMEOUT;
+        tir_attr.lro.timeout_period_usecs = XLIO_MLX5_PARAMS_LRO_TIMEOUT;
         tir_attr.lro.enable_mask = 3; // Bitmask for IPv4 and IPv6 support
         tir_attr.lro.max_msg_sz = m_p_ring->m_lro.max_payload_sz >> 8;
     }

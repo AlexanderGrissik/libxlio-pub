@@ -178,7 +178,7 @@ TEST_F(tcp_send, null_iov_elements)
                     rcs = sendmsg(fd, &msg, 0);
 
                     // Kernel checks access for every iov memory address and in this case returns
-                    // errno=14. VMA can handle this situation and just igonre this element and
+                    // errno=14. XLIO can handle this situation and just igonre this element and
                     // saving CPU cycles.
                     vec[1].iov_len = 1000U;
                     rcs = sendmsg(fd, &msg, 0);

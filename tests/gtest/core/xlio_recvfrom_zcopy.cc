@@ -54,7 +54,7 @@ protected:
         tcp_base::SetUp();
 
         SKIP_TRUE((xlio_api->cap_mask & xlio_extra_api_cap) == xlio_extra_api_cap,
-                  "This test requires VMA capabilities as XLIO_EXTRA_API_RECVFROM_ZCOPY | "
+                  "This test requires XLIO capabilities as XLIO_EXTRA_API_RECVFROM_ZCOPY | "
                   "XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS");
 
         m_fd = -1;

@@ -291,7 +291,7 @@ bool dst_entry::resolve_net_dev(bool is_connect)
         return ret_val;
     }
 
-    // When VMA will support routing with OIF, we need to check changing in outgoing interface
+    // When XLIO will support routing with OIF, we need to check changing in outgoing interface
     // Source address changes is not checked since multiple bind is not allowed on the same socket
     if (!m_p_rt_entry) {
         m_route_src_ip = m_bound_ip;
@@ -803,7 +803,7 @@ int dst_entry::get_priority_by_tc_class(uint32_t pcp)
     if (m_p_net_dev_val) {
         return m_p_net_dev_val->get_priority_by_tc_class(pcp);
     }
-    return VMA_DEFAULT_ENGRESS_MAP_PRIO;
+    return DEFAULT_ENGRESS_MAP_PRIO;
 }
 
 bool dst_entry::update_ring_alloc_logic(int fd, lock_base &socket_lock,

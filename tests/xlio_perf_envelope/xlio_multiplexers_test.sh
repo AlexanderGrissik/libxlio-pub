@@ -39,7 +39,7 @@ DURATION=10	#in seconds
 BW=10G
 OUTPUT_FILES_PATH="./"
 INTERFACE="ib0"
-OVER_VMA="yes" #[yes | not]
+OVER_XLIO="yes" #[yes | not]
 UDP_LAT_MSG_SIZE="2"    #Bytes
 MC_GROUP_SIZES=(2 20)
 XLIO_IGMP_ENABLE=0
@@ -88,7 +88,7 @@ function run_udp_lat_using_select_epoll_poll_with_zero_polling
 	update_coalesce_4_udp_lat
 	append_tmp_file_and_delete "$TMP_DIR/$log_file.prep" "$log_file"
         	print_message "===============>UDP_LAT Using Select/Poll/Epoll<==============" "$log_file"
-	if [[ "$OVER_VMA" = yes ]]; then
+	if [[ "$OVER_XLIO" = yes ]]; then
 		xlio_select_poll_info="With XLIO_SELECT_POLL=0"
 		print_message "|----------------------------------|" "$log_file"
 		print_message "|XLIO_SELECT_POLL=0" "$log_file"
@@ -103,7 +103,7 @@ function run_udp_lat_using_select_epoll_poll_with_zero_polling
 
 function run_udp_lat_using_select_epoll_poll_with_full_polling_xlio_only
 {	
-	if [[ "$OVER_VMA" = yes ]]; then
+	if [[ "$OVER_XLIO" = yes ]]; then
 		local xlio_select_poll_old=$XLIO_SELECT_POLL
 		xlio_select_poll_info=""
 		save_coalesce_params
@@ -313,7 +313,7 @@ function update_command_prefix
 {
 	PREFIX=""
 	
-	if [[ "$OVER_VMA" = yes ]] ; then
+	if [[ "$OVER_XLIO" = yes ]] ; then
 	
 		if [[ $XLIO_IGMP_ENABLE -eq 0 ]] ; then
 			PREFIX="$PREFIX XLIO_IGMP=0 "	

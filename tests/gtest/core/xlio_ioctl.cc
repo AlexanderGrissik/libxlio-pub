@@ -49,7 +49,7 @@ protected:
         xlio_base::SetUp();
 
         SKIP_TRUE((xlio_api->cap_mask & xlio_extra_api_cap) == xlio_extra_api_cap,
-                  "This test requires VMA capabilities as XLIO_EXTRA_API_IOCTL");
+                  "This test requires XLIO capabilities as XLIO_EXTRA_API_IOCTL");
     }
     void TearDown() { xlio_base::TearDown(); }
 };

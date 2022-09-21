@@ -107,7 +107,7 @@ enum cc_algo_mod { CC_MOD_LWIP, CC_MOD_CUBIC, CC_MOD_NONE };
 #define CC_RTO_ERR 0x00000004 /* RTO fired in error. */
 #define CC_NDUPACK 0x00000008 /* Threshold of dupack's reached. */
 
-#define CC_SIGPRIVMASK 0xFF000000 /* Mask to check if sig is private. */
+#define CC_SIGPRIXLIOSK 0xFF000000 /* Mask to check if sig is private. */
 
 #define TCP_CA_NAME_MAX 16 /* max congestion control name length */
 

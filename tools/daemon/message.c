@@ -64,7 +64,7 @@ int open_message(void)
     int optval = 1;
     struct sockaddr_un server_addr;
 
-    /* Create UNIX UDP socket to receive data from VMA processes */
+    /* Create UNIX UDP socket to receive data from XLIO processes */
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sun_family = AF_UNIX;
     strncpy(server_addr.sun_path, daemon_cfg.sock_file, sizeof(server_addr.sun_path) - 1);

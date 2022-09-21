@@ -386,7 +386,7 @@ int cq_mgr::poll(xlio_ibv_wc *p_wce, int num_entries, uint64_t *p_cq_poll_sn)
 
 #ifdef RDTSC_MEASURE_RX_XLIO_TCP_IDLE_POLL
     RDTSC_TAKE_END(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL]);
-#endif // RDTSC_MEASURE_RX_VMA_TCP_IDLE_POLL
+#endif // RDTSC_MEASURE_RX_TCP_IDLE_POLLL
     int ret = xlio_ibv_poll_cq(m_p_ibv_cq, num_entries, p_wce);
     if (ret <= 0) {
 #ifdef RDTSC_MEASURE_RX_VERBS_IDLE_POLL
@@ -831,7 +831,7 @@ int cq_mgr::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id /*=NULL*/
     /* drain_and_proccess() is mainly called in following cases as
      * Internal thread:
      *   Frequency of real polling can be controlled by
-     *   VMA_PROGRESS_ENGINE_INTERVAL and VMA_PROGRESS_ENGINE_WCE_MAX.
+     *   XLIO_PROGRESS_ENGINE_INTERVAL and XLIO_PROGRESS_ENGINE_WCE_MAX.
      * Cleanup:
      *   QP down logic to release rx buffers should force polling to do this.
      *   Not null argument indicates one.

@@ -2132,8 +2132,8 @@ ssize_t sockinfo_udp::tx(xlio_tx_call_attr_t &tx_arg)
         }
 
         attr.length = static_cast<size_t>(sz_data_payload);
-        attr.flags = (xlio_wr_tx_packet_attr)((b_blocking * VMA_TX_PACKET_BLOCK) |
-                                              (is_dummy * VMA_TX_PACKET_DUMMY));
+        attr.flags = (xlio_wr_tx_packet_attr)((b_blocking * XLIO_TX_PACKET_BLOCK) |
+                                              (is_dummy * XLIO_TX_PACKET_DUMMY));
         if (likely(p_dst_entry->is_valid())) {
             // All set for fast path packet sending - this is our best performance flow
             ret = p_dst_entry->fast_send(p_iov, sz_iov, attr);

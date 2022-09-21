@@ -145,9 +145,10 @@ extern instr_info g_rdtsc_instr_info_arr[RDTSC_FLOW_MAX];
 #define TAKE_T_TX_END                                                                              \
     TAKE_TIME_2M(TX_END);                                                                          \
     g_inst_cnt++
-#define VMA_TIME_INVALID ((uint32_t)-1)
+#define XLIO_TIME_INVALID ((uint32_t)-1)
 
-#define VMA_TIME_IS_LEGAL(start, end) (((0 == end) || (start > end) || (0 == start)) ? false : true)
+#define XLIO_TIME_IS_LEGAL(start, end)                                                             \
+    (((0 == end) || (start > end) || (0 == start)) ? false : true)
 
 #define INC_POLL_COUNT                                                                             \
     do {                                                                                           \
@@ -166,7 +167,7 @@ extern instr_info g_rdtsc_instr_info_arr[RDTSC_FLOW_MAX];
 #define INC_GO_TO_OS_RX_COUNT g_rx_go_to_os++;
 #define INC_ERR_POLL_COUNT    g_poll_err_counter++;
 
-#define VMA_TIME_DEFAULT_MIN_VAL 100000000
+#define XLIO_TIME_DEFAULT_MIN_VAL 100000000
 
 extern struct timespec g_inst[INST_SIZE][INST_SAMPLS];
 extern uint32_t g_inst_nsec[INST_SIZE][INST_SAMPLS + INST_SUMS];

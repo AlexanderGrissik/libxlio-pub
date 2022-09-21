@@ -43,21 +43,21 @@ typedef enum xlio_wr_tx_packet_attr {
      * this option should be synchronized with lwip/tcp value
      */
     /* retransmit operation. */
-    VMA_TX_PACKET_REXMIT = TCP_WRITE_REXMIT, /* 0x08 */
+    XLIO_TX_PACKET_REXMIT = TCP_WRITE_REXMIT, /* 0x08 */
     /* nop send operation. */
-    VMA_TX_PACKET_DUMMY = TCP_WRITE_DUMMY, /* 0x10 */
+    XLIO_TX_PACKET_DUMMY = TCP_WRITE_DUMMY, /* 0x10 */
     /* large segment offload operation. */
-    VMA_TX_PACKET_TSO = TCP_WRITE_TSO, /* 0x20 */
+    XLIO_TX_PACKET_TSO = TCP_WRITE_TSO, /* 0x20 */
     /* sendfile operation. */
-    VMA_TX_FILE = TCP_WRITE_FILE, /* 0x40 */
+    XLIO_TX_FILE = TCP_WRITE_FILE, /* 0x40 */
     /* zcopy write operation (MSG_ZEROCOPY). */
-    VMA_TX_PACKET_ZEROCOPY = TCP_WRITE_ZEROCOPY, /* 0x80 */
+    XLIO_TX_PACKET_ZEROCOPY = TCP_WRITE_ZEROCOPY, /* 0x80 */
 
     /* MLX5_ETH_WQE_L3_CSUM offload to HW L3 (IP) header checksum
      * Important:
      *  - hardcoded value used directly to program send to wire
-     *  - it is the same as VMA_TX_FILE but there is no conflict as far as
-     *    VMA_TX_FILE is passed into dst_entry::fast_send() operation
+     *  - it is the same as XLIO_TX_FILE but there is no conflict as far as
+     *    XLIO_TX_FILE is passed into dst_entry::fast_send() operation
      *    and it is not needed later doing send to wire
      */
     XLIO_TX_PACKET_L3_CSUM = (1 << 6),
@@ -70,9 +70,9 @@ typedef enum xlio_wr_tx_packet_attr {
      */
     XLIO_TX_PACKET_L4_CSUM = (1 << 7),
     /* blocking send operation */
-    VMA_TX_PACKET_BLOCK = (1 << 8),
+    XLIO_TX_PACKET_BLOCK = (1 << 8),
     /* Force SW checksum */
-    VMA_TX_SW_L4_CSUM = (1 << 9),
+    XLIO_TX_SW_L4_CSUM = (1 << 9),
 } xlio_wr_tx_packet_attr;
 
 static inline bool is_set(xlio_wr_tx_packet_attr state_, xlio_wr_tx_packet_attr tx_mode_)

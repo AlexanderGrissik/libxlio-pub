@@ -48,7 +48,7 @@ extern "C" {
 #include <utils/asm.h>
 #include <core/util/vtypes.h>
 
-/* ib/mlx5 layer is used by other VMA code that needs
+/* ib/mlx5 layer is used by other XLIO code that needs
  * direct access to mlx5 resources.
  * It hides differences in rdma-core(Upstream OFED) and mlx5(Mellanox OFED)
  * mlx5 provider implementations.
@@ -65,9 +65,9 @@ extern "C" {
  */
 int xlio_ib_mlx5dv_init_obj(struct mlx5dv_obj *obj, uint64_t type);
 
-enum { VMA_IB_MLX5_QP_FLAGS_USE_UNDERLAY = 0x01 };
+enum { XLIO_IB_MLX5_QP_FLAGS_USE_UNDERLAY = 0x01 };
 
-enum { VMA_IB_MLX5_CQ_SET_CI = 0, VMA_IB_MLX5_CQ_ARM_DB = 1 };
+enum { XLIO_IB_MLX5_CQ_SET_CI = 0, XLIO_IB_MLX5_CQ_ARM_DB = 1 };
 
 /* Queue pair */
 typedef struct xlio_ib_mlx5_qp {
@@ -372,17 +372,17 @@ enum {
  * WQE opcode list.
  */
 enum {
-    VMA_MLX5_OPCODE_SET_PSV = 0x20,
-    VMA_MLX5_OPCODE_GET_PSV = 0x21,
-    VMA_MLX5_OPCODE_DUMP = 0x23,
+    XLIO_MLX5_OPCODE_SET_PSV = 0x20,
+    XLIO_MLX5_OPCODE_GET_PSV = 0x21,
+    XLIO_MLX5_OPCODE_DUMP = 0x23,
 };
 
 /*
  * Parameters
  */
-#define VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE       (64U * 1024U)
-#define VMA_MLX5_PARAMS_LRO_TIMEOUT            32
-#define VMA_MLX5_PARAMS_LRO_TIMEOUT_ARRAY_SIZE 4
+#define XLIO_MLX5_PARAMS_LRO_PAYLOAD_SIZE       (64U * 1024U)
+#define XLIO_MLX5_PARAMS_LRO_TIMEOUT            32
+#define XLIO_MLX5_PARAMS_LRO_TIMEOUT_ARRAY_SIZE 4
 
 /*
  * Interfaces

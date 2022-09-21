@@ -2153,7 +2153,7 @@ int print_processes_stats(const std::vector<int> &pids)
     int num_instances = 0;
     sh_mem_info_t sh_mem_info[SIZE];
 
-    // 1. N * prepare shmem and indicate VMA to update shmem
+    // 1. N * prepare shmem and indicate XLIO to update shmem
     for (int i = 0; i < SIZE; ++i) {
         sh_mem_info[num_instances].pid = pids[i];
         if (0 == init_print_process_stats(sh_mem_info[num_instances])) {
@@ -2163,7 +2163,7 @@ int print_processes_stats(const std::vector<int> &pids)
 
     // 2. one sleep to rule them all
     usleep(STATS_READER_DELAY *
-           1000); // After 'init_print_process_stats' we wait for VMA publisher to recognize
+           1000); // After 'init_print_process_stats' we wait for XLIO publisher to recognize
                   // that we asked for statistics, otherwise, the first read will be zero
 
     // 3. N * read from shmem, write to user, and shmem cleanup

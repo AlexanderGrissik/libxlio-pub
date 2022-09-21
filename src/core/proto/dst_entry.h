@@ -203,7 +203,7 @@ protected:
     inline void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                  xlio_wr_tx_packet_attr attr)
     {
-        if (unlikely(is_set(attr, VMA_TX_PACKET_DUMMY))) {
+        if (unlikely(is_set(attr, XLIO_TX_PACKET_DUMMY))) {
             if (m_p_ring->get_hw_dummy_send_support(id, p_send_wqe)) {
                 xlio_ibv_wr_opcode last_opcode =
                     m_p_send_wqe_handler->set_opcode(*p_send_wqe, XLIO_IBV_WR_NOP);

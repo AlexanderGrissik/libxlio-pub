@@ -167,7 +167,7 @@ public:
 
 typedef std::vector<std::unique_ptr<ip_data>> ip_data_vector_t;
 
-#define VMA_DEFAULT_ENGRESS_MAP_PRIO (0)
+#define DEFAULT_ENGRESS_MAP_PRIO (0)
 typedef std::unordered_map<uint32_t, uint32_t> tc_class_priority_map;
 /*
  * Represents Offloading capable device such as eth4, ib1, eth3.5, eth5:6

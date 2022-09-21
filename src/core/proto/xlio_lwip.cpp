@@ -179,7 +179,8 @@ uint32_t get_lwip_tcp_mss(uint32_t mtu, uint32_t lwip_mss)
             _lwip_tcp_mss = 0; /* MSS must follow the specific MTU per interface */
             break;
         default:
-            // set MSS to match VMA_MTU, MSS is equal to (VMA_MTU-40), but forced to be at least 1.
+            // set MSS to match XLIO_MTU, MSS is equal to (XLIO_MTU-40), but forced to be at
+            // least 1.
             _lwip_tcp_mss = (MAX(mtu, (IP_HLEN + TCP_HLEN + 1)) - IP_HLEN - TCP_HLEN);
             break;
         }

@@ -1355,7 +1355,7 @@ int net_device_val::get_priority_by_tc_class(uint32_t tc_class)
 {
     tc_class_priority_map::iterator it = m_class_prio_map.find(tc_class);
     if (it == m_class_prio_map.end()) {
-        return VMA_DEFAULT_ENGRESS_MAP_PRIO;
+        return DEFAULT_ENGRESS_MAP_PRIO;
     }
     return it->second;
 }

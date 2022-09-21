@@ -499,19 +499,19 @@ int agent::send_msg_init(void)
     data.ver = (PRJ_LIBRARY_MAJOR << 12) | (PRJ_LIBRARY_MINOR << 8) | (PRJ_LIBRARY_RELEASE << 4) |
         PRJ_LIBRARY_REVISION;
 
-    /* send(VMA_MSG_INIT) in blocking manner */
+    /* send(XLIO_MSG_INIT) in blocking manner */
     sys_call(rc, send, m_sock_fd, &data, sizeof(data), 0);
     if (rc < 0) {
-        __log_dbg("Failed to send(VMA_MSG_INIT) errno %d (%s)", errno, strerror(errno));
+        __log_dbg("Failed to send(XLIO_MSG_INIT) errno %d (%s)", errno, strerror(errno));
         rc = -ECONNREFUSED;
         goto err;
     }
 
-    /* recv(VMA_MSG_INIT|ACK) in blocking manner */
+    /* recv(XLIO_MSG_INIT|ACK) in blocking manner */
     memset(&data, 0, sizeof(data));
     sys_call(rc, recv, m_sock_fd, &data, sizeof(data), 0);
     if (rc < (int)sizeof(data)) {
-        __log_dbg("Failed to recv(VMA_MSG_INIT) errno %d (%s)", errno, strerror(errno));
+        __log_dbg("Failed to recv(XLIO_MSG_INIT) errno %d (%s)", errno, strerror(errno));
         rc = -ECONNREFUSED;
         goto err;
     }
@@ -557,10 +557,10 @@ int agent::send_msg_exit(void)
     data.hdr.ver = XLIO_AGENT_VER;
     data.hdr.pid = getpid();
 
-    /* send(VMA_MSG_EXIT) in blocking manner */
+    /* send(XLIO_MSG_EXIT) in blocking manner */
     sys_call(rc, send, m_sock_fd, &data, sizeof(data), 0);
     if (rc < 0) {
-        __log_dbg("Failed to send(VMA_MSG_EXIT) errno %d (%s)", errno, strerror(errno));
+        __log_dbg("Failed to send(XLIO_MSG_EXIT) errno %d (%s)", errno, strerror(errno));
         rc = -errno;
         goto err;
     }
@@ -586,19 +586,19 @@ int agent::send_msg_flow(struct xlio_msg_flow *data)
     /* wait answer */
     data->hdr.status = 1;
 
-    /* send(VMA_MSG_TC) in blocking manner */
+    /* send(XLIO_MSG_TC) in blocking manner */
     sys_call(rc, send, m_sock_fd, data, sizeof(*data), 0);
     if (rc < 0) {
-        __log_dbg("Failed to send(VMA_MSG_TC) errno %d (%s)", errno, strerror(errno));
+        __log_dbg("Failed to send(XLIO_MSG_TC) errno %d (%s)", errno, strerror(errno));
         rc = -errno;
         goto err;
     }
 
-    /* recv(VMA_MSG_TC|ACK) in blocking manner */
+    /* recv(XLIO_MSG_TC|ACK) in blocking manner */
     memset(&answer, 0, sizeof(answer));
     sys_call(rc, recv, m_sock_fd, &answer.hdr, sizeof(answer.hdr), 0);
     if (rc < (int)sizeof(answer.hdr)) {
-        __log_dbg("Failed to recv(VMA_MSG_TC) errno %d (%s)", errno, strerror(errno));
+        __log_dbg("Failed to recv(XLIO_MSG_TC) errno %d (%s)", errno, strerror(errno));
         rc = -ECONNREFUSED;
         goto err;
     }
@@ -624,7 +624,7 @@ int agent::create_agent_socket(void)
     struct timeval opttv;
     struct sockaddr_un sock_addr;
 
-    /* Create UNIX UDP socket to receive data from VMA processes */
+    /* Create UNIX UDP socket to receive data from XLIO processes */
     memset(&sock_addr, 0, sizeof(sock_addr));
     sock_addr.sun_family = AF_UNIX;
     strncpy(sock_addr.sun_path, m_sock_file, sizeof(sock_addr.sun_path) - 1);

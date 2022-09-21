@@ -34,7 +34,7 @@
 #define _XLIOD_BASE_H_
 
 /**
- * VMAD Base class for tests
+ * XLIOD Base class for tests
  */
 class xliod_base : public testing::Test, public test_base {
 protected:

@@ -45,7 +45,7 @@ char g_rdtsc_flow_names[RDTSC_FLOW_MAX][256] = {{"RDTSC_FLOW_TX_SENDTO_TO_AFTER_
                                                 {"RDTSC_FLOW_RX_LWIP"},
                                                 {"RDTSC_FLOW_MEASURE_RX_DISPATCH_PACKET"},
                                                 {"RDTSC_FLOW_PROCCESS_AFTER_BUFFER_TO_RECIVEFROM "},
-                                                {"RDTSC_FLOW_RX_VMA_TCP_IDLE_POLL"},
+                                                {"RDTSC_FLOW_RX_XLIO_TCP_IDLE_POLL"},
                                                 {"RDTSC_FLOW_RX_READY_POLL_TO_LWIP"},
                                                 {"RDTSC_FLOW_RX_LWIP_TO_RECEVEFROM"},
                                                 {"RDTSC_FLOW_RX_VERBS_READY_POLL"}
@@ -136,25 +136,25 @@ void finit_instrumentation(char *dump_file_name)
 
     std::ofstream dump_file;
 
-    uint32_t poll_start_to_poll_cq_min = VMA_TIME_DEFAULT_MIN_VAL, poll_start_to_poll_cq_max = 0;
+    uint32_t poll_start_to_poll_cq_min = XLIO_TIME_DEFAULT_MIN_VAL, poll_start_to_poll_cq_max = 0;
     double poll_start_to_poll_cq_avg = 0;
-    uint32_t poll_cq_to_end_poll_min = VMA_TIME_DEFAULT_MIN_VAL, poll_cq_to_end_poll_max = 0;
+    uint32_t poll_cq_to_end_poll_min = XLIO_TIME_DEFAULT_MIN_VAL, poll_cq_to_end_poll_max = 0;
     double poll_cq_to_end_poll_avg = 0;
-    uint32_t poll_delta_max = 0, poll_delta_min = VMA_TIME_DEFAULT_MIN_VAL;
+    uint32_t poll_delta_max = 0, poll_delta_min = XLIO_TIME_DEFAULT_MIN_VAL;
     double poll_delta_avg = 0;
-    uint32_t rx_delta_max = 0, rx_delta_min = VMA_TIME_DEFAULT_MIN_VAL;
+    uint32_t rx_delta_max = 0, rx_delta_min = XLIO_TIME_DEFAULT_MIN_VAL;
     double rx_delta_avg = 0;
 
-    uint32_t rx_start_to_poll_cq_min = VMA_TIME_DEFAULT_MIN_VAL, rx_start_to_poll_cq_max = 0;
+    uint32_t rx_start_to_poll_cq_min = XLIO_TIME_DEFAULT_MIN_VAL, rx_start_to_poll_cq_max = 0;
     double rx_start_to_poll_cq_avg = 0;
-    uint32_t poll_cq_to_end_rx_min = VMA_TIME_DEFAULT_MIN_VAL, poll_cq_to_end_rx_max = 0;
+    uint32_t poll_cq_to_end_rx_min = XLIO_TIME_DEFAULT_MIN_VAL, poll_cq_to_end_rx_max = 0;
     double poll_cq_to_end_rx_avg = 0;
 
-    uint32_t tx_start_to_post_snd_s_min = VMA_TIME_DEFAULT_MIN_VAL, tx_start_to_post_snd_s_max = 0;
+    uint32_t tx_start_to_post_snd_s_min = XLIO_TIME_DEFAULT_MIN_VAL, tx_start_to_post_snd_s_max = 0;
     double tx_start_to_post_snd_s_avg = 0;
-    uint32_t tx_post_snd_s_to_e_min = VMA_TIME_DEFAULT_MIN_VAL, tx_post_snd_s_to_e_max = 0;
+    uint32_t tx_post_snd_s_to_e_min = XLIO_TIME_DEFAULT_MIN_VAL, tx_post_snd_s_to_e_max = 0;
     double tx_post_snd_s_to_e_avg = 0;
-    uint32_t tx_post_snd_e_to_tx_end_min = VMA_TIME_DEFAULT_MIN_VAL,
+    uint32_t tx_post_snd_e_to_tx_end_min = XLIO_TIME_DEFAULT_MIN_VAL,
              tx_post_snd_e_to_tx_end_max = 0;
     double tx_post_snd_e_to_tx_end_avg = 0;
     uint32_t max_poll_count = 0;
@@ -173,7 +173,7 @@ void finit_instrumentation(char *dump_file_name)
 
     dump_file.open(dumpFileName);
 
-    dump_file << "INVALID:" << VMA_TIME_INVALID << "\n";
+    dump_file << "INVALID:" << XLIO_TIME_INVALID << "\n";
     dump_file << "TOTAL SAMPLES: " << g_inst_cnt << "\n";
     dump_file << "TX ERRORS:" << g_tx_err_counter << "\n";
     dump_file << "RX ERRORS:" << g_rx_err_counter << "\n";
@@ -189,9 +189,9 @@ void finit_instrumentation(char *dump_file_name)
 
     for (uint32_t i = 0; i < g_inst_cnt; i++) {
 
-        if (VMA_TIME_IS_LEGAL(g_inst_nsec[i][POLL_START], g_inst_nsec[i][POLL_END])) {
-            if ((VMA_TIME_IS_LEGAL(g_inst_nsec[i][POLL_START], g_inst_nsec[i][CQ_IN_START])) &&
-                (VMA_TIME_IS_LEGAL(g_inst_nsec[i][CQ_IN_START], g_inst_nsec[i][POLL_END]))) {
+        if (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][POLL_START], g_inst_nsec[i][POLL_END])) {
+            if ((XLIO_TIME_IS_LEGAL(g_inst_nsec[i][POLL_START], g_inst_nsec[i][CQ_IN_START])) &&
+                (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][CQ_IN_START], g_inst_nsec[i][POLL_END]))) {
                 poll_start_to_poll_cq = g_inst_nsec[i][CQ_IN_START] - g_inst_nsec[i][POLL_START];
                 poll_start_to_poll_cq_avg += poll_start_to_poll_cq;
                 if (poll_start_to_poll_cq < poll_start_to_poll_cq_min)
@@ -206,8 +206,8 @@ void finit_instrumentation(char *dump_file_name)
                 if (poll_cq_to_end_poll > poll_cq_to_end_poll_max)
                     poll_cq_to_end_poll_max = poll_cq_to_end_poll;
             } else {
-                poll_start_to_poll_cq = VMA_TIME_INVALID;
-                poll_cq_to_end_poll = VMA_TIME_INVALID;
+                poll_start_to_poll_cq = XLIO_TIME_INVALID;
+                poll_cq_to_end_poll = XLIO_TIME_INVALID;
             }
 
             poll_delta = g_inst_nsec[i][POLL_END] - g_inst_nsec[i][POLL_START];
@@ -218,12 +218,12 @@ void finit_instrumentation(char *dump_file_name)
                 poll_delta_max = poll_delta;
 
         } else {
-            poll_start_to_poll_cq = VMA_TIME_INVALID;
-            poll_cq_to_end_poll = VMA_TIME_INVALID;
-            poll_delta = VMA_TIME_INVALID;
+            poll_start_to_poll_cq = XLIO_TIME_INVALID;
+            poll_cq_to_end_poll = XLIO_TIME_INVALID;
+            poll_delta = XLIO_TIME_INVALID;
         }
 
-        if (VMA_TIME_IS_LEGAL(g_inst_nsec[i][RX_START], g_inst_nsec[i][RX_END])) {
+        if (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][RX_START], g_inst_nsec[i][RX_END])) {
             rx_delta = g_inst_nsec[i][RX_END] - g_inst_nsec[i][RX_START];
             rx_delta_avg += rx_delta;
             if (rx_delta < rx_delta_min)
@@ -231,9 +231,9 @@ void finit_instrumentation(char *dump_file_name)
             if (rx_delta > rx_delta_max)
                 rx_delta_max = rx_delta;
 
-            if (VMA_TIME_INVALID == poll_delta) {
-                if ((VMA_TIME_IS_LEGAL(g_inst_nsec[i][RX_START], g_inst_nsec[i][CQ_IN_START])) &&
-                    (VMA_TIME_IS_LEGAL(g_inst_nsec[i][CQ_IN_START], g_inst_nsec[i][RX_END]))) {
+            if (XLIO_TIME_INVALID == poll_delta) {
+                if ((XLIO_TIME_IS_LEGAL(g_inst_nsec[i][RX_START], g_inst_nsec[i][CQ_IN_START])) &&
+                    (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][CQ_IN_START], g_inst_nsec[i][RX_END]))) {
                     rx_start_to_poll_cq = g_inst_nsec[i][CQ_IN_START] - g_inst_nsec[i][RX_START];
                     rx_start_to_poll_cq_avg += rx_start_to_poll_cq;
                     if (rx_start_to_poll_cq < rx_start_to_poll_cq_min)
@@ -248,15 +248,15 @@ void finit_instrumentation(char *dump_file_name)
                     if (poll_cq_to_end_rx > poll_cq_to_end_rx_max)
                         poll_cq_to_end_rx_max = poll_cq_to_end_rx;
                 } else {
-                    rx_start_to_poll_cq = VMA_TIME_INVALID;
-                    poll_cq_to_end_rx = VMA_TIME_INVALID;
+                    rx_start_to_poll_cq = XLIO_TIME_INVALID;
+                    poll_cq_to_end_rx = XLIO_TIME_INVALID;
                 }
             }
         } else {
-            rx_delta = VMA_TIME_INVALID;
+            rx_delta = XLIO_TIME_INVALID;
         }
 
-        if (VMA_TIME_IS_LEGAL(g_inst_nsec[i][TX_START], g_inst_nsec[i][TX_POST_SEND_START])) {
+        if (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][TX_START], g_inst_nsec[i][TX_POST_SEND_START])) {
             tx_start_to_post_snd_s = g_inst_nsec[i][TX_POST_SEND_START] - g_inst_nsec[i][TX_START];
             tx_start_to_post_snd_s_avg += tx_start_to_post_snd_s;
             if (tx_start_to_post_snd_s < tx_start_to_post_snd_s_min)
@@ -264,11 +264,11 @@ void finit_instrumentation(char *dump_file_name)
             if (tx_start_to_post_snd_s > tx_start_to_post_snd_s_max)
                 tx_start_to_post_snd_s_max = tx_start_to_post_snd_s;
         } else {
-            tx_start_to_post_snd_s = VMA_TIME_INVALID;
+            tx_start_to_post_snd_s = XLIO_TIME_INVALID;
         }
 
-        if (VMA_TIME_IS_LEGAL(g_inst_nsec[i][TX_POST_SEND_START],
-                              g_inst_nsec[i][TX_POST_SEND_END])) {
+        if (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][TX_POST_SEND_START],
+                               g_inst_nsec[i][TX_POST_SEND_END])) {
             tx_post_snd_s_to_e =
                 g_inst_nsec[i][TX_POST_SEND_END] - g_inst_nsec[i][TX_POST_SEND_START];
             tx_post_snd_s_to_e_avg += tx_post_snd_s_to_e;
@@ -277,10 +277,10 @@ void finit_instrumentation(char *dump_file_name)
             if (tx_post_snd_s_to_e > tx_post_snd_s_to_e_max)
                 tx_post_snd_s_to_e_max = tx_post_snd_s_to_e;
         } else {
-            tx_post_snd_s_to_e = VMA_TIME_INVALID;
+            tx_post_snd_s_to_e = XLIO_TIME_INVALID;
         }
 
-        if (VMA_TIME_IS_LEGAL(g_inst_nsec[i][TX_POST_SEND_END], g_inst_nsec[i][TX_END])) {
+        if (XLIO_TIME_IS_LEGAL(g_inst_nsec[i][TX_POST_SEND_END], g_inst_nsec[i][TX_END])) {
             tx_post_snd_e_to_tx_end = g_inst_nsec[i][TX_END] - g_inst_nsec[i][TX_POST_SEND_END];
             tx_post_snd_e_to_tx_end_avg += tx_post_snd_e_to_tx_end;
             if (tx_post_snd_e_to_tx_end < tx_post_snd_e_to_tx_end_min)
@@ -288,7 +288,7 @@ void finit_instrumentation(char *dump_file_name)
             if (tx_post_snd_e_to_tx_end > tx_post_snd_e_to_tx_end_max)
                 tx_post_snd_e_to_tx_end_max = tx_post_snd_e_to_tx_end;
         } else {
-            tx_post_snd_e_to_tx_end = VMA_TIME_INVALID;
+            tx_post_snd_e_to_tx_end = XLIO_TIME_INVALID;
         }
 
         g_inst_nsec[i][POLL_START_TO_CQ_IN] = poll_start_to_poll_cq;
@@ -315,25 +315,25 @@ void finit_instrumentation(char *dump_file_name)
     tx_post_snd_s_to_e_avg = tx_post_snd_s_to_e_avg / g_inst_cnt;
     tx_post_snd_e_to_tx_end_avg = tx_post_snd_e_to_tx_end_avg / g_inst_cnt;
 
-    if (VMA_TIME_DEFAULT_MIN_VAL == poll_start_to_poll_cq_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == poll_start_to_poll_cq_min)
         poll_start_to_poll_cq_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == poll_cq_to_end_poll_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == poll_cq_to_end_poll_min)
         poll_cq_to_end_poll_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == poll_delta_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == poll_delta_min)
         poll_delta_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == rx_start_to_poll_cq_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == rx_start_to_poll_cq_min)
         rx_start_to_poll_cq_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == poll_cq_to_end_rx_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == poll_cq_to_end_rx_min)
         poll_cq_to_end_rx_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == rx_delta_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == rx_delta_min)
         rx_delta_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == rx_delta_max)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == rx_delta_max)
         rx_delta_max = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == tx_start_to_post_snd_s_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == tx_start_to_post_snd_s_min)
         tx_start_to_post_snd_s_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == tx_post_snd_s_to_e_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == tx_post_snd_s_to_e_min)
         tx_post_snd_s_to_e_min = 0;
-    if (VMA_TIME_DEFAULT_MIN_VAL == tx_post_snd_e_to_tx_end_min)
+    if (XLIO_TIME_DEFAULT_MIN_VAL == tx_post_snd_e_to_tx_end_min)
         tx_post_snd_e_to_tx_end_min = 0;
 
     dump_file << "poll_start_to_poll_cq: min=" << poll_start_to_poll_cq_min

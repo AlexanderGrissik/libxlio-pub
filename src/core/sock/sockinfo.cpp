@@ -254,7 +254,7 @@ int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
 {
     if ((attr->comp_mask & XLIO_RING_ALLOC_MASK_RING_ENGRESS) && attr->engress) {
         if (set_ring_attr_helper(&m_ring_alloc_log_tx, attr)) {
-            return SOCKOPT_NO_VMA_SUPPORT;
+            return SOCKOPT_NO_XLIO_SUPPORT;
         }
         ring_alloc_logic_updater du(get_fd(), m_lock_snd, m_ring_alloc_log_tx, m_p_socket_stats);
         update_header_field(&du);
@@ -266,7 +266,7 @@ int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
         ring_alloc_logic_attr old_key(*m_ring_alloc_logic.get_key());
 
         if (set_ring_attr_helper(&m_ring_alloc_log_rx, attr)) {
-            return SOCKOPT_NO_VMA_SUPPORT;
+            return SOCKOPT_NO_XLIO_SUPPORT;
         }
         m_ring_alloc_logic = ring_allocation_logic_rx(get_fd(), m_ring_alloc_log_rx, this);
 
@@ -279,7 +279,7 @@ int sockinfo::set_ring_attr(xlio_ring_alloc_logic_attr *attr)
         m_p_socket_stats->ring_user_id_rx = m_ring_alloc_logic.calc_res_key_by_logic();
     }
 
-    return SOCKOPT_INTERNAL_VMA_SUPPORT;
+    return SOCKOPT_INTERNAL_XLIO_SUPPORT;
 }
 
 int sockinfo::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
@@ -353,9 +353,9 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
         case SO_XLIO_USER_DATA:
             if (__optlen == sizeof(m_fd_context)) {
                 m_fd_context = *(void **)__optval;
-                ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+                ret = SOCKOPT_INTERNAL_XLIO_SUPPORT;
             } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
+                ret = SOCKOPT_NO_XLIO_SUPPORT;
                 errno = EINVAL;
             }
             break;
@@ -370,16 +370,16 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                         si_logwarn("user asked to assign memory for "
                                    "RX ring but ring already exists");
                     }
-                    ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+                    ret = SOCKOPT_INTERNAL_XLIO_SUPPORT;
                 } else {
-                    ret = SOCKOPT_NO_VMA_SUPPORT;
+                    ret = SOCKOPT_NO_XLIO_SUPPORT;
                     errno = EINVAL;
                     si_logdbg("SOL_SOCKET, SO_XLIO_RING_USER_MEMORY - "
                               "bad length expected %zu got %d",
                               sizeof(iovec), __optlen);
                 }
             } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
+                ret = SOCKOPT_NO_XLIO_SUPPORT;
                 errno = EINVAL;
                 si_logdbg("SOL_SOCKET, SO_XLIO_RING_USER_MEMORY - NOT HANDLED, optval == NULL");
             }
@@ -392,13 +392,13 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                                   "socket fd: %d to flow id: %d",
                                   m_fd, m_flow_tag_id);
                         // not supported in OS
-                        ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+                        ret = SOCKOPT_INTERNAL_XLIO_SUPPORT;
                     } else {
-                        ret = SOCKOPT_NO_VMA_SUPPORT;
+                        ret = SOCKOPT_NO_XLIO_SUPPORT;
                         errno = EINVAL;
                     }
                 } else {
-                    ret = SOCKOPT_NO_VMA_SUPPORT;
+                    ret = SOCKOPT_NO_XLIO_SUPPORT;
                     errno = EINVAL;
                     si_logdbg("SO_XLIO_FLOW_TAG, bad length "
                               "expected %zu got %d",
@@ -406,7 +406,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                     break;
                 }
             } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
+                ret = SOCKOPT_NO_XLIO_SUPPORT;
                 errno = EINVAL;
                 si_logdbg("SO_XLIO_FLOW_TAG - NOT HANDLED, "
                           "optval == NULL");
@@ -433,7 +433,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
 
                 // SOF_TIMESTAMPING_TX_SOFTWARE and SOF_TIMESTAMPING_TX_HARDWARE is NOT supported.
                 if (val & (SOF_TIMESTAMPING_TX_SOFTWARE | SOF_TIMESTAMPING_TX_HARDWARE)) {
-                    ret = SOCKOPT_NO_VMA_SUPPORT;
+                    ret = SOCKOPT_NO_XLIO_SUPPORT;
                     errno = EOPNOTSUPP;
                     si_logdbg(
                         "SOL_SOCKET, SOF_TIMESTAMPING_TX_SOFTWARE and SOF_TIMESTAMPING_TX_HARDWARE "
@@ -444,14 +444,14 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                     if (g_p_net_device_table_mgr->get_ctx_time_conversion_mode() ==
                         TS_CONVERSION_MODE_DISABLE) {
                         if (safe_mce_sys().hw_ts_conversion_mode == TS_CONVERSION_MODE_DISABLE) {
-                            ret = SOCKOPT_NO_VMA_SUPPORT;
+                            ret = SOCKOPT_NO_XLIO_SUPPORT;
                             errno = EPERM;
                             si_logdbg("SOL_SOCKET, SOF_TIMESTAMPING_RAW_HARDWARE and "
                                       "SOF_TIMESTAMPING_RX_HARDWARE socket options were disabled "
-                                      "(VMA_HW_TS_CONVERSION = %d) , errno set to EPERM",
+                                      "(XLIO_HW_TS_CONVERSION = %d) , errno set to EPERM",
                                       TS_CONVERSION_MODE_DISABLE);
                         } else {
-                            ret = SOCKOPT_NO_VMA_SUPPORT;
+                            ret = SOCKOPT_NO_XLIO_SUPPORT;
                             errno = ENODEV;
                             si_logdbg("SOL_SOCKET, SOF_TIMESTAMPING_RAW_HARDWARE and "
                                       "SOF_TIMESTAMPING_RX_HARDWARE is not supported by device(s), "
@@ -478,7 +478,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                         xlio_ring_alloc_logic_attr *attr = (xlio_ring_alloc_logic_attr *)__optval;
                         return set_ring_attr(attr);
                     } else {
-                        ret = SOCKOPT_NO_VMA_SUPPORT;
+                        ret = SOCKOPT_NO_XLIO_SUPPORT;
                         errno = EINVAL;
                         si_logdbg("SOL_SOCKET, %s=\"???\" - bad length expected %zu got %d",
                                   setsockopt_so_opt_to_str(__optname),
@@ -486,13 +486,13 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
                         break;
                     }
                 } else {
-                    ret = SOCKOPT_NO_VMA_SUPPORT;
+                    ret = SOCKOPT_NO_XLIO_SUPPORT;
                     errno = EINVAL;
                     si_logdbg("SOL_SOCKET, %s=\"???\" - bad optval (%d)",
                               setsockopt_so_opt_to_str(__optname), val);
                 }
             } else {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
+                ret = SOCKOPT_NO_XLIO_SUPPORT;
                 errno = EINVAL;
                 si_logdbg("SOL_SOCKET, %s=\"???\" - NOT HANDLED, optval == NULL",
                           setsockopt_so_opt_to_str(__optname));
@@ -500,7 +500,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
             break;
         case SO_XLIO_SHUTDOWN_RX:
             shutdown_rx();
-            ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+            ret = SOCKOPT_INTERNAL_XLIO_SUPPORT;
             break;
         default:
             break;
@@ -509,13 +509,13 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
         switch (__optname) {
         case IP_TTL:
             if (__optlen < sizeof(m_n_uc_ttl_hop_lim)) {
-                ret = SOCKOPT_NO_VMA_SUPPORT;
+                ret = SOCKOPT_NO_XLIO_SUPPORT;
                 errno = EINVAL;
             } else {
                 int val = __optlen < sizeof(val) ? (uint8_t) * (uint8_t *)__optval
                                                  : (int)*(int *)__optval;
                 if (val != -1 && (val < 1 || val > 255)) {
-                    ret = SOCKOPT_NO_VMA_SUPPORT;
+                    ret = SOCKOPT_NO_XLIO_SUPPORT;
                     errno = EINVAL;
                 } else {
                     m_n_uc_ttl_hop_lim = (val == -1)
@@ -533,7 +533,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
     } else if (__level == IPPROTO_IPV6) {
         switch (__optname) {
         case IPV6_V6ONLY:
-            ret = SOCKOPT_NO_VMA_SUPPORT;
+            ret = SOCKOPT_NO_XLIO_SUPPORT;
             expected_len = sizeof(int);
             if (__optval && __optlen == expected_len) {
                 m_is_ipv6only = (*reinterpret_cast<const int *>(__optval) != 0);
@@ -542,12 +542,12 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
             }
             break;
         case IPV6_ADDR_PREFERENCES:
-            ret = SOCKOPT_NO_VMA_SUPPORT;
+            ret = SOCKOPT_NO_XLIO_SUPPORT;
             expected_len = sizeof(int);
             if (__optval && __optlen == expected_len) {
                 int val = *reinterpret_cast<const int *>(__optval);
                 if (ipv6_set_addr_sel_pref(val)) {
-                    ret = SOCKOPT_INTERNAL_VMA_SUPPORT;
+                    ret = SOCKOPT_INTERNAL_XLIO_SUPPORT;
                     si_logdbg("IPV6_ADDR_PREFERENCES, val %d, src-sel-flags %" PRIu8, val,
                               m_src_sel_flags);
                 }
@@ -556,7 +556,7 @@ int sockinfo::setsockopt(int __level, int __optname, const void *__optval, sockl
             break;
         }
 
-        if (ret == SOCKOPT_NO_VMA_SUPPORT) {
+        if (ret == SOCKOPT_NO_XLIO_SUPPORT) {
             errno = EINVAL;
             si_logdbg("%s, invalid value/length arguments. val %p, len %zu, expected-len %zu",
                       setsockopt_so_opt_to_str(__optname), __optval, static_cast<size_t>(__optlen),
@@ -691,7 +691,7 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
     case IPPROTO_IPV6: {
         switch (__optname) {
         case IPV6_V6ONLY:
-            ret = SOCKOPT_NO_VMA_SUPPORT;
+            ret = SOCKOPT_NO_XLIO_SUPPORT;
             expected_len = sizeof(int);
             if (*__optlen == expected_len) {
                 *reinterpret_cast<int *>(__optval) = (m_is_ipv6only ? 1 : 0);
@@ -700,7 +700,7 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
             }
             break;
         case IPV6_ADDR_PREFERENCES:
-            ret = SOCKOPT_NO_VMA_SUPPORT;
+            ret = SOCKOPT_NO_XLIO_SUPPORT;
             expected_len = sizeof(int);
             if (*__optlen == expected_len) {
                 int *valptr = reinterpret_cast<int *>(__optval);
@@ -712,7 +712,7 @@ int sockinfo::getsockopt(int __level, int __optname, void *__optval, socklen_t *
             break;
         }
 
-        if (ret == SOCKOPT_NO_VMA_SUPPORT) {
+        if (ret == SOCKOPT_NO_XLIO_SUPPORT) {
             errno = EINVAL;
             si_logdbg("%s, invalid value/length arguments. val %p, len %zu, expected-len %zu",
                       setsockopt_so_opt_to_str(__optname), __optval, static_cast<size_t>(*__optlen),

@@ -309,7 +309,7 @@ void ring_simple::create_resources()
                                     safe_mce_sys().strq_stride_size_bytes)
                      : safe_mce_sys().rx_buf_size);
             m_lro.max_payload_sz =
-                std::min(actual_buf_size, VMA_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256U * 256U;
+                std::min(actual_buf_size, XLIO_MLX5_PARAMS_LRO_PAYLOAD_SIZE) / 256U * 256U;
         }
 #endif /* DEFINED_DPCP */
     }
@@ -693,7 +693,7 @@ inline int ring_simple::send_buffer(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_pac
     if (likely(m_tx_num_wr_free > 0)) {
         ret = m_p_qp_mgr->send(p_send_wqe, attr, tis);
         --m_tx_num_wr_free;
-    } else if (is_available_qp_wr(is_set(attr, VMA_TX_PACKET_BLOCK))) {
+    } else if (is_available_qp_wr(is_set(attr, XLIO_TX_PACKET_BLOCK))) {
         ret = m_p_qp_mgr->send(p_send_wqe, attr, tis);
     } else {
         ring_logdbg("silent packet drop, no available WR in QP!");
@@ -721,7 +721,7 @@ void ring_simple::send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_w
 {
     NOT_IN_USE(id);
 
-    if (attr & VMA_TX_SW_L4_CSUM) {
+    if (attr & XLIO_TX_SW_L4_CSUM) {
         compute_tx_checksum((mem_buf_desc_t *)(p_send_wqe->wr_id), attr & XLIO_TX_PACKET_L3_CSUM,
                             attr & XLIO_TX_PACKET_L4_CSUM);
         attr = (xlio_wr_tx_packet_attr)(attr & ~(XLIO_TX_PACKET_L4_CSUM));

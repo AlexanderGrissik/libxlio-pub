@@ -296,8 +296,8 @@ int epfd_info::add_fd(int fd, epoll_event *event)
             events |= EPOLLIN;
         }
         if ((event->events & EPOLLOUT) && temp_sock_fd_api->is_writeable()) {
-            // MNY: udp_socket is always ready to write. Both VMA and the OS will notify it.
-            // Can't remove notification in VMA in case user decides to skip the OS using VMA
+            // MNY: udp_socket is always ready to write. Both XLIO and the OS will notify it.
+            // Can't remove notification in XLIO in case user decides to skip the OS using XLIO
             // params. Meaning: user will get 2 ready WRITE events on startup of socket
             events |= EPOLLOUT;
         }
@@ -392,7 +392,7 @@ void epfd_info::decrease_ring_ref_count(ring *ring)
 
 /*
  * del_fd have two modes:
- * 1. not passthrough (default) - remove the fd from the epfd, both from OS epfd and VMA epfd
+ * 1. not passthrough (default) - remove the fd from the epfd, both from OS epfd and XLIO epfd
  * 2. passthrough - remove the fd as offloaded fd, and keep it only on OS epfd if it was there.
  *    this is a 1 way direction from both offloaded/not-offloaded to not-offloaded only.
  */
@@ -523,8 +523,8 @@ int epfd_info::mod_fd(int fd, epoll_event *event)
             events |= EPOLLIN;
         }
         if ((event->events & EPOLLOUT) && temp_sock_fd_api->is_writeable()) {
-            // MNY: udp_socket is always ready to write. Both VMA and the OS will notify it.
-            // Can't remove notification in VMA in case user decides to skip the OS using VMA
+            // MNY: udp_socket is always ready to write. Both XLIO and the OS will notify it.
+            // Can't remove notification in XLIO in case user decides to skip the OS using XLIO
             // params. Meaning: user will get 2 ready WRITE events on startup of socket
             events |= EPOLLOUT;
         }

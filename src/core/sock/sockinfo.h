@@ -135,8 +135,8 @@ typedef std::unordered_map<ip_addr, net_device_resources_t> rx_net_device_map_t;
 /*
  * Sockinfo setsockopt() return values
  */
-#define SOCKOPT_INTERNAL_VMA_SUPPORT 0 // Internal socket option, should not pass request to OS.
-#define SOCKOPT_NO_VMA_SUPPORT                                                                     \
+#define SOCKOPT_INTERNAL_XLIO_SUPPORT 0 // Internal socket option, should not pass request to OS.
+#define SOCKOPT_NO_XLIO_SUPPORT                                                                    \
     -1 // Socket option was found but not supported, error should be returned to user.
 #define SOCKOPT_PASS_TO_OS   1 // Should pass to TCP/UDP level or OS.
 #define SOCKOPT_HANDLE_BY_OS -2 // Pass the option also to the OS.
