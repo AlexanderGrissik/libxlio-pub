@@ -49,7 +49,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "config_parser.h"
-extern long __vma_config_line_num;
+extern long __xlio_config_line_num;
 %}
 %option nounput
 %option noinput
@@ -253,7 +253,7 @@ udp_connect {
 }
 
 \n {
-	__vma_config_line_num++;
+	__xlio_config_line_num++;
 #ifdef DEBUG
 	printf("LINE\n");
 #endif
@@ -262,7 +262,7 @@ udp_connect {
 }
 
 [#][^\n]* {
- 	__vma_config_line_num++;
+ 	__xlio_config_line_num++;
 }
 
 [ \t]+ {}
