@@ -108,8 +108,8 @@ enum {
 	OPT_NONBLOCKED,			// 9
 	OPT_DONTWARMUP,			//10
 	OPT_PREWARMUPWAIT,		//11
-	OPT_VMARXFILTERCB,		//12
-	OPT_VMAZCOPYREAD,		//13
+	OPT_XLIORXFILTERCB,		//12
+	OPT_XLIOZCOPYREAD,		//13
 	OPT_MC_LOOPBACK_DISABLE,	//14
 	OPT_CLIENT_WORK_WITH_SRV_NUM,   //15
 	OPT_FORCE_UC_REPLY,             //16
@@ -192,7 +192,7 @@ struct xlio_recvfrom_zcopy_packets_t* pkts = NULL;
 #endif
 
 int max_buff_size = 0;
-int vma_dgram_desc_size = 0;
+int xlio_dgram_desc_size = 0;
 unsigned char *pattern = NULL;
 unsigned int data_integrity_failed = 0;
 unsigned int duplicate_packets_counter = 0;
@@ -234,8 +234,8 @@ struct user_params_t {
 	bool is_blocked;
 	bool do_warmup;
 	unsigned int pre_warmup_wait;
-	bool is_vmarxfiltercb;
-	bool is_vmazcopyread;
+	bool is_xliorxfiltercb;
+	bool is_xliozcopyread;
 	unsigned long long cycle_duration_nsec;
 	bool mc_loop_disable;
 	int client_work_with_srv_num;
@@ -314,7 +314,7 @@ static void usage(const char *argv0)
 	printf("  --timeout=<msec>\t\tset select/poll/epoll timeout to <msec>, -1 for infinite (default is 10 msec)\n");
 	printf("  --mc_loopback_disable\t\tdisables mc loopback (default enables).\n");
 	printf("  --udp-buffer-size=<size>\tset udp buffer size to <size> bytes\n");
-	printf("  --vmazcopyread\t\tIf possible use XLIO's zero copy reads API (See XLIO's readme)\n");
+	printf("  --xliozcopyread\t\tIf possible use XLIO's zero copy reads API (See XLIO's readme)\n");
 	printf("  --daemonize\t\t\trun as daemon\n");
 	printf("  --nonblocked\t\t\topen non-blocked sockets\n");
 	printf("  --dontwarmup\t\t\tdon't send warm up packets on start\n");
@@ -328,7 +328,7 @@ static void usage(const char *argv0)
 	printf("  -s, --server\t\t\trun server (default - unicast)\n");
 	printf("  -B, --Bridge\t\t\trun in Bridge mode\n");
 	printf("  --threads-num=<N>\t\trun <N> threads on server side (requires '-f' option)\n");
-	printf("  --vmarxfiltercb\t\tIf possible use XLIO's receive path packet filter callback API (See XLIO's readme)\n");
+	printf("  --xliorxfiltercb\t\tIf possible use XLIO's receive path packet filter callback API (See XLIO's readme)\n");
 	printf("  --force_unicast_reply\t\tforce server to reply via unicast\n");
 	printf("Client:\n");
 	printf("  -c, --client\t\t\trun client\n");
@@ -685,8 +685,8 @@ void set_defaults()
 	user_params.is_blocked = true;
 	user_params.do_warmup = true;
 	user_params.pre_warmup_wait = 0;
-	user_params.is_vmarxfiltercb = false;
-	user_params.is_vmazcopyread = false;
+	user_params.is_xliorxfiltercb = false;
+	user_params.is_xliozcopyread = false;
 	user_params.cycle_duration_nsec = 0;	
 	debug_level = LOG_LVL_INFO;
 	user_params.mc_loop_disable = false;
@@ -1027,7 +1027,7 @@ static inline int msg_recvfrom(int fd, struct sockaddr_in *recvfrom_addr)
 
 #ifdef  USING_EXTRA_API
 
-	if (user_params.is_vmazcopyread && xlio_api) {
+	if (user_params.is_xliozcopyread && xlio_api) {
 		int flags = 0;
 
 		// Free previously received zero copied datagram
@@ -1930,8 +1930,8 @@ int main(int argc, char *argv[])
 			{.name = "nonblocked",		.has_arg = 0,   .val = OPT_NONBLOCKED },
 			{.name = "dontwarmup",		.has_arg = 0,   .val = OPT_DONTWARMUP },
 			{.name = "pre_warmup_wait",	.has_arg = 1,   .val = OPT_PREWARMUPWAIT },
-			{.name = "vmarxfiltercb",	.has_arg = 0,   .val = OPT_VMARXFILTERCB },
-			{.name = "vmazcopyread",	.has_arg = 0,   .val = OPT_VMAZCOPYREAD },
+			{.name = "xliorxfiltercb",	.has_arg = 0,   .val = OPT_XLIORXFILTERCB },
+			{.name = "xliozcopyread",	.has_arg = 0,   .val = OPT_XLIOZCOPYREAD },
 			{.name = "mc_loopback_disable",	.has_arg = 0,   .val = OPT_MC_LOOPBACK_DISABLE },
 			{.name = "srv_num",		.has_arg = 1,   .val = OPT_CLIENT_WORK_WITH_SRV_NUM },
 			{.name = "force_unicast_reply",	.has_arg = 0,   .val = OPT_FORCE_UC_REPLY},
@@ -2131,11 +2131,11 @@ int main(int argc, char *argv[])
 			}
 			user_params.pre_warmup_wait = pre_warmup_wait;
 			break;
-		case OPT_VMARXFILTERCB:
-			user_params.is_vmarxfiltercb = true;
+		case OPT_XLIORXFILTERCB:
+			user_params.is_xliorxfiltercb = true;
 			break;
-		case OPT_VMAZCOPYREAD:
-			user_params.is_vmazcopyread = true;
+		case OPT_XLIOZCOPYREAD:
+			user_params.is_xliozcopyread = true;
 			break;
 		case OPT_MC_LOOPBACK_DISABLE:
 			user_params.mc_loop_disable = true;
@@ -2229,8 +2229,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (user_params.mode == MODE_CLIENT && user_params.is_vmarxfiltercb) {
-		log_msg("--vmarxfiltercb can only work on server side");
+	if (user_params.mode == MODE_CLIENT && user_params.is_xliorxfiltercb) {
+		log_msg("--xliorxfiltercb can only work on server side");
 		return 1;
 	}
 
@@ -2255,7 +2255,7 @@ int main(int argc, char *argv[])
 		log_msg("Running as daemon");
 	}
 
-	if (user_params.is_vmarxfiltercb || user_params.is_vmazcopyread) {
+	if (user_params.is_xliorxfiltercb || user_params.is_xliozcopyread) {
 #ifdef  USING_EXTRA_API
 		// Get extended API
 		xlio_api = xlio_get_api();
@@ -2264,7 +2264,7 @@ int main(int argc, char *argv[])
 		else
 			log_msg("Extra API found - using VMA's receive zero copy and packet filter APIs");
 
-		vma_dgram_desc_size = sizeof(struct xlio_recvfrom_zcopy_packets_t) + sizeof(struct xlio_recvfrom_zcopy_packet_t) + sizeof(struct iovec) * 16;
+		xlio_dgram_desc_size = sizeof(struct xlio_recvfrom_zcopy_packets_t) + sizeof(struct xlio_recvfrom_zcopy_packet_t) + sizeof(struct iovec) * 16;
 #else
 		log_msg("This udp_lat version is not compiled with extra API");
 #endif
@@ -2312,7 +2312,7 @@ int main(int argc, char *argv[])
 		epfd = epoll_create(sockets_num);
 	}
 
-	max_buff_size = max(user_params.msg_size+1, vma_dgram_desc_size);
+	max_buff_size = max(user_params.msg_size+1, xlio_dgram_desc_size);
 	
 	if(user_params.msg_size_range > 0){
 		update_min_max_msg_sizes();
@@ -2320,7 +2320,7 @@ int main(int argc, char *argv[])
 	}
 	
 #ifdef  USING_EXTRA_API
-	if (user_params.is_vmazcopyread && xlio_api){
+	if (user_params.is_xliozcopyread && xlio_api){
 		   pkt_buf = malloc(max_buff_size);
 	}
 #endif

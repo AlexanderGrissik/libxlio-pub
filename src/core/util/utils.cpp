@@ -885,7 +885,7 @@ int run_and_retreive_system_command(const char *cmd_line, char *return_str, int 
     }
     BULLSEYE_EXCLUDE_BLOCK_END
 
-    // 29West may load vma dynamically (like sockperf with --load-vma)
+    // Load dynamically
     for (int i = 0; environ[i]; i++) {
         if (strstr(environ[i], "LD_PRELOAD=")) {
             environ[i][0] = '_';
