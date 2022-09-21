@@ -59,7 +59,7 @@ epoll_wait_call::epoll_wait_call(epoll_event *extra_events_buffer,
     if (!m_epfd_info || maxevents <= 0) {
         __log_dbg("error, epfd %d not found or maxevents <= 0 (=%d)", epfd, maxevents);
         errno = maxevents <= 0 ? EINVAL : EBADF;
-        vma_throw_object(io_mux_call::io_error);
+        xlio_throw_object(io_mux_call::io_error);
     }
 
     // create stats
@@ -213,7 +213,7 @@ bool epoll_wait_call::_wait(int timeout)
     }
 
     if (ready_fds < 0) {
-        vma_throw_object(io_mux_call::io_error);
+        xlio_throw_object(io_mux_call::io_error);
     }
 
     // convert the returned events to user events and mark offloaded fds

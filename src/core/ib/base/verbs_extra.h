@@ -140,7 +140,7 @@ typedef struct ibv_qp_init_attr xlio_ibv_qp_init_attr;
         NOT_IN_USE(_attr);                                                                         \
     }
 
-#define xlio_ibv_query_device(context, attr)  ibv_query_device(context, attr)
+#define xlio_ibv_query_device(context, attr)   ibv_query_device(context, attr)
 typedef xlio_ibv_device_attr xlio_ibv_device_attr_ex;
 #define xlio_get_device_orig_attr(device_attr) device_attr
 #endif
@@ -198,7 +198,7 @@ typedef struct ibv_values_ex vma_ts_values;
 #define xlio_ibv_wr_opcode          ibv_wr_opcode
 #define xlio_send_wr_opcode(wr)     (wr).opcode
 
-#define XLIO_IBV_WR_TSO               (xlio_ibv_wr_opcode) IBV_WR_TSO
+#define XLIO_IBV_WR_TSO                (xlio_ibv_wr_opcode) IBV_WR_TSO
 #define xlio_check_dev_attr_tso(_attr) 1
 #define xlio_get_tso_caps(_attr)       (((xlio_ibv_device_attr_ex *)(_attr))->tso_caps)
 #define xlio_ibv_qp_init_attr_tso(_attr, _max_tso_header)                                          \
@@ -305,7 +305,7 @@ typedef struct {
 #endif
 
 #ifdef DEFINED_IBV_PACKET_PACING_CAPS
-#define XLIO_IBV_QP_RATE_LIMIT             IBV_QP_RATE_LIMIT
+#define XLIO_IBV_QP_RATE_LIMIT              IBV_QP_RATE_LIMIT
 #define xlio_is_pacing_caps_supported(attr) (attr->packet_pacing_caps.qp_rate_limit_min)
 
 #ifdef DEFINED_IBV_QP_SUPPORT_BURST
