@@ -47,9 +47,9 @@
 #include <infiniband/verbs.h>
 
 #include "tcp/tcp_base.h"
-#include "vma_base.h"
+#include "xlio_base.h"
 
-class vma_send_zc : public vma_base, public tcp_base {
+class xlio_send_zc : public xlio_base, public tcp_base {
 protected:
     void SetUp()
     {
@@ -220,12 +220,12 @@ protected:
 };
 
 /**
- * @test vma_send_zc.ti_1
+ * @test xlio_send_zc.ti_1
  * @brief
  *    Wrong parameter getsockopt(SO_XLIO_PD)
  * @details
  */
-TEST_F(vma_send_zc, ti_1)
+TEST_F(xlio_send_zc, ti_1)
 {
     int rc = EOK;
 
@@ -297,12 +297,12 @@ TEST_F(vma_send_zc, ti_1)
 }
 
 /**
- * @test vma_send_zc.ti_2
+ * @test xlio_send_zc.ti_2
  * @brief
  *    Wrong parameter sendmsg(SOL_VMA_PD)
  * @details
  */
-TEST_F(vma_send_zc, ti_2)
+TEST_F(xlio_send_zc, ti_2)
 {
     int rc = EOK;
     char test_msg[] = "Hello test";
@@ -416,12 +416,12 @@ TEST_F(vma_send_zc, ti_2)
 }
 
 /**
- * @test vma_send_zc.ti_3
+ * @test xlio_send_zc.ti_3
  * @brief
  *    Send data using few sendmsg(MSG_ZEROCOPY)
  * @details
  */
-TEST_F(vma_send_zc, ti_3_few_send)
+TEST_F(xlio_send_zc, ti_3_few_send)
 {
     int rc = EOK;
     int test_iter = 3;
@@ -570,13 +570,13 @@ TEST_F(vma_send_zc, ti_3_few_send)
 }
 
 /**
- * @test vma_send_zc.ti_4
+ * @test xlio_send_zc.ti_4
  * @brief
  *    Send large data using sendmsg(MSG_ZEROCOPY) as
  *    single call
  * @details
  */
-TEST_F(vma_send_zc, ti_4_large_send)
+TEST_F(xlio_send_zc, ti_4_large_send)
 {
     int rc = EOK;
 

@@ -41,12 +41,12 @@
 #include "src/core/util/agent_def.h"
 #include "config.h"
 
-class vmad_init : public vmad_base {
+class xliod_init : public xliod_base {
 protected:
     void SetUp()
     {
         uint8_t *version;
-        vmad_base::SetUp();
+        xliod_base::SetUp();
 
         m_pid = 0x494E4954;
         memset(&m_data, 0, sizeof(m_data));
@@ -59,7 +59,7 @@ protected:
         version[2] = PRJ_LIBRARY_RELEASE;
         version[3] = PRJ_LIBRARY_REVISION;
     }
-    void TearDown() { vmad_base::TearDown(); }
+    void TearDown() { xliod_base::TearDown(); }
 
 protected:
     struct xlio_msg_init m_data;
@@ -67,12 +67,12 @@ protected:
 };
 
 /**
- * @test vmad_init.ti_1
+ * @test xliod_init.ti_1
  * @brief
- *    Send data less than (struct vma_hdr)
+ *    Send data less than (struct xlio_hdr)
  * @details
  */
-TEST_F(vmad_init, ti_1)
+TEST_F(xliod_init, ti_1)
 {
     int rc = 0;
     struct xlio_msg_init data;
@@ -89,12 +89,12 @@ TEST_F(vmad_init, ti_1)
 }
 
 /**
- * @test vmad_init.ti_2
+ * @test xliod_init.ti_2
  * @brief
- *    Send data less than (struct vma_msg_init)
+ *    Send data less than (struct xlio_msg_init)
  * @details
  */
-TEST_F(vmad_init, ti_2)
+TEST_F(xliod_init, ti_2)
 {
     int rc = 0;
     struct xlio_msg_init data;
@@ -111,12 +111,12 @@ TEST_F(vmad_init, ti_2)
 }
 
 /**
- * @test vmad_init.ti_3
+ * @test xliod_init.ti_3
  * @brief
  *    Send data with invalid header version
  * @details
  */
-TEST_F(vmad_init, ti_3)
+TEST_F(xliod_init, ti_3)
 {
     int rc = 0;
     struct xlio_msg_init data;
@@ -134,12 +134,12 @@ TEST_F(vmad_init, ti_3)
 }
 
 /**
- * @test vmad_init.ti_4
+ * @test xliod_init.ti_4
  * @brief
  *    Send valid VMA_MSG_INIT
  * @details
  */
-TEST_F(vmad_init, ti_4)
+TEST_F(xliod_init, ti_4)
 {
     int rc = 0;
     struct xlio_msg_init data;
@@ -159,12 +159,12 @@ TEST_F(vmad_init, ti_4)
 }
 
 /**
- * @test vmad_init.ti_5
+ * @test xliod_init.ti_5
  * @brief
  *    Send valid VMA_MSG_EXIT
  * @details
  */
-TEST_F(vmad_init, ti_5)
+TEST_F(xliod_init, ti_5)
 {
     int rc = 0;
     struct xlio_msg_exit data;

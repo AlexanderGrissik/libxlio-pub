@@ -41,7 +41,7 @@
 #include "src/core/util/agent_def.h"
 #include "config.h"
 
-void vmad_base::SetUp()
+void xliod_base::SetUp()
 {
     int rc = 0;
     int optval = 1;
@@ -50,9 +50,9 @@ void vmad_base::SetUp()
 
     errno = EOK;
     m_self_pid = getpid();
-    m_vmad_pid = sys_procpid("vmad");
-    m_base_name = "vma_gtest";
-    SKIP_TRUE((m_vmad_pid > 0), "This test requires VMA daemon running");
+    m_xliod_pid = sys_procpid("xliod");
+    m_base_name = "xlio_gtest";
+    SKIP_TRUE((m_xliod_pid > 0), "This test requires xlio daemon running");
 
     ASSERT_FALSE((mkdir(XLIO_AGENT_PATH, 0777) != 0) && (errno != EEXIST));
 
@@ -102,7 +102,7 @@ void vmad_base::SetUp()
     ASSERT_FALSE(rc < 0);
 }
 
-void vmad_base::TearDown()
+void xliod_base::TearDown()
 {
     close(m_sock_fd);
     unlink(m_sock_file);
@@ -111,7 +111,7 @@ void vmad_base::TearDown()
     unlink(m_pid_file);
 }
 
-int vmad_base::msg_init(pid_t pid)
+int xliod_base::msg_init(pid_t pid)
 {
     int rc = 0;
     struct xlio_msg_init data;
@@ -153,7 +153,7 @@ err:
     return rc;
 }
 
-int vmad_base::msg_exit(pid_t pid)
+int xliod_base::msg_exit(pid_t pid)
 {
     int rc = 0;
     struct xlio_msg_exit data;

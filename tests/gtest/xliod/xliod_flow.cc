@@ -40,13 +40,13 @@
 
 #include "src/core/util/agent_def.h"
 
-class vmad_flow : public vmad_base {
+class xliod_flow : public xliod_base {
 protected:
     struct xlio_msg_flow m_data;
     pid_t m_pid;
     int m_if;
     int m_tap;
-    vmad_flow()
+    xliod_flow()
     {
 
         char opt_val[IF_NAMESIZE];
@@ -70,17 +70,17 @@ protected:
 };
 
 /**
- * @test vmad_flow.ti_1
+ * @test xliod_flow.ti_1
  * @brief
  *    Send valid TCP 3tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
-TEST_F(vmad_flow, ti_1)
+TEST_F(xliod_flow, ti_1)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -110,22 +110,22 @@ TEST_F(vmad_flow, ti_1)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
 
 /**
- * @test vmad_flow.ti_2
+ * @test xliod_flow.ti_2
  * @brief
  *    Send valid TCP 5tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
-TEST_F(vmad_flow, ti_2)
+TEST_F(xliod_flow, ti_2)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -164,22 +164,22 @@ TEST_F(vmad_flow, ti_2)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
 
 /**
- * @test vmad_flow.ti_3
+ * @test xliod_flow.ti_3
  * @brief
  *    Send valid 3tuple XLIO_MSG_FLOW(ADD) and XLIO_MSG_FLOW(DEL)
  * @details
  */
-TEST_F(vmad_flow, ti_3)
+TEST_F(xliod_flow, ti_3)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -226,22 +226,22 @@ TEST_F(vmad_flow, ti_3)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
 
 /**
- * @test vmad_flow.ti_4
+ * @test xliod_flow.ti_4
  * @brief
  *    Send valid 5tuple XLIO_MSG_FLOW(ADD) and XLIO_MSG_FLOW(DEL)
  * @details
  */
-TEST_F(vmad_flow, ti_4)
+TEST_F(xliod_flow, ti_4)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -297,22 +297,22 @@ TEST_F(vmad_flow, ti_4)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
 
 /**
- * @test vmad_flow.ti_51
+ * @test xliod_flow.ti_51
  * @brief
  *    Send valid UDP 3tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
-TEST_F(vmad_flow, ti_5)
+TEST_F(xliod_flow, ti_5)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -342,22 +342,22 @@ TEST_F(vmad_flow, ti_5)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
 
 /**
- * @test vmad_flow.ti_6
+ * @test xliod_flow.ti_6
  * @brief
  *    Send valid UDP 5tuple XLIO_MSG_FLOW(ADD)
  * @details
  */
-TEST_F(vmad_flow, ti_6)
+TEST_F(xliod_flow, ti_6)
 {
     int rc = 0;
     struct xlio_hdr answer;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.hdr.status = 1;
@@ -396,6 +396,6 @@ TEST_F(vmad_flow, ti_6)
     EXPECT_EQ(m_pid, answer.pid);
     EXPECT_EQ(0, answer.status);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }

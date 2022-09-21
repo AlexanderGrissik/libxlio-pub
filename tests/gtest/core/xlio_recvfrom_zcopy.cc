@@ -35,25 +35,25 @@
 #include "common/sys.h"
 #include "common/base.h"
 #include "common/cmn.h"
-#include "src/vma/util/sock_addr.h"
+#include "src/xlio/util/sock_addr.h"
 
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
 #include "tcp/tcp_base.h"
 #include "udp/udp_base.h"
-#include "vma_base.h"
+#include "xlio_base.h"
 
-class vma_tcp_recvfrom_zcopy : public vma_base, public tcp_base {
+class xlio_tcp_recvfrom_zcopy : public xlio_base, public tcp_base {
 protected:
     void SetUp()
     {
-        uint64_t vma_extra_api_cap =
+        uint64_t xlio_extra_api_cap =
             XLIO_EXTRA_API_RECVFROM_ZCOPY | XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS;
 
-        vma_base::SetUp();
+        xlio_base::SetUp();
         tcp_base::SetUp();
 
-        SKIP_TRUE((xlio_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
+        SKIP_TRUE((xlio_api->cap_mask & xlio_extra_api_cap) == xlio_extra_api_cap,
                   "This test requires VMA capabilities as XLIO_EXTRA_API_RECVFROM_ZCOPY | "
                   "XLIO_EXTRA_API_RECVFROM_ZCOPY_FREE_PACKETS");
 
@@ -68,7 +68,7 @@ protected:
         }
 
         tcp_base::TearDown();
-        vma_base::TearDown();
+        xlio_base::TearDown();
     }
     void *create_tmp_buffer(size_t size, int *alloc_size = NULL)
     {
@@ -106,12 +106,12 @@ protected:
 };
 
 /**
- * @test vma_tcp_recvfrom_zcopy.ti_1
+ * @test xlio_tcp_recvfrom_zcopy.ti_1
  * @brief
  *    Check for passing small receive buffer
  * @details
  */
-TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
+TEST_F(xlio_tcp_recvfrom_zcopy, ti_1)
 {
     int rc = EOK;
     char test_msg[] = "Hello test";
@@ -163,9 +163,9 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
         struct sockaddr peer_addr;
         socklen_t socklen;
         int flags = 0;
-        size_t vma_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
+        size_t xlio_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
             sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec);
-        char buf[m_test_buf_size + vma_header_size];
+        char buf[m_test_buf_size + xlio_header_size];
 
         l_fd = tcp_base::sock_create();
         ASSERT_LE(0, l_fd);
@@ -186,11 +186,11 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
         log_trace("Accepted connection: fd=%d from %s\n", m_fd,
                   sys_addr2str((struct sockaddr *)&peer_addr));
 
-        rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size - 1, &flags, NULL, NULL);
+        rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, xlio_header_size - 1, &flags, NULL, NULL);
         EXPECT_EQ(-1, rc);
         EXPECT_TRUE(ENOBUFS == errno);
 
-        rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, vma_header_size, &flags, NULL, NULL);
+        rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, xlio_header_size, &flags, NULL, NULL);
         EXPECT_EQ(m_test_buf_size, rc);
         EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
 
@@ -201,12 +201,12 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_1)
 }
 
 /**
- * @test vma_tcp_recvfrom_zcopy.ti_2
+ * @test xlio_tcp_recvfrom_zcopy.ti_2
  * @brief
  *    Exchange single buffer
  * @details
  */
-TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
+TEST_F(xlio_tcp_recvfrom_zcopy, ti_2_recv_once)
 {
     int rc = EOK;
     char test_msg[] = "Hello test";
@@ -260,8 +260,8 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
         int flags = 0;
         char buf[m_test_buf_size + sizeof(xlio_recvfrom_zcopy_packets_t) +
                  sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec)];
-        struct xlio_recvfrom_zcopy_packets_t *vma_packets;
-        struct xlio_recvfrom_zcopy_packet_t *vma_packet;
+        struct xlio_recvfrom_zcopy_packets_t *xlio_packets;
+        struct xlio_recvfrom_zcopy_packet_t *xlio_packet;
 
         l_fd = tcp_base::sock_create();
         ASSERT_LE(0, l_fd);
@@ -285,21 +285,21 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
         rc = xlio_api->recvfrom_zcopy(m_fd, (void *)buf, sizeof(buf), &flags, NULL, NULL);
         EXPECT_EQ(m_test_buf_size, rc);
         EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
-        vma_packets = (struct xlio_recvfrom_zcopy_packets_t *)buf;
-        EXPECT_EQ(1U, vma_packets->n_packet_num);
-        vma_packet =
+        xlio_packets = (struct xlio_recvfrom_zcopy_packets_t *)buf;
+        EXPECT_EQ(1U, xlio_packets->n_packet_num);
+        xlio_packet =
             (struct xlio_recvfrom_zcopy_packet_t *)(buf +
                                                     sizeof(struct xlio_recvfrom_zcopy_packets_t));
-        EXPECT_EQ(1U, vma_packet->sz_iov);
-        EXPECT_EQ(static_cast<size_t>(m_test_buf_size), vma_packet->iov[0].iov_len);
+        EXPECT_EQ(1U, xlio_packet->sz_iov);
+        EXPECT_EQ(static_cast<size_t>(m_test_buf_size), xlio_packet->iov[0].iov_len);
 
         log_trace("Test check: expected: '%s' actual: '%s'\n", m_test_buf,
-                  (char *)vma_packet->iov[0].iov_base);
+                  (char *)xlio_packet->iov[0].iov_base);
 
-        EXPECT_EQ(memcmp(vma_packet->iov[0].iov_base, m_test_buf, m_test_buf_size), 0);
+        EXPECT_EQ(memcmp(xlio_packet->iov[0].iov_base, m_test_buf, m_test_buf_size), 0);
 
-        rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts,
-                                                   vma_packets->n_packet_num);
+        rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, xlio_packets->pkts,
+                                                   xlio_packets->n_packet_num);
         EXPECT_EQ(0, rc);
 
         close(m_fd);
@@ -309,12 +309,12 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_2_recv_once)
 }
 
 /**
- * @test vma_tcp_recvfrom_zcopy.ti_3
+ * @test xlio_tcp_recvfrom_zcopy.ti_3
  * @brief
  *    Exchange large data
  * @details
  */
-TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
+TEST_F(xlio_tcp_recvfrom_zcopy, ti_3_large_data)
 {
     int rc = EOK;
     struct {
@@ -378,8 +378,8 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
             socklen_t socklen;
             int flags = 0;
             char buf[1024];
-            struct xlio_recvfrom_zcopy_packets_t *vma_packets;
-            struct xlio_recvfrom_zcopy_packet_t *vma_packet;
+            struct xlio_recvfrom_zcopy_packets_t *xlio_packets;
+            struct xlio_recvfrom_zcopy_packet_t *xlio_packet;
             struct iovec *vec;
             int efd;
             struct epoll_event event;
@@ -427,22 +427,22 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
                         EXPECT_LT(0, rc);
                         EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
                         total_len += rc;
-                        vma_packets = (struct xlio_recvfrom_zcopy_packets_t *)ptr;
-                        for (n = 0; n < (int)vma_packets->n_packet_num; n++) {
+                        xlio_packets = (struct xlio_recvfrom_zcopy_packets_t *)ptr;
+                        for (n = 0; n < (int)xlio_packets->n_packet_num; n++) {
                             packet_len = 0;
                             ptr += sizeof(struct xlio_recvfrom_zcopy_packets_t);
-                            vma_packet = (struct xlio_recvfrom_zcopy_packet_t *)ptr;
+                            xlio_packet = (struct xlio_recvfrom_zcopy_packet_t *)ptr;
                             ptr += sizeof(struct xlio_recvfrom_zcopy_packet_t);
                             vec = (struct iovec *)ptr;
-                            for (j = 0; j < (int)vma_packet->sz_iov; j++) {
+                            for (j = 0; j < (int)xlio_packet->sz_iov; j++) {
                                 packet_len += vec[j].iov_len;
                             }
                             log_trace("packet[%d]: packet_id=%p sz_iov=%ld len=%d\n", n,
-                                      vma_packet->packet_id, vma_packet->sz_iov, packet_len);
+                                      xlio_packet->packet_id, xlio_packet->sz_iov, packet_len);
                         }
 
-                        rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, vma_packets->pkts,
-                                                                   vma_packets->n_packet_num);
+                        rc = xlio_api->recvfrom_zcopy_free_packets(m_fd, xlio_packets->pkts,
+                                                                   xlio_packets->n_packet_num);
                         EXPECT_EQ(0, rc);
                     }
                 }
@@ -459,13 +459,13 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti_3_large_data)
 }
 
 /**
- * @test vma_tcp_recvfrom_zcopy.mapped_ipv4
+ * @test xlio_tcp_recvfrom_zcopy.mapped_ipv4
  * @brief
  *    IPv6 mapped IPv4 receive
  *
  * @details
  */
-TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
+TEST_F(xlio_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
 {
     if (!test_mapped_ipv4()) {
         return;
@@ -523,9 +523,9 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
                     if (0 <= fd) {
                         log_trace("Accepted connection: fd=%d\n", fd);
 
-                        size_t vma_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
+                        size_t xlio_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
                             sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec);
-                        char buf[8 + vma_header_size];
+                        char buf[8 + xlio_header_size];
 
                         int flags = 0;
                         sockaddr_store_t peer_addr;
@@ -538,11 +538,11 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
                         EXPECT_EQ(8, rc);
                         EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
                         if (rc > 0) {
-                            xlio_recvfrom_zcopy_packets_t *vma_packets =
+                            xlio_recvfrom_zcopy_packets_t *xlio_packets =
                                 reinterpret_cast<xlio_recvfrom_zcopy_packets_t *>(buf);
 
-                            rc = xlio_api->recvfrom_zcopy_free_packets(fd, vma_packets->pkts,
-                                                                       vma_packets->n_packet_num);
+                            rc = xlio_api->recvfrom_zcopy_free_packets(fd, xlio_packets->pkts,
+                                                                       xlio_packets->n_packet_num);
                             EXPECT_EQ(0, rc);
                         }
 
@@ -559,13 +559,13 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4)
 }
 
 /**
- * @test vma_tcp_recvfrom_zcopy.mapped_ipv4_udp
+ * @test xlio_tcp_recvfrom_zcopy.mapped_ipv4_udp
  * @brief
  *    IPv6 mapped IPv4 receive
  *
  * @details
  */
-TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4_udp)
+TEST_F(xlio_tcp_recvfrom_zcopy, ti5_mapped_ipv4_udp)
 {
     if (!test_mapped_ipv4()) {
         return;
@@ -615,9 +615,9 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4_udp)
 
                 barrier_fork(pid);
 
-                size_t vma_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
+                size_t xlio_header_size = sizeof(xlio_recvfrom_zcopy_packets_t) +
                     sizeof(xlio_recvfrom_zcopy_packet_t) + sizeof(iovec);
-                char buf[8 + vma_header_size];
+                char buf[8 + xlio_header_size];
 
                 int flags = 0;
                 sockaddr_store_t peer_addr;
@@ -629,11 +629,11 @@ TEST_F(vma_tcp_recvfrom_zcopy, ti5_mapped_ipv4_udp)
                 EXPECT_EQ(8, rc);
                 EXPECT_TRUE(flags & MSG_XLIO_ZCOPY);
                 if (rc > 0) {
-                    xlio_recvfrom_zcopy_packets_t *vma_packets =
+                    xlio_recvfrom_zcopy_packets_t *xlio_packets =
                         reinterpret_cast<xlio_recvfrom_zcopy_packets_t *>(buf);
 
-                    rc = xlio_api->recvfrom_zcopy_free_packets(fd, vma_packets->pkts,
-                                                               vma_packets->n_packet_num);
+                    rc = xlio_api->recvfrom_zcopy_free_packets(fd, xlio_packets->pkts,
+                                                               xlio_packets->n_packet_num);
                     EXPECT_EQ(0, rc);
                 }
             }

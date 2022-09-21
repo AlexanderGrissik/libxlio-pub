@@ -40,15 +40,15 @@
 
 #include "tools/daemon/bitmap.h"
 
-class vmad_bitmap : public ::testing::Test {
+class xliod_bitmap : public ::testing::Test {
 };
 
-TEST_F(vmad_bitmap, ti_1)
+TEST_F(xliod_bitmap, ti_1)
 {
     ASSERT_EQ(4U, sizeof(bitmap_item_t));
 }
 
-TEST_F(vmad_bitmap, ti_2)
+TEST_F(xliod_bitmap, ti_2)
 {
     bitmap_t *bm = NULL;
 
@@ -59,7 +59,7 @@ TEST_F(vmad_bitmap, ti_2)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_3)
+TEST_F(xliod_bitmap, ti_3)
 {
     bitmap_t *bm = NULL;
 
@@ -78,7 +78,7 @@ TEST_F(vmad_bitmap, ti_3)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_4)
+TEST_F(xliod_bitmap, ti_4)
 {
     bitmap_t *bm = NULL;
     int bits[] = {0, 7, 31, 32, 64};
@@ -96,7 +96,7 @@ TEST_F(vmad_bitmap, ti_4)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_5)
+TEST_F(xliod_bitmap, ti_5)
 {
     bitmap_t *bm = NULL;
     int bits[] = {0, 7, 31, 32, 64};
@@ -116,7 +116,7 @@ TEST_F(vmad_bitmap, ti_5)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_6)
+TEST_F(xliod_bitmap, ti_6)
 {
     bitmap_t *bm = NULL;
     int bits[] = {0, 7, 31, 32, 64};
@@ -140,7 +140,7 @@ TEST_F(vmad_bitmap, ti_6)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_7)
+TEST_F(xliod_bitmap, ti_7)
 {
     bitmap_t *bm = NULL;
 
@@ -162,7 +162,7 @@ TEST_F(vmad_bitmap, ti_7)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_8)
+TEST_F(xliod_bitmap, ti_8)
 {
     bitmap_t *bm = NULL;
 
@@ -184,7 +184,7 @@ TEST_F(vmad_bitmap, ti_8)
     bitmap_destroy(bm);
 }
 
-TEST_F(vmad_bitmap, ti_9)
+TEST_F(xliod_bitmap, ti_9)
 {
     bitmap_t *bm = NULL;
     int i;

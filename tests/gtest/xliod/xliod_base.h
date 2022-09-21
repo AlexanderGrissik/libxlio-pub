@@ -36,7 +36,7 @@
 /**
  * VMAD Base class for tests
  */
-class vmad_base : public testing::Test, public test_base {
+class xliod_base : public testing::Test, public test_base {
 protected:
     virtual void SetUp();
     virtual void TearDown();
@@ -46,7 +46,7 @@ protected:
 
 protected:
     pid_t m_self_pid;
-    pid_t m_vmad_pid;
+    pid_t m_xliod_pid;
 
     const char *m_base_name;
 

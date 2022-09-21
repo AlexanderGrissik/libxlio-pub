@@ -38,29 +38,29 @@
 
 #if defined(EXTRA_API_ENABLED) && (EXTRA_API_ENABLED == 1)
 
-#include "vma_base.h"
+#include "xlio_base.h"
 
-class vma_ioctl : public vma_base {
+class xlio_ioctl : public xlio_base {
 protected:
     void SetUp()
     {
-        uint64_t vma_extra_api_cap = XLIO_EXTRA_API_IOCTL;
+        uint64_t xlio_extra_api_cap = XLIO_EXTRA_API_IOCTL;
 
-        vma_base::SetUp();
+        xlio_base::SetUp();
 
-        SKIP_TRUE((xlio_api->cap_mask & vma_extra_api_cap) == vma_extra_api_cap,
+        SKIP_TRUE((xlio_api->cap_mask & xlio_extra_api_cap) == xlio_extra_api_cap,
                   "This test requires VMA capabilities as XLIO_EXTRA_API_IOCTL");
     }
-    void TearDown() { vma_base::TearDown(); }
+    void TearDown() { xlio_base::TearDown(); }
 };
 
 /**
- * @test vma_ioctl.ti_1
+ * @test xlio_ioctl.ti_1
  * @brief
  *    CMSG_XLIO_IOCTL_USER_ALLOC command message format check
  * @details
  */
-TEST_F(vma_ioctl, ti_1)
+TEST_F(xlio_ioctl, ti_1)
 {
     int rc = EOK;
     int fd;

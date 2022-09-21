@@ -41,11 +41,11 @@
 #include "src/core/util/agent_def.h"
 #include "src/core/lwip/tcp.h"
 
-class vmad_state : public vmad_base {
+class xliod_state : public xliod_base {
 protected:
     void SetUp()
     {
-        vmad_base::SetUp();
+        xliod_base::SetUp();
 
         m_pid = 0x53544154;
         memset(&m_data, 0, sizeof(m_data));
@@ -53,7 +53,7 @@ protected:
         m_data.hdr.ver = XLIO_AGENT_VER;
         m_data.hdr.pid = m_pid;
     }
-    void TearDown() { vmad_base::TearDown(); }
+    void TearDown() { xliod_base::TearDown(); }
 
 protected:
     struct xlio_msg_state m_data;
@@ -61,16 +61,16 @@ protected:
 };
 
 /**
- * @test vmad_state.ti_1
+ * @test xliod_state.ti_1
  * @brief
  *    Send valid VMA_MSG_STATE
  * @details
  */
-TEST_F(vmad_state, ti_1)
+TEST_F(xliod_state, ti_1)
 {
     int rc = 0;
 
-    rc = vmad_base::msg_init(m_pid);
+    rc = xliod_base::msg_init(m_pid);
     ASSERT_LT(0, rc);
 
     m_data.fid = 0;
@@ -100,6 +100,6 @@ TEST_F(vmad_state, ti_1)
     EXPECT_EQ(0, errno);
     EXPECT_EQ((int)sizeof(m_data), rc);
 
-    rc = vmad_base::msg_exit(m_pid);
+    rc = xliod_base::msg_exit(m_pid);
     ASSERT_LT(0, rc);
 }
