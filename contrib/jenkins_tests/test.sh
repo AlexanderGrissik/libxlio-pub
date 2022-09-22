@@ -131,11 +131,11 @@ for test_link in $test_ip_list; do
 				vutil="$(dirname $0)/vutil.sh"
 				[ ! -e "${vutil}" ] && { echo "error vutil not found" ; exit 1 ; }
 
-				${sudo_cmd} $timeout_exe ${vutil}  -a "${test_app}" -x "--load-xlio=${test_lib} " -t "${test}:tc[1-9]$" \
+				${sudo_cmd} $timeout_exe ${vutil}  -a "${test_app}" -x "--load-vma=${test_lib} " -t "${test}:tc[1-9]$" \
 						-s "${test_remote_ip}" -p "${test_remote_port}" -l "${test_dir}/${test_name}.log" \
 						-e "XLIO_TX_BUFS=20000 XLIO_RX_BUFS=20000"
 			else
-				${sudo_cmd} $timeout_exe $PWD/tests/verifier/verifier.pl -a ${test_app} -x " --load-xlio=$test_lib " \
+				${sudo_cmd} $timeout_exe $PWD/tests/verifier/verifier.pl -a ${test_app} -x " --load-vma=$test_lib " \
 					-t ${test}:tc[1-9]$ -s ${test_ip} -l ${test_dir}/${test_name}.log \
 					-e " XLIO_TX_BUFS=20000 XLIO_RX_BUFS=20000 " \
 					--progress=0
