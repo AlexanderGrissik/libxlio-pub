@@ -1,3 +1,14 @@
+Version 2.0.5-1:
+Date + Time 2022-09-22
+=============================================================
+Added:
+        - RM #3120089 Rename vma string by xlio
+Fixed:
+        - RM #3215653 Fix corrupted TLS1.3 zerocopy records
+        - RM #3190144 Fix TCP timer timeout calculation
+        - RM #3213178 Not to choose IPv4-Mapped as src
+        - RM #3197112 Fixing IPv6 addr selection longest prefix match
+
 Version 2.0.4-1:
 Date + Time 2022-09-14
 =============================================================
