@@ -37,7 +37,7 @@ All of the configurable parameters are described along with their default parame
 Exchange side printout:
 =======================
 
-[odeds@hail18 Debug]$ XLIO_RX_POLL=-1 LD_PRELOAD=/.autodirect/mtrswgwork/odeds/workspace/vma/6.1/last/src/vma/.libs/libxlio.so exchange -l 1.1.1.18
+[odeds@hail18 Debug]$ XLIO_RX_POLL=-1 LD_PRELOAD=<path to>/libxlio.so exchange -l 1.1.1.18
  XLIO INFO   : -------------------------------------------------
  XLIO INFO   : Version: 6.1.7.0
  XLIO INFO   : Current Time: Thu May  3 15:28:26 2012
@@ -119,7 +119,7 @@ BW(Gbps)= 0.135, MPS=     90898
 Trader side printout:
 =====================
 
-[odeds@hail19 Debug]$ XLIO_RX_POLL=-1 LD_PRELOAD=/.autodirect/mtrswgwork/odeds/workspace/vma/6.1/last/src/vma/.libs/libxlio.so ./trader -l 1.1.1.19 -ua 1.1.1.18
+[odeds@hail19 Debug]$ XLIO_RX_POLL=-1 LD_PRELOAD=<path to>/libxlio.so ./trader -l 1.1.1.19 -ua 1.1.1.18
  XLIO INFO   : -------------------------------------------------
  XLIO INFO   : Version: 6.1.7.0
  XLIO INFO   : Current Time: Thu May  3 15:28:57 2012

@@ -17,7 +17,7 @@ kubernetes:
 volumes:
   - {mountPath: /hpc/local/bin, hostPath: /hpc/local/bin}
   - {mountPath: /hpc/local/oss, hostPath: /hpc/local/oss}
-  - {mountPath: /hpc/local/oss/vma, hostPath: /hpc/local/oss/vma}
+  - {mountPath: /hpc/local/oss/xlio, hostPath: /hpc/local/oss/xlio}
   - {mountPath: /auto/sw_tools/Commercial, hostPath: /auto/sw_tools/Commercial}
   - {mountPath: /hpc/local/commercial, hostPath: /hpc/local/commercial}
   - {mountPath: /hpc/local/etc/modulefiles, hostPath: /hpc/local/etc/modulefiles}
