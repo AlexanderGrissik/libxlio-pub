@@ -347,8 +347,7 @@ public:
             iov[0].iov_base = m_p_data;
             iov[0].iov_len = TLS_RECORD_HDR_LEN + (is_tls13 ? 0 : TLS_RECORD_IV_LEN);
             iov[1].iov_base = m_p_zc_data;
-            iov[1].iov_len =
-                m_size - (is_tls13 ? TLS_13_RECORD_OVERHEAD + 1 : TLS_12_RECORD_OVERHEAD);
+            iov[1].iov_len = m_size - (is_tls13 ? TLS_13_RECORD_OVERHEAD : TLS_12_RECORD_OVERHEAD);
             iov[2].iov_base = m_p_data + iov[0].iov_len;
             iov[2].iov_len = TLS_RECORD_TAG_LEN + !!is_tls13;
         } else {
