@@ -931,6 +931,7 @@ void tcp_pcb_init(struct tcp_pcb *pcb, u8_t prio, void *container)
     memset(pcb, 0, sizeof(*pcb));
     pcb->my_container = container;
     pcb->max_snd_buff = TCP_SND_BUF;
+    pcb->is_last_seg_dropped = false;
     pcb->prio = prio;
     pcb->snd_buf = pcb->max_snd_buff;
     pcb->snd_queuelen = 0;

@@ -1622,6 +1622,17 @@ err_t tcp_output(struct tcp_pcb *pcb)
     LWIP_DEBUGF(TCP_CWND_DEBUG,
                 ("tcp_output: snd_wnd %" U32_F ", cwnd %" U32_F ", wnd %" U32_F "\n", pcb->snd_wnd,
                  pcb->cwnd, wnd));
+
+    if (pcb->is_last_seg_dropped && pcb->unacked && !pcb->unacked->next) {
+        /* Forcibly retransmit segment from the unacked queue if it was dropped
+         * on the previous iteration.
+         */
+        pcb->is_last_seg_dropped = false;
+        pcb->unacked->next = pcb->unsent;
+        pcb->unsent = pcb->unacked;
+        pcb->unacked = NULL;
+        pcb->last_unacked = NULL;
+    }
     seg = pcb->unsent;
 
     /* If the TF_ACK_NOW flag is set and no data will be sent (either
@@ -1738,6 +1749,11 @@ err_t tcp_output(struct tcp_pcb *pcb)
                  * retry with the next tcp_output(). We must have at least one unacked
                  * segment in this case or RTO would be broken otherwise. */
                 break;
+            }
+            if (rc == ERR_WOULDBLOCK) {
+                /* Mark that the segment is dropped, so we can retransmit it during
+                 * the next iteration. */
+                pcb->is_last_seg_dropped = true;
             }
 
             pcb->unsent = seg->next;

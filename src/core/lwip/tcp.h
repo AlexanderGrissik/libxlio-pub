@@ -243,6 +243,7 @@ struct tcp_pcb {
     /** TCP specific PCB members */
 
     enum tcp_state private_state; /* TCP state - should only be touched thru get/set functions */
+    bool is_last_seg_dropped;
     u8_t prio;
     void *callback_arg;
     void *my_container;
