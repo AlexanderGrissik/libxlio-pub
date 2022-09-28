@@ -1415,7 +1415,7 @@ neigh_eth::neigh_eth(neigh_key key)
     neigh_logdbg("");
     m_rdma_port_space = RDMA_PS_UDP;
 
-    if (IN_MULTICAST_N(key.get_in_addr())) {
+    if (key.get_ip_addr().is_mc()) {
         // This is Multicast neigh
         m_type = MC;
         build_mc_neigh_val();
@@ -1649,7 +1649,7 @@ bool neigh_eth::send_arp_request(bool is_broadcast)
 
     eth_arp_hdr *p_arphdr = (eth_arp_hdr *)(p_mem_buf_desc->p_buffer +
                                             h.m_transport_header_tx_offset + h.m_total_hdr_len);
-    set_eth_arp_hdr(p_arphdr, m_src_addr.get_in_addr(), get_key().get_in_addr(),
+    set_eth_arp_hdr(p_arphdr, m_src_addr.get_in_addr(), get_key().get_ip_addr().get_in_addr(),
                     m_p_dev->get_l2_address()->get_address(), peer_mac);
 
     m_sge.addr = (uintptr_t)(p_mem_buf_desc->p_buffer + (uint8_t)h.m_transport_header_tx_offset);

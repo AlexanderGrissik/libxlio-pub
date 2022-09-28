@@ -64,7 +64,7 @@ public:
     {
         return (m_ip_addrs.to_str() + " " + m_p_net_dev_val->to_str());
     }
-    in_addr_t get_in_addr() const { return m_ip_addrs.get_in_addr(); };
+
     const ip_addr &get_ip_addr() const { return m_ip_addrs; };
     net_device_val *get_net_device_val() const { return m_p_net_dev_val; };
 
