@@ -38,6 +38,8 @@
 #include "util/if.h"
 #include <net/if_arp.h>
 #include <sys/epoll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <algorithm>
 
 #include "utils/bullseye.h"
@@ -1422,6 +1424,9 @@ int sockinfo_udp::setsockopt(int __level, int __optname, __const void *__optval,
             }
             return 0;
         } break;
+        case IPV6_RECVPKTINFO:
+            m_b_pktinfo = __optval != nullptr && *(int *)__optval != 0;
+            break;
         }
         break; // case IPPROTO_IPV6
     default: {
@@ -1847,28 +1852,36 @@ out:
 
 void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
 {
-    struct in_pktinfo in_pktinfo;
     mem_buf_desc_t *p_desc = m_rx_pkt_ready_list.front();
 
     // ip_pktinfo is IPv4 only. See IPV6_RECVPKTINFO option and in6_pktinfo structure for IPv6.
-    if (!p_desc || p_desc->rx.dst.get_sa_family() != AF_INET) {
+    if (!p_desc) {
         return;
     }
 
-    in_pktinfo.ipi_ifindex = p_desc->rx.udp.ifindex;
-    in_pktinfo.ipi_addr.s_addr = p_desc->rx.dst.get_ip_addr().get_in_addr();
-    if (!p_desc->rx.dst.is_mc()) {
-        in_pktinfo.ipi_spec_dst = in_pktinfo.ipi_addr;
-    } else {
-        in_pktinfo.ipi_spec_dst.s_addr = 0;
-        for (auto iter = m_rx_nd_map.begin(); iter != m_rx_nd_map.end(); ++iter) {
-            if (iter->second.p_ndv->get_if_idx() == in_pktinfo.ipi_ifindex) {
-                in_pktinfo.ipi_spec_dst.s_addr = iter->first.get_in_addr();
-                break;
+    if (p_desc->rx.dst.get_sa_family() == AF_INET) {
+        struct in_pktinfo pktinfo;
+        pktinfo.ipi_ifindex = p_desc->rx.udp.ifindex;
+        pktinfo.ipi_addr.s_addr = p_desc->rx.dst.get_ip_addr().get_in_addr();
+        if (!p_desc->rx.dst.is_mc()) {
+            pktinfo.ipi_spec_dst = pktinfo.ipi_addr;
+        } else {
+            pktinfo.ipi_spec_dst.s_addr = 0;
+            for (auto iter = m_rx_nd_map.begin(); iter != m_rx_nd_map.end(); ++iter) {
+                if (iter->second.p_ndv->get_if_idx() == pktinfo.ipi_ifindex) {
+                    pktinfo.ipi_spec_dst.s_addr = iter->first.get_in_addr();
+                    break;
+                }
             }
         }
+        insert_cmsg(cm_state, IPPROTO_IP, IP_PKTINFO, &pktinfo, sizeof(pktinfo));
+    } else if (p_desc->rx.dst.get_sa_family() == AF_INET6) {
+        struct in6_pktinfo pktinfo {
+            p_desc->rx.dst.get_ip_addr().get_in6_addr(),
+                static_cast<unsigned int>(p_desc->rx.udp.ifindex)
+        };
+        insert_cmsg(cm_state, IPPROTO_IPV6, IPV6_PKTINFO, &pktinfo, sizeof(pktinfo));
     }
-    insert_cmsg(cm_state, IPPROTO_IP, IP_PKTINFO, &in_pktinfo, sizeof(struct in_pktinfo));
 }
 
 // This function is relevant only for non-blocking socket
