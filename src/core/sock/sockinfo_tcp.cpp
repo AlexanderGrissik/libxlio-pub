@@ -4771,13 +4771,16 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
         m_p_socket_stats->n_rx_zcopy_pkt_count++;
 
         if (len < 0 && p_desc_iter) {
+            // Update length of right side of chain after split - push to pkt_ready_list
             p_desc_iter->rx.sz_payload = p_desc_iter->lwip_pbuf.pbuf.tot_len =
                 prev->lwip_pbuf.pbuf.tot_len - prev->lwip_pbuf.pbuf.len;
-            /* TODO:
-             * After the split we create inconsistency in pbuf.tot_len in the left part.
-             * We need to reduce tot_len for every buffer in the left list or we mustn't
-             * rely on the values after a split operation.
-             */
+
+            // Update length of left side of chain after split - return to app
+            mem_buf_desc_t *p_desc_head = reinterpret_cast<mem_buf_desc_t *>(p_pkts->packet_id);
+            // XXX TODO: subsequent buffers are not updated
+            p_desc_head->lwip_pbuf.pbuf.tot_len = p_desc_head->rx.sz_payload -=
+                p_desc_iter->rx.sz_payload;
+
             p_desc_iter->rx.n_frags = --prev->rx.n_frags;
             p_desc_iter->rx.src = prev->rx.src;
             p_desc_iter->inc_ref_count();
