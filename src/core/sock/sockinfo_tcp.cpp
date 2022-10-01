@@ -517,6 +517,7 @@ bool sockinfo_tcp::prepare_to_close(bool process_shutdown /* = false */)
         m_p_socket_stats->n_rx_ready_byte_count -= p_rx_pkt_desc->rx.sz_payload;
         reuse_buffer(p_rx_pkt_desc);
     }
+    m_rx_pkt_ready_offset = 0;
 
     while (!m_rx_ctl_packets_list.empty()) {
         /* coverity[double_lock] TODO: RM#1049980 */
