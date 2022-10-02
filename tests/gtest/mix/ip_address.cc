@@ -339,9 +339,8 @@ TEST_F(ip_address_test, mapped_ipv4)
     EXPECT_TRUE(ip_mapped.is_mapped_ipv4());
     EXPECT_TRUE(ip_mapped.to_str(AF_INET6) == "[::ffff:127.1.128.1]");
 
-    ip_address to_mapped;
     ip_address sa1_4(m_addr4.m_1);
-    sa1_4.to_mapped_ipv4(to_mapped);
+    ip_address to_mapped(sa1_4.to_mapped_ipv4());
     EXPECT_TRUE(to_mapped.is_mapped_ipv4());
     EXPECT_TRUE(to_mapped.to_str(AF_INET6) == "[::ffff:153.153.170.170]");
 }

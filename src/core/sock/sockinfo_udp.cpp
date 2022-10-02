@@ -1854,12 +1854,16 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
 {
     mem_buf_desc_t *p_desc = m_rx_pkt_ready_list.front();
 
-    // ip_pktinfo is IPv4 only. See IPV6_RECVPKTINFO option and in6_pktinfo structure for IPv6.
     if (!p_desc) {
         return;
     }
 
-    if (p_desc->rx.dst.get_sa_family() == AF_INET) {
+    sa_family_t rx_family = p_desc->rx.dst.get_sa_family();
+    if (rx_family != AF_INET6 && rx_family != AF_INET) {
+        return;
+    }
+
+    if (get_family() == AF_INET && rx_family == AF_INET) {
         struct in_pktinfo pktinfo;
         pktinfo.ipi_ifindex = p_desc->rx.udp.ifindex;
         pktinfo.ipi_addr.s_addr = p_desc->rx.dst.get_ip_addr().get_in_addr();
@@ -1875,10 +1879,12 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
             }
         }
         insert_cmsg(cm_state, IPPROTO_IP, IP_PKTINFO, &pktinfo, sizeof(pktinfo));
-    } else if (p_desc->rx.dst.get_sa_family() == AF_INET6) {
+    } else if (get_family() == AF_INET6) {
+        ip_address addr_ipv6 = rx_family == AF_INET6
+            ? p_desc->rx.dst.get_ip_addr()
+            : p_desc->rx.dst.get_ip_addr().to_mapped_ipv4();
         struct in6_pktinfo pktinfo {
-            p_desc->rx.dst.get_ip_addr().get_in6_addr(),
-                static_cast<unsigned int>(p_desc->rx.udp.ifindex)
+            addr_ipv6.get_in6_addr(), static_cast<unsigned int>(p_desc->rx.udp.ifindex)
         };
         insert_cmsg(cm_state, IPPROTO_IPV6, IPV6_PKTINFO, &pktinfo, sizeof(pktinfo));
     }

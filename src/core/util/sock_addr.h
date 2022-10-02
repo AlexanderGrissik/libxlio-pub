@@ -137,8 +137,7 @@ public:
                 sa6->sin6_scope_id = 0U;
                 sa6->sin6_family = AF_INET6;
                 sa6->sin6_port = get_in_port();
-
-                get_ip_addr().to_mapped_ipv4(*reinterpret_cast<ip_address *>(&(sa6->sin6_addr)));
+                sa6->sin6_addr = get_ip_addr().to_mapped_ipv4().get_in6_addr();
             } else if (sa) {
                 memset(sa, 0, size);
             }
