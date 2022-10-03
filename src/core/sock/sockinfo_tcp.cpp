@@ -4729,7 +4729,7 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
 {
     NOT_IN_USE(p_flags);
     int total_rx = 0, offset = 0;
-    int len = p_iov[0].iov_len - sizeof(xlio_recvfrom_zcopy_packets_t) -
+    int len = (int)p_iov[0].iov_len - sizeof(xlio_recvfrom_zcopy_packets_t) -
         sizeof(xlio_recvfrom_zcopy_packet_t) - sizeof(iovec);
     mem_buf_desc_t *p_desc_iter;
     mem_buf_desc_t *prev;
@@ -4782,12 +4782,12 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
             p_desc_head->lwip_pbuf.pbuf.tot_len = p_desc_head->rx.sz_payload -=
                 p_desc_iter->rx.sz_payload;
 
-            p_desc_iter->rx.n_frags = --prev->rx.n_frags;
+            p_desc_iter->rx.n_frags = p_desc_head->rx.n_frags - p_pkts->sz_iov;
+            p_desc_head->rx.n_frags = p_pkts->sz_iov;
             p_desc_iter->rx.src = prev->rx.src;
             p_desc_iter->inc_ref_count();
             prev->lwip_pbuf.pbuf.next = NULL;
             prev->p_next_desc = NULL;
-            prev->rx.n_frags = 1;
 
             m_rx_pkt_ready_list.push_front(p_desc_iter);
             break;
