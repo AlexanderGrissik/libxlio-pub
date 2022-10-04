@@ -174,6 +174,67 @@ TEST_F(tcp_sockopt, ti_1_getsockopt_tcp_info)
     test_lambda();
 }
 
+/**
+ * @test tcp_sockopt.ti_2_tcp_congestion
+ * @brief
+ *    TCP_CONGESTION option to change and check congestion control mechanism.
+ * @details
+ */
+TEST_F(tcp_sockopt, ti_2_tcp_congestion)
+{
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    ASSERT_LE(0, fd);
+
+    char buf[16];
+    socklen_t len = 0;
+    int rc = getsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, buf, &len);
+    EXPECT_EQ(0, rc);
+    EXPECT_EQ(0U, len);
+
+#if 0
+    // XLIO isn't complient with kernel in this case
+    rc = getsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, NULL, &len);
+    EXPECT_EQ(0, rc);
+    EXPECT_EQ(0U, len);
+#endif
+
+    rc = getsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, buf, NULL);
+    EXPECT_EQ(-1, rc);
+    EXPECT_EQ(EFAULT, errno);
+
+    rc = setsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, buf, 0);
+    EXPECT_EQ(-1, rc);
+    EXPECT_EQ(EINVAL, errno);
+
+#if 0
+    // XLIO isn't complient with kernel in this case
+    rc = setsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, NULL, 0);
+    EXPECT_EQ(-1, rc);
+    EXPECT_EQ(EINVAL, errno);
+#endif
+
+    rc = setsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, NULL, 5);
+    EXPECT_EQ(-1, rc);
+    EXPECT_EQ(EFAULT, errno);
+
+    // Assume reno is supported everywhere
+    snprintf(buf, sizeof(buf), "reno");
+    // Note, len doesn't include terminating '\0'
+    len = strlen(buf);
+    rc = setsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, buf, len);
+    EXPECT_EQ(0, rc);
+    if (rc == 0) {
+        len = sizeof(buf);
+        rc = getsockopt(fd, IPPROTO_TCP, TCP_CONGESTION, buf, &len);
+        EXPECT_EQ(0, rc);
+        EXPECT_LT(0U, len);
+    }
+    if (rc == 0) {
+        std::string cc_name(buf, strnlen(buf, len));
+        EXPECT_EQ(std::string("reno"), cc_name);
+    }
+}
+
 class tcp_set_get_sockopt : public ::testing::Test {
 protected:
     void SetUp() override
