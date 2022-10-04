@@ -224,7 +224,7 @@ public:
         return _hash(m_ip6_64[0] ^ m_ip6_64[1]);
     }
 
-    ip_address to_mapped_ipv4(void) const
+    ip_address to_mapped_ipv4() const
     {
         ip_address out = any_addr();
         uint16_t *addr_ptr = reinterpret_cast<uint16_t *>(&out.m_ip6);

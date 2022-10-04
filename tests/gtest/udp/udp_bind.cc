@@ -30,6 +30,7 @@
  * SOFTWARE.
  */
 
+#include <functional>
 #include "common/def.h"
 #include "common/log.h"
 #include "common/sys.h"
@@ -470,5 +471,109 @@ TEST_F(udp_bind, mapped_ipv4_bind_v6only)
         EXPECT_EQ(errno, EINVAL);
 
         close(fd);
+    }
+}
+
+const std::string to_str(int family, const void *addr)
+{
+    char buffer[INET6_ADDRSTRLEN];
+
+    return std::string(inet_ntop(family, addr, buffer, sizeof(buffer)));
+}
+
+class pktinfo : public udp_base {
+public:
+    char buffer[100] = {0};
+    const std::string expected_server_addr_string;
+
+    pktinfo()
+        : udp_base()
+        , expected_server_addr_string(server_addr.addr.sa_family == AF_INET6
+                                          ? to_str(AF_INET6, &server_addr.addr6.sin6_addr)
+                                          : to_str(AF_INET, &server_addr.addr4.sin_addr)) {};
+
+    void server_func(int child_pid, std::function<void(int)> code_under_test)
+    {
+        /* The server socket is an IPv6 socket that can accept both IPv6 and IPv4 connections */
+        int fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP);
+        EXPECT_GT(fd, 0) << "Socket failed to open";
+
+        sockaddr_store_t server_any_sockaddr = {
+            .addr6 = {
+                .sin6_family = AF_INET6,
+                .sin6_port = server_addr.addr.sa_family == AF_INET ? server_addr.addr4.sin_port
+                                                                   : server_addr.addr6.sin6_port,
+                .sin6_flowinfo = 0,
+                .sin6_addr = IN6ADDR_ANY_INIT, // in6addr_any;
+                .sin6_scope_id = 0,
+            }};
+
+        EXPECT_EQ(bind(fd, &server_any_sockaddr.addr, sizeof(server_any_sockaddr)), 0)
+            << "Address not bound";
+
+        barrier_fork(child_pid);
+
+        code_under_test(fd);
+
+        close(fd);
+    };
+
+    void client_func()
+    {
+        barrier_fork(0);
+        int fd = socket(client_addr.addr.sa_family, SOCK_DGRAM, IPPROTO_IP);
+
+        EXPECT_GT(fd, 0) << "Socket failed to open";
+        EXPECT_EQ(bind(fd, &client_addr.addr, sizeof(client_addr)), 0) << "Address not bound";
+        EXPECT_EQ(connect(fd, &server_addr.addr, sizeof(server_addr)), 0)
+            << "Connection not established";
+
+        EXPECT_GT(send(fd, buffer, sizeof(buffer), 0), 0) << "Failed to send data";
+
+        close(fd);
+        exit(testing::Test::HasFailure());
+    };
+};
+
+/**
+ * @test pktinfo.check_recvmsg_returns_expected_pktinfo
+ * @brief
+ * @details
+ */
+TEST_F(pktinfo, check_recvmsg_returns_expected_pktinfo)
+{
+    int pid = fork();
+    if (0 == pid) { /* Child-client code */
+        client_func();
+    } else { /* parent-server */
+        std::function<void(int)> server_code_under_test = [&](int fd) {
+            int on = 1;
+            ASSERT_EQ(setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on)), 0)
+                << "Setsockopt failed";
+
+            char cbuf[40];
+            iovec vec {.iov_base = buffer, .iov_len = sizeof(buffer)};
+            struct msghdr msg {
+                &client_addr.addr, sizeof(client_addr.addr), &vec, 1U, cbuf, sizeof(cbuf), 0
+            };
+
+            ASSERT_GT(recvmsg(fd, &msg, 0), 0) << "Failed to receive the msg";
+
+            struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+
+            ASSERT_NE(cmsg, nullptr) << "No cmsg";
+            ASSERT_EQ(cmsg->cmsg_level, SOL_IPV6) << "Wrong cmsg level";
+            ASSERT_EQ(cmsg->cmsg_type, IPV6_PKTINFO) << "Wrong cmsg type";
+
+            auto actual_server_addr_string = to_str(
+                AF_INET6, &reinterpret_cast<struct in6_pktinfo *>(CMSG_DATA(cmsg))->ipi6_addr);
+
+            ASSERT_TRUE(actual_server_addr_string.find(expected_server_addr_string) !=
+                        std::string::npos)
+                << "Wrong address expected = " << expected_server_addr_string
+                << "actual = " << actual_server_addr_string;
+        };
+
+        server_func(pid, server_code_under_test);
     }
 }
