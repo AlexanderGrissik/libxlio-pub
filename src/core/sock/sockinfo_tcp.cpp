@@ -3946,6 +3946,38 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
             errno = ENOPROTOOPT;
             ret = -1;
             break;
+        case TCP_CONGESTION:
+            if (__optval && __optlen > 0) {
+                std::string cc_name((const char *)__optval,
+                                    strnlen((const char *)__optval, __optlen));
+                si_tcp_logdbg("TCP_CONGESTION value: %s", cc_name.c_str());
+#if TCP_CC_ALGO_MOD
+                struct cc_algo *algo = nullptr;
+                if (cc_name == "reno" || cc_name == "newreno") {
+                    algo = &lwip_cc_algo;
+                } else if (cc_name == "cubic") {
+                    algo = &cubic_cc_algo;
+                } else if (cc_name == "none") {
+                    algo = &none_cc_algo;
+                }
+                if (algo) {
+                    lock_tcp_con();
+                    cc_destroy(&m_pcb);
+                    m_pcb.cc_algo = algo;
+                    cc_init(&m_pcb);
+                    cc_conn_init(&m_pcb);
+                    unlock_tcp_con();
+                } else {
+                    errno = ENOENT;
+                    ret = -1;
+                }
+#endif
+            } else {
+                // Meet Linux kernel behavior:
+                errno = __optlen == 0 ? EINVAL : EFAULT;
+                ret = -1;
+            }
+            break;
         case TCP_USER_TIMEOUT: {
             unsigned int user_timeout_ms = *(unsigned int *)__optval;
             si_tcp_logdbg("TCP_USER_TIMEOUT value: %u", user_timeout_ms);
@@ -4252,6 +4284,25 @@ int sockinfo_tcp::getsockopt_offload(int __level, int __optname, void *__optval,
             memcpy(__optval, &ti, len);
             *__optlen = len;
             ret = 0;
+            break;
+        case TCP_CONGESTION:
+            const char *cc_name;
+            socklen_t cc_len;
+#if TCP_CC_ALGO_MOD
+            cc_name = m_pcb.cc_algo ? m_pcb.cc_algo->name : "<NULL>";
+#else
+            cc_name = "lwip";
+#endif
+            if (strcmp(cc_name, "lwip") == 0) {
+                // LwIP implements Reno mechanism by default.
+                cc_name = "reno";
+            }
+
+            cc_len = std::min<socklen_t>(strlen(cc_name) + 1, *__optlen);
+            strncpy((char *)__optval, cc_name, cc_len);
+            *__optlen = cc_len;
+            ret = 0;
+            // XLIO doesn't meet Linux kernel behavior if (__optval == NULL && __optlen != NULL).
             break;
         case TCP_USER_TIMEOUT:
             if (*__optlen >= sizeof(unsigned int)) {
