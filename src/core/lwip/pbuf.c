@@ -84,10 +84,10 @@
  *
  * @note Despite its name, pbuf_realloc cannot grow the size of a pbuf (chain).
  */
-void pbuf_realloc(struct pbuf *p, u16_t new_len)
+void pbuf_realloc(struct pbuf *p, u32_t new_len)
 {
     struct pbuf *q;
-    u16_t rem_len; /* remaining length */
+    u32_t rem_len; /* remaining length */
     s32_t grow;
 
     LWIP_ASSERT("pbuf_realloc: p != NULL", p != NULL);
@@ -111,7 +111,6 @@ void pbuf_realloc(struct pbuf *p, u16_t new_len)
         /* decrease remaining length by pbuf length */
         rem_len -= q->len;
         /* decrease total length indicator */
-        LWIP_ASSERT("grow < max_u16_t", grow < 0xffff);
         q->tot_len += grow;
         /* proceed to next pbuf in chain */
         q = q->next;
@@ -156,7 +155,7 @@ void pbuf_realloc(struct pbuf *p, u16_t new_len)
  *
  * @return non-zero on failure, zero on success.
  */
-u8_t pbuf_header(struct pbuf *p, s16_t header_size_increment)
+u8_t pbuf_header(struct pbuf *p, s32_t header_size_increment)
 {
     LWIP_ASSERT("p != NULL", p != NULL);
 
@@ -165,7 +164,7 @@ u8_t pbuf_header(struct pbuf *p, s16_t header_size_increment)
     }
 
     /* Check that we aren't going to move off the end of the pbuf */
-    if (header_size_increment < 0 && (u16_t)(-header_size_increment) > p->len) {
+    if (header_size_increment < 0 && (-header_size_increment) > (s32_t)p->len) {
         return 1;
     }
 
@@ -176,7 +175,7 @@ u8_t pbuf_header(struct pbuf *p, s16_t header_size_increment)
     p->tot_len += header_size_increment;
 
     LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE,
-                ("pbuf_header: new %p (%" S16_F ")\n", (void *)p->payload, header_size_increment));
+                ("pbuf_header: new %p (%" S32_F ")\n", (void *)p->payload, header_size_increment));
 
     return 0;
 }
