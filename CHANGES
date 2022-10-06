@@ -1,3 +1,14 @@
+Version 2.0.6-1:
+Date + Time 2022-10-06
+=============================================================
+Fixed:
+        - RM #3217614 Fix IPv6 MC address check in neigh_eth
+        - RM #3132299 Fix buffer length in zero copy
+        - RM #3202977 Fix type overflow during trimming TCP seg
+        - RM #3139461 Implement TCP_CONGESTION option
+        - RM #3217442 Handle IPV6_RECVPKTINFO setsockopt option
+        - RM #2842211 Don't leave unacked empty on send failure
+
 Version 2.0.5-1:
 Date + Time 2022-09-22
 =============================================================

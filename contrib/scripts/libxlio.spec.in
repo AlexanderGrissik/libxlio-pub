@@ -204,6 +204,8 @@ fi
 %{_mandir}/man8/xlio_stats.*
 
 %changelog
+* Thu Oct  6 2022 Alexander Grissik <agrissik@nvidia.com> 2.0.6-1
+- Bump version to 2.0.6
 * Wed Sep 22 2022 Alexander Grissik <agrissik@nvidia.com> 2.0.5-1
 - Bump version to 2.0.5
 * Wed Sep 14 2022 Alexander Grissik <agrissik@nvidia.com> 2.0.4-1
