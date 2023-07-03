@@ -247,6 +247,17 @@ public:
         NOT_IN_USE(first);
     }
 
+    virtual void nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba, unsigned block_size,
+                                        const struct mlx5_wqe_umr_klm_seg *iov, unsigned iov_len)
+    {
+        NOT_IN_USE(mkey);
+        NOT_IN_USE(dek);
+        NOT_IN_USE(lba);
+        NOT_IN_USE(block_size);
+        NOT_IN_USE(iov);
+        NOT_IN_USE(iov_len);
+    }
+
     virtual void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)
     {
         NOT_IN_USE(id);
@@ -263,6 +274,8 @@ public:
 
     struct tcp_seg *get_tcp_segs(uint32_t num);
     void put_tcp_segs(struct tcp_seg *seg);
+
+    static void poll_local_rings();
 
 protected:
     inline void set_parent(ring *parent) { m_parent = (parent ? parent : this); }

@@ -78,6 +78,46 @@ extern global_stats_t g_global_stat_static;
 tcp_timers_collection *g_tcp_timers_collection = NULL;
 thread_local thread_local_tcp_timers g_thread_local_tcp_timers;
 
+thread_local std::vector<sockinfo_tcp *> express_dirty_sockets;
+thread_local class express_mkeys_t
+{
+public:
+    enum {
+        EXPRESS_MKEY_NR = 4,
+    };
+
+    express_mkeys_t()
+    {
+        mkey_idx = 0;
+        memset(mkeys, 0, sizeof(mkeys));
+    }
+    ~express_mkeys_t()
+    {
+        for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+            if (mkeys[i] != nullptr)
+                delete mkeys[i];
+        }
+    }
+    void setup(dpcp::adapter *adapter)
+    {
+        if (mkeys[0] != nullptr)
+            return;
+
+        for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+            dpcp::status status = adapter->create_crypto_mkey(mkeys[i]);
+            assert(status == dpcp::DPCP_OK);
+            NOT_IN_USE(status);
+        }
+    }
+    inline dpcp::crypto_mkey *get_mkey()
+    {
+        return mkeys[mkey_idx++ % EXPRESS_MKEY_NR];
+    }
+private:
+    unsigned mkey_idx;
+    dpcp::crypto_mkey *mkeys[EXPRESS_MKEY_NR];
+} express_mkeys;
+
 /*
  * The following socket options are inherited by a connected TCP socket from the listening socket:
  * SO_DEBUG, SO_DONTROUTE, SO_KEEPALIVE, SO_LINGER, SO_OOBINLINE, SO_RCVBUF, SO_RCVLOWAT, SO_SNDBUF,
@@ -373,6 +413,17 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         }
     }
 
+    express_dst_entry_tcp = nullptr;
+    express_event_cb = nullptr;
+    express_rx_cb = nullptr;
+    express_zc_cb = nullptr;
+    express_opaque_sq = nullptr;
+    express_dek = nullptr;
+    express_dek_id = 0;
+    express_iov_nr = 0;
+    express_iov_size = 0;
+    express_lba = 0;
+
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
     }
@@ -424,6 +475,10 @@ sockinfo_tcp::~sockinfo_tcp()
     }
 
     unlock_tcp_con();
+
+    if (express_rx_cb) {
+        express_teardown();
+    }
 
     if (m_n_rx_pkt_ready_list_count || m_rx_ready_byte_count || m_rx_pkt_ready_list.size() ||
         m_rx_ring_map.size() || m_rx_reuse_buff.n_buff_num || m_rx_reuse_buff.rx_reuse.size() ||
@@ -703,6 +758,7 @@ void sockinfo_tcp::create_dst_entry()
         }
 
         m_p_connected_dst_entry->set_src_sel_prefs(m_src_sel_flags);
+        express_dst_entry_tcp = (dst_entry_tcp *)m_p_connected_dst_entry;
     }
 }
 
@@ -1229,7 +1285,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
     tcp_iovec lwip_iovec[max_count];
     xlio_send_attr attr = {(xlio_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
     int count = 0;
-    void *cur_end;
+//    void *cur_end;
 
     int rc = p_si_tcp->m_ops->postrouting(p, seg, attr);
     if (rc != 0) {
@@ -1267,6 +1323,7 @@ zc_fill_iov:
      * Assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works.
      */
     while (p && (count < max_count)) {
+/* XXX Disable compat for Express POC
         cur_end =
             (void *)((uint64_t)lwip_iovec[count].iovec.iov_base + lwip_iovec[count].iovec.iov_len);
         if ((p->desc.attr == PBUF_DESC_NONE) && (cur_end == p->payload) &&
@@ -1275,11 +1332,12 @@ zc_fill_iov:
              (uintptr_t)((uint64_t)p->payload & p_si_tcp->m_user_huge_page_mask))) {
             lwip_iovec[count].iovec.iov_len += p->len;
         } else {
+*/
             count++;
             lwip_iovec[count].iovec.iov_base = p->payload;
             lwip_iovec[count].iovec.iov_len = p->len;
             lwip_iovec[count].p_desc = (mem_buf_desc_t *)p;
-        }
+//        }
         attr.length += p->len;
         p = p->next;
     }
@@ -1370,6 +1428,11 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
          * the main thread to mitigate ring lock contention.
          */
         p_si_tcp->reset_ops();
+        if (p_si_tcp->express_event_cb) {
+            // XXX Disable TERMINATED event, because it's not expected by nvmf
+            //p_si_tcp->express_event_cb(p_si_tcp->express_opaque_sq, EXPRESS_EVENT_TERMINATED);
+            p_si_tcp->express_event_cb = nullptr;
+        }
     }
 
     /* Update daemon about actual state for offloaded connection */
@@ -3731,6 +3794,7 @@ void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)
 err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
 {
     sockinfo_tcp *conn = (sockinfo_tcp *)arg;
+    bool connected;
     NOT_IN_USE(tpcb);
 
     __log_dbg("connect cb: arg=%p, pcp=%p err=%d", arg, tpcb, err);
@@ -3745,6 +3809,9 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
         // tcp_si_logdbg("conn timeout");
         conn->m_error_status = ETIMEDOUT;
         conn->unlock_tcp_con();
+        if (conn->express_event_cb) {
+            conn->express_event_cb(conn->express_opaque_sq, EXPRESS_EVENT_ERROR);
+        }
         return ERR_OK;
     }
     if (err == ERR_OK) {
@@ -3759,6 +3826,7 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
         conn->m_error_status = ECONNREFUSED;
         conn->m_conn_state = TCP_CONN_FAILED;
     }
+    connected = conn->m_conn_state == TCP_CONN_CONNECTED;
 
     NOTIFY_ON_EVENTS(conn, EPOLLOUT);
     // OLG: Now we should wakeup all threads that are sleeping on this socket.
@@ -3768,6 +3836,10 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
     conn->m_p_socket_stats->connected_port = conn->m_connected.get_in_port();
 
     conn->unlock_tcp_con();
+
+    if (conn->express_event_cb) {
+        conn->express_event_cb(conn->express_opaque_sq, connected ? EXPRESS_EVENT_ESTABLISHED : EXPRESS_EVENT_ERROR);
+    }
 
     return ERR_OK;
 }
@@ -5538,7 +5610,8 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
     if (likely(p_dst)) {
         p_desc = p_dst->get_buffer(type, desc);
         if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
-            ((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
+            ((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_EXPRESS) ||
+             (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
              (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MKEY) ||
              p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NVME_TX)) {
             /* Prepare error queue fields for send zerocopy */
@@ -5988,4 +6061,274 @@ int sockinfo_tcp::get_supported_nvme_feature_mask() const
         return false;
     }
     return p_ring->get_supported_nvme_feature_mask();
+}
+
+void sockinfo_tcp::express_setup(struct express_socket_attr *attr)
+{
+    express_event_cb = attr->event_cb;
+    express_rx_cb = attr->rx_cb;
+    express_zc_cb = attr->zc_cb;
+    express_opaque_sq = attr->opaque_sq;
+    express_block_size = attr->block_size_bytes ?: 512U;
+
+    sockinfo_tcp::fcntl(F_SETFL, O_NONBLOCK);
+    tcp_recv(&m_pcb, sockinfo_tcp::express_rx_lwip_cb);
+}
+
+int sockinfo_tcp::express_postsetup(struct express_socket_attr *attr)
+{
+    if (attr->keylen == 0) {
+        return 0;
+    }
+
+    /*
+     * Configure AES_XTS crypto:
+     * - Create DEK per socket.
+     * - For now, allocate EXPRESS_MKEY_NR mkeys per socket and use them in
+     *   round-robin. In happy path, we expect that socket is ready to post
+     *   SEND WQEs in tcp_output(), so we don't need too many mkeys per socket.
+     *   An mkey cen be reused if the SEND WQE is posted to SQ (because
+     *   WQEs are handled in order and we put a fence).
+     *
+     * TODO:
+     * - A DEK can be shared.
+     * - Make a thread-local pool of mkeys.
+     */
+
+    express_tx_ring = get_tx_ring();
+    ib_ctx_handler *ctx = express_tx_ring->get_ctx(0);
+    dpcp::adapter *adapter = ctx->get_dpcp_adapter();
+    bool hastag = attr->keylen == 72 || attr->keylen == 40;
+
+    dpcp::dek::attr dek_attr = {
+        .flags = (uint32_t)((hastag * dpcp::DEK_ATTR_HAS_KEYTAG) | dpcp::DEK_ATTR_AES_XTS),
+        .key = attr->key,
+        .key_size_bytes = attr->keylen < 64U ? 16U : 32U,
+        .pd_id = adapter->get_pd(),
+        .opaque = 0
+    };
+    dpcp::status status = adapter->create_dek(dek_attr, express_dek);
+    assert(status == dpcp::DPCP_OK);
+    express_dek_id = express_dek->get_key_id();
+
+    express_mkeys.setup(adapter);
+
+    NOT_IN_USE(status);
+    return 0;
+}
+
+void sockinfo_tcp::express_teardown()
+{
+    if (!express_dek) {
+        return;
+    }
+
+    delete express_dek;
+}
+
+int sockinfo_tcp::express_tx(const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op)
+{
+    err_t err;
+
+    pbuf_desc mdesc;
+    mdesc.attr = PBUF_DESC_EXPRESS;
+    mdesc.express_mkey = mkey;
+    mdesc.opaque = nullptr;
+
+    /* TODO
+     * Verify that XLIO can create a single WQE with both header and payload.
+     */
+
+    if (flags & EXPRESS_SEND_FLAG_CRYPTO) {
+        assert(express_iov_nr + iov_len <= ARRAY_SIZE(express_iov_buf));
+        for (unsigned i = 0; i < iov_len; ++i) {
+            express_iov_buf[express_iov_nr].byte_count = iov[i].iov_len;
+            express_iov_buf[express_iov_nr].mkey = mkey;
+            express_iov_buf[express_iov_nr].address = (uint64_t)iov->iov_base;
+            ++express_iov_nr;
+            express_iov_size += iov[i].iov_len;
+        }
+        if (flags & MSG_MORE) {
+            return 0;
+        }
+
+        bool granted = express_tx_ring->credits_get((express_iov_size + 4095U) / 4096U * 4U);
+        assert(granted);
+        /* XXX TODO Handle failure properly */
+        if (!granted) {
+            return -1;
+        }
+
+        unsigned len = 0;
+        unsigned reminder;
+        unsigned crypto_iov_len = 0;
+        unsigned crypto_iov_size;
+        struct mlx5_wqe_umr_klm_seg *crypto_iov = &express_iov_buf[0];
+        for (unsigned i = 0; i < express_iov_nr; ++i) {
+            uint32_t mkey_id;
+
+            len += express_iov_buf[i].byte_count;
+            ++crypto_iov_len;
+repeat:
+            if (len < 4096 && i < express_iov_nr - 1) {
+                continue;
+            }
+
+            reminder = (unsigned)std::max<int>((int)len - 4096, 0);
+            crypto_iov_size = len - reminder;
+            express_iov_buf[i].byte_count -= reminder;
+
+            express_mkeys.get_mkey()->get_id(mkey_id);
+            express_tx_ring->nvme_crypto_mkey_setup(mkey_id, express_dek_id, express_lba,
+                                                    express_block_size, crypto_iov, crypto_iov_len);
+            express_lba += crypto_iov_size / express_block_size;
+            mdesc.express_mkey = mkey_id;
+            if (i == express_iov_nr - 1) {
+                mdesc.opaque = opaque_op;
+            }
+            lock_tcp_con();
+            err = tcp_write_zc(&m_pcb, NULL, crypto_iov_size, &mdesc);
+            unlock_tcp_con();
+            if (unlikely(err != ERR_OK)) {
+                return -1;
+            }
+
+            if (reminder) {
+                crypto_iov = &express_iov_buf[i];
+                crypto_iov->address += crypto_iov->byte_count;
+                crypto_iov->byte_count = reminder;
+                crypto_iov_len = 1U;
+                len = reminder;
+                goto repeat;
+            } else {
+                crypto_iov = &express_iov_buf[i + 1];
+                crypto_iov_len = 0;
+                crypto_iov_size = 0;
+                len = 0;
+            }
+        }
+
+        express_iov_nr = 0;
+        express_iov_size = 0;
+
+        if (m_pcb.last_unsent->len + 4096U + 64U > lwip_zc_tx_size) {
+            lock_tcp_con();
+            tcp_output(&m_pcb);
+            unlock_tcp_con();
+        } else {
+            if (!express_dirty) {
+                express_dirty = true;
+                express_dirty_sockets.push_back(this);
+            }
+        }
+
+        return 0;
+    }
+
+    lock_tcp_con();
+    for (unsigned i = 0; i < iov_len - 1; ++i) {
+        err = tcp_write_zc(&m_pcb, iov[i].iov_base, iov[i].iov_len, &mdesc);
+        assert(err == ERR_OK);
+    }
+    /* Assign opaque only to the last chunk. So, only the last pbuf will generate zerocopy completion. */
+    mdesc.opaque = opaque_op;
+    err = tcp_write_zc(&m_pcb, iov[iov_len - 1].iov_base, iov[iov_len - 1].iov_len, &mdesc);
+
+    if (!(flags & MSG_MORE)) {
+/*
+        err = tcp_output(&m_pcb);
+        assert(err == ERR_OK);
+*/
+        if (!express_dirty) {
+            express_dirty = true;
+            express_dirty_sockets.push_back(this);
+        }
+    }
+    unlock_tcp_con();
+
+    NOT_IN_USE(err);
+    return 0;
+}
+
+/* static */
+void sockinfo_tcp::express_flush_dirty_sockets()
+{
+    while (!express_dirty_sockets.empty()) {
+        sockinfo_tcp *si = express_dirty_sockets.back();
+        express_dirty_sockets.pop_back();
+        tcp_output(&si->m_pcb);
+        si->express_dirty = false;
+    }
+    g_thread_local_event_handler.do_tasks();
+}
+
+void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
+{
+    lock_tcp_con();
+    tcp_recved(&m_pcb, buf->lwip_pbuf.pbuf.len);
+    reuse_buffer(buf);
+    unlock_tcp_con();
+}
+
+/* static */
+struct pbuf *sockinfo_tcp::express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(((struct tcp_pcb *)p_conn)->my_container);
+    mem_buf_desc_t *p_desc = si->express_dst_entry_tcp->get_buffer(type, desc);
+
+    if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY)) {
+        if (unlikely(p_buff)) {
+            p_buff->desc.opaque = NULL; // To avoid early ZC completion callback
+        }
+        p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
+        p_desc->tx.zc.ctx = si;
+        p_desc->tx.zc.callback = sockinfo_tcp::express_tx_zc_callback;
+    }
+    return reinterpret_cast<struct pbuf *>(p_desc);
+}
+
+/* static */
+void sockinfo_tcp::express_tx_zc_callback(mem_buf_desc_t *p_desc)
+{
+    if (p_desc->lwip_pbuf.pbuf.desc.opaque && p_desc->tx.zc.ctx) {
+        sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(p_desc->tx.zc.ctx);
+        si->express_zc_cb(si->express_opaque_sq, p_desc->lwip_pbuf.pbuf.desc.opaque);
+    }
+}
+
+/* static */
+err_t sockinfo_tcp::express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
+{
+    sockinfo_tcp *conn = reinterpret_cast<sockinfo_tcp *>(arg);
+
+    NOT_IN_USE(pcb);
+    NOT_IN_USE(err);
+
+    if (unlikely(!p)) {
+        return conn->handle_fin(pcb, err);
+    }
+    if (unlikely(err != ERR_OK)) {
+        conn->handle_rx_lwip_cb_error(p);
+        /* TODO event? */
+        return err;
+    }
+
+    /*
+     * RCVBUFF Accounting: tcp_recved here(stream into the 'internal' buffer) only if the user
+     * buffer is not 'filled'
+     * XXX This is complicated logic and needs deeper understanding...
+     */
+    int rcv_buffer_space = std::max(
+        0, conn->m_rcvbuff_max - conn->m_rcvbuff_current - (int)conn->m_pcb.rcv_wnd_max_desired);
+    uint32_t bytes_to_tcp_recved = std::min(rcv_buffer_space, (int)p->tot_len);
+    conn->m_rcvbuff_current += p->tot_len;
+    conn->rx_lwip_shrink_rcv_wnd(p->tot_len, bytes_to_tcp_recved);
+
+    while (p) {
+        conn->express_rx_cb(conn->express_opaque_sq, p->payload, p->len,
+                            &reinterpret_cast<mem_buf_desc_t *>(p)->express);
+        p = p->next;
+    }
+
+    return 0;
 }

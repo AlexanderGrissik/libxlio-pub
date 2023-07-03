@@ -224,8 +224,7 @@ extern tcp_state_observer_fn external_tcp_state_observer;
 #define UPDATE_PCB_BY_MSS(pcb, snd_mss)                                                            \
     (pcb)->mss = (snd_mss);                                                                        \
     (pcb)->max_tcp_snd_queuelen = (16 * ((pcb)->max_snd_buff) / ((pcb)->mss));                     \
-    (pcb)->max_unsent_len = (16 * ((pcb)->max_snd_buff) / ((pcb)->mss));                           \
-    (pcb)->tcp_oversize_val = (pcb)->mss;
+    (pcb)->max_unsent_len = (16 * ((pcb)->max_snd_buff) / ((pcb)->mss));
 
 /* the TCP protocol control block */
 struct tcp_pcb {
@@ -343,7 +342,6 @@ struct tcp_pcb {
 #if TCP_OVERSIZE
     /* Extra bytes available at the end of the last pbuf in unsent. */
     u16_t unsent_oversize;
-    u16_t tcp_oversize_val;
 #endif /* TCP_OVERSIZE */
     u16_t max_unsent_len;
 
@@ -477,6 +475,7 @@ err_t tcp_shutdown(struct tcp_pcb *pcb, int shut_rx, int shut_tx);
 
 err_t tcp_write(struct tcp_pcb *pcb, const void *dataptr, u32_t len, u16_t apiflags,
                 pbuf_desc *desc);
+err_t tcp_write_zc(struct tcp_pcb *pcb, const void *dataptr, u32_t len, pbuf_desc *desc);
 
 #define TCP_PRIO_MIN    1
 #define TCP_PRIO_NORMAL 64

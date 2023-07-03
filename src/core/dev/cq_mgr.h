@@ -241,7 +241,9 @@ private:
     struct ibv_comp_channel *m_comp_event_channel;
     bool m_b_notification_armed;
     const uint32_t m_n_sysvar_qp_compensation_level;
+protected:
     const uint32_t m_rx_lkey;
+private:
     const bool m_b_sysvar_cq_keep_qp_full;
     int32_t m_n_out_of_free_bufs_warning;
     cq_stats_t m_cq_stat_static;

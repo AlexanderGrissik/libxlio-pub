@@ -111,6 +111,9 @@ public:
     void post_nop_fence(void) override;
     void post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first) override;
 
+    void nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba, unsigned block_size,
+                                const struct mlx5_wqe_umr_klm_seg *iov, unsigned iov_len) override;
+
 #if defined(DEFINED_UTLS)
     std::unique_ptr<dpcp::dek> get_new_dek(const void *key, uint32_t key_size_bytes);
     std::unique_ptr<dpcp::dek> get_dek(const void *key, uint32_t key_size_bytes);
@@ -118,6 +121,20 @@ public:
 #endif
 
     void reset_inflight_zc_buffers_ctx(void *ctx) override;
+    void ring_doorbell_if_needed() override
+    {
+        if (m_b_deferred_doorbell) {
+            m_b_deferred_doorbell = false;
+            m_missed_doorbells = 0;
+
+            wmb();
+            *m_mlx5_qp.sq.dbrec = htonl(m_sq_wqe_counter);
+            wc_wmb();
+            *(uint64_t *)((uint8_t *)m_mlx5_qp.bf.reg + m_mlx5_qp.bf.offset) = *m_p_deferred_ptr;
+            wc_wmb();
+            m_mlx5_qp.bf.offset ^= m_mlx5_qp.bf.size;
+        }
+    }
     // TODO Make credits API inline.
     bool credits_get(unsigned credits) override
     {
@@ -209,9 +226,12 @@ private:
     int m_sq_wqe_hot_index;
     uint16_t m_sq_wqe_counter;
 
+    uint16_t m_missed_doorbells = 0;
     bool m_b_fence_needed;
+    bool m_b_deferred_doorbell = false;
 
     bool m_dm_enabled;
+    uint64_t *m_p_deferred_ptr = nullptr;
     dm_mgr m_dm_mgr;
     /*
      * TIS cache. Protected by ring tx lock.

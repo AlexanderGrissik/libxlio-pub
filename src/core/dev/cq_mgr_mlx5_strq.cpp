@@ -105,7 +105,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::next_stride()
 {
     if (unlikely(_stride_cache.size() <= 0U)) {
         if (!g_buffer_pool_rx_stride->get_buffers_thread_safe(
-                _stride_cache, _owner_ring, safe_mce_sys().strq_strides_compensation_level, 0U)) {
+                _stride_cache, _owner_ring, safe_mce_sys().strq_strides_compensation_level, m_rx_lkey)) {
             // This pool should be an infinite pool
             __log_info_panic(
                 "Unable to retrieve strides from global pool, Free: %zu, Requested: %u",
@@ -281,6 +281,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cq
         _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
+        _hot_buffer_stride->express.user_mkey = m_rx_hot_buffer->express.user_mkey;
 
         is_filler = (host_byte_cnt >> 31 != 0U ? true : false);
         _hot_buffer_stride->sz_data =

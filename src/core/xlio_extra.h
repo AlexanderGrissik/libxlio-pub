@@ -296,6 +296,9 @@ enum {
     XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF = (1 << 10),
     XLIO_EXTRA_API_DUMP_FD_STATS = (1 << 11),
     XLIO_EXTRA_API_IOCTL = (1 << 12),
+
+    /* Experimental express API is present. */
+    XLIO_EXTRA_API_EXPRESS = (1 << 31),
 };
 
 /**
@@ -331,6 +334,52 @@ typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_io
                                                             struct iovec iov[],
                                                             struct xlio_info_t *xlio_info,
                                                             void *context);
+
+/* Express API. */
+
+struct express_buf_t {
+    union {
+        uintptr_t ptr;
+        uint64_t data;
+    };
+    uint32_t user_mkey;
+};
+
+typedef struct express_socket_fake express_socket;
+typedef struct express_buf_t express_buf;
+
+enum express_event_t {
+    EXPRESS_EVENT_NONE = 0,
+    EXPRESS_EVENT_ESTABLISHED,
+    EXPRESS_EVENT_TERMINATED,
+    EXPRESS_EVENT_ERROR,
+};
+
+enum exporess_send_flag_t {
+    EXPRESS_SEND_FLAG_CRYPTO = 1U << 1,
+};
+
+typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);
+typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, express_buf *buf);
+typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
+
+struct express_socket_attr {
+    union {
+        struct sockaddr addr;
+        struct sockaddr_in addr_in;
+        struct sockaddr_in6 addr_in6;
+    } addr;
+    socklen_t addr_len;
+    unsigned block_size_bytes;
+    /* AES_XTS key length in bytes. 0 disables crypto. */
+    unsigned keylen;
+    /* Contains AES_XTS key format (40 or 72 bytes). May be NULL if keylen is 0. */
+    const void *key;
+    express_event_callback_t event_cb;
+    express_rx_callback_t rx_cb;
+    express_zc_callback_t zc_cb;
+    void *opaque_sq;
+};
 
 /**
  * XLIO Extended Socket API
@@ -590,6 +639,32 @@ struct __attribute__((packed)) xlio_api_t {
      *                  EOPNOTSUPP - socketXtreme was not enabled during configuration time.
      */
     int (*socketxtreme_free_buff)(struct xlio_buff_t *buff);
+
+
+    /*
+     * Express API.
+     */
+
+    /* Obtain protection domain for specific device. */
+    struct ibv_pd *(*express_get_pd)(const char *ibname);
+    /* Obtain protection domain for specific device. */
+    struct ibv_pd *(*express_get_pd_by_sock)(express_socket *sock);
+    /* Init the attr structure with default values. */
+    void (*express_socket_attr_init)(struct express_socket_attr *attr);
+    /* Create socket and initiate TCP handshake in the non-blocking mode. The socket is bound to the current CPU core. */
+    express_socket *(*express_socket_create)(struct express_socket_attr *attr);
+    /* Initiate TCP session termination. Socket is destroyed in the background eventually. */
+    int (*express_socket_terminate)(express_socket *sock);
+    /* Set current LBA which is used for crypto and automatically advanced with each sent block_size. */
+    void (*express_set_lba)(express_socket *sock, uint64_t lba);
+    /* Send/queue TCP data. Use MSG_MORE flag as a hint for better TCP segment grouping. */
+    int (*express_send)(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
+    /* IOV version of send. */
+    int (*express_sendv)(express_socket *sock, const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op);
+    /* Free a buffer which is obtained via the rx_cb. */
+    void (*express_free_rx_buf)(express_socket *sock, express_buf *buf);
+    /* Run a poll iteration on the current CPU core / pthread. Needs to be called frequently enough. */
+    int (*express_poll)();
 };
 
 /**

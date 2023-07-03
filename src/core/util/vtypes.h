@@ -166,4 +166,6 @@ struct __attribute__((packed)) vlanhdr {
 // Fake fd for non-existent shadow socket
 #define SOCKET_FAKE_FD (-2)
 
+#define LKEY_ERROR ((uint32_t)(-1))
+
 #endif // VTYPES_H

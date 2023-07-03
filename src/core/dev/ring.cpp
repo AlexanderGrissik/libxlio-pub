@@ -38,6 +38,9 @@
 #undef MODULE_HDR
 #define MODULE_HDR MODULE_NAME "%d:%s() "
 
+#define EXPRESS_RINGS_MAX 4
+thread_local std::vector<ring *> g_express_rings;
+
 ring::ring()
     : m_p_n_rx_channel_fds(NULL)
     , m_parent(NULL)
@@ -46,10 +49,19 @@ ring::ring()
 {
     m_if_index = 0;
     print_val();
+
+    g_express_rings.push_back(this);
 }
 
 ring::~ring()
 {
+    for (auto iter = g_express_rings.begin(); iter != g_express_rings.end(); ++iter) {
+        if (*iter == this) {
+            g_express_rings.erase(iter);
+            break;
+        }
+    }
+
     if (m_tcp_seg_list) {
         g_tcp_seg_pool->put_tcp_segs(m_tcp_seg_list);
     }
@@ -117,4 +129,15 @@ void ring::print_val()
 {
     ring_logdbg("%d: %p: parent %p", m_if_index, this,
                 ((uintptr_t)this == (uintptr_t)m_parent ? 0 : m_parent));
+}
+
+/* static */
+void ring::poll_local_rings()
+{
+    for (auto iter = g_express_rings.begin(); iter != g_express_rings.end(); ++iter) {
+        uint64_t sn = 0;
+        (*iter)->poll_and_process_element_rx(&sn);
+        sn = 0;
+        (*iter)->poll_and_process_element_tx(&sn);
+    }
 }
