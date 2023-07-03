@@ -251,6 +251,16 @@ ib_ctx_handler *ib_ctx_handler_collection::get_ib_ctx(const char *ifa_name)
     return NULL;
 }
 
+ib_ctx_handler *ib_ctx_handler_collection::get_ib_ctx_by_ibname(const char *ibname)
+{
+    for (auto iter = m_ib_ctx_map.begin(); iter != m_ib_ctx_map.end(); iter++) {
+        if (strcmp(ibname, iter->second->get_ibname()) == 0) {
+            return iter->second;
+        }
+    }
+    return NULL;
+}
+
 void ib_ctx_handler_collection::del_ib_ctx(ib_ctx_handler *ib_ctx)
 {
     if (ib_ctx) {

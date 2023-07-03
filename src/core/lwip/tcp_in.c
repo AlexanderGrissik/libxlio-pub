@@ -846,6 +846,7 @@ static u32_t tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t 
     }
 #endif /* LWIP_TCP_TIMESTAMPS */
 
+    seg->bufs -= count;
     optlen = LWIP_TCP_OPT_LENGTH(optflags);
 
     /* Just shrink first pbuf */
@@ -935,6 +936,8 @@ static u32_t tcp_shrink_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t 
         count++;
     }
 
+    seg->bufs -= count;
+
 #if TCP_TSO_DEBUG
     LWIP_DEBUGF(TCP_TSO_DEBUG | LWIP_DBG_TRACE,
                 ("tcp_shrink: count: %-5d unsent %s\n", count, _dump_seg(pcb->unsent)));
@@ -985,6 +988,7 @@ static u32_t tcp_shrink_zc_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32
         seg->seqno = ackno;
     }
     seg->tcphdr->seqno = htonl(seg->seqno);
+    seg->bufs -= count;
 
     return count;
 }
@@ -1016,6 +1020,9 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data *in_data)
     s8_t persist = 0;
 
     if (in_data->flags & TCP_ACK) {
+        if (pcb->unacked) {
+            __builtin_prefetch(pcb->unacked->p);
+        }
         right_wnd_edge = pcb->snd_wnd + pcb->snd_wl2;
 
         /* Update window. */
@@ -1212,7 +1219,7 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data *in_data)
                     pcb->acked--;
                 }
 
-                pcb->snd_queuelen -= pbuf_clen(next->p);
+                pcb->snd_queuelen -= next->bufs;
                 tcp_tx_seg_free(pcb, next);
                 LWIP_DEBUGF(TCP_QLEN_DEBUG,
                             ("%" U32_F " (after freeing unacked)\n", (u32_t)pcb->snd_queuelen));
@@ -1263,7 +1270,7 @@ static void tcp_receive(struct tcp_pcb *pcb, tcp_in_data *in_data)
             if ((pcb->acked != 0) && ((next->tcp_flags & TCP_FIN) != 0)) {
                 pcb->acked--;
             }
-            pcb->snd_queuelen -= pbuf_clen(next->p);
+            pcb->snd_queuelen -= next->bufs;
             tcp_tx_seg_free(pcb, next);
             LWIP_DEBUGF(TCP_QLEN_DEBUG,
                         ("%" U16_F " (after freeing unsent)\n", (u32_t)pcb->snd_queuelen));

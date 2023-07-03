@@ -131,8 +131,9 @@ tcp_seg *tcp_seg_pool::split_tcp_segs(uint32_t count, tcp_seg *&tcp_seg_list, ui
 
 bool tcp_seg_pool::expand()
 {
+    static uint32_t unused_mkey = LKEY_ERROR;
     size_t size = sizeof(tcp_seg) * safe_mce_sys().tx_segs_pool_batch_tcp;
-    tcp_seg *tcp_segs_array = (tcp_seg *)m_allocator.alloc(size);
+    tcp_seg *tcp_segs_array = (tcp_seg *)m_allocator.alloc(size, unused_mkey);
 
     if (!tcp_segs_array) {
         __log_dbg("TCP segments allocation failed");

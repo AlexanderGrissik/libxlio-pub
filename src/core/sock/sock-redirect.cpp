@@ -62,6 +62,8 @@
 #include "fd_collection.h"
 #include "util/instrumentation.h"
 
+#include "proto/mem_buf_desc.h"
+
 using namespace std;
 
 #define MODULE_NAME "srdr:"

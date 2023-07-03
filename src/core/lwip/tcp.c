@@ -1048,7 +1048,6 @@ void tcp_pcb_recycle(struct tcp_pcb *pcb)
     pcb->rcv_scale = 0;
     pcb->last_unsent = NULL;
     pcb->last_unacked = NULL;
-    pcb->unsent_oversize = 0;
     if (pcb->seg_alloc != NULL) {
         tcp_tx_seg_free(pcb, pcb->seg_alloc);
         pcb->seg_alloc = NULL;

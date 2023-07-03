@@ -53,6 +53,7 @@ public:
         return (m_ib_ctx_map.size() ? &m_ib_ctx_map : NULL);
     }
     ib_ctx_handler *get_ib_ctx(const char *ifa_name);
+    ib_ctx_handler *get_ib_ctx_by_ibname(const char *ibname);
     void del_ib_ctx(ib_ctx_handler *ib_ctx);
 
 private:

@@ -96,12 +96,13 @@ bool buffer_pool::expand(size_t count)
     size_t size = m_buf_size * count;
     uint8_t *data_ptr = nullptr;
     uint8_t *desc_ptr;
-
+    uint32_t user_mkey = LKEY_ERROR;
+    
     __log_info_dbg("Expanding %s%s pool", m_buf_size ? "" : "zcopy ",
                    m_p_bpool_stat->is_rx ? "Rx" : "Tx");
 
     if (size && m_buf_size) {
-        data_ptr = (uint8_t *)m_allocator_data.alloc(size);
+        data_ptr = (uint8_t *)m_allocator_data.alloc(size, user_mkey);
         if (!data_ptr) {
             return false;
         }
@@ -110,7 +111,7 @@ bool buffer_pool::expand(size_t count)
     }
 
     size = count * sizeof(mem_buf_desc_t);
-    desc_ptr = (uint8_t *)m_allocator_metadata.alloc(size);
+    desc_ptr = (uint8_t *)m_allocator_metadata.alloc(size, user_mkey);
     if (!desc_ptr) {
         return false;
     }
@@ -122,6 +123,7 @@ bool buffer_pool::expand(size_t count)
     for (size_t i = 0; i < count; ++i) {
         pbuf_type type = (m_buf_size == 0 && m_p_bpool_stat->is_tx) ? PBUF_ZEROCOPY : PBUF_RAM;
         desc = new (desc_ptr) mem_buf_desc_t(data_ptr, m_buf_size, type);
+        desc->express.user_mkey = user_mkey;
         put_buffer_helper(desc);
         desc_ptr += sizeof(mem_buf_desc_t);
         if (data_ptr) {
@@ -285,6 +287,9 @@ bool buffer_pool::get_buffers_thread_safe(descq_t &pDeque, ring_slave *desc_owne
 
         // Init
         head->lkey = lkey;
+        if (head->express.user_mkey == LKEY_ERROR) {
+            head->express.user_mkey = lkey;
+        }
         head->p_desc_owner = desc_owner;
 
         // Push to queue

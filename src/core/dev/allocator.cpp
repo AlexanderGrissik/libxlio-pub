@@ -59,6 +59,7 @@ xlio_allocator::xlio_allocator(alloc_mode_t preferable_type)
 
 xlio_allocator::xlio_allocator(alloc_t alloc_func, free_t free_func)
 {
+    m_user_mkey = LKEY_ERROR;
     m_type = static_cast<alloc_mode_t>(safe_mce_sys().mem_alloc_type);
     m_data = nullptr;
     m_size = 0;
@@ -105,7 +106,12 @@ void *xlio_allocator::alloc(size_t size)
         break;
     case ALLOC_TYPE_EXTERNAL:
         if (m_memalloc) {
-            m_data = m_memalloc(size);
+            if (safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX_MKEY) {
+                m_data = ((alloc2_t)(void *)m_memalloc)(size, &m_user_mkey);
+            } else {
+                m_data = m_memalloc(size);
+            }
+
             m_size = size;
         }
         if (!m_data) {
@@ -509,7 +515,7 @@ error:
     return false;
 }
 
-void *xlio_heap::alloc(size_t &size)
+void *xlio_heap::alloc(size_t &size, uint32_t& user_mkey)
 {
     std::lock_guard<decltype(m_lock)> lock(m_lock);
 
@@ -520,6 +526,7 @@ repeat:
     if (actual_size + m_latest_offset <= m_blocks.back()->size()) {
         data = (void *)((uintptr_t)m_blocks.back()->data() + m_latest_offset);
         m_latest_offset += actual_size;
+        user_mkey = m_blocks.back()->get_user_mkey();
     } else if (!m_b_hw) {
         if (expand(std::max(safe_mce_sys().heap_metadata_block, actual_size))) {
             goto repeat;
@@ -564,15 +571,16 @@ xlio_allocator_heap::~xlio_allocator_heap()
 {
 }
 
-void *xlio_allocator_heap::alloc(size_t &size)
+void *xlio_allocator_heap::alloc(size_t &size, uint32_t& user_mkey)
 {
-    return m_p_heap->alloc(size);
+    return m_p_heap->alloc(size, user_mkey);
 }
 
 void *xlio_allocator_heap::alloc_and_reg_mr(size_t &size, ib_ctx_handler *p_ib_ctx_h)
 {
     NOT_IN_USE(p_ib_ctx_h);
-    return m_p_heap->is_hw() ? alloc(size) : nullptr;
+    uint32_t user_mkey = LKEY_ERROR;
+    return m_p_heap->is_hw() ? alloc(size, user_mkey) : nullptr;
 }
 
 bool xlio_allocator_heap::register_memory(ib_ctx_handler *p_ib_ctx_h)

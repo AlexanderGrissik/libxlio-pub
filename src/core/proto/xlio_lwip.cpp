@@ -133,7 +133,7 @@ xlio_lwip::xlio_lwip()
         register_tcp_seg_free(sockinfo_tcp::tcp_seg_free_cached);
     }
 
-    register_tcp_tx_pbuf_alloc(sockinfo_tcp::tcp_tx_pbuf_alloc);
+    register_tcp_tx_pbuf_alloc(sockinfo_tcp::express_tx_pbuf_alloc); // XXX TODO make this configurable or inside g_xlio_api->express_configure() or somehting
     register_tcp_tx_pbuf_free(sockinfo_tcp::tcp_tx_pbuf_free);
     register_tcp_rx_pbuf_free(sockinfo_tcp::tcp_rx_pbuf_free);
     register_tcp_state_observer(sockinfo_tcp::tcp_state_observer);

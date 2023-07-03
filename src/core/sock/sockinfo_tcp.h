@@ -113,6 +113,8 @@ struct socket_option_t {
     }
 };
 
+class dst_entry_tcp;
+
 typedef std::deque<socket_option_t *> socket_options_list_t;
 typedef std::map<tcp_pcb *, int> ready_pcb_map_t;
 typedef std::map<flow_tuple, tcp_pcb *> syn_received_map_t;
@@ -335,6 +337,33 @@ public:
         tcp_recv(&m_pcb, sockinfo_tcp::rx_lwip_cb_recv_callback);
         return sockinfo::register_callback(callback, context);
     }
+
+    // Express API
+    void express_setup(struct express_socket_attr *attr);
+    int express_postsetup(struct express_socket_attr *attr);
+    void express_teardown();
+    int express_tx(const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op);
+    void express_reclaim_buf(mem_buf_desc_t *buf);
+    static struct pbuf *express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
+    static void express_tx_zc_callback(mem_buf_desc_t *p_desc);
+    static err_t express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
+    static void express_flush_dirty_sockets();
+
+    // Express API
+    dst_entry_tcp *express_dst_entry_tcp;
+    ring *express_tx_ring;
+    uint64_t express_lba;
+    express_event_callback_t express_event_cb;
+    express_rx_callback_t express_rx_cb;
+    express_zc_callback_t express_zc_cb;
+    void *express_opaque_sq;
+    struct mlx5_wqe_umr_klm_seg express_iov_buf[4];
+    unsigned express_iov_nr;
+    unsigned express_iov_size;
+    unsigned express_block_size;
+    uint32_t express_dek_id;
+    bool express_dirty = false;
+    dpcp::aes_xts_dek *express_dek;
 
 protected:
     virtual void lock_rx_q();

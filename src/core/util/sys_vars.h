@@ -60,9 +60,14 @@ typedef enum {
 enum {
     IOCTL_USER_ALLOC_TX = (1 << 0),
     IOCTL_USER_ALLOC_RX = (1 << 1),
+    IOCTL_USER_ALLOC_TX_ZC = (1 << 2),
+    IOCTL_USER_ALLOC_RX_STRIDE = (1 << 3),
+    /* Allocator has additional argument to return user_mkey */
+    IOCTL_USER_ALLOC_RX_MKEY = (1 << 4),
 };
 
 typedef void *(*alloc_t)(size_t);
+typedef void *(*alloc2_t)(size_t, uint32_t *);
 typedef void (*free_t)(void *);
 
 typedef enum {
@@ -733,7 +738,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_RING_LIMIT_PER_INTERFACE (0)
 #define MCE_DEFAULT_RING_DEV_MEM_TX          (0)
 #define MCE_DEFAULT_TCP_MAX_SYN_RATE         (0)
-#define MCE_DEFAULT_ZC_TX_SIZE               (32768)
+#define MCE_DEFAULT_ZC_TX_SIZE               (8960)
 #define MCE_DEFAULT_TCP_NODELAY_TRESHOLD     (0)
 #define MCE_DEFAULT_ZC_CACHE_THRESHOLD       (10LU * 1024 * 1024 * 1024) // 10GB
 #define MCE_DEFAULT_TX_NUM_BUFS              (200000)

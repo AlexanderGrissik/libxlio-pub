@@ -40,6 +40,8 @@
 #include "core/util/xlio_list.h"
 #include "core/lwip/pbuf.h"
 
+#include "core/xlio_extra.h" /* express_buf */
+
 // Forward declarations
 class ring_slave;
 struct iphdr;
@@ -85,6 +87,8 @@ public:
         reset_ref_count();
 
         lwip_pbuf.pbuf.type = type;
+
+        memset(&express, 0, sizeof(express));
     }
 
     // Copy constructor for the clone() method.
@@ -102,6 +106,9 @@ public:
      * and extra fields to proceed customer specific requirements
      */
     struct pbuf_custom lwip_pbuf;
+
+    express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
+
     uint8_t *p_buffer;
 
     static inline size_t buffer_node_offset(void)

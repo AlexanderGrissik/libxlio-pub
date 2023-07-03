@@ -63,6 +63,7 @@ public:
 
     inline size_t size() { return m_size; }
     inline void *data() { return m_data; }
+    inline uint32_t get_user_mkey() { return m_user_mkey; }
 
 private:
     void print_hugepages_warning(size_t requested_size);
@@ -75,6 +76,7 @@ protected:
 private:
     alloc_t m_memalloc;
     free_t m_memfree;
+    uint32_t m_user_mkey;
 };
 
 class xlio_registrator {
@@ -113,7 +115,7 @@ public:
     static void initialize();
     static void finalize();
 
-    void *alloc(size_t &size);
+    void *alloc(size_t &size, uint32_t& user_mkey);
     bool register_memory(ib_ctx_handler *p_ib_ctx_h);
     uint32_t find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const;
 
@@ -139,7 +141,7 @@ public:
     xlio_allocator_heap(bool hw = false);
     ~xlio_allocator_heap();
 
-    void *alloc(size_t &size);
+    void *alloc(size_t &size, uint32_t& user_mkey);
     void *alloc_and_reg_mr(size_t &size, ib_ctx_handler *p_ib_ctx_h);
     bool register_memory(ib_ctx_handler *p_ib_ctx_h);
     uint32_t find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const;

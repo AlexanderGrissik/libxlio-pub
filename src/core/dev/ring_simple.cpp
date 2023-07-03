@@ -421,10 +421,10 @@ int ring_simple::poll_and_process_element_rx(uint64_t *p_cq_poll_sn,
 
 int ring_simple::poll_and_process_element_tx(uint64_t *p_cq_poll_sn)
 {
-    int ret = 0;
-    RING_TRY_LOCK_RUN_AND_UPDATE_RET(m_lock_ring_tx,
-                                     m_p_cq_mgr_tx->poll_and_process_element_tx(p_cq_poll_sn));
-    return ret;
+    const std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
+
+    m_hqtx->ring_doorbell_if_needed();
+    return m_p_cq_mgr_tx->poll_and_process_element_tx(p_cq_poll_sn);
 }
 
 int ring_simple::socketxtreme_poll(struct xlio_socketxtreme_completion_t *xlio_completions,

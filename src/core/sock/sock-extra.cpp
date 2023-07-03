@@ -43,10 +43,12 @@
 #include <sock/sockinfo_tcp.h>
 #include <sock/sockinfo_udp.h>
 #include <sock/fd_collection.h>
-
+#include <dev/ib_ctx_handler_collection.h>
 #include "sock/sock-extra.h"
 
 #define MODULE_NAME "extra:"
+
+#define srex_loginfo    __log_info
 
 #define SET_EXTRA_API(__dst, __func, __mask)                                                       \
     do {                                                                                           \
@@ -303,6 +305,134 @@ extern "C" int xlio_dump_fd_stats(int fd, int log_level)
     return -1;
 }
 
+/* This is a wrapper, because DO_GLOBAL_CTORS() has "return -1;" statement. */
+static inline int express_do_global_ctors()
+{
+    DO_GLOBAL_CTORS();
+    return 0;
+}
+
+/* This is a wrapper for handle_close() and system close(). */
+static int express_close(int fd)
+{
+    bool toclose = handle_close(fd);
+    return toclose ? orig_os_api.close(fd) : 0;
+}
+
+extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
+{
+    if (express_do_global_ctors() != 0) {
+        return NULL;
+    }
+
+    ib_ctx_handler *ctx = g_p_ib_ctx_handler_collection->get_ib_ctx_by_ibname(ibname);
+
+    return ctx ? ctx->get_ibv_pd() : NULL;
+}
+
+extern "C" struct ibv_pd *xlio_express_get_pd_by_sock(express_socket *sock)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    struct xlio_pd_attr attr = {};
+    socklen_t attr_len = sizeof(attr);
+    struct ibv_pd *pd = NULL;
+
+    int rc = si->getsockopt_offload(SOL_SOCKET, SO_XLIO_PD, &attr, &attr_len);
+    if (rc == 0) {
+        pd = (struct ibv_pd *)attr.ib_pd;
+    }
+    return pd;
+}
+
+extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
+{
+    memset(attr, 0, sizeof(*attr));
+
+    attr->block_size_bytes = 512;
+}
+
+extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
+{
+    srex_loginfo("Express socket creation: block_size=%u keylen=%u cpu=%d thread=%u", attr->block_size_bytes, attr->keylen, sched_getcpu(), pthread_self());
+
+    int fd = socket_internal(attr->addr.addr.sa_family, SOCK_STREAM, 0, true, true);
+    if (fd < 0) {
+        return NULL;
+    }
+
+    socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
+    sockinfo_tcp *si = sockfd ? dynamic_cast<sockinfo_tcp *>(fd_collection_get_sockfd(fd)) : NULL;
+    if (!si) {
+        express_close(fd);
+        errno = ENOENT;
+        return NULL;
+    }
+
+    si->express_setup(attr);
+
+    int rc = si->connect(&attr->addr.addr, attr->addr_len);
+    if (si->isPassthrough()) {
+        express_close(fd);
+        errno = ENOEXEC;
+        return NULL;
+    }
+    if (rc != 0 && errno != EINPROGRESS && errno != EAGAIN) {
+        express_close(fd);
+        return NULL;
+    }
+
+    si->express_postsetup(attr);
+
+    return reinterpret_cast<express_socket *>(si);
+}
+
+extern "C" int xlio_express_socket_terminate(express_socket *sock)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+
+    return express_close(si->get_fd());
+}
+
+extern "C" void xlio_express_set_lba(express_socket *sock, uint64_t lba)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+
+    si->express_lba = lba;
+}
+
+extern "C" int xlio_express_send(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    const struct iovec iov = { .iov_base = (char *)addr, .iov_len = len };
+
+    return si->express_tx(&iov, 1U, mkey, flags, opaque_op);
+}
+
+extern "C" int xlio_express_sendv(express_socket *sock, const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+
+    return si->express_tx(iov, iov_len, mkey, flags, opaque_op);
+}
+
+extern "C" void xlio_express_free_rx_buf(express_socket *sock, express_buf *buf)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    /* XXX offsetof() doesn't build for mem_buf_desc_t, so container_of() doesn't work here.
+     * As a workaround, hardcode the 'express' field in predictable place to avoid offsetof().
+     */
+    mem_buf_desc_t *desc = reinterpret_cast<mem_buf_desc_t *>((char *)buf - sizeof(desc->lwip_pbuf));
+
+    si->express_reclaim_buf(desc);
+}
+
+extern "C" int xlio_express_poll()
+{
+    sockinfo_tcp::express_flush_dirty_sockets();
+    ring::poll_local_rings();
+    return 0;
+}
+
 static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct cmsghdr *__cmsg)
 {
     struct cmsghdr *__ptr;
@@ -387,6 +517,17 @@ struct xlio_api_t *extra_api(void)
             XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF);
         SET_EXTRA_API(dump_fd_stats, xlio_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
         SET_EXTRA_API(ioctl, xlio_ioctl, XLIO_EXTRA_API_IOCTL);
+
+        SET_EXTRA_API(express_get_pd, xlio_express_get_pd, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_get_pd_by_sock, xlio_express_get_pd_by_sock, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_socket_attr_init, xlio_express_socket_attr_init, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_socket_create, xlio_express_socket_create, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_socket_terminate, xlio_express_socket_terminate, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_set_lba, xlio_express_set_lba, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_send, xlio_express_send, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_sendv, xlio_express_sendv, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_free_rx_buf, xlio_express_free_rx_buf, XLIO_EXTRA_API_EXPRESS);
+        SET_EXTRA_API(express_poll, xlio_express_poll, XLIO_EXTRA_API_EXPRESS);
     }
 
     return xlio_api;

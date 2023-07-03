@@ -211,7 +211,9 @@ private:
     struct ibv_comp_channel *m_comp_event_channel;
     bool m_b_notification_armed = false;
     const uint32_t m_n_sysvar_qp_compensation_level;
+protected:
     const uint32_t m_rx_lkey;
+private:
     const bool m_b_sysvar_cq_keep_qp_full;
     cq_stats_t m_cq_stat_static;
     static atomic_t m_n_cq_id_counter_rx;
