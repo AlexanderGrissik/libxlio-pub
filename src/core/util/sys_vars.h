@@ -70,10 +70,13 @@ enum {
     IOCTL_USER_ALLOC_TX = (1 << 0),
     IOCTL_USER_ALLOC_RX = (1 << 1),
     IOCTL_USER_ALLOC_TX_ZC = (1 << 2),
-    IOCTL_USER_ALLOC_RX_STRIDE = (1 << 3)
+    IOCTL_USER_ALLOC_RX_STRIDE = (1 << 3),
+    /* Allocator has additional argument to return user_mkey */
+    IOCTL_USER_ALLOC_RX_MKEY = (1 << 4),
 };
 
 typedef void *(*alloc_t)(size_t);
+typedef void *(*alloc2_t)(size_t, uint32_t *);
 typedef void (*free_t)(void *);
 
 typedef enum {

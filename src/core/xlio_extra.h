@@ -332,6 +332,32 @@ typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_io
                                                             struct xlio_info_t *xlio_info,
                                                             void *context);
 
+/* Express API. */
+typedef struct express_socket_fake express_socket;
+typedef struct express_buffer_fake express_buf;
+
+enum express_event_t {
+    EXPRESS_EVENT_NONE = 0,
+    EXPRESS_EVENT_ESTABLISHED,
+    EXPRESS_EVENT_TERMINATED,
+};
+
+typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);
+typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, uint32_t user_mkey, express_buf *buf);
+typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
+
+struct express_socket_attr {
+    union {
+        sockaddr_in addr_in;
+        sockaddr_in6 addr_in6;
+    } addr;
+    socklen_t addr_len;
+    express_event_callback_t event_cb;
+    express_rx_callback_t rx_cb;
+    express_zc_callback_t zc_cb;
+    void *opaque_sq;
+};
+
 /**
  * XLIO Extended Socket API
  */
@@ -590,6 +616,26 @@ struct __attribute__((packed)) xlio_api_t {
      *                  EOPNOTSUPP - socketXtreme was not enabled during configuration time.
      */
     int (*socketxtreme_free_buff)(struct xlio_buff_t *buff);
+
+
+    /*
+     * Express API.
+     */
+
+    /* Obtain protection domain for specific device. */
+    struct ibv_pd *(*express_get_pd)(const char *ibname);
+    /* Init the attr structure with default values. */
+    void (*express_socket_attr_init)(struct express_socket_attr *attr);
+    /* Create socket and initiate TCP handshake in the non-blocking mode. The socket is bound to the current CPU core. */
+    express_socket *(*express_socket_create)(struct express_conn_attr *attr);
+    /* Initiate TCP session termination. Socket is destroyed in the background eventually. */
+    int (*express_socket_terminate)(express_socket *sock);
+    /* Send/queue TCP data. Use MSG_MORE flag as a hint for better TCP segment grouping. */
+    int (*express_send)(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
+    /* Free a buffer which is obtained via the rx_cb. */
+    void (*express_free_rx_buf)(express_socket *sock, express_buf *buf);
+    /* Run a poll iteration on the current CPU core / pthread. Needs to be called frequently enough. */
+    int (*express_poll)();
 };
 
 /**
