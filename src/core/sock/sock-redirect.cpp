@@ -708,6 +708,11 @@ extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
     return ctx ? ctx->get_ibv_pd() : NULL;
 }
 
+extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
+{
+    memset(attr, 0, sizeof(*attr));
+}
+
 static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct cmsghdr *__cmsg)
 {
     struct cmsghdr *__ptr;
@@ -1140,6 +1145,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             SET_EXTRA_API(ioctl, xlio_ioctl, XLIO_EXTRA_API_IOCTL);
 
             SET_EXTRA_API(express_get_pd, xlio_express_get_pd, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_socket_attr_init, xlio_express_socket_attr_init, XLIO_EXTRA_API_EXPRESS);
         }
 
         *((xlio_api_t **)__optval) = xlio_api;
