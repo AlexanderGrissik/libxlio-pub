@@ -690,6 +690,24 @@ extern "C" int xlio_dump_fd_stats(int fd, int log_level)
     return -1;
 }
 
+/* This is a wrapper, because DO_GLOBAL_CTORS() has "return -1;" statement. */
+static inline int express_do_global_ctors()
+{
+    DO_GLOBAL_CTORS();
+    return 0;
+}
+
+extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
+{
+    if (express_do_global_ctors() != 0) {
+        return NULL;
+    }
+
+    ib_ctx_handler *ctx = g_p_ib_ctx_handler_collection->get_ib_ctx_by_ibname(ibname);
+
+    return ctx ? ctx->get_ibv_pd() : NULL;
+}
+
 static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct cmsghdr *__cmsg)
 {
     struct cmsghdr *__ptr;
@@ -1120,6 +1138,8 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
                           XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF);
             SET_EXTRA_API(dump_fd_stats, xlio_dump_fd_stats, XLIO_EXTRA_API_DUMP_FD_STATS);
             SET_EXTRA_API(ioctl, xlio_ioctl, XLIO_EXTRA_API_IOCTL);
+
+            SET_EXTRA_API(express_get_pd, xlio_express_get_pd, XLIO_EXTRA_API_EXPRESS);
         }
 
         *((xlio_api_t **)__optval) = xlio_api;

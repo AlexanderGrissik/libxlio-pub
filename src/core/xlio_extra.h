@@ -296,6 +296,9 @@ enum {
     XLIO_EXTRA_API_SOCKETXTREME_FREE_XLIO_BUFF = (1 << 10),
     XLIO_EXTRA_API_DUMP_FD_STATS = (1 << 11),
     XLIO_EXTRA_API_IOCTL = (1 << 12),
+
+    /* Experimental express API is present. */
+    XLIO_EXTRA_API_EXPRESS = (1 << 31),
 };
 
 /**
