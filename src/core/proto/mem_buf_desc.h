@@ -40,6 +40,8 @@
 #include "core/util/xlio_list.h"
 #include "core/lwip/pbuf.h"
 
+#include "core/xlio_extra.h" /* express_buf */
+
 // Forward declarations
 class ring_slave;
 struct iphdr;
@@ -87,6 +89,8 @@ public:
 
         lwip_pbuf.pbuf.type = type;
         lwip_pbuf.custom_free_function = custom_free_function;
+
+        memset(&express, 0, sizeof(express));
     }
 
     // Copy constructor for the clone() method.
@@ -177,6 +181,8 @@ public:
             } zc;
         } tx;
     };
+
+    express_buf express; // For Express POC
 
     /* This field is needed for error queue processing */
     struct sock_extended_err ee;

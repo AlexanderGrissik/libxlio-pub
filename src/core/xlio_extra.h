@@ -336,8 +336,17 @@ typedef xlio_recv_callback_retval_t (*xlio_recv_callback_t)(int fd, size_t sz_io
                                                             void *context);
 
 /* Express API. */
+
+struct express_buf_t {
+    union {
+        uintptr_t ptr;
+        uint64_t data;
+    };
+    uint32_t user_mkey;
+};
+
 typedef struct express_socket_fake express_socket;
-typedef struct express_buffer_fake express_buf;
+typedef struct express_buf_t express_buf;
 
 enum express_event_t {
     EXPRESS_EVENT_NONE = 0,
@@ -346,7 +355,7 @@ enum express_event_t {
 };
 
 typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);
-typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, uint32_t user_mkey, express_buf *buf);
+typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, express_buf *buf);
 typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
 
 struct express_socket_attr {
