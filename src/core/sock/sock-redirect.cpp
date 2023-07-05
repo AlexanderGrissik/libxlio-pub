@@ -788,7 +788,7 @@ extern "C" void xlio_express_free_rx_buf(express_socket *sock, express_buf *buf)
 
 extern "C" int xlio_express_poll()
 {
-    /* TODO poll tx and rx rings */
+    ring::poll_local_rings();
     return 0;
 }
 
