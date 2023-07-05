@@ -717,17 +717,32 @@ extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 
 extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
 {
-    sockinfo_tcp *si = NULL/*XXX*/;
-
-    /* TODO: create socket, call connect, obtain sockinfo_tcp pointer, set callbacks and opaque, return it. */
-    /* TODO: need to replace lwip_rx_cb, tx ULP, etc */
+    /* TODO: need to replace lwip_rx_cb */
     /* XXX sockinfo_tcp code can differenciate express socket by presence of the callbacks and assign relevant lwip callbacks. */
-    /* XXX consider making a derrived class sockinfo_express to make TCP sockets work along with express sockets. */
+
+    int fd = socket(attr->addr.addr.sa_family, SOCK_STREAM, 0);
+    if (fd < 0) {
+        return NULL;
+    }
+
+    socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
+    sockinfo_tcp *si = sockfd ? dynamic_cast<sockinfo_tcp *>(fd_collection_get_sockfd(fd)) : NULL;
+    if (!si) {
+        close(fd);
+        errno = EBADF;
+        return NULL;
+    }
 
     si->express_event_cb = attr->event_cb;
     si->express_rx_cb = attr->rx_cb;
     si->express_zc_cb = attr->zc_cb;
     si->express_opaque_sq = attr->opaque_sq;
+
+    int rc = connect(fd, &attr->addr.addr, attr->addr_len);
+    if (rc != 0) {
+        close(fd);
+        return NULL;
+    }
 
     return reinterpret_cast<express_socket *>(si);
 }

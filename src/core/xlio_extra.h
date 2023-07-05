@@ -357,9 +357,11 @@ enum express_event_t {
 typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);
 typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, express_buf *buf);
 typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
+/* TODO Callback for RDMA completion. */
 
 struct express_socket_attr {
     union {
+        sockaddr addr;
         sockaddr_in addr_in;
         sockaddr_in6 addr_in6;
     } addr;
