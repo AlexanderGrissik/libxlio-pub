@@ -108,6 +108,9 @@ public:
      * and extra fields to proceed customer specific requirements
      */
     struct pbuf_custom lwip_pbuf;
+
+    express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
+
     uint8_t *p_buffer;
 
     static inline size_t buffer_node_offset(void)
@@ -181,8 +184,6 @@ public:
             } zc;
         } tx;
     };
-
-    express_buf express; // For Express POC
 
     /* This field is needed for error queue processing */
     struct sock_extended_err ee;

@@ -321,6 +321,17 @@ public:
 
     inline void set_reguired_send_block(unsigned sz) { m_required_send_block = sz; }
 
+    // Express API
+    int express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
+    void express_reclaim_buf(mem_buf_desc_t *buf);
+    static err_t express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
+
+    // Express API
+    express_event_callback_t express_event_cb;
+    express_rx_callback_t express_rx_cb;
+    express_zc_callback_t express_zc_cb;
+    void *express_opaque_sq;
+
 protected:
     virtual void lock_rx_q();
     virtual void unlock_rx_q();

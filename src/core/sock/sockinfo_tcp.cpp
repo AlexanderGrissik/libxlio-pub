@@ -373,6 +373,10 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         }
     }
 
+    express_event_cb = nullptr;
+    express_rx_cb = nullptr;
+    express_zc_cb = nullptr;
+
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
     }
@@ -5552,7 +5556,7 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
                 p_desc->tx.zc.count = p_prev_desc->tx.zc.count;
                 p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
                 p_desc->tx.zc.ctx = p_prev_desc->tx.zc.ctx;
-                p_desc->tx.zc.callback = tcp_tx_zc_callback;
+                p_desc->tx.zc.callback = tcp_tx_zc_callback; // TODO set different callback for Express POC
                 p_prev_desc->tx.zc.count = 0;
                 if (p_si_tcp->m_last_zcdesc == p_prev_desc) {
                     p_si_tcp->m_last_zcdesc = p_desc;
@@ -5988,4 +5992,49 @@ int sockinfo_tcp::get_supported_nvme_feature_mask() const
         return false;
     }
     return p_ring->get_supported_nvme_feature_mask();
+}
+
+int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
+{
+    pbuf_desc mdesc;
+    mdesc.attr = 0; // XXX add new attr!
+    mdesc.express_mkey = mkey;
+    mdesc.opaque = opaque_op;
+
+    tcp_write(&m_pcb, addr, len, TCP_WRITE_ZEROCOPY, &mdesc);
+    if (!(flags & MSG_MORE)) {
+        tcp_output(&m_pcb);
+    }
+
+    return 0;
+}
+
+void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
+{
+    reuse_buffer(buf);
+    /* TODO review tcp_received() and other values which may require an update. */
+}
+
+err_t sockinfo_tcp::express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
+{
+    sockinfo_tcp *conn = reinterpret_cast<sockinfo_tcp *>(arg);
+
+    NOT_IN_USE(pcb);
+    NOT_IN_USE(err);
+
+    if (unlikely(!p)) {
+        return conn->handle_fin(pcb, err);
+    }
+    if (unlikely(err != ERR_OK)) {
+        conn->handle_rx_lwip_cb_error(p);
+        /* TODO event? */
+        return err;
+    }
+
+    while (p) {
+        conn->express_rx_cb(conn->express_opaque_sq, p->payload, p->len,
+                            &reinterpret_cast<mem_buf_desc_t *>(p)->express);
+        p = p->next;
+    }
+    return 0;
 }

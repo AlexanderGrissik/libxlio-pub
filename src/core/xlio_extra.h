@@ -639,11 +639,13 @@ struct __attribute__((packed)) xlio_api_t {
     /* Init the attr structure with default values. */
     void (*express_socket_attr_init)(struct express_socket_attr *attr);
     /* Create socket and initiate TCP handshake in the non-blocking mode. The socket is bound to the current CPU core. */
-    express_socket *(*express_socket_create)(struct express_conn_attr *attr);
+    express_socket *(*express_socket_create)(struct express_socket_attr *attr);
     /* Initiate TCP session termination. Socket is destroyed in the background eventually. */
     int (*express_socket_terminate)(express_socket *sock);
     /* Send/queue TCP data. Use MSG_MORE flag as a hint for better TCP segment grouping. */
     int (*express_send)(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
+    /* Arm RDMA operation using XLIO SQ. TODO: decide on mkey for each iov element: either XLIO RX buffers or user provides mkeys. */
+    int (*express_send_rdma)(express_socket *sock, struct iovec *iov, int iovcnt, uint8_t opcode, uint64_t rdma_addr, uint32_t rdma_key, void *opaque_rdma);
     /* Free a buffer which is obtained via the rx_cb. */
     void (*express_free_rx_buf)(express_socket *sock, express_buf *buf);
     /* Run a poll iteration on the current CPU core / pthread. Needs to be called frequently enough. */

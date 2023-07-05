@@ -64,6 +64,8 @@
 #include "fd_collection.h"
 #include "util/instrumentation.h"
 
+#include "proto/mem_buf_desc.h"
+
 using namespace std;
 
 #define MODULE_NAME "srdr:"
@@ -713,6 +715,68 @@ extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
     memset(attr, 0, sizeof(*attr));
 }
 
+extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
+{
+    sockinfo_tcp *si = NULL/*XXX*/;
+
+    /* TODO: create socket, call connect, obtain sockinfo_tcp pointer, set callbacks and opaque, return it. */
+    /* TODO: need to replace lwip_rx_cb, tx ULP, etc */
+    /* XXX sockinfo_tcp code can differenciate express socket by presence of the callbacks and assign relevant lwip callbacks. */
+    /* XXX consider making a derrived class sockinfo_express to make TCP sockets work along with express sockets. */
+
+    si->express_event_cb = attr->event_cb;
+    si->express_rx_cb = attr->rx_cb;
+    si->express_zc_cb = attr->zc_cb;
+    si->express_opaque_sq = attr->opaque_sq;
+
+    return reinterpret_cast<express_socket *>(si);
+}
+
+extern "C" int xlio_express_socket_terminate(express_socket *sock)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+
+    return close(si->get_fd());
+}
+
+extern "C" int xlio_express_send(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+
+    return si->express_tx(addr, len, mkey, flags, opaque_op);
+}
+
+extern "C" int xlio_express_send_rdma(express_socket *sock, struct iovec *iov, int iovcnt, uint8_t opcode, uint64_t rdma_addr, uint32_t rdma_key, void *opaque_rdma)
+{
+    /* TODO: This needs to be a proxy to qp_mgr_mlx5 */
+    NOT_IN_USE(sock);
+    NOT_IN_USE(iov);
+    NOT_IN_USE(iovcnt);
+    NOT_IN_USE(opcode);
+    NOT_IN_USE(rdma_addr);
+    NOT_IN_USE(rdma_key);
+    NOT_IN_USE(opaque_rdma);
+
+    return 0;
+}
+
+extern "C" void xlio_express_free_rx_buf(express_socket *sock, express_buf *buf)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+    /* XXX offsetof() doesn't build for mem_buf_desc_t, so container_of() doesn't work here.
+     * As a workaround, hardcode the 'express' field in predictable place to avoid offsetof().
+     */
+    mem_buf_desc_t *desc = reinterpret_cast<mem_buf_desc_t *>((char *)buf - sizeof(desc->lwip_pbuf));
+
+    si->express_reclaim_buf(desc);
+}
+
+extern "C" int xlio_express_poll()
+{
+    /* TODO poll tx and rx rings */
+    return 0;
+}
+
 static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, size_t __size, struct cmsghdr *__cmsg)
 {
     struct cmsghdr *__ptr;
@@ -1146,6 +1210,12 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
 
             SET_EXTRA_API(express_get_pd, xlio_express_get_pd, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_attr_init, xlio_express_socket_attr_init, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_socket_create, xlio_express_socket_create, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_socket_terminate, xlio_express_socket_terminate, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_send, xlio_express_send, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_send_rdma, xlio_express_send_rdma, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_free_rx_buf, xlio_express_free_rx_buf, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_poll, xlio_express_poll, XLIO_EXTRA_API_EXPRESS);
         }
 
         *((xlio_api_t **)__optval) = xlio_api;

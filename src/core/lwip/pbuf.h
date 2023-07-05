@@ -64,13 +64,16 @@ enum {
     PBUF_DESC_STRIDE,
     PBUF_DESC_TLS_RX,
     PBUF_DESC_NVME_TX,
+    PBUF_DESC_EXPRESS,
 };
 
 typedef struct {
     int attr;
+    u32_t express_mkey;
     union {
         void *map;
         void *mdesc;
+        void *opaque;
         int fd;
         u32_t mkey;
     };
