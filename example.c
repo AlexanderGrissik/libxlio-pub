@@ -1,5 +1,16 @@
+/* gcc -I./install/include example.c -o example -libverbs */
 
 #include <mellanox/xlio_extra.h>
+
+#include <arpa/inet.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <infiniband/verbs.h>
 
 struct express_sq {
     express_socket *sock;
@@ -11,21 +22,27 @@ static bool connected = false;
 static bool received = false;
 static bool send_complete = false;
 
+static struct {
+    /* This is imitation of a PDU object which is reported in ZC completion. */
+    int unused;
+} pdu;
+
 static void *express_alloc(size_t size, uint32_t *user_mkey)
 {
     /*
      * Allocate and register memory. XLIO will register memory on its own
      * and user_mkey is for application purpose only (e.g. RDMA operation).
      *
-     * user_mkey will be provided to rx_cb().
+     * user_mkey will be provided to rx_cb() via buf->user_mkey.
      *
      * Note, hugepages allocator instead of malloc() is more efficient.
      */
 
     void *addr = malloc(size);
-    struct ibv_mr *mr = ibv_reg_mr(xlio_pd, addr, size, access);
 
-    *user_mkey = mr->lkey;
+    /* Use can register memory and provide the mkey here. */
+    *user_mkey = 0;
+
     return addr;
 }
 
@@ -77,16 +94,16 @@ static int xlio_allocator_init()
     return rc;
 }
 
-static express_event_cb(void *opaque_sq, enum express_event_t event)
+static void express_event_cb(void *opaque_sq, enum express_event_t event)
 {
     connected = (event == EXPRESS_EVENT_ESTABLISHED);
 }
 
-static express_rx_cb(void *opaque_sq, void *addr, size_t len, uint32_t user_mkey, express_buf *buf)
+static void express_rx_cb(void *opaque_sq, void *addr, size_t len, express_buf *buf)
 {
     struct express_sq *sq = (struct express_sq *)opaque_sq;
 
-    recevied = true;
+    received = true;
 
     /*
      * Arm RDMA operation to host.
@@ -98,8 +115,9 @@ static express_rx_cb(void *opaque_sq, void *addr, size_t len, uint32_t user_mkey
     g_xlio_api->express_free_rx_buf(sq->sock, buf);
 }
 
-static express_zc_cb(void *opaque_sq, void *opaque_op)
+static void express_zc_cb(void *opaque_sq, void *opaque_op)
 {
+    assert(opaque_op == &pdu);
     send_complete = true;
 }
 
@@ -108,8 +126,10 @@ int main()
     struct express_sq sq;
     socklen_t len;
     int rc;
-    char buf[] = "hello world";
+    static char header[] = "hello ";
+    static char payload[] = "world";
 
+    /* Obtain XLIO extra API pointers. */
     len = sizeof(g_xlio_api);
     rc = getsockopt(-2, SOL_SOCKET, SO_XLIO_GET_API, &g_xlio_api, &len);
     if (rc != 0 || g_xlio_api == NULL) {
@@ -117,6 +137,7 @@ int main()
         return 1;
     }
 
+    /* User allocator must be provided before any XLIO or socket API. */
     rc = xlio_allocator_init();
     if (rc != 0) {
         return 1;
@@ -129,6 +150,7 @@ int main()
      * Send operation requires mkey within its protection domain.
      */
     struct ibv_pd *pd = g_xlio_api->express_get_pd("mlx5_1");
+    assert(pd != NULL);
 
     struct express_socket_attr attr;
     g_xlio_api->express_socket_attr_init(&attr);
@@ -138,7 +160,7 @@ int main()
     attr.addr.addr_in.sin_port = htons(8080); // TCP port 8080
     rc = inet_aton("127.0.0.1", &attr.addr.addr_in.sin_addr); // IP 127.0.0.1
     assert(rc != 0);
-    attr.addr.addr_len = sizeof(attr.addr.addr_in);
+    attr.addr_len = sizeof(attr.addr.addr_in);
 
     attr.event_cb = express_event_cb;
     attr.rx_cb = express_rx_cb;
@@ -156,17 +178,30 @@ int main()
         g_xlio_api->express_poll();
     }
 
+    /* Memory registration in the XLIO protection domain. */
+    struct ibv_mr *mr_header = ibv_reg_mr(pd, header, sizeof(header),
+                                          IBV_ACCESS_LOCAL_WRITE);
+    assert(mr_header != NULL);
+    struct ibv_mr *mr_payload = ibv_reg_mr(pd, payload, sizeof(payload),
+                                           IBV_ACCESS_LOCAL_WRITE);
+    assert(mr_payload != NULL);
+    uint32_t mkey_header = mr_header->lkey;
+    uint32_t mkey_payload = mr_payload->lkey;
+
     /*
      * MSG_MORE flag doesn't trigger sending to wire and allows to batch with
      * the next send operation.
-     * 'pdu' pointer will be provided to zc_cb once TCP layer.
+     *
+     * 'pdu' pointer will be provided to zc_cb once TCP layer finishes using
+     * the buffer. NULL opaque values don't generate a ZC completion, so opaque
+     * can be set in the last chunk of a PDU and the completion callback will
+     * indicate full PDU completion.
      */
-    rc = g_xlio_api->express_send(sock, buf_hdr, sizeof(buf_hdr), mkey, MSG_MORE, NULL)
-      ?: g_xlio_api->express_send(sock, buf_payload, sizeof(buf_payload), mkey, 0, pdu);
+    rc = g_xlio_api->express_send(sock, header, sizeof(header), mkey_header, MSG_MORE, NULL)
+      ?: g_xlio_api->express_send(sock, payload, sizeof(payload), mkey_payload, 0, &pdu);
 
     /* express_send() doesn't support partial send. It either queues all data or fails. */
     assert(rc == 0);
-
 
     while (!(received && send_complete)) {
         g_xlio_api->express_poll();
@@ -177,6 +212,10 @@ int main()
     while (connected) {
         g_xlio_api->express_poll();
     }
+
+    /* Cleanup. */
+    ibv_dereg_mr(mr_header);
+    ibv_dereg_mr(mr_payload);
 
     return 0;
 }

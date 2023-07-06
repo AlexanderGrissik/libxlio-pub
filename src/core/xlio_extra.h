@@ -362,9 +362,9 @@ typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
 
 struct express_socket_attr {
     union {
-        sockaddr addr;
-        sockaddr_in addr_in;
-        sockaddr_in6 addr_in6;
+        struct sockaddr addr;
+        struct sockaddr_in addr_in;
+        struct sockaddr_in6 addr_in6;
     } addr;
     socklen_t addr_len;
     express_event_callback_t event_cb;
