@@ -176,6 +176,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
             p_tcp_iov[0].iovec.iov_len = total_packet_len;
         }
 
+#if 0
         if (unlikely(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref > 1)) {
             /*
              * First buffer in the vector is used for reference counting.
@@ -205,6 +206,10 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
         } else {
             p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
         }
+#else
+        /* The above workaround is not needed anymore, because there is no list anymore. */
+        p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
+#endif
 
         /* save pointers to ip and tcp headers for software checksum calculation */
         p_tcp_iov[0].p_desc->tx.p_ip_h = p_ip_hdr;
