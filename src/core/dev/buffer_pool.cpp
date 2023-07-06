@@ -111,6 +111,7 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
     mem_buf_desc_t *desc;
     uint8_t *ptr_data;
     uint8_t *ptr_desc;
+    uint32_t user_mkey = m_allocator.get_user_mkey();
 
     area = new buffer_pool_area(count);
     assert(area != NULL);
@@ -125,6 +126,7 @@ void buffer_pool::expand(size_t count, void *data, size_t buf_size,
             ? PBUF_ZEROCOPY
             : PBUF_RAM;
         desc = new (ptr_desc) mem_buf_desc_t(ptr_data, buf_size, type, custom_free_function);
+        desc->express.user_mkey = user_mkey;
         put_buffer_helper(desc);
         ptr_desc += sizeof(mem_buf_desc_t);
         if (ptr_data != NULL) {

@@ -40,6 +40,7 @@ xlio_allocator::xlio_allocator()
 {
     __log_info_dbg("");
 
+    m_user_mkey = 0;
     m_shmid = -1;
     m_length = 0;
     m_data_block = NULL;
@@ -54,6 +55,7 @@ xlio_allocator::xlio_allocator(alloc_t alloc_func, free_t free_func)
 {
     __log_info_dbg("");
 
+    m_user_mkey = 0;
     m_shmid = -1;
     m_length = 0;
     m_data_block = NULL;
@@ -126,7 +128,11 @@ void *xlio_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h,
         register_memory(size, p_ib_ctx_h, access);
         break;
     case ALLOC_TYPE_EXTERNAL:
-        ptr = m_memalloc(size);
+        if (safe_mce_sys().m_ioctl.user_alloc.flags & IOCTL_USER_ALLOC_RX_MKEY) {
+            ptr = ((alloc2_t)(void *)m_memalloc)(size, &m_user_mkey);
+        } else {
+            ptr = m_memalloc(size);
+        }
         if (NULL == ptr) {
             __log_info_dbg("Failed allocating using external functions, "
                            "falling back to another memory allocation method");
