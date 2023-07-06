@@ -352,6 +352,7 @@ enum express_event_t {
     EXPRESS_EVENT_NONE = 0,
     EXPRESS_EVENT_ESTABLISHED,
     EXPRESS_EVENT_TERMINATED,
+    EXPRESS_EVENT_ERROR,
 };
 
 typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);

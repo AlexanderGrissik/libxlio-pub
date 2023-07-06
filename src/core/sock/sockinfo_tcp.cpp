@@ -1377,6 +1377,10 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
          * the main thread to mitigate ring lock contention.
          */
         p_si_tcp->reset_ops();
+        if (p_si_tcp->express_event_cb) {
+            p_si_tcp->express_event_cb(p_si_tcp->express_opaque_sq, EXPRESS_EVENT_TERMINATED);
+            p_si_tcp->express_event_cb = nullptr;
+        }
     }
 
     /* Update daemon about actual state for offloaded connection */
@@ -3738,6 +3742,7 @@ void sockinfo_tcp::set_sock_options(sockinfo_tcp *new_sock)
 err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
 {
     sockinfo_tcp *conn = (sockinfo_tcp *)arg;
+    bool connected;
     NOT_IN_USE(tpcb);
 
     __log_dbg("connect cb: arg=%p, pcp=%p err=%d", arg, tpcb, err);
@@ -3752,6 +3757,9 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
         // tcp_si_logdbg("conn timeout");
         conn->m_error_status = ETIMEDOUT;
         conn->unlock_tcp_con();
+        if (conn->express_event_cb) {
+            conn->express_event_cb(conn->express_opaque_sq, EXPRESS_EVENT_ERROR);
+        }
         return ERR_OK;
     }
     if (err == ERR_OK) {
@@ -3766,6 +3774,7 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
         conn->m_error_status = ECONNREFUSED;
         conn->m_conn_state = TCP_CONN_FAILED;
     }
+    connected = conn->m_conn_state == TCP_CONN_CONNECTED;
 
     NOTIFY_ON_EVENTS(conn, EPOLLOUT);
     // OLG: Now we should wakeup all threads that are sleeping on this socket.
@@ -3775,6 +3784,10 @@ err_t sockinfo_tcp::connect_lwip_cb(void *arg, struct tcp_pcb *tpcb, err_t err)
     conn->m_p_socket_stats->connected_port = conn->m_connected.get_in_port();
 
     conn->unlock_tcp_con();
+
+    if (conn->express_event_cb) {
+        conn->express_event_cb(conn->express_opaque_sq, connected ? EXPRESS_EVENT_ESTABLISHED : EXPRESS_EVENT_ERROR);
+    }
 
     return ERR_OK;
 }
