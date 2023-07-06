@@ -111,6 +111,8 @@ struct socket_option_t {
     }
 };
 
+class dst_entry_tcp;
+
 typedef std::deque<socket_option_t *> socket_options_list_t;
 typedef std::map<tcp_pcb *, int> ready_pcb_map_t;
 typedef std::map<flow_tuple, tcp_pcb *> syn_received_map_t;
@@ -322,11 +324,15 @@ public:
     inline void set_reguired_send_block(unsigned sz) { m_required_send_block = sz; }
 
     // Express API
+    void express_setup(struct express_socket_attr *attr);
     int express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
     void express_reclaim_buf(mem_buf_desc_t *buf);
+    static struct pbuf *express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
+    static void express_tx_zc_callback(mem_buf_desc_t *p_desc);
     static err_t express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 
     // Express API
+    dst_entry_tcp *express_dst_entry_tcp;
     express_event_callback_t express_event_cb;
     express_rx_callback_t express_rx_cb;
     express_zc_callback_t express_zc_cb;

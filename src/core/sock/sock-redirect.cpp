@@ -733,10 +733,7 @@ extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr
         return NULL;
     }
 
-    si->express_event_cb = attr->event_cb;
-    si->express_rx_cb = attr->rx_cb;
-    si->express_zc_cb = attr->zc_cb;
-    si->express_opaque_sq = attr->opaque_sq;
+    si->express_setup(attr);
 
     int rc = connect(fd, &attr->addr.addr, attr->addr_len);
     if (rc != 0) {

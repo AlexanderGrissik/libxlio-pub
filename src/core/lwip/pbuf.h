@@ -69,6 +69,7 @@ enum {
 
 typedef struct {
     int attr;
+    /* TODO Move mkey from union here and use PBUF_DESC_MKEY for Express POC. */
     u32_t express_mkey;
     union {
         void *map;

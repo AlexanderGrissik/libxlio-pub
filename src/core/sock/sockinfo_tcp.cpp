@@ -373,9 +373,11 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
         }
     }
 
+    express_dst_entry_tcp = nullptr;
     express_event_cb = nullptr;
     express_rx_cb = nullptr;
     express_zc_cb = nullptr;
+    express_opaque_sq = nullptr;
 
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
@@ -707,6 +709,7 @@ void sockinfo_tcp::create_dst_entry()
         }
 
         m_p_connected_dst_entry->set_src_sel_prefs(m_src_sel_flags);
+        express_dst_entry_tcp = (dst_entry_tcp *)m_p_connected_dst_entry;
     }
 }
 
@@ -5542,7 +5545,8 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
     if (likely(p_dst)) {
         p_desc = p_dst->get_buffer(type, desc);
         if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
-            ((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
+            ((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_EXPRESS) ||
+             (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
              (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MKEY) ||
              p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NVME_TX)) {
             /* Prepare error queue fields for send zerocopy */
@@ -5556,7 +5560,7 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
                 p_desc->tx.zc.count = p_prev_desc->tx.zc.count;
                 p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
                 p_desc->tx.zc.ctx = p_prev_desc->tx.zc.ctx;
-                p_desc->tx.zc.callback = tcp_tx_zc_callback; // TODO set different callback for Express POC
+                p_desc->tx.zc.callback = tcp_tx_zc_callback;
                 p_prev_desc->tx.zc.count = 0;
                 if (p_si_tcp->m_last_zcdesc == p_prev_desc) {
                     p_si_tcp->m_last_zcdesc = p_desc;
@@ -5994,10 +5998,20 @@ int sockinfo_tcp::get_supported_nvme_feature_mask() const
     return p_ring->get_supported_nvme_feature_mask();
 }
 
+void sockinfo_tcp::express_setup(struct express_socket_attr *attr)
+{
+    express_event_cb = attr->event_cb;
+    express_rx_cb = attr->rx_cb;
+    express_zc_cb = attr->zc_cb;
+    express_opaque_sq = attr->opaque_sq;
+
+    tcp_recv(&m_pcb, sockinfo_tcp::express_rx_lwip_cb);
+}
+
 int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
 {
     pbuf_desc mdesc;
-    mdesc.attr = 0; // XXX add new attr!
+    mdesc.attr = PBUF_DESC_EXPRESS;
     mdesc.express_mkey = mkey;
     mdesc.opaque = opaque_op;
 
@@ -6011,10 +6025,37 @@ int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int fl
 
 void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
 {
+    tcp_recved(&m_pcb, buf->lwip_pbuf.pbuf.len);
     reuse_buffer(buf);
-    /* TODO review tcp_received() and other values which may require an update. */
 }
 
+/* static */
+struct pbuf *sockinfo_tcp::express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(((struct tcp_pcb *)p_conn)->my_container);
+    mem_buf_desc_t *p_desc = si->express_dst_entry_tcp->get_buffer(type, desc);
+
+    if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY)) {
+        if (unlikely(p_buff)) {
+            p_buff->desc.opaque = NULL; // To avoid early ZC completion callback
+        }
+        p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
+        p_desc->tx.zc.ctx = si;
+        p_desc->tx.zc.callback = sockinfo_tcp::express_tx_zc_callback;
+    }
+    return reinterpret_cast<struct pbuf *>(p_desc);
+}
+
+/* static */
+void sockinfo_tcp::express_tx_zc_callback(mem_buf_desc_t *p_desc)
+{
+    if (p_desc->lwip_pbuf.pbuf.desc.opaque) {
+        sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(p_desc->tx.zc.ctx);
+        si->express_zc_cb(si->express_opaque_sq, p_desc->lwip_pbuf.pbuf.desc.opaque);
+    }
+}
+
+/* static */
 err_t sockinfo_tcp::express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
 {
     sockinfo_tcp *conn = reinterpret_cast<sockinfo_tcp *>(arg);
@@ -6031,10 +6072,22 @@ err_t sockinfo_tcp::express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pb
         return err;
     }
 
+    /*
+     * RCVBUFF Accounting: tcp_recved here(stream into the 'internal' buffer) only if the user
+     * buffer is not 'filled'
+     * XXX This is complicated logic and needs deeper understanding...
+     */
+    int rcv_buffer_space = std::max(
+        0, conn->m_rcvbuff_max - conn->m_rcvbuff_current - (int)conn->m_pcb.rcv_wnd_max_desired);
+    uint32_t bytes_to_tcp_recved = std::min(rcv_buffer_space, (int)p->tot_len);
+    conn->m_rcvbuff_current += p->tot_len;
+    conn->rx_lwip_shrink_rcv_wnd(p->tot_len, bytes_to_tcp_recved);
+
     while (p) {
         conn->express_rx_cb(conn->express_opaque_sq, p->payload, p->len,
                             &reinterpret_cast<mem_buf_desc_t *>(p)->express);
         p = p->next;
     }
+
     return 0;
 }
