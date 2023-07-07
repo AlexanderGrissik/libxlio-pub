@@ -736,7 +736,7 @@ extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr
     si->express_setup(attr);
 
     int rc = connect(fd, &attr->addr.addr, attr->addr_len);
-    if (rc != 0) {
+    if (rc != 0 && errno != EINPROGRESS && errno != EAGAIN) {
         close(fd);
         return NULL;
     }
