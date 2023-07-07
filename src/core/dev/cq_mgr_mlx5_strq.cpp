@@ -105,7 +105,7 @@ mem_buf_desc_t *cq_mgr_mlx5_strq::next_stride()
 {
     if (unlikely(_stride_cache.size() <= 0U)) {
         if (!g_buffer_pool_rx_stride->get_buffers_thread_safe(
-                _stride_cache, _owner_ring, safe_mce_sys().strq_strides_compensation_level, 0U)) {
+                _stride_cache, _owner_ring, safe_mce_sys().strq_strides_compensation_level, m_rx_lkey)) {
             // This pool should be an infinite pool
             __log_info_panic(
                 "Unable to retrieve strides from global pool, Free: %zu, Requested: %u",
