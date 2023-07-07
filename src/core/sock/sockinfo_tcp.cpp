@@ -6018,6 +6018,7 @@ void sockinfo_tcp::express_setup(struct express_socket_attr *attr)
     express_zc_cb = attr->zc_cb;
     express_opaque_sq = attr->opaque_sq;
 
+    fcntl(F_SETFL, O_NONBLOCK);
     tcp_recv(&m_pcb, sockinfo_tcp::express_rx_lwip_cb);
 }
 

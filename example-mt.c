@@ -1,5 +1,7 @@
 /* gcc -pthread -I./install/include example-mt.c -o example-mt -libverbs -lpthread */
 
+/* XLIO_PROGRESS_ENGINE_INTERVAL=0 XLIO_RING_ALLOCATION_LOGIC_TX=20 XLIO_RING_ALLOCATION_LOGIC_RX=20 LD_PRELOAD=libxlio.so ./example-mt */
+
 #include <mellanox/xlio_extra.h>
 
 #include <arpa/inet.h>
