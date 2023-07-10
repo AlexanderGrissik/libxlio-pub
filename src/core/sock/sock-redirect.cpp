@@ -699,6 +699,13 @@ static inline int express_do_global_ctors()
     return 0;
 }
 
+/* This is a wrapper for handle_close() and system close(). */
+static int express_close(int fd)
+{
+    bool toclose = handle_close(fd);
+    return toclose ? orig_os_api.close(fd) : 0;
+}
+
 extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
 {
     if (express_do_global_ctors() != 0) {
@@ -717,10 +724,7 @@ extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 
 extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
 {
-    /* TODO: need to replace lwip_rx_cb */
-    /* XXX sockinfo_tcp code can differenciate express socket by presence of the callbacks and assign relevant lwip callbacks. */
-
-    int fd = socket(attr->addr.addr.sa_family, SOCK_STREAM, 0);
+    int fd = socket_internal(attr->addr.addr.sa_family, SOCK_STREAM, 0, true, true);
     if (fd < 0) {
         return NULL;
     }
@@ -728,16 +732,21 @@ extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr
     socket_fd_api *sockfd = fd_collection_get_sockfd(fd);
     sockinfo_tcp *si = sockfd ? dynamic_cast<sockinfo_tcp *>(fd_collection_get_sockfd(fd)) : NULL;
     if (!si) {
-        close(fd);
-        errno = EBADF;
+        express_close(fd);
+        errno = ENOENT;
         return NULL;
     }
 
     si->express_setup(attr);
 
-    int rc = connect(fd, &attr->addr.addr, attr->addr_len);
+    int rc = si->connect(&attr->addr.addr, attr->addr_len);
+    if (si->isPassthrough()) {
+        express_close(fd);
+        errno = ENOEXEC;
+        return NULL;
+    }
     if (rc != 0 && errno != EINPROGRESS && errno != EAGAIN) {
-        close(fd);
+        express_close(fd);
         return NULL;
     }
 
@@ -748,7 +757,7 @@ extern "C" int xlio_express_socket_terminate(express_socket *sock)
 {
     sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
 
-    return close(si->get_fd());
+    return express_close(si->get_fd());
 }
 
 extern "C" int xlio_express_send(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
