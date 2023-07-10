@@ -1378,7 +1378,8 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, struct tcp_seg *seg, void 
          */
         p_si_tcp->reset_ops();
         if (p_si_tcp->express_event_cb) {
-            p_si_tcp->express_event_cb(p_si_tcp->express_opaque_sq, EXPRESS_EVENT_TERMINATED);
+            // XXX Disable TERMINATED event, because it's not expected by nvmf
+            //p_si_tcp->express_event_cb(p_si_tcp->express_opaque_sq, EXPRESS_EVENT_TERMINATED);
             p_si_tcp->express_event_cb = nullptr;
         }
     }
