@@ -355,10 +355,13 @@ enum express_event_t {
     EXPRESS_EVENT_ERROR,
 };
 
+enum exporess_send_flag_t {
+    EXPRESS_SEND_FLAG_CRYPTO = 1U << 1,
+};
+
 typedef void (*express_event_callback_t)(void *opaque_sq, enum express_event_t event);
 typedef void (*express_rx_callback_t)(void *opaque_sq, void *addr, size_t len, express_buf *buf);
 typedef void (*express_zc_callback_t)(void *opaque_sq, void *opaque_op);
-/* TODO Callback for RDMA completion. */
 
 struct express_socket_attr {
     union {
@@ -367,6 +370,11 @@ struct express_socket_attr {
         struct sockaddr_in6 addr_in6;
     } addr;
     socklen_t addr_len;
+    unsigned block_size_bytes;
+    /* AES_XTS key length in bits: 128, 256, 0. The last disabled crypto. */
+    unsigned keylen;
+    /* Contains AES_XTS key format (40 or 72 bytes). May be NULL if keylen is 0. */
+    void *key;
     express_event_callback_t event_cb;
     express_rx_callback_t rx_cb;
     express_zc_callback_t zc_cb;
@@ -645,10 +653,12 @@ struct __attribute__((packed)) xlio_api_t {
     express_socket *(*express_socket_create)(struct express_socket_attr *attr);
     /* Initiate TCP session termination. Socket is destroyed in the background eventually. */
     int (*express_socket_terminate)(express_socket *sock);
+    /* Set current LBA which is used for crypto and automatically advanced with each sent block_size. */
+    void (*express_set_lba)(express_socket *sock, uint64_t lba);
     /* Send/queue TCP data. Use MSG_MORE flag as a hint for better TCP segment grouping. */
     int (*express_send)(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
-    /* Arm RDMA operation using XLIO SQ. TODO: decide on mkey for each iov element: either XLIO RX buffers or user provides mkeys. */
-    int (*express_send_rdma)(express_socket *sock, struct iovec *iov, int iovcnt, uint8_t opcode, uint64_t rdma_addr, uint32_t rdma_key, void *opaque_rdma);
+    /* IOV version of send. */
+    int (*express_sendv)(express_socket *sock, const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op);
     /* Free a buffer which is obtained via the rx_cb. */
     void (*express_free_rx_buf)(express_socket *sock, express_buf *buf);
     /* Run a poll iteration on the current CPU core / pthread. Needs to be called frequently enough. */

@@ -333,6 +333,7 @@ public:
 
     // Express API
     dst_entry_tcp *express_dst_entry_tcp;
+    uint64_t express_lba;
     express_event_callback_t express_event_cb;
     express_rx_callback_t express_rx_cb;
     express_zc_callback_t express_zc_cb;

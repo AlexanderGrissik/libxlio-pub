@@ -720,6 +720,8 @@ extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
 extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 {
     memset(attr, 0, sizeof(*attr));
+
+    attr->block_size_bytes = 512;
 }
 
 extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
@@ -755,35 +757,43 @@ extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr
 
 extern "C" int xlio_express_socket_terminate(express_socket *sock)
 {
-    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
 
     return express_close(si->get_fd());
 }
 
+extern "C" void xlio_express_set_lba(express_socket *sock, uint64_t lba)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+
+    si->express_lba = lba;
+}
+
 extern "C" int xlio_express_send(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
 {
-    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
 
     return si->express_tx(addr, len, mkey, flags, opaque_op);
 }
 
-extern "C" int xlio_express_send_rdma(express_socket *sock, struct iovec *iov, int iovcnt, uint8_t opcode, uint64_t rdma_addr, uint32_t rdma_key, void *opaque_rdma)
+extern "C" int xlio_express_sendv(express_socket *sock, const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op)
 {
-    /* TODO: This needs to be a proxy to qp_mgr_mlx5 */
-    NOT_IN_USE(sock);
-    NOT_IN_USE(iov);
-    NOT_IN_USE(iovcnt);
-    NOT_IN_USE(opcode);
-    NOT_IN_USE(rdma_addr);
-    NOT_IN_USE(rdma_key);
-    NOT_IN_USE(opaque_rdma);
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    int rc = 0;
 
-    return 0;
+    /*
+     * XXX TODO Pass the vector to sockinfo object to make proper crypto layout
+     */
+
+    for (unsigned i = 0; i < iov_len; ++i) {
+        rc = rc ?: si->express_tx(iov[i].iov_base, iov[i].iov_len, mkey, flags, opaque_op);
+    }
+    return rc;
 }
 
 extern "C" void xlio_express_free_rx_buf(express_socket *sock, express_buf *buf)
 {
-    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock); // XXX decide on the type of the XLIO socket
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
     /* XXX offsetof() doesn't build for mem_buf_desc_t, so container_of() doesn't work here.
      * As a workaround, hardcode the 'express' field in predictable place to avoid offsetof().
      */
@@ -1234,7 +1244,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             SET_EXTRA_API(express_socket_create, xlio_express_socket_create, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_terminate, xlio_express_socket_terminate, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_send, xlio_express_send, XLIO_EXTRA_API_EXPRESS);
-            SET_EXTRA_API(express_send_rdma, xlio_express_send_rdma, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_sendv, xlio_express_sendv, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_free_rx_buf, xlio_express_free_rx_buf, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_poll, xlio_express_poll, XLIO_EXTRA_API_EXPRESS);
         }

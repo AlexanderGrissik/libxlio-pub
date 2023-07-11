@@ -378,6 +378,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     express_rx_cb = nullptr;
     express_zc_cb = nullptr;
     express_opaque_sq = nullptr;
+    express_lba = 0;
 
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
@@ -6029,6 +6030,8 @@ int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int fl
     mdesc.attr = PBUF_DESC_EXPRESS;
     mdesc.express_mkey = mkey;
     mdesc.opaque = opaque_op;
+
+    /* TODO Lock */
 
     tcp_write(&m_pcb, addr, len, TCP_WRITE_ZEROCOPY, &mdesc);
     if (!(flags & MSG_MORE)) {
