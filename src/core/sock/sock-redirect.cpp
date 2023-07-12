@@ -1243,6 +1243,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             SET_EXTRA_API(express_socket_attr_init, xlio_express_socket_attr_init, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_create, xlio_express_socket_create, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_terminate, xlio_express_socket_terminate, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_set_lba, xlio_express_set_lba, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_send, xlio_express_send, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_sendv, xlio_express_sendv, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_free_rx_buf, xlio_express_free_rx_buf, XLIO_EXTRA_API_EXPRESS);
