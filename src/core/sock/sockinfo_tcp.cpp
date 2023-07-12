@@ -1237,7 +1237,7 @@ err_t sockinfo_tcp::ip_output(struct pbuf *p, struct tcp_seg *seg, void *v_p_con
     tcp_iovec lwip_iovec[max_count];
     xlio_send_attr attr = {(xlio_wr_tx_packet_attr)flags, p_si_tcp->m_pcb.mss, 0, 0};
     int count = 0;
-    void *cur_end;
+//    void *cur_end;
 
     int rc = p_si_tcp->m_ops->postrouting(p, seg, attr);
     if (rc != 0) {
@@ -1275,6 +1275,7 @@ zc_fill_iov:
      * Assume here that ZC buffer doesn't cross huge-pages -> ZC lkey scheme works.
      */
     while (p && (count < max_count)) {
+/* XXX Disable compat for Express POC
         cur_end =
             (void *)((uint64_t)lwip_iovec[count].iovec.iov_base + lwip_iovec[count].iovec.iov_len);
         if ((p->desc.attr == PBUF_DESC_NONE) && (cur_end == p->payload) &&
@@ -1283,11 +1284,12 @@ zc_fill_iov:
              (uintptr_t)((uint64_t)p->payload & p_si_tcp->m_user_huge_page_mask))) {
             lwip_iovec[count].iovec.iov_len += p->len;
         } else {
+*/
             count++;
             lwip_iovec[count].iovec.iov_base = p->payload;
             lwip_iovec[count].iovec.iov_len = p->len;
             lwip_iovec[count].p_desc = (mem_buf_desc_t *)p;
-        }
+//        }
         attr.length += p->len;
         p = p->next;
     }
