@@ -6031,20 +6031,22 @@ int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int fl
     mdesc.express_mkey = mkey;
     mdesc.opaque = opaque_op;
 
-    /* TODO Lock */
-
+    lock_tcp_con();
     tcp_write(&m_pcb, addr, len, TCP_WRITE_ZEROCOPY, &mdesc);
     if (!(flags & MSG_MORE)) {
         tcp_output(&m_pcb);
     }
+    unlock_tcp_con();
 
     return 0;
 }
 
 void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
 {
+    lock_tcp_con();
     tcp_recved(&m_pcb, buf->lwip_pbuf.pbuf.len);
     reuse_buffer(buf);
+    unlock_tcp_con();
 }
 
 /* static */
