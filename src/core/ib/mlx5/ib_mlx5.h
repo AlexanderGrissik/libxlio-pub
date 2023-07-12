@@ -147,7 +147,7 @@ struct mlx5_mkey_seg {
      * bit 31 is always 0,
      * bit 30 is zero for regular MRs and 1 (e.g free) for UMRs that do not have translation
      */
-    uint8_t status;
+    uint8_t free;
     uint8_t pcie_control;
     uint8_t flags;
     uint8_t version;
@@ -246,14 +246,13 @@ typedef struct xlio_mlx5_wqe_ctrl_seg {
 struct xlio_mlx5_wqe_umr_ctrl_seg {
     uint8_t flags;
     uint8_t rsvd0[3];
-    __be16 xlt_octowords;
+    __be16 klm_octowords;
     union {
-        __be16 xlt_offset;
+        __be16 translation_offset;
         __be16 bsf_octowords;
     };
     __be64 mkey_mask;
-    __be32 xlt_offset_47_16;
-    uint8_t rsvd1[28];
+    uint8_t rsvd1[32];
 };
 
 typedef struct mlx5_wqe_tls_static_params_seg {
@@ -309,6 +308,29 @@ typedef struct mlx5_get_tls_progress_params_wqe {
     struct mlx5_wqe ctrl;
     struct xlio_mlx5_seg_get_psv psv;
 } mlx5_get_tls_progress_params_wqe;
+
+typedef struct mlx5_wqe_crypto_bsf_seg {
+	uint8_t		size_type;
+	uint8_t		enc_order;
+	uint8_t		rsvd0;
+	uint8_t		enc_standard;
+	__be32		raw_data_size;
+	uint8_t		crypto_block_size_pointer;
+	uint8_t		rsvd1[7];
+	uint64_t	xts_initial_tweak[2];
+	__be32		dek_pointer;
+	uint8_t		rsvd2[4];
+	uint8_t		keytag[8];
+	uint8_t		rsvd3[16];
+} mlx5_wqe_crypto_bsf_seg;
+
+typedef struct mlx5_umr_crypto_key_wqe {
+    mlx5_wqe ctrl;
+    xlio_mlx5_wqe_umr_ctrl_seg uctrl;
+    mlx5_mkey_seg mkc;
+    struct mlx5_wqe_umr_klm_seg klm[4];
+    mlx5_wqe_crypto_bsf_seg bsf;
+} mlx5_umr_crypto_key_wqe;
 
 /* WQEs sizes */
 #define DIV_ROUND_UP(n, d) (((n) + (d)-1) / (d))

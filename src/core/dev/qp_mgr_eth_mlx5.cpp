@@ -1398,6 +1398,83 @@ void qp_mgr_eth_mlx5::post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uin
     update_next_wqe_hot();
 }
 
+void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba)
+{
+    mlx5_umr_crypto_key_wqe *wqe = reinterpret_cast<mlx5_umr_crypto_key_wqe *>(m_sq_wqe_hot);
+    xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
+    xlio_mlx5_wqe_umr_ctrl_seg *ucseg = &wqe->uctrl;
+    struct mlx5_mkey_seg *mkc = &wqe->mkc; // 64
+    struct mlx5_wqe_umr_klm_seg *klm = &wqe->klm[0]; // 64
+    mlx5_wqe_crypto_bsf_seg *bsf = &wqe->bsf; // 64
+    const uint8_t opmod = 0;
+    int wqebbs = 4;
+    int wqebbs_top = 0;
+    uint64_t data_len = 4096; // XXX
+
+    // XXX TODO make it better and add support for variable klm section
+    if (m_sq_wqes_end == (uint8_t *)mkc) {
+        mkc = reinterpret_cast<struct mlx5_mkey_seg *>(m_sq_wqes);
+        klm = reinterpret_cast<struct mlx5_wqe_umr_klm_seg *>(mkc + 1);
+        bsf = reinterpret_cast<mlx5_wqe_crypto_bsf_seg *>((char *)klm + 64); // XXX
+        wqebbs = 1;
+        wqebbs_top = 3;
+    } else if (m_sq_wqes_end == (uint8_t *)klm) {
+        klm = reinterpret_cast<struct mlx5_wqe_umr_klm_seg *>(m_sq_wqes);
+        bsf = reinterpret_cast<mlx5_wqe_crypto_bsf_seg *>((char *)klm + 64); // XXX
+        wqebbs = 2;
+        wqebbs_top = 2;
+    } else if (m_sq_wqes_end == (uint8_t *)bsf) {
+        bsf = reinterpret_cast<mlx5_wqe_crypto_bsf_seg *>(m_sq_wqes); // XXX
+        wqebbs = 3;
+        wqebbs_top = 1;
+    }
+
+    // XXX: We set inline_hdr_sz for every new hot wqe. This corrupts UMR WQE without memset().
+    memset(m_sq_wqe_hot, 0, sizeof(*m_sq_wqe_hot));
+
+    cseg->opmod_idx_opcode =
+        htobe32(((m_sq_wqe_counter & 0xffff) << 8) | MLX5_OPCODE_UMR | (opmod << 24));
+    cseg->qpn_ds = htobe32((m_mlx5_qp.qpn << MLX5_WQE_CTRL_QPN_SHIFT) | STATIC_PARAMS_DS_CNT);
+    cseg->fm_ce_se = 0;
+    cseg->tis_tir_num = htobe32(mkey);
+
+    ucseg->flags = MLX5_UMR_INLINE;
+    ucseg->klm_octowords = htobe16(4);
+    ucseg->bsf_octowords = htobe16(sizeof(*bsf) / 16);
+    ucseg->mkey_mask = htobe64(MLX5_WQE_UMR_CTRL_MKEY_MASK_FREE | MLX5_WQE_UMR_CTRL_MKEY_MASK_LEN);
+
+    memset(mkc, 0, sizeof(*mkc));
+    mkc->free = 0;
+    mkc->len = htobe64(data_len);
+
+    // XXX TODO Fill klm
+
+    // XXX Hardcode these values for now...
+    enum {
+        SNAP_CRYPTO_BSF_SIZE_64B                                    = 0x2,
+        SNAP_CRYPTO_BSF_P_TYPE_CRYPTO                               = 0x1,
+        SNAP_CRYPTO_BSF_ENCRYPTION_ORDER_ENCRYPTED_MEMORY_SIGNATURE = 0x1,
+        SNAP_CRYPTO_BSF_ENCRYPTION_STANDARD_AES_XTS                 = 0x0,
+        SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_512               = 0x1,
+        SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_4096              = 0x3,
+    };
+
+    memset(bsf, 0, sizeof(*bsf));
+    bsf->size_type = (SNAP_CRYPTO_BSF_SIZE_64B << 6) | SNAP_CRYPTO_BSF_P_TYPE_CRYPTO,
+    bsf->enc_order = SNAP_CRYPTO_BSF_ENCRYPTION_ORDER_ENCRYPTED_MEMORY_SIGNATURE,
+    bsf->enc_standard = SNAP_CRYPTO_BSF_ENCRYPTION_STANDARD_AES_XTS,
+    bsf->raw_data_size = htobe32(data_len),
+    bsf->crypto_block_size_pointer = SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_512,
+    bsf->dek_pointer = htobe32(dek & 0x00FFFFFF),
+    bsf->xts_initial_tweak[0] = htobe64(lba);
+    bsf->xts_initial_tweak[1] = 0;
+
+    store_current_wqe_prop(nullptr, 4 /* XXX */, nullptr);
+    ring_doorbell(MLX5_DB_METHOD_DB, wqebbs, wqebbs_top, true);
+    update_next_wqe_hot();
+    m_b_fence_needed = true;
+}
+
 //! Handle releasing of Tx buffers
 // Single post send with SIGNAL of a dummy packet
 // NOTE: Since the QP is in ERROR state no packets will be sent on the wire!

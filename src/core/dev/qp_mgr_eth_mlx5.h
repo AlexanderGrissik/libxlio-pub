@@ -111,6 +111,8 @@ public:
     void post_nop_fence(void) override;
     void post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uint32_t lkey, bool first) override;
 
+    void nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba);
+
 #if defined(DEFINED_UTLS)
     std::unique_ptr<dpcp::dek> get_new_dek(const void *key, uint32_t key_size_bytes);
     std::unique_ptr<dpcp::dek> get_dek(const void *key, uint32_t key_size_bytes);
