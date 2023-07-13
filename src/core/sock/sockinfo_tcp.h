@@ -325,6 +325,8 @@ public:
 
     // Express API
     void express_setup(struct express_socket_attr *attr);
+    int express_postsetup(struct express_socket_attr *attr);
+    void express_teardown();
     int express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op);
     void express_reclaim_buf(mem_buf_desc_t *buf);
     static struct pbuf *express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
@@ -332,12 +334,21 @@ public:
     static err_t express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 
     // Express API
+    enum {
+        EXPRESS_MKEY_NR = 16,
+    };
+
     dst_entry_tcp *express_dst_entry_tcp;
     uint64_t express_lba;
     express_event_callback_t express_event_cb;
     express_rx_callback_t express_rx_cb;
     express_zc_callback_t express_zc_cb;
     void *express_opaque_sq;
+    unsigned express_block_size;
+    unsigned express_mkey_idx;
+    uint32_t express_dek_id;
+    dpcp::dek *express_dek;
+    dpcp::crypto_mkey *express_mkeys[EXPRESS_MKEY_NR];
 
 protected:
     virtual void lock_rx_q();

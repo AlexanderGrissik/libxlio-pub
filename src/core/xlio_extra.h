@@ -371,10 +371,10 @@ struct express_socket_attr {
     } addr;
     socklen_t addr_len;
     unsigned block_size_bytes;
-    /* AES_XTS key length in bits: 128, 256, 0. The last disabled crypto. */
+    /* AES_XTS key length in bytes. 0 disables crypto. */
     unsigned keylen;
     /* Contains AES_XTS key format (40 or 72 bytes). May be NULL if keylen is 0. */
-    void *key;
+    const void *key;
     express_event_callback_t event_cb;
     express_rx_callback_t rx_cb;
     express_zc_callback_t zc_cb;

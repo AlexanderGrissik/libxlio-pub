@@ -378,7 +378,11 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     express_rx_cb = nullptr;
     express_zc_cb = nullptr;
     express_opaque_sq = nullptr;
+    express_dek = nullptr;
+    express_dek_id = 0;
+    express_mkey_idx = 0;
     express_lba = 0;
+    memset(express_mkeys, 0, sizeof(express_mkeys));
 
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
@@ -431,6 +435,10 @@ sockinfo_tcp::~sockinfo_tcp()
     }
 
     unlock_tcp_con();
+
+    if (express_rx_cb) {
+        express_teardown();
+    }
 
     if (m_n_rx_pkt_ready_list_count || m_rx_ready_byte_count || m_rx_pkt_ready_list.size() ||
         m_rx_ring_map.size() || m_rx_reuse_buff.n_buff_num || m_rx_reuse_buff.rx_reuse.size() ||
@@ -6021,9 +6029,53 @@ void sockinfo_tcp::express_setup(struct express_socket_attr *attr)
     express_rx_cb = attr->rx_cb;
     express_zc_cb = attr->zc_cb;
     express_opaque_sq = attr->opaque_sq;
+    express_block_size = attr->block_size_bytes;
 
-    fcntl(F_SETFL, O_NONBLOCK);
+    sockinfo_tcp::fcntl(F_SETFL, O_NONBLOCK);
     tcp_recv(&m_pcb, sockinfo_tcp::express_rx_lwip_cb);
+}
+
+int sockinfo_tcp::express_postsetup(struct express_socket_attr *attr)
+{
+    if (attr->keylen == 0) {
+        return 0;
+    }
+
+    ring *tx_ring = get_tx_ring();
+    ib_ctx_handler *ctx = tx_ring->get_ctx(0);
+    dpcp::adapter *adapter = ctx->get_dpcp_adapter();
+    bool hastag = attr->keylen == 72 || attr->keylen == 40;
+
+    dpcp::dek::attr dek_attr = {
+        .flags = (uint32_t)((hastag * dpcp::DEK_ATTR_HAS_KEYTAG) | dpcp::DEK_ATTR_AES_XTS),
+        .key = attr->key,
+        .key_size_bytes = attr->keylen < 64U ? 16U : 32U,
+        .pd_id = adapter->get_pd(),
+        .opaque = 0
+    };
+    dpcp::status status = adapter->create_dek(dek_attr, express_dek);
+    assert(status == dpcp::DPCP_OK);
+    express_dek_id = express_dek->get_key_id();
+
+    for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+        status = adapter->create_crypto_mkey(express_mkeys[i]);
+        assert(status == dpcp::DPCP_OK);
+    }
+
+    NOT_IN_USE(status);
+    return 0;
+}
+
+void sockinfo_tcp::express_teardown()
+{
+    if (!express_dek) {
+        return;
+    }
+
+    for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+        delete express_mkeys[i];
+    }
+    delete express_dek;
 }
 
 int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
@@ -6032,6 +6084,13 @@ int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int fl
     mdesc.attr = PBUF_DESC_EXPRESS;
     mdesc.express_mkey = mkey;
     mdesc.opaque = opaque_op;
+
+    /* TODO
+     * Accumulate iov while MSG_MORE and CRYPTO set.
+     * Post crypto mkey UMR if crypto according to 4KB layout. (if there are multiple UMR WQEs, set m_b_fence_needed only after the last one)
+     * opaque_op is expected only for the last payload chunk (so this will be the last tcp_write() call)
+     * Verify that XLIO can create a single WQE with both header and payload.
+     */
 
     lock_tcp_con();
     tcp_write(&m_pcb, addr, len, TCP_WRITE_ZEROCOPY, &mdesc);

@@ -752,6 +752,8 @@ extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr
         return NULL;
     }
 
+    si->express_postsetup(attr);
+
     return reinterpret_cast<express_socket *>(si);
 }
 
