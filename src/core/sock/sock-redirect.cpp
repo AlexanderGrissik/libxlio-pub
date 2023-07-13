@@ -726,6 +726,8 @@ extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 
 extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
 {
+    srdr_loginfo("Express socket creation: block_size=%u keylen=%u", attr->block_size_bytes, attr->keylen);
+
     int fd = socket_internal(attr->addr.addr.sa_family, SOCK_STREAM, 0, true, true);
     if (fd < 0) {
         return NULL;
@@ -774,23 +776,16 @@ extern "C" void xlio_express_set_lba(express_socket *sock, uint64_t lba)
 extern "C" int xlio_express_send(express_socket *sock, const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
 {
     sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    const struct iovec iov = { .iov_base = (char *)addr, .iov_len = len };
 
-    return si->express_tx(addr, len, mkey, flags, opaque_op);
+    return si->express_tx(&iov, 1U, mkey, flags, opaque_op);
 }
 
 extern "C" int xlio_express_sendv(express_socket *sock, const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op)
 {
     sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
-    int rc = 0;
 
-    /*
-     * XXX TODO Pass the vector to sockinfo object to make proper crypto layout
-     */
-
-    for (unsigned i = 0; i < iov_len; ++i) {
-        rc = rc ?: si->express_tx(iov[i].iov_base, iov[i].iov_len, mkey, flags, opaque_op);
-    }
-    return rc;
+    return si->express_tx(iov, iov_len, mkey, flags, opaque_op);
 }
 
 extern "C" void xlio_express_free_rx_buf(express_socket *sock, express_buf *buf)

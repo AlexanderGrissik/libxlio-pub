@@ -380,6 +380,8 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     express_opaque_sq = nullptr;
     express_dek = nullptr;
     express_dek_id = 0;
+    express_iov_nr = 0;
+    express_iov_size = 0;
     express_mkey_idx = 0;
     express_lba = 0;
     memset(express_mkeys, 0, sizeof(express_mkeys));
@@ -6041,8 +6043,22 @@ int sockinfo_tcp::express_postsetup(struct express_socket_attr *attr)
         return 0;
     }
 
-    ring *tx_ring = get_tx_ring();
-    ib_ctx_handler *ctx = tx_ring->get_ctx(0);
+    /*
+     * Configure AES_XTS crypto:
+     * - Create DEK per socket.
+     * - For now, allocate EXPRESS_MKEY_NR mkeys per socket and use them in
+     *   round-robin. In happy path, we expect that socket is ready to post
+     *   SEND WQEs in tcp_output(), so we don't need too many mkeys per socket.
+     *   An mkey cen be reused if the SEND WQE is posted to SQ (because
+     *   WQEs are handled in order and we put a fence).
+     *
+     * TODO:
+     * - A DEK can be shared.
+     * - Make a thread-local pool of mkeys.
+     */
+
+    express_tx_ring = get_tx_ring();
+    ib_ctx_handler *ctx = express_tx_ring->get_ctx(0);
     dpcp::adapter *adapter = ctx->get_dpcp_adapter();
     bool hastag = attr->keylen == 72 || attr->keylen == 40;
 
@@ -6078,12 +6094,14 @@ void sockinfo_tcp::express_teardown()
     delete express_dek;
 }
 
-int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int flags, void *opaque_op)
+int sockinfo_tcp::express_tx(const struct iovec *iov, unsigned iov_len, uint32_t mkey, int flags, void *opaque_op)
 {
+    err_t err;
+
     pbuf_desc mdesc;
     mdesc.attr = PBUF_DESC_EXPRESS;
     mdesc.express_mkey = mkey;
-    mdesc.opaque = opaque_op;
+    mdesc.opaque = nullptr;
 
     /* TODO
      * Accumulate iov while MSG_MORE and CRYPTO set.
@@ -6092,13 +6110,101 @@ int sockinfo_tcp::express_tx(const void *addr, size_t len, uint32_t mkey, int fl
      * Verify that XLIO can create a single WQE with both header and payload.
      */
 
-    lock_tcp_con();
-    tcp_write(&m_pcb, addr, len, TCP_WRITE_ZEROCOPY, &mdesc);
-    if (!(flags & MSG_MORE)) {
+    if (flags & EXPRESS_SEND_FLAG_CRYPTO) {
+        assert(express_iov_nr + iov_len <= ARRAY_SIZE(express_iov_buf));
+        for (unsigned i = 0; i < iov_len; ++i) {
+            express_iov_buf[express_iov_nr].byte_count = iov[i].iov_len;
+            express_iov_buf[express_iov_nr].mkey = mkey;
+            express_iov_buf[express_iov_nr].address = (uint64_t)iov->iov_base;
+            ++express_iov_nr;
+            express_iov_size += iov[i].iov_len;
+        }
+        if (flags & MSG_MORE) {
+            return 0;
+        }
+
+        bool granted = express_tx_ring->credits_get((express_iov_size + 4095U) / 4096U * 4U);
+        assert(granted);
+        /* XXX TODO Handle failure properly */
+        if (!granted) {
+            return -1;
+        }
+
+        unsigned len = 0;
+        unsigned reminder;
+        unsigned crypto_iov_len = 0;
+        unsigned crypto_iov_size;
+        struct mlx5_wqe_umr_klm_seg *crypto_iov = &express_iov_buf[0];
+        for (unsigned i = 0; i < express_iov_nr; ++i) {
+            uint32_t mkey_id;
+
+            len += express_iov_buf[i].byte_count;
+            ++crypto_iov_len;
+repeat:
+            if (len < 4096 && i < express_iov_nr - 1) {
+                continue;
+            }
+
+            reminder = (unsigned)std::max<int>((int)len - 4096, 0);
+            crypto_iov_size = len - reminder;
+            express_iov_buf[i].byte_count -= reminder;
+
+            (void)express_mkeys[express_mkey_idx]->get_id(mkey_id);
+            express_mkey_idx = (express_mkey_idx + 1) % EXPRESS_MKEY_NR;
+            express_tx_ring->nvme_crypto_mkey_setup(mkey_id, express_dek_id, express_lba,
+                                                    express_block_size, crypto_iov, crypto_iov_len);
+            mdesc.express_mkey = mkey_id;
+            if (i == express_iov_nr - 1) {
+                mdesc.opaque = opaque_op;
+            }
+            lock_tcp_con();
+            err = tcp_write(&m_pcb, NULL, crypto_iov_size, TCP_WRITE_ZEROCOPY, &mdesc);
+            unlock_tcp_con();
+            assert(err == ERR_OK);
+
+            if (reminder) {
+                crypto_iov = &express_iov_buf[i];
+                crypto_iov->address += crypto_iov->byte_count;
+                crypto_iov->byte_count = reminder;
+                crypto_iov_len = 1U;
+                len = reminder;
+                goto repeat;
+            } else {
+                crypto_iov = &express_iov_buf[i + 1];
+                crypto_iov_len = 0;
+                crypto_iov_size = 0;
+                len = 0;
+            }
+        }
+
+        express_iov_nr = 0;
+        express_iov_size = 0;
+
+        lock_tcp_con();
         tcp_output(&m_pcb);
+        unlock_tcp_con();
+
+        /* TODO Prepare all UMRs first and then with a single fence post the SEND WQEs.
+         * This also will require a single TCP lock for all tcp_write and tcp_output */
+        return 0;
+    }
+
+    lock_tcp_con();
+    for (unsigned i = 0; i < iov_len - 1; ++i) {
+        err = tcp_write(&m_pcb, iov[i].iov_base, iov[i].iov_len, TCP_WRITE_ZEROCOPY, &mdesc);
+        assert(err == ERR_OK);
+    }
+    /* Assign opaque only to the last chunk. So, only the last pbuf will generate zerocopy completion. */
+    mdesc.opaque = opaque_op;
+    err = tcp_write(&m_pcb, iov[iov_len - 1].iov_base, iov[iov_len - 1].iov_len, TCP_WRITE_ZEROCOPY, &mdesc);
+
+    if (!(flags & MSG_MORE)) {
+        err = tcp_output(&m_pcb);
+        assert(err == ERR_OK);
     }
     unlock_tcp_con();
 
+    NOT_IN_USE(err);
     return 0;
 }
 

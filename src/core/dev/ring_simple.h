@@ -266,6 +266,13 @@ public:
         m_p_qp_mgr->post_dump_wqe(tis, addr, len, lkey, is_first);
     }
 
+    void nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba, unsigned block_size,
+                                const struct mlx5_wqe_umr_klm_seg *iov, unsigned iov_len) override
+    {
+        std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
+        m_p_qp_mgr->nvme_crypto_mkey_setup(mkey, dek, lba, block_size, iov, iov_len);
+    }
+
     void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx) override
     {
         std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);

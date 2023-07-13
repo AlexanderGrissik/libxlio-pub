@@ -1398,7 +1398,10 @@ void qp_mgr_eth_mlx5::post_dump_wqe(xlio_tis *tis, void *addr, uint32_t len, uin
     update_next_wqe_hot();
 }
 
-void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba)
+void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64_t lba,
+                                             unsigned block_size,
+                                             const struct mlx5_wqe_umr_klm_seg *iov,
+                                             unsigned iov_len)
 {
     mlx5_umr_crypto_key_wqe *wqe = reinterpret_cast<mlx5_umr_crypto_key_wqe *>(m_sq_wqe_hot);
     xlio_mlx5_wqe_ctrl_seg *cseg = &wqe->ctrl.ctrl;
@@ -1409,7 +1412,7 @@ void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64
     const uint8_t opmod = 0;
     int wqebbs = 4;
     int wqebbs_top = 0;
-    uint64_t data_len = 4096; // XXX
+    uint64_t data_len = 0;
 
     // XXX TODO make it better and add support for variable klm section
     if (m_sq_wqes_end == (uint8_t *)mkc) {
@@ -1443,11 +1446,22 @@ void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64
     ucseg->bsf_octowords = htobe16(sizeof(*bsf) / 16);
     ucseg->mkey_mask = htobe64(MLX5_WQE_UMR_CTRL_MKEY_MASK_FREE | MLX5_WQE_UMR_CTRL_MKEY_MASK_LEN);
 
+    assert(iov_len <= 4); // XXX No support of multiple KLM WQEBBs for now
+
+    unsigned i;
+    for (i = 0; i < iov_len; ++i) {
+        data_len += iov[i].byte_count;
+        klm[i].byte_count = htobe32(iov[i].byte_count);
+        klm[i].mkey = htobe32(iov[i].mkey);
+        klm[i].address = htobe64(iov[i].address);
+    }
+    for (; i < ((iov_len + 3) & 0xfffffffcU); ++i) {
+        memset(&klm[i], 0, sizeof(klm[i]));
+    }
+
     memset(mkc, 0, sizeof(*mkc));
     mkc->free = 0;
     mkc->len = htobe64(data_len);
-
-    // XXX TODO Fill klm
 
     // XXX Hardcode these values for now...
     enum {
@@ -1464,7 +1478,9 @@ void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64
     bsf->enc_order = SNAP_CRYPTO_BSF_ENCRYPTION_ORDER_ENCRYPTED_MEMORY_SIGNATURE,
     bsf->enc_standard = SNAP_CRYPTO_BSF_ENCRYPTION_STANDARD_AES_XTS,
     bsf->raw_data_size = htobe32(data_len),
-    bsf->crypto_block_size_pointer = SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_512,
+    /* XXX Support only 512 and 4096 block sizes */
+    bsf->crypto_block_size_pointer = block_size == 512 ? SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_512 :
+                                                         SNAP_CRYPTO_BSF_CRYPTO_BLOCK_SIZE_POINTER_4096,
     bsf->dek_pointer = htobe32(dek & 0x00FFFFFF),
     bsf->xts_initial_tweak[0] = htobe64(lba);
     bsf->xts_initial_tweak[1] = 0;
