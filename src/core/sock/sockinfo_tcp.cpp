@@ -6236,7 +6236,7 @@ struct pbuf *sockinfo_tcp::express_tx_pbuf_alloc(void *p_conn, pbuf_type type, p
 /* static */
 void sockinfo_tcp::express_tx_zc_callback(mem_buf_desc_t *p_desc)
 {
-    if (p_desc->lwip_pbuf.pbuf.desc.opaque) {
+    if (p_desc->lwip_pbuf.pbuf.desc.opaque && p_desc->tx.zc.ctx) {
         sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(p_desc->tx.zc.ctx);
         si->express_zc_cb(si->express_opaque_sq, p_desc->lwip_pbuf.pbuf.desc.opaque);
     }
