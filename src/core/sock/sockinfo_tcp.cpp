@@ -6031,7 +6031,7 @@ void sockinfo_tcp::express_setup(struct express_socket_attr *attr)
     express_rx_cb = attr->rx_cb;
     express_zc_cb = attr->zc_cb;
     express_opaque_sq = attr->opaque_sq;
-    express_block_size = attr->block_size_bytes;
+    express_block_size = attr->block_size_bytes ?: 512U;
 
     sockinfo_tcp::fcntl(F_SETFL, O_NONBLOCK);
     tcp_recv(&m_pcb, sockinfo_tcp::express_rx_lwip_cb);
@@ -6104,9 +6104,6 @@ int sockinfo_tcp::express_tx(const struct iovec *iov, unsigned iov_len, uint32_t
     mdesc.opaque = nullptr;
 
     /* TODO
-     * Accumulate iov while MSG_MORE and CRYPTO set.
-     * Post crypto mkey UMR if crypto according to 4KB layout. (if there are multiple UMR WQEs, set m_b_fence_needed only after the last one)
-     * opaque_op is expected only for the last payload chunk (so this will be the last tcp_write() call)
      * Verify that XLIO can create a single WQE with both header and payload.
      */
 
@@ -6153,6 +6150,7 @@ repeat:
             express_mkey_idx = (express_mkey_idx + 1) % EXPRESS_MKEY_NR;
             express_tx_ring->nvme_crypto_mkey_setup(mkey_id, express_dek_id, express_lba,
                                                     express_block_size, crypto_iov, crypto_iov_len);
+            express_lba += crypto_iov_size / express_block_size;
             mdesc.express_mkey = mkey_id;
             if (i == express_iov_nr - 1) {
                 mdesc.opaque = opaque_op;
