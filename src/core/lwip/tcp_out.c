@@ -522,7 +522,7 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
          * (len==0). The new pbuf is kept in concat_p and pbuf_cat'ed at
          * the end.
          */
-        if (!(apiflags & (TCP_WRITE_FILE | TCP_WRITE_ZEROCOPY)) && (pos < len) && (space > 0) &&
+        if ((pos < len) && (space > 0) &&
             (pcb->last_unsent->len > 0) && (tot_p < (int)pcb->tso.max_send_sge)) {
 
             u16_t seglen = space < len - pos ? space : len - pos;
