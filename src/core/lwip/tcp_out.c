@@ -1610,9 +1610,11 @@ err_t tcp_output(struct tcp_pcb *pcb)
        code. If so, we do not output anything. Instead, we rely on the
        input processing code to call us when input processing is done
        with. */
+/*
     if (pcb->is_in_input) {
         return ERR_OK;
     }
+*/
 
     wnd = LWIP_MIN(pcb->snd_wnd, pcb->cwnd);
 
