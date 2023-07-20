@@ -395,7 +395,7 @@ inline void qp_mgr_eth_mlx5::ring_doorbell(int db_method, int num_wqebb, int num
     } else {
         dec_unsignaled_count();
     }
-    if (unlikely(m_b_fence_needed)) {
+    if (m_b_fence_needed && (ntohl(ctrl->opmod_idx_opcode) & 0xff) != MLX5_OPCODE_UMR) {
         ctrl->fm_ce_se |= MLX5_FENCE_MODE_INITIATOR_SMALL;
         m_b_fence_needed = false;
     }
