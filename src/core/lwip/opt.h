@@ -195,7 +195,7 @@
  * TCP_MSS/4: Try to create 4 fragments or less per TCP packet.
  */
 #ifndef TCP_OVERSIZE
-#define TCP_OVERSIZE CONST_TCP_MSS
+#define TCP_OVERSIZE 0
 #endif
 
 /**
