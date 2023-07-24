@@ -274,7 +274,6 @@ return_buffers:
 
         // Init
         head->lkey = lkey;
-        head->express.user_mkey = lkey;
         head->p_desc_owner = desc_owner;
 
         // Push to queue

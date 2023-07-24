@@ -281,6 +281,7 @@ inline bool cq_mgr_mlx5_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cq
         _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.pbuf.desc.mdesc = m_rx_hot_buffer;
+        _hot_buffer_stride->express.user_mkey = m_rx_hot_buffer->express.user_mkey;
 
         is_filler = (host_byte_cnt >> 31 != 0U ? true : false);
         _hot_buffer_stride->sz_data =
