@@ -39,8 +39,7 @@
 #define MODULE_HDR MODULE_NAME "%d:%s() "
 
 #define EXPRESS_RINGS_MAX 4
-thread_local ring *g_express_rings[EXPRESS_RINGS_MAX];
-thread_local unsigned g_express_rings_nr = 0;
+thread_local std::vector<ring *> g_express_rings;
 
 ring::ring()
     : m_p_n_rx_channel_fds(NULL)
@@ -51,10 +50,7 @@ ring::ring()
     m_if_index = 0;
     print_val();
 
-    if (g_express_rings_nr < EXPRESS_RINGS_MAX) {
-        g_express_rings[g_express_rings_nr] = this;
-        ++g_express_rings_nr;
-    }
+    g_express_rings.push_back(this);
 }
 
 ring::~ring()
@@ -131,10 +127,10 @@ void ring::print_val()
 /* static */
 void ring::poll_local_rings()
 {
-    for (unsigned i = 0; i < g_express_rings_nr; ++i) {
+    for (auto iter = g_express_rings.begin(); iter != g_express_rings.end(); ++iter) {
         uint64_t sn = 0;
-        g_express_rings[i]->poll_and_process_element_rx(&sn);
+        (*iter)->poll_and_process_element_rx(&sn);
         sn = 0;
-        g_express_rings[i]->poll_and_process_element_tx(&sn);
+        (*iter)->poll_and_process_element_tx(&sn);
     }
 }
