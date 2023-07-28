@@ -111,6 +111,7 @@ static void express_event_cb(void *opaque_sq, enum express_event_t event)
     struct express_sq *sq = (struct express_sq *)opaque_sq;
 
     printf("tid#%d: event %d callback\n", sq->thread->tid, event);
+    assert(sq->sock != NULL);
     sq->connected = (event == EXPRESS_EVENT_ESTABLISHED);
 }
 
@@ -160,7 +161,7 @@ static void *thread_loop(void *arg)
 
     attr.addr.addr_in.sin_family = AF_INET;
     attr.addr.addr_in.sin_port = htons(8080 + t->tid);
-    rc = inet_aton("127.0.0.1", &attr.addr.addr_in.sin_addr);
+    rc = inet_aton("11.210.12.2", &attr.addr.addr_in.sin_addr);
     assert(rc != 0);
     attr.addr_len = sizeof(attr.addr.addr_in);
 
@@ -237,7 +238,7 @@ int main()
      *
      * Send operation requires mkey within its protection domain.
      */
-    struct ibv_pd *pd = g_xlio_api->express_get_pd("mlx5_1");
+    struct ibv_pd *pd = g_xlio_api->express_get_pd("mlx5_4");
     assert(pd != NULL);
 
     /* Memory registration in the XLIO protection domain. */
