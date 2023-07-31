@@ -205,6 +205,7 @@ static struct tcp_seg *tcp_create_segment(struct tcp_pcb *pcb, struct pbuf *p, u
     seg->p = p;
     seg->len = p->tot_len - optlen;
     seg->seqno = seqno;
+    seg->bufs = 1;
 
     if (seg->flags & TF_SEG_OPTS_ZEROCOPY) {
         /* XXX Don't hardcode size/offset */
@@ -275,7 +276,7 @@ static struct pbuf *tcp_pbuf_prealloc(u16_t length, u16_t max_length, u16_t *ove
  * @param len length of data to send (checked agains snd_buf)
  * @return ERR_OK if tcp_write is allowed to proceed, another err_t otherwise
  */
-static err_t tcp_write_checks(struct tcp_pcb *pcb, u32_t len)
+__attribute__((unused)) static err_t tcp_write_checks(struct tcp_pcb *pcb, u32_t len)
 {
     /* connection is in invalid state for data transmission? */
     if ((get_tcp_state(pcb) != ESTABLISHED) && (get_tcp_state(pcb) != CLOSE_WAIT) &&
@@ -364,16 +365,15 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
     u32_t queuelen;
     u8_t optlen = 0;
     u8_t optflags = 0;
-    const int is_zerocopy = ((apiflags & TCP_WRITE_ZEROCOPY) ? 1 : 0);
+//    err_t err;
+    const bool is_zerocopy = !!(apiflags & TCP_WRITE_ZEROCOPY);
     u16_t oversize = 0;
 #if TCP_OVERSIZE
     u16_t oversize_used = 0;
 #endif /* TCP_OVERSIZE */
-    const pbuf_type type = (apiflags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM);
-    err_t err;
     u16_t mss_local = 0;
     u16_t mss_local_minus_opts;
-    int tot_p = 0;
+    const pbuf_type type = (apiflags & TCP_WRITE_ZEROCOPY ? PBUF_ZEROCOPY : PBUF_RAM);
 
     if (len < pcb->mss) {
         const int byte_queued = pcb->snd_nxt - pcb->lastack;
@@ -385,10 +385,12 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
                  arg, len, (u16_t)apiflags));
 //    LWIP_ERROR("tcp_write: arg == NULL (programmer violates API)", arg != NULL, return ERR_ARG);
 
+/*
     err = tcp_write_checks(pcb, len);
     if (err != ERR_OK) {
         return err;
     }
+*/
     queuelen = pcb->snd_queuelen;
 
     mss_local = tcp_xmit_size_goal(pcb, 1);
@@ -459,7 +461,6 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
 #endif /* TCP_OVERSIZE */
         }
         seg = pcb->last_unsent;
-        tot_p = pbuf_clen(seg->p);
 
         /*
          * Phase 1: Copy data directly into an oversized pbuf.
@@ -497,7 +498,7 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
          * the end.
          */
         if ((pos < len) && (space > 0) &&
-            (pcb->last_unsent->len > 0) && (tot_p < (int)pcb->tso.max_send_sge)) {
+            (pcb->last_unsent->len > 0) && (pcb->last_unsent->bufs < (int)pcb->tso.max_send_sge)) {
 
             u16_t seglen = space < len - pos ? space : len - pos;
 
@@ -523,7 +524,7 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
             }
 
             pos += seglen;
-            queuelen += pbuf_clen(concat_p);
+            queuelen += 1;
         }
     } else {
 #if TCP_OVERSIZE
@@ -567,7 +568,7 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
             memcpy((char *)p->payload + optlen, (u8_t *)arg + pos, seglen);
         }
 
-        queuelen += pbuf_clen(p);
+        queuelen += 1;
 
         if ((seg = tcp_create_segment(pcb, p, 0, pcb->snd_lbb + pos, optflags)) == NULL) {
             tcp_tx_pbuf_free(pcb, p);
@@ -633,6 +634,7 @@ err_t tcp_write(struct tcp_pcb *pcb, const void *arg, u32_t len, u16_t apiflags,
                     (pcb->last_unsent != NULL));
         pbuf_cat(pcb->last_unsent->p, concat_p);
         pcb->last_unsent->len += concat_p->tot_len;
+        pcb->last_unsent->bufs += 1U;
     }
 
     /*
@@ -899,7 +901,7 @@ static void tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     u32_t max_payload_sz = LWIP_MIN(pcb->tso.max_payload_sz, (wnd - (seg->seqno - pcb->lastack)));
     u32_t tot_len = 0;
     u8_t flags = seg->flags;
-    int tot_p = 0;
+    u8_t tot_p = 0;
 
     /* Ignore retransmitted segments and special segments
      */
@@ -917,8 +919,8 @@ static void tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
             goto err;
         }
 
-        tot_p += pbuf_clen(cur_seg->p);
-        if (tot_p > (int)pcb->max_send_sge) {
+        tot_p += cur_seg->bufs;
+        if (tot_p > pcb->max_send_sge) {
             goto err;
         }
 
@@ -931,6 +933,7 @@ static void tcp_tso_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
             /* Update the original segment with current segment details */
             seg->next = cur_seg->next;
             seg->len += cur_seg->len;
+            seg->bufs += cur_seg->bufs;
 
             /* Update the first pbuf of current segment, unless this is a zerocopy segment */
             if (!(cur_seg->flags & TF_SEG_OPTS_ZEROCOPY)) {
@@ -1298,12 +1301,14 @@ void tcp_split_rexmit(struct tcp_pcb *pcb, struct tcp_seg *seg)
         /* New segment update */
         new_seg->next = cur_seg->next;
         new_seg->flags = cur_seg->flags;
+        new_seg->bufs = cur_seg->bufs - 1;
 
         /* Original segment update */
         cur_seg->next = new_seg;
         cur_seg->len = cur_seg->p->len - tcp_hlen_delta - optlen;
         cur_seg->p->tot_len = cur_seg->p->len;
         cur_seg->p->next = NULL;
+        cur_seg->bufs = 1;
 
         if (pcb->last_unsent == cur_seg) {
             /* We have split the last unsent segment, update last_unsent */
@@ -1325,13 +1330,13 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
     struct tcp_seg *newseg = NULL;
     int tcp_hlen_delta;
     u32_t lentosend = 0;
-    u16_t oversize = 0;
     u8_t optlen = 0;
     u8_t optflags = 0;
+    const bool is_zerocopy = !!(seg->flags & TF_SEG_OPTS_ZEROCOPY);
+    pbuf_type type = PBUF_RAM;
+    u16_t oversize = 0;
     u16_t mss_local = 0;
     u16_t max_length;
-    pbuf_type type = PBUF_RAM;
-    int is_zerocopy = 0;
 
     LWIP_ASSERT("tcp_split_segment: sanity check", (seg && seg->p));
 
@@ -1339,7 +1344,6 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
         return;
     }
 
-    is_zerocopy = seg->flags & TF_SEG_OPTS_ZEROCOPY ? 1 : 0;
     lentosend = (wnd - (seg->seqno - pcb->lastack));
 
     mss_local = tcp_xmit_size_goal(pcb, 0);
@@ -1397,6 +1401,9 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
             return;
         }
 
+        newseg->bufs = seg->bufs;
+        seg->bufs = 1;
+
         /* Update original buffer */
         seg->p->next = NULL;
         seg->p->len = seg->p->len - lentoqueue;
@@ -1432,6 +1439,7 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
         struct pbuf *pnewtail = seg->p;
         struct pbuf *ptmp = seg->p;
         u32_t headchainlen = seg->p->len;
+        oversize = 1; // count bufs in the left seg
 
         while ((headchainlen + pnewhead->len - (tcp_hlen_delta + optlen)) <= lentosend) {
             if (pnewtail->ref > 1) {
@@ -1441,6 +1449,7 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
             headchainlen += pnewhead->len;
             pnewtail = pnewhead;
             pnewhead = pnewhead->next;
+            ++oversize;
 
             if (NULL == pnewhead) {
                 LWIP_ASSERT("tcp_split_segment: We should not be here", 0);
@@ -1457,6 +1466,9 @@ void tcp_split_segment(struct tcp_pcb *pcb, struct tcp_seg *seg, u32_t wnd)
                         ("tcp_split_segment: could not allocate memory for segment\n"));
             return;
         }
+
+        newseg->bufs = seg->bufs - oversize;
+        seg->bufs = oversize;
 
         /* Update new tail */
         pnewtail->next = NULL;
@@ -1710,7 +1722,7 @@ err_t tcp_output(struct tcp_pcb *pcb)
                 if (LWIP_IS_DUMMY_SEGMENT(seg)) {
                     pcb->snd_lbb -= seg->len;
                     pcb->snd_buf += seg->len;
-                    pcb->snd_queuelen -= pbuf_clen(seg->p);
+                    pcb->snd_queuelen -= seg->bufs;
                     tcp_tx_seg_free(pcb, seg);
                 } else {
                     /* unacked list is empty? */
