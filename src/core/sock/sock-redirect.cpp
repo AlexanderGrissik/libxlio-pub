@@ -726,7 +726,7 @@ extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 
 extern "C" express_socket *xlio_express_socket_create(struct express_socket_attr *attr)
 {
-    srdr_loginfo("Express socket creation: block_size=%u keylen=%u", attr->block_size_bytes, attr->keylen);
+    srdr_loginfo("Express socket creation: block_size=%u keylen=%u cpu=%d thread=%u", attr->block_size_bytes, attr->keylen, sched_getcpu(), pthread_self());
 
     int fd = socket_internal(attr->addr.addr.sa_family, SOCK_STREAM, 0, true, true);
     if (fd < 0) {
