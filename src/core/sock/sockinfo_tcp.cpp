@@ -6229,6 +6229,7 @@ void sockinfo_tcp::express_flush_dirty_sockets()
         tcp_output(&si->m_pcb);
         si->express_dirty = false;
     }
+    g_thread_local_event_handler.do_tasks();
 }
 
 void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
