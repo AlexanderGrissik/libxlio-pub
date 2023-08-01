@@ -78,6 +78,8 @@ extern global_stats_t g_global_stat_static;
 tcp_timers_collection *g_tcp_timers_collection = NULL;
 thread_local thread_local_tcp_timers g_thread_local_tcp_timers;
 
+thread_local std::vector<sockinfo_tcp *> express_dirty_sockets;
+
 /*
  * The following socket options are inherited by a connected TCP socket from the listening socket:
  * SO_DEBUG, SO_DONTROUTE, SO_KEEPALIVE, SO_LINGER, SO_OOBINLINE, SO_RCVBUF, SO_RCVLOWAT, SO_SNDBUF,
@@ -6178,9 +6180,15 @@ repeat:
         express_iov_nr = 0;
         express_iov_size = 0;
 
+/*
         lock_tcp_con();
         tcp_output(&m_pcb);
         unlock_tcp_con();
+*/
+        if (!express_dirty) {
+            express_dirty = true;
+            express_dirty_sockets.push_back(this);
+        }
 
         /* TODO Prepare all UMRs first and then with a single fence post the SEND WQEs.
          * This also will require a single TCP lock for all tcp_write and tcp_output */
@@ -6197,13 +6205,30 @@ repeat:
     err = tcp_write(&m_pcb, iov[iov_len - 1].iov_base, iov[iov_len - 1].iov_len, TCP_WRITE_ZEROCOPY, &mdesc);
 
     if (!(flags & MSG_MORE)) {
+/*
         err = tcp_output(&m_pcb);
         assert(err == ERR_OK);
+*/
+        if (!express_dirty) {
+            express_dirty = true;
+            express_dirty_sockets.push_back(this);
+        }
     }
     unlock_tcp_con();
 
     NOT_IN_USE(err);
     return 0;
+}
+
+/* static */
+void sockinfo_tcp::express_flush_dirty_sockets()
+{
+    while (!express_dirty_sockets.empty()) {
+        sockinfo_tcp *si = express_dirty_sockets.back();
+        express_dirty_sockets.pop_back();
+        tcp_output(&si->m_pcb);
+        si->express_dirty = false;
+    }
 }
 
 void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)

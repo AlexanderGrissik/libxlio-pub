@@ -332,6 +332,7 @@ public:
     static struct pbuf *express_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_desc *desc, struct pbuf *p_buff);
     static void express_tx_zc_callback(mem_buf_desc_t *p_desc);
     static err_t express_rx_lwip_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
+    static void express_flush_dirty_sockets();
 
     // Express API
     enum {
@@ -351,6 +352,7 @@ public:
     unsigned express_block_size;
     unsigned express_mkey_idx;
     uint32_t express_dek_id;
+    bool express_dirty = false;
     dpcp::dek *express_dek;
     dpcp::crypto_mkey *express_mkeys[EXPRESS_MKEY_NR];
 
