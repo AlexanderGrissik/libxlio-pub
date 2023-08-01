@@ -620,6 +620,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
     TAKE_T_TX_POST_SEND_END;
 #endif
 
+#if 0
     if (request_comp || is_signal_requested_for_last_wqe()) {
         uint64_t dummy_poll_sn = 0;
         int ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&dummy_poll_sn);
@@ -630,6 +631,7 @@ int qp_mgr::send(xlio_ibv_send_wr *p_send_wqe, xlio_wr_tx_packet_attr attr, xlio
         BULLSEYE_EXCLUDE_BLOCK_END
         qp_logfunc("polling succeeded on tx cq_mgr (%d wce)", ret);
     }
+#endif
 
     return 0;
 }
