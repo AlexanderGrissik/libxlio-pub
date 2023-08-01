@@ -402,6 +402,10 @@ inline void qp_mgr_eth_mlx5::ring_doorbell(int db_method, int num_wqebb, int num
 
     m_sq_wqe_counter = (m_sq_wqe_counter + num_wqebb + num_wqebb_top) & 0xFFFF;
 
+    m_b_deferred_doorbell = true;
+    m_p_deferred_ptr = src;
+    return;
+
     // Make sure that descriptors are written before
     // updating doorbell record and ringing the doorbell
     wmb();

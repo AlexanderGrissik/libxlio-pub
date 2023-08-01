@@ -282,6 +282,7 @@ public:
     }
 
     virtual void reset_inflight_zc_buffers_ctx(void *ctx) { NOT_IN_USE(ctx); }
+    virtual void ring_doorbell_if_needed() {}
     virtual bool credits_get(unsigned credits)
     {
         NOT_IN_USE(credits);

@@ -121,6 +121,19 @@ public:
 #endif
 
     void reset_inflight_zc_buffers_ctx(void *ctx) override;
+    void ring_doorbell_if_needed() override
+    {
+        if (m_b_deferred_doorbell) {
+            wmb();
+            *m_mlx5_qp.sq.dbrec = htonl(m_sq_wqe_counter);
+            wc_wmb();
+            *(uint64_t *)((uint8_t *)m_mlx5_qp.bf.reg + m_mlx5_qp.bf.offset) = *m_p_deferred_ptr;
+            wc_wmb();
+            m_mlx5_qp.bf.offset ^= m_mlx5_qp.bf.size;
+
+            m_b_deferred_doorbell = false;
+        }
+    }
     // TODO Make credits API inline.
     bool credits_get(unsigned credits) override
     {
@@ -213,8 +226,10 @@ private:
     uint16_t m_sq_wqe_counter;
 
     bool m_b_fence_needed;
+    bool m_b_deferred_doorbell = false;
 
     bool m_dm_enabled;
+    uint64_t *m_p_deferred_ptr = nullptr;
     dm_mgr m_dm_mgr;
     /*
      * TIS cache. Protected by ring tx lock.
