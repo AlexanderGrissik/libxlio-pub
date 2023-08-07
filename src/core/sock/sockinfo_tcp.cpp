@@ -6158,9 +6158,11 @@ repeat:
                 mdesc.opaque = opaque_op;
             }
             lock_tcp_con();
-            err = tcp_write(&m_pcb, NULL, crypto_iov_size, TCP_WRITE_ZEROCOPY, &mdesc);
+            err = tcp_write_zc(&m_pcb, NULL, crypto_iov_size, &mdesc);
             unlock_tcp_con();
-            assert(err == ERR_OK);
+            if (unlikely(err != ERR_OK)) {
+                return -1;
+            }
 
             if (reminder) {
                 crypto_iov = &express_iov_buf[i];
@@ -6197,12 +6199,12 @@ repeat:
 
     lock_tcp_con();
     for (unsigned i = 0; i < iov_len - 1; ++i) {
-        err = tcp_write(&m_pcb, iov[i].iov_base, iov[i].iov_len, TCP_WRITE_ZEROCOPY, &mdesc);
+        err = tcp_write_zc(&m_pcb, iov[i].iov_base, iov[i].iov_len, &mdesc);
         assert(err == ERR_OK);
     }
     /* Assign opaque only to the last chunk. So, only the last pbuf will generate zerocopy completion. */
     mdesc.opaque = opaque_op;
-    err = tcp_write(&m_pcb, iov[iov_len - 1].iov_base, iov[iov_len - 1].iov_len, TCP_WRITE_ZEROCOPY, &mdesc);
+    err = tcp_write_zc(&m_pcb, iov[iov_len - 1].iov_base, iov[iov_len - 1].iov_len, &mdesc);
 
     if (!(flags & MSG_MORE)) {
 /*
