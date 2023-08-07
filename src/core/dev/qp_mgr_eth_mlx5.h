@@ -124,14 +124,15 @@ public:
     void ring_doorbell_if_needed() override
     {
         if (m_b_deferred_doorbell) {
+            m_b_deferred_doorbell = false;
+            m_missed_doorbells = 0;
+
             wmb();
             *m_mlx5_qp.sq.dbrec = htonl(m_sq_wqe_counter);
             wc_wmb();
             *(uint64_t *)((uint8_t *)m_mlx5_qp.bf.reg + m_mlx5_qp.bf.offset) = *m_p_deferred_ptr;
             wc_wmb();
             m_mlx5_qp.bf.offset ^= m_mlx5_qp.bf.size;
-
-            m_b_deferred_doorbell = false;
         }
     }
     // TODO Make credits API inline.
@@ -225,6 +226,7 @@ private:
     int m_sq_wqe_hot_index;
     uint16_t m_sq_wqe_counter;
 
+    uint16_t m_missed_doorbells = 0;
     bool m_b_fence_needed;
     bool m_b_deferred_doorbell = false;
 

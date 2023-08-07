@@ -395,16 +395,20 @@ inline void qp_mgr_eth_mlx5::ring_doorbell(int db_method, int num_wqebb, int num
     } else {
         dec_unsignaled_count();
     }
-    if (m_b_fence_needed && (ntohl(ctrl->opmod_idx_opcode) & 0xff) != MLX5_OPCODE_UMR) {
+    if (m_b_fence_needed) {
         ctrl->fm_ce_se |= MLX5_FENCE_MODE_INITIATOR_SMALL;
         m_b_fence_needed = false;
     }
 
     m_sq_wqe_counter = (m_sq_wqe_counter + num_wqebb + num_wqebb_top) & 0xFFFF;
 
-    m_b_deferred_doorbell = true;
-    m_p_deferred_ptr = src;
-    return;
+    if (++m_missed_doorbells < 64) {
+        m_b_deferred_doorbell = true;
+        m_p_deferred_ptr = src;
+        return;
+    }
+    m_missed_doorbells = 0;
+    m_b_deferred_doorbell = false;
 
     // Make sure that descriptors are written before
     // updating doorbell record and ringing the doorbell
@@ -1490,6 +1494,7 @@ void qp_mgr_eth_mlx5::nvme_crypto_mkey_setup(uint32_t mkey, uint32_t dek, uint64
     bsf->xts_initial_tweak[1] = 0;
 
     store_current_wqe_prop(nullptr, 4 /* XXX */, nullptr);
+    m_b_fence_needed = false; // don't fence subsequent UMR WQEs
     ring_doorbell(MLX5_DB_METHOD_DB, wqebbs, wqebbs_top, true);
     update_next_wqe_hot();
     m_b_fence_needed = true;
