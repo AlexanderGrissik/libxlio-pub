@@ -6182,18 +6182,17 @@ repeat:
         express_iov_nr = 0;
         express_iov_size = 0;
 
-/*
-        lock_tcp_con();
-        tcp_output(&m_pcb);
-        unlock_tcp_con();
-*/
-        if (!express_dirty) {
-            express_dirty = true;
-            express_dirty_sockets.push_back(this);
+        if (m_pcb.last_unsent->len + 4096U + 64U > lwip_zc_tx_size) {
+            lock_tcp_con();
+            tcp_output(&m_pcb);
+            unlock_tcp_con();
+        } else {
+            if (!express_dirty) {
+                express_dirty = true;
+                express_dirty_sockets.push_back(this);
+            }
         }
 
-        /* TODO Prepare all UMRs first and then with a single fence post the SEND WQEs.
-         * This also will require a single TCP lock for all tcp_write and tcp_output */
         return 0;
     }
 
