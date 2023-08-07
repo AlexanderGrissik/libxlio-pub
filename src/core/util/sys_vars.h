@@ -711,7 +711,7 @@ extern mce_sys_var &safe_mce_sys();
 #define MCE_DEFAULT_RING_DEV_MEM_TX          (0)
 #define MCE_DEFAULT_TCP_MAX_SYN_RATE         (0)
 #define MCE_DEFAULT_ZC_NUM_BUFS              (200000)
-#define MCE_DEFAULT_ZC_TX_SIZE               (32768)
+#define MCE_DEFAULT_ZC_TX_SIZE               (8960)
 #define MCE_DEFAULT_TCP_NODELAY_TRESHOLD     (0)
 #define MCE_DEFAULT_ZC_CACHE_THRESHOLD       (10 * 1024) // 10GB
 #define MCE_DEFAULT_TX_NUM_SEGS_TCP          (1000000)
