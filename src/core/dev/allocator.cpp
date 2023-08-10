@@ -40,7 +40,7 @@ xlio_allocator::xlio_allocator()
 {
     __log_info_dbg("");
 
-    m_user_mkey = 0;
+    m_user_mkey = LKEY_ERROR;
     m_shmid = -1;
     m_length = 0;
     m_data_block = NULL;
@@ -55,7 +55,7 @@ xlio_allocator::xlio_allocator(alloc_t alloc_func, free_t free_func)
 {
     __log_info_dbg("");
 
-    m_user_mkey = 0;
+    m_user_mkey = LKEY_ERROR;
     m_shmid = -1;
     m_length = 0;
     m_data_block = NULL;
