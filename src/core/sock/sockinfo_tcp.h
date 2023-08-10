@@ -335,10 +335,6 @@ public:
     static void express_flush_dirty_sockets();
 
     // Express API
-    enum {
-        EXPRESS_MKEY_NR = 16,
-    };
-
     dst_entry_tcp *express_dst_entry_tcp;
     ring *express_tx_ring;
     uint64_t express_lba;
@@ -350,11 +346,9 @@ public:
     unsigned express_iov_nr;
     unsigned express_iov_size;
     unsigned express_block_size;
-    unsigned express_mkey_idx;
     uint32_t express_dek_id;
     bool express_dirty = false;
     dpcp::dek *express_dek;
-    dpcp::crypto_mkey *express_mkeys[EXPRESS_MKEY_NR];
 
 protected:
     virtual void lock_rx_q();

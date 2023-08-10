@@ -79,6 +79,44 @@ tcp_timers_collection *g_tcp_timers_collection = NULL;
 thread_local thread_local_tcp_timers g_thread_local_tcp_timers;
 
 thread_local std::vector<sockinfo_tcp *> express_dirty_sockets;
+thread_local class express_mkeys_t
+{
+public:
+    enum {
+        EXPRESS_MKEY_NR = 4,
+    };
+
+    express_mkeys_t()
+    {
+        mkey_idx = 0;
+        memset(mkeys, 0, sizeof(mkeys));
+    }
+    ~express_mkeys_t()
+    {
+        for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+            if (mkeys[i] != nullptr)
+                delete mkeys[i];
+        }
+    }
+    void setup(dpcp::adapter *adapter)
+    {
+        if (mkeys[0] != nullptr)
+            return;
+
+        for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
+            dpcp::status status = adapter->create_crypto_mkey(mkeys[i]);
+            assert(status == dpcp::DPCP_OK);
+            NOT_IN_USE(status);
+        }
+    }
+    inline dpcp::crypto_mkey *get_mkey()
+    {
+        return mkeys[mkey_idx++ % EXPRESS_MKEY_NR];
+    }
+private:
+    unsigned mkey_idx;
+    dpcp::crypto_mkey *mkeys[EXPRESS_MKEY_NR];
+} express_mkeys;
 
 /*
  * The following socket options are inherited by a connected TCP socket from the listening socket:
@@ -384,9 +422,7 @@ sockinfo_tcp::sockinfo_tcp(int fd, int domain)
     express_dek_id = 0;
     express_iov_nr = 0;
     express_iov_size = 0;
-    express_mkey_idx = 0;
     express_lba = 0;
-    memset(express_mkeys, 0, sizeof(express_mkeys));
 
     if (g_p_agent != NULL) {
         g_p_agent->register_cb((agent_cb_t)&sockinfo_tcp::put_agent_msg, (void *)this);
@@ -6075,10 +6111,7 @@ int sockinfo_tcp::express_postsetup(struct express_socket_attr *attr)
     assert(status == dpcp::DPCP_OK);
     express_dek_id = express_dek->get_key_id();
 
-    for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
-        status = adapter->create_crypto_mkey(express_mkeys[i]);
-        assert(status == dpcp::DPCP_OK);
-    }
+    express_mkeys.setup(adapter);
 
     NOT_IN_USE(status);
     return 0;
@@ -6090,9 +6123,6 @@ void sockinfo_tcp::express_teardown()
         return;
     }
 
-    for (int i = 0; i < EXPRESS_MKEY_NR; ++i) {
-        delete express_mkeys[i];
-    }
     delete express_dek;
 }
 
@@ -6148,8 +6178,7 @@ repeat:
             crypto_iov_size = len - reminder;
             express_iov_buf[i].byte_count -= reminder;
 
-            (void)express_mkeys[express_mkey_idx]->get_id(mkey_id);
-            express_mkey_idx = (express_mkey_idx + 1) % EXPRESS_MKEY_NR;
+            express_mkeys.get_mkey()->get_id(mkey_id);
             express_tx_ring->nvme_crypto_mkey_setup(mkey_id, express_dek_id, express_lba,
                                                     express_block_size, crypto_iov, crypto_iov_len);
             express_lba += crypto_iov_size / express_block_size;
