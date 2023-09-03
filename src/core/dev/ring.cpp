@@ -55,6 +55,13 @@ ring::ring()
 
 ring::~ring()
 {
+    for (auto iter = g_express_rings.begin(); iter != g_express_rings.end(); ++iter) {
+        if (*iter == this) {
+            g_express_rings.erase(iter);
+            break;
+        }
+    }
+
     if (m_tcp_seg_list) {
         g_tcp_seg_pool->put_tcp_segs(m_tcp_seg_list);
     }
