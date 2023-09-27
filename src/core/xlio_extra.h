@@ -647,6 +647,8 @@ struct __attribute__((packed)) xlio_api_t {
 
     /* Obtain protection domain for specific device. */
     struct ibv_pd *(*express_get_pd)(const char *ibname);
+    /* Obtain protection domain for specific device. */
+    struct ibv_pd *(*express_get_pd_by_sock)(express_socket *sock);
     /* Init the attr structure with default values. */
     void (*express_socket_attr_init)(struct express_socket_attr *attr);
     /* Create socket and initiate TCP handshake in the non-blocking mode. The socket is bound to the current CPU core. */

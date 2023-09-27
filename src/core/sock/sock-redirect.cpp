@@ -717,6 +717,20 @@ extern "C" struct ibv_pd *xlio_express_get_pd(const char *ibname)
     return ctx ? ctx->get_ibv_pd() : NULL;
 }
 
+extern "C" struct ibv_pd *xlio_express_get_pd_by_sock(express_socket *sock)
+{
+    sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(sock);
+    struct xlio_pd_attr attr = {};
+    socklen_t attr_len = sizeof(attr);
+    struct ibv_pd *pd = NULL;
+
+    int rc = si->getsockopt_offload(SOL_SOCKET, SO_XLIO_PD, &attr, &attr_len);
+    if (rc == 0) {
+        pd = (struct ibv_pd *)attr.ib_pd;
+    }
+    return pd;
+}
+
 extern "C" void xlio_express_socket_attr_init(struct express_socket_attr *attr)
 {
     memset(attr, 0, sizeof(*attr));
@@ -1238,6 +1252,7 @@ extern "C" EXPORT_SYMBOL int getsockopt(int __fd, int __level, int __optname, vo
             SET_EXTRA_API(ioctl, xlio_ioctl, XLIO_EXTRA_API_IOCTL);
 
             SET_EXTRA_API(express_get_pd, xlio_express_get_pd, XLIO_EXTRA_API_EXPRESS);
+            SET_EXTRA_API(express_get_pd_by_sock, xlio_express_get_pd_by_sock, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_attr_init, xlio_express_socket_attr_init, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_create, xlio_express_socket_create, XLIO_EXTRA_API_EXPRESS);
             SET_EXTRA_API(express_socket_terminate, xlio_express_socket_terminate, XLIO_EXTRA_API_EXPRESS);
