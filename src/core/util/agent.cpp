@@ -62,10 +62,7 @@
 /* Force system call */
 #define sys_call(_result, _func, ...)                                                              \
     do {                                                                                           \
-        if (orig_os_api._func)                                                                     \
-            _result = orig_os_api._func(__VA_ARGS__);                                              \
-        else                                                                                       \
-            _result = ::_func(__VA_ARGS__);                                                        \
+        _result = SYSCALL(_func, __VA_ARGS__);                                                     \
     } while (0)
 
 /* Print user notification */

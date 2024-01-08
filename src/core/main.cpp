@@ -930,7 +930,7 @@ void register_handler_segv()
     act.sa_handler = handle_segfault;
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
-    sigaction(SIGSEGV, &act, NULL);
+    XLIO_CALL(sigaction, SIGSEGV, &act, NULL);
     vlog_printf(VLOG_INFO, "Registered a SIGSEGV handler\n");
 }
 

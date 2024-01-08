@@ -12,7 +12,7 @@ LEX_OUTPUT_ROOT=lex.libxlio_yy
 # as built) because we don't want it to be created by old version of flex/yacc
 # on some machines that will generate gcc warmings.
 # in case you change the *.l or *.y in the future - than change the commenting in the following 3 lines
-#-----
+#
 #BUILT_SOURCES += config_scanner.c config_parser.h config_parser.c
 #libconfig_parser_la_SOURCES += util/config_scanner.l util/config_parser.y
 libconfig_parser_la_SOURCES += config_scanner.c config_parser.c
@@ -33,19 +33,24 @@ otherinclude_HEADERS = xlio_extra.h
 
 install-exec-hook:
 	rm -f $(DESTDIR)$(libdir)/libxlio.la
-	rm -f $(DESTDIR)$(libdir)/libxlio.a
 	rm -f $(DESTDIR)$(bindir)/state_machine_test
 	rm -f $(DESTDIR)$(bindir)/vlogger_test
 
+
 uninstall-hook:
 	rm -f $(DESTDIR)$(libdir)/libxlio.so*
+	rm -f $(DESTDIR)$(libdir)/libxlio.a
 
 lib_LTLIBRARIES = libxlio.la
 
 AM_CPPFLAGS := \
 	-I$(top_srcdir)/src ${LIBNL_CFLAGS}
 
-libxlio_la_LDFLAGS := -no-undefined -version-number @PRJ_LIBRARY_MAJOR@:@PRJ_LIBRARY_MINOR@:@PRJ_LIBRARY_REVISION@ 
+libxlio_la_CFLAGS = $(XLIO_STATIC_BUILD) $(XLIO_LTO)
+libxlio_la_CXXFLAGS = $(XLIO_STATIC_BUILD) $(XLIO_LTO)
+
+libxlio_la_LDFLAGS := $(XLIO_LTO) -no-undefined \
+	-version-number @PRJ_LIBRARY_MAJOR@:@PRJ_LIBRARY_MINOR@:@PRJ_LIBRARY_REVISION@
 
 libxlio_la_LIBADD = \
 	-lrt -ldl -lpthread $(LIBNL_LIBS) $(VERBS_LIBS) $(DPCP_LIBS) \

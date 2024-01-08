@@ -88,6 +88,7 @@ m4_include([config/m4/dpcp.m4])
 m4_include([config/m4/nl.m4])
 m4_include([config/m4/prof.m4])
 m4_include([config/m4/compiler.m4])
+m4_include([config/m4/linking_optimization.m4])
 
 FUNC_CONFIGURE_INIT()
 
@@ -107,7 +108,16 @@ show_section_title "Configure build tools"
 
 # Find compiler, libtools, etc
 #
+
 LT_INIT([disable-static])
+
+# LT_INIT exposes the ability to configure --enable-static
+if test "x$enable_static" = "xyes"; then
+	AC_SUBST([XLIO_STATIC_BUILD], ["-DXLIO_STATIC_BUILD"])
+else
+	AC_SUBST([XLIO_STATIC_BUILD], [""])
+fi
+
 AC_PROG_CC
 AC_PROG_CXX
 
