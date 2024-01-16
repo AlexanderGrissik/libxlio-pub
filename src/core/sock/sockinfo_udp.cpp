@@ -2261,12 +2261,12 @@ inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc
     pkt_info.socket_ready_queue_pkt_count = m_p_socket_stats->n_rx_ready_pkt_count;
     pkt_info.socket_ready_queue_byte_count = m_p_socket_stats->n_rx_ready_byte_count;
 
-    if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
-        pkt_info.hw_timestamp = p_desc->rx.timestamps.hw;
-    }
-    if (p_desc->rx.timestamps.sw.tv_sec) {
-        pkt_info.sw_timestamp = p_desc->rx.timestamps.sw;
-    }
+    //if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
+    //    pkt_info.hw_timestamp = p_desc->rx.timestamps.hw;
+   // }
+    //if (p_desc->rx.timestamps.sw.tv_sec) {
+    //    pkt_info.sw_timestamp = p_desc->rx.timestamps.sw;
+    //}
 
     // fill io vector array with data buffer pointers
     iovec iov[p_desc->rx.n_frags];
@@ -2297,9 +2297,9 @@ inline void sockinfo_udp::rx_udp_cb_socketxtreme_helper(mem_buf_desc_t *p_desc)
     p_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
                           sizeof(completion->src));
 
-    if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
-        completion->packet.hw_timestamp = p_desc->rx.timestamps.hw;
-    }
+    //if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
+    //    completion->packet.hw_timestamp = p_desc->rx.timestamps.hw;
+    //}
 
     for (mem_buf_desc_t *tmp_p = p_desc; tmp_p; tmp_p = tmp_p->p_next_desc) {
         completion->packet.total_len += tmp_p->rx.sz_payload;
@@ -3147,7 +3147,8 @@ timestamps_t *sockinfo_udp::get_socket_timestamps()
         si_udp_logdbg("m_rx_pkt_ready_list empty");
         return NULL;
     }
-    return &m_rx_pkt_ready_list.front()->rx.timestamps;
+    //return &m_rx_pkt_ready_list.front()->rx.timestamps;
+    return NULL;
 }
 
 void sockinfo_udp::post_deqeue(bool release_buff)

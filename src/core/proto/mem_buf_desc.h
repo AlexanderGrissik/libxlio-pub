@@ -125,7 +125,7 @@ public:
 
             size_t sz_payload; // This is the total amount of data of the packet, if
                                // (sz_payload>sz_data) means fragmented packet.
-            timestamps_t timestamps;
+            //timestamps_t timestamps;
             //void *context;
 
             union {

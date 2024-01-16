@@ -412,9 +412,9 @@ protected:
                     m_rx_pkt_ready_offset += nbytes;
                     bytes_left -= nbytes;
                     iov_base = (uint8_t *)iov_base + nbytes;
-                    if (m_b_rcvtstamp || m_n_tsing_flags) {
-                        update_socket_timestamps(&pdesc->rx.timestamps);
-                    }
+                    //if (m_b_rcvtstamp || m_n_tsing_flags) {
+                    //    update_socket_timestamps(&pdesc->rx.timestamps);
+                    //}
                     if (bytes_left <= 0) {
                         if (unlikely(is_peek)) {
                             pdesc = get_next_desc_peek(pdesc, rx_pkt_ready_list_idx);

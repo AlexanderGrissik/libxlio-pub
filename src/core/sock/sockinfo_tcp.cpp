@@ -1929,9 +1929,10 @@ static inline void _rx_lwip_cb_socketxtreme_helper(pbuf *p,
         assert(reinterpret_cast<mem_buf_desc_t *>(p)->rx.n_frags > 0);
         current_desc->rx.src.get_sa(reinterpret_cast<sockaddr *>(&completion->src),
                                     sizeof(completion->src));
-        if (use_hw_timestamp) {
-            completion->packet.hw_timestamp = current_desc->rx.timestamps.hw;
-        }
+        //if (use_hw_timestamp) {
+        //    completion->packet.hw_timestamp = current_desc->rx.timestamps.hw;
+        //}
+        NOT_IN_USE(use_hw_timestamp);
         notify();
     } else {
         // Update existing completion
@@ -2168,12 +2169,12 @@ err_t sockinfo_tcp::rx_lwip_cb_recv_callback(void *arg, struct tcp_pcb *pcb, str
         pkt_info.socket_ready_queue_pkt_count = conn->m_p_socket_stats->n_rx_ready_pkt_count;
         pkt_info.socket_ready_queue_byte_count = conn->m_p_socket_stats->n_rx_ready_byte_count;
 
-        if (conn->m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
-            pkt_info.hw_timestamp = p_first_desc->rx.timestamps.hw;
-        }
-        if (p_first_desc->rx.timestamps.sw.tv_sec) {
-            pkt_info.sw_timestamp = p_first_desc->rx.timestamps.sw;
-        }
+        //if (conn->m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
+        //    pkt_info.hw_timestamp = p_first_desc->rx.timestamps.hw;
+        //}
+        //if (p_first_desc->rx.timestamps.sw.tv_sec) {
+        //    pkt_info.sw_timestamp = p_first_desc->rx.timestamps.sw;
+        //}
 
         // fill io vector array with data buffer pointers
         iovec iov[p_first_desc->rx.n_frags];

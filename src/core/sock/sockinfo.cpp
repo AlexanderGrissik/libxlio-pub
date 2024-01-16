@@ -2113,8 +2113,9 @@ int sockinfo::set_sockopt_prio(__const void *__optval, socklen_t __optlen)
  */
 void sockinfo::process_timestamps(mem_buf_desc_t *p_desc)
 {
+    NOT_IN_USE(p_desc);
     // keep the sw_timestamp the same to all sockets
-    if ((m_b_rcvtstamp ||
+    /*if ((m_b_rcvtstamp ||
          (m_n_tsing_flags & (SOF_TIMESTAMPING_RX_SOFTWARE | SOF_TIMESTAMPING_SOFTWARE))) &&
         !p_desc->rx.timestamps.sw.tv_sec) {
         clock_gettime(CLOCK_REALTIME, &(p_desc->rx.timestamps.sw));
@@ -2127,7 +2128,7 @@ void sockinfo::process_timestamps(mem_buf_desc_t *p_desc)
             owner_ring->convert_hw_time_to_system_time(p_desc->rx.timestamps.hw_raw,
                                                        &p_desc->rx.timestamps.hw);
         }
-    }
+    }*/
 }
 
 void sockinfo::handle_recv_timestamping(struct cmsg_state *cm_state)
@@ -2241,9 +2242,9 @@ void sockinfo::handle_cmsg(struct msghdr *msg, int flags)
     if (m_b_pktinfo) {
         handle_ip_pktinfo(&cm_state);
     }
-    if (m_b_rcvtstamp || m_n_tsing_flags) {
-        handle_recv_timestamping(&cm_state);
-    }
+    //if (m_b_rcvtstamp || m_n_tsing_flags) {
+    //    handle_recv_timestamping(&cm_state);
+    //}
     if (flags & MSG_ERRQUEUE) {
         handle_recv_errqueue(&cm_state);
     }
