@@ -83,11 +83,6 @@ struct pbuf {
     /** pointer to the actual data in the buffer */
     void *payload;
 
-    /** length of this buffer */
-    u16_t len;
-
-    u8_t gro;
-
     /**
      * total length of this buffer and all next buffers in chain
      * belonging to the same packet.
@@ -97,11 +92,10 @@ struct pbuf {
      */
     u32_t tot_len; // windows scale needs large pbuf
 
-    /** pbuf_type as u8_t instead of enum to save space */
-    u8_t /*pbuf_type*/ type;
+    u32_t rx_flow_tag_id; // Flow Tag ID of this received packet
 
-    /** misc flags */
-    u8_t flags;
+    /** length of this buffer */
+    u16_t len;
 
     /**
      * the reference count always equals the number of pointers
@@ -109,6 +103,15 @@ struct pbuf {
      * the stack itself, or pbuf->next pointers from a chain.
      */
     u16_t ref;
+
+    u8_t gro;
+    int8_t rx_n_frags; // number of fragments
+    
+    /** pbuf_type as u8_t instead of enum to save space */
+    u8_t /*pbuf_type*/ type;
+
+    /** misc flags */
+    u8_t flags;
 
     /** Customer specific description */
     pbuf_desc desc;

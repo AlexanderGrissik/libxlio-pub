@@ -145,8 +145,8 @@ void cq_mgr_rx_regrq::cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
         p_rx_wc_buf_desc->rx.tls_decrypted = (cqe->pkt_info >> 3) & 0x3;
 #endif /* DEFINED_UTLS */
         //p_rx_wc_buf_desc->rx.timestamps.hw_raw = ntohll(cqe->timestamp);
-        p_rx_wc_buf_desc->rx.flow_tag_id = ntohl((uint32_t)(cqe->sop_drop_qpn));
-        p_rx_wc_buf_desc->rx.is_sw_csum_need =
+        p_rx_wc_buf_desc->lwip_pbuf.rx_flow_tag_id = ntohl((uint32_t)(cqe->sop_drop_qpn));
+        p_rx_wc_buf_desc->rx_is_sw_csum_need =
             !(m_b_is_rx_hw_csum_on && (cqe->hds_ip_ext & MLX5_CQE_L4_OK) &&
               (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
         if (cqe->lro_num_seg > 1) {
@@ -214,7 +214,7 @@ int cq_mgr_rx_regrq::drain_and_proccess_helper(mem_buf_desc_t *buff, buff_status
             bool procces_now = is_eth_tcp_frame(buff);
 
             if (procces_now) { // We process immediately all non udp/ip traffic..
-                buff->rx.is_xlio_thr = true;
+                //buff->rx.is_xlio_thr = true;
                 if ((++m_debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
                     !compensate_qp_poll_success(buff)) {
                     process_recv_buffer(buff, nullptr);
@@ -279,7 +279,7 @@ int cq_mgr_rx_regrq::drain_and_proccess(uintptr_t *p_recycle_buffers_last_wr_id 
 
                 /* We process immediately all non udp/ip traffic.. */
                 if (procces_now) {
-                    buff->rx.is_xlio_thr = true;
+                    //buff->rx.is_xlio_thr = true;
                     if ((++m_debt < (int)m_n_sysvar_rx_num_wr_to_post_recv) ||
                         !compensate_qp_poll_success(buff)) {
                         process_recv_buffer(buff, NULL);

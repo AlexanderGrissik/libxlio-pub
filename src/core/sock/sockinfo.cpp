@@ -2191,7 +2191,7 @@ void sockinfo::handle_recv_errqueue(struct cmsg_state *cm_state)
         return;
     }
 
-    insert_cmsg(cm_state, 0, IP_RECVERR, &buff->ee, sizeof(buff->ee));
+    //insert_cmsg(cm_state, 0, IP_RECVERR, &buff->ee, sizeof(buff->ee));
     cm_state->mhdr->msg_flags |= MSG_ERRQUEUE;
 
     delete buff;

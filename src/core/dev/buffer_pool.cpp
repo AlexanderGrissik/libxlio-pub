@@ -76,7 +76,7 @@ inline void buffer_pool::put_buffer_helper(mem_buf_desc_t *buff)
 
     if (buff->lwip_pbuf.desc.attr == PBUF_DESC_STRIDE) {
         mem_buf_desc_t *rwqe = reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.desc.mdesc);
-        if (buff->rx.strides_num == rwqe->add_ref_count(-buff->rx.strides_num)) { // Is last stride.
+        if (buff->rx_strides_num == rwqe->add_ref_count(-buff->rx_strides_num)) { // Is last stride.
             g_buffer_pool_rx_rwqe->put_buffers_thread_safe(rwqe);
         }
     }
@@ -129,7 +129,7 @@ bool buffer_pool::expand(size_t count)
         if (data_ptr) {
             data_ptr += m_buf_size;
         }
-    }//char (*__kaboom)[sizeof(mem_buf_desc_t::tx)] = 1;
+    }//char (*__kaboom)[sizeof(mem_buf_desc_t)] = 1;
     m_n_buffers_created += count;
     return true;
 }

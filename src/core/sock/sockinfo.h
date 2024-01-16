@@ -463,7 +463,7 @@ protected:
             descq_t *rx_reuse = &iter->second->rx_reuse_info.rx_reuse;
             int &n_buff_num = iter->second->rx_reuse_info.n_buff_num;
             rx_reuse->push_back(buff);
-            n_buff_num += buff->rx_n_frags;
+            n_buff_num += buff->lwip_pbuf.rx_n_frags;
             if (n_buff_num < m_n_sysvar_rx_num_buffs_reuse) {
                 return;
             }

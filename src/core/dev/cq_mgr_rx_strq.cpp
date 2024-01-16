@@ -201,9 +201,9 @@ mem_buf_desc_t *cq_mgr_rx_strq::poll(enum buff_status_e &status, mem_buf_desc_t 
 
         if (likely(!is_filler)) {
             ++m_p_cq_stat->n_rx_packet_count;
-            m_p_cq_stat->n_rx_stride_count += _hot_buffer_stride->rx.strides_num;
+            m_p_cq_stat->n_rx_stride_count += _hot_buffer_stride->rx_strides_num;
             m_p_cq_stat->n_rx_max_stirde_per_packet = std::max(
-                m_p_cq_stat->n_rx_max_stirde_per_packet, _hot_buffer_stride->rx.strides_num);
+                m_p_cq_stat->n_rx_max_stirde_per_packet, _hot_buffer_stride->rx_strides_num);
             buff_stride = _hot_buffer_stride;
             _hot_buffer_stride = nullptr;
         } else if (status != BS_CQE_INVALID) {
@@ -236,7 +236,7 @@ inline bool cq_mgr_rx_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
     case MLX5_CQE_RESP_SEND_IMM:
     case MLX5_CQE_RESP_SEND_INV: {
         status = BS_OK;
-        _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+        _hot_buffer_stride->rx_strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.desc.mdesc = m_rx_hot_buffer;
         _hot_buffer_stride->express.user_mkey = m_rx_hot_buffer->express.user_mkey;
@@ -246,12 +246,12 @@ inline bool cq_mgr_rx_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
             host_byte_cnt & 0x0000FFFFU; // In case of a Filler/Error this size is invalid.
         _hot_buffer_stride->p_buffer = m_rx_hot_buffer->p_buffer +
             _current_wqe_consumed_bytes; //(_stride_size_bytes * ntohs(cqe->wqe_counter))
-        _hot_buffer_stride->sz_buffer = _hot_buffer_stride->rx.strides_num * _stride_size_bytes;
+        _hot_buffer_stride->sz_buffer = _hot_buffer_stride->rx_strides_num * _stride_size_bytes;
         _current_wqe_consumed_bytes += _hot_buffer_stride->sz_buffer;
 
         //_hot_buffer_stride->rx.timestamps.hw_raw = ntohll(cqe->timestamp);
-        _hot_buffer_stride->rx.flow_tag_id = ntohl((uint32_t)(cqe->sop_drop_qpn));
-        _hot_buffer_stride->rx.is_sw_csum_need =
+        _hot_buffer_stride->lwip_pbuf.rx_flow_tag_id = ntohl((uint32_t)(cqe->sop_drop_qpn));
+        _hot_buffer_stride->rx_is_sw_csum_need =
             !(m_b_is_rx_hw_csum_on && (cqe->hds_ip_ext & MLX5_CQE_L4_OK) &&
               (cqe->hds_ip_ext & MLX5_CQE_L3_OK));
 #ifdef DEFINED_UTLS
@@ -274,7 +274,7 @@ inline bool cq_mgr_rx_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
     case MLX5_CQE_REQ_ERR:
     case MLX5_CQE_RESP_ERR:
     default: {
-        _hot_buffer_stride->rx.strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
+        _hot_buffer_stride->rx_strides_num = ((host_byte_cnt >> 16) & 0x00003FFF);
         _hot_buffer_stride->lwip_pbuf.desc.attr = PBUF_DESC_STRIDE;
         _hot_buffer_stride->lwip_pbuf.desc.mdesc = m_rx_hot_buffer;
         is_filler = true;
@@ -283,8 +283,8 @@ inline bool cq_mgr_rx_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
         _hot_buffer_stride->p_buffer = nullptr;
         _hot_buffer_stride->sz_buffer = 0U;
 
-        if (_hot_buffer_stride->rx.strides_num == 0U) {
-            _hot_buffer_stride->rx.strides_num = _strides_num;
+        if (_hot_buffer_stride->rx_strides_num == 0U) {
+            _hot_buffer_stride->rx_strides_num = _strides_num;
         }
 
         if (MLX5_CQE_SYNDROME_WR_FLUSH_ERR == ecqe->syndrome) {
@@ -317,7 +317,7 @@ inline bool cq_mgr_rx_strq::strq_cqe_to_mem_buff_desc(struct xlio_mlx5_cqe *cqe,
                ", Data-Size: %" PRIu32 ", Strides: %hu, Consumed-Bytes: %" PRIu32
                ", RX-HB: %p, RX-HB-SZ: %zu\n",
                static_cast<int>(status), cqe->wqe_id, (host_byte_cnt >> 31), cqe->byte_cnt,
-               (host_byte_cnt & 0x0000FFFFU), _hot_buffer_stride->rx.strides_num,
+               (host_byte_cnt & 0x0000FFFFU), _hot_buffer_stride->rx_strides_num,
                _current_wqe_consumed_bytes, m_rx_hot_buffer, m_rx_hot_buffer->sz_buffer);
     // vlog_print_buffer(VLOG_FINE, "STRQ CQE. Data: ", "\n",
     //	reinterpret_cast<const char*>(_hot_buffer_stride->p_buffer), min(112,
@@ -354,7 +354,7 @@ int cq_mgr_rx_strq::drain_and_proccess_helper(mem_buf_desc_t *buff, mem_buf_desc
 
                 // We process immediately all non udp/ip traffic..
                 if (procces_now) {
-                    buff->rx.is_xlio_thr = true;
+                    //buff->rx.is_xlio_thr = true;
                     process_recv_buffer(buff, nullptr);
                 } else { // udp/ip traffic we just put in the cq's rx queue
                     m_rx_queue.push_back(buff);
@@ -425,7 +425,7 @@ mem_buf_desc_t *cq_mgr_rx_strq::process_strq_cq_element_rx(mem_buf_desc_t *p_mem
 
     /* we use context to verify that on reclaim rx buffer path we return the buffer to the right CQ
      */
-    p_mem_buf_desc->rx.is_xlio_thr = false;
+    //p_mem_buf_desc->rx.is_xlio_thr = false;
     //p_mem_buf_desc->rx.context = nullptr;
 
     if (unlikely(status != BS_OK)) {
@@ -540,7 +540,7 @@ void cq_mgr_rx_strq::reclaim_recv_buffer_helper(mem_buf_desc_t *buff)
 
                 mem_buf_desc_t *rwqe =
                     reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.desc.mdesc);
-                if (buff->rx.strides_num == rwqe->add_ref_count(-buff->rx.strides_num)) {
+                if (buff->rx_strides_num == rwqe->add_ref_count(-buff->rx_strides_num)) {
                     // Is last stride.
                     cq_mgr_rx::reclaim_recv_buffer_helper(rwqe);
                 }

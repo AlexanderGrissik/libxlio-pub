@@ -1277,7 +1277,7 @@ err_t sockinfo_tcp_ops_tls::recv(struct pbuf *p)
         if (unlikely(pdesc->rx.tls_decrypted == TLS_RX_RESYNC)) {
             resync_requested = true;
         }
-        pdesc->rx_n_frags = 1;
+        pdesc->lwip_pbuf.rx_n_frags = 1;
         p->tot_len = p->len;
         p->next = nullptr;
         m_rx_bufs.push_back(pdesc);

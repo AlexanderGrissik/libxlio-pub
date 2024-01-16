@@ -429,7 +429,7 @@ int ring_tap::process_element_rx(void *pv_fd_ready_array)
             if (ret > 0) {
                 /* Data was read and processed successfully */
                 buff->sz_data = ret;
-                buff->rx.is_sw_csum_need = 1;
+                buff->rx_is_sw_csum_need = 1;
                 if ((ret = rx_process_buffer(buff, pv_fd_ready_array))) {
                     m_p_ring_stat->tap.n_rx_buffers--;
                 }

@@ -348,7 +348,7 @@ mem_buf_desc_t *cq_mgr_rx::cqe_process_rx(mem_buf_desc_t *p_mem_buf_desc, enum b
 
     /* we use context to verify that on reclaim rx buffer path we return the buffer to the right CQ
      */
-    p_mem_buf_desc->rx.is_xlio_thr = false;
+    //p_mem_buf_desc->rx.is_xlio_thr = false;
     //p_mem_buf_desc->rx.context = NULL;
 
     if (unlikely(status != BS_OK)) {

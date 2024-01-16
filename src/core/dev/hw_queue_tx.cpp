@@ -1054,6 +1054,8 @@ void hw_queue_tx::nvme_set_progress_context(xlio_tis *tis, uint32_t tcp_seqno)
     update_next_wqe_hot();
 }
 
+#define STATIC_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
+
 #if defined(DEFINED_UTLS)
 std::unique_ptr<dpcp::tls_dek> hw_queue_tx::get_new_tls_dek(const void *key,
                                                             uint32_t key_size_bytes)
@@ -1276,8 +1278,6 @@ inline void hw_queue_tx::tls_post_static_params_wqe(xlio_ti *ti, const struct xl
     struct mlx5_mkey_seg *mkcseg = &wqe->mkc;
     struct mlx5_wqe_tls_static_params_seg *tspseg = &wqe->params;
     uint8_t opmod = is_tx ? MLX5_OPC_MOD_TLS_TIS_STATIC_PARAMS : MLX5_OPC_MOD_TLS_TIR_STATIC_PARAMS;
-
-#define STATIC_PARAMS_DS_CNT DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS)
 
     /*
      * SQ wrap around handling information

@@ -568,7 +568,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     static uint16_t NET_ETH_P_IPV6 = htons(ETH_P_IPV6);
     static uint16_t NET_ETH_P_8021Q = htons(ETH_P_8021Q);
 
-    size_t transport_header_len;
+    uint8_t transport_header_len;
     struct ethhdr *p_eth_h = (struct ethhdr *)(p_rx_wc_buf_desc->p_buffer);
 
     // Validate buffer size
@@ -589,15 +589,15 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
     ++m_p_ring_stat->n_rx_pkt_count;
 
     // This is an internal function (within ring and 'friends'). No need for lock mechanism.
-    if (likely(m_flow_tag_enabled && p_rx_wc_buf_desc->rx.flow_tag_id &&
-               p_rx_wc_buf_desc->rx.flow_tag_id != FLOW_TAG_MASK &&
-               !p_rx_wc_buf_desc->rx.is_sw_csum_need)) {
+    if (likely(m_flow_tag_enabled && p_rx_wc_buf_desc->lwip_pbuf.rx_flow_tag_id &&
+               p_rx_wc_buf_desc->lwip_pbuf.rx_flow_tag_id != FLOW_TAG_MASK &&
+               !p_rx_wc_buf_desc->rx_is_sw_csum_need)) {
         sockinfo *si = NULL;
         // trying to get sockinfo per flow_tag_id-1 as it was incremented at attach
         // to allow mapping sockfd=0
         assert(g_p_fd_collection);
         si = static_cast<sockinfo *>(
-            g_p_fd_collection->get_sockfd(p_rx_wc_buf_desc->rx.flow_tag_id - 1));
+            g_p_fd_collection->get_sockfd(p_rx_wc_buf_desc->lwip_pbuf.rx_flow_tag_id - 1));
 
         if (likely((si != NULL) && si->flow_tag_enabled())) {
             // will process packets with set flow_tag_id and enabled for the socket
@@ -638,7 +638,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
             ring_logfunc("FAST PATH Rx packet info: transport_header_len: %d, IP_header_len: %d L3 "
                          "proto: %d flow_tag_id: %d",
                          transport_header_len, ip_hdr_len, protocol,
-                         p_rx_wc_buf_desc->rx.flow_tag_id);
+                         p_rx_wc_buf_desc->lwip_pbuf.rx_flow_tag_id);
 
             if (likely(protocol == IPPROTO_TCP)) {
                 struct tcphdr *p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + ip_hdr_len);
@@ -654,8 +654,8 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
 
                 p_rx_wc_buf_desc->rx.tcp.p_ip_h = p_ip_h;
                 p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
-                p_rx_wc_buf_desc->rx.n_transport_header_len = transport_header_len;
-                p_rx_wc_buf_desc->rx_n_frags = 1;
+                p_rx_wc_buf_desc->rx_n_transport_header_len = transport_header_len;
+                p_rx_wc_buf_desc->lwip_pbuf.rx_n_frags = 1;
 
                 ring_logfunc("FAST PATH Rx TCP segment info: src_port=%d, dst_port=%d, "
                              "flags='%s%s%s%s%s%s' seq=%u, ack=%u, win=%u, payload_sz=%u",
@@ -681,7 +681,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_rx_wc_buf_desc->rx.sz_payload = ntohs(p_udp_h->len) - sizeof(struct udphdr);
 
                 p_rx_wc_buf_desc->rx.udp.ifindex = m_parent->get_if_index();
-                p_rx_wc_buf_desc->rx_n_frags = 1;
+                p_rx_wc_buf_desc->lwip_pbuf.rx_n_frags = 1;
 
                 ring_logfunc("FAST PATH Rx UDP datagram info: src_port=%d, dst_port=%d, "
                              "payload_sz=%d, csum=%#x",
@@ -717,7 +717,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
             transport_header_len = ETH_HDR_LEN;
         }
 
-        p_rx_wc_buf_desc->rx.n_transport_header_len = transport_header_len;
+        p_rx_wc_buf_desc->rx_n_transport_header_len = transport_header_len;
 
         // TODO: Remove this code when handling vlan in flow steering will be available. Change this
         // code if vlan stripping is performed.
@@ -910,7 +910,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd_ready_array, HDR *p_ip_h)
 {
     size_t ip_tot_len = hdr_get_tot_len(p_ip_h);
-    size_t sz_data = p_rx_wc_buf_desc->sz_data - p_rx_wc_buf_desc->rx.n_transport_header_len;
+    size_t sz_data = p_rx_wc_buf_desc->sz_data - p_rx_wc_buf_desc->rx_n_transport_header_len;
 
     // Check that received buffer size is not smaller then the ip datagram total size
     if (unlikely(sz_data < ip_tot_len)) {
@@ -956,7 +956,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     }
 
     // Handle fragmentation
-    p_rx_wc_buf_desc->rx_n_frags = 1;
+    p_rx_wc_buf_desc->lwip_pbuf.rx_n_frags = 1;
 
     // Currently we don't expect to receive fragments
     if (unlikely((hdr_data.ip_frag_off & IP_MF) || n_frag_offset)) {
@@ -978,7 +978,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         }
 
         // Re-calc all ip related values for new ip packet of head fragmentation list
-        size_t transport_header_len = p_rx_wc_buf_desc->rx.n_transport_header_len;
+        size_t transport_header_len = p_rx_wc_buf_desc->rx_n_transport_header_len;
         p_rx_wc_buf_desc = new_buf;
         p_ip_h = (HDR *)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
         sz_data = p_rx_wc_buf_desc->sz_data - transport_header_len;
@@ -987,11 +987,11 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
         mem_buf_desc_t *tmp;
         for (tmp = p_rx_wc_buf_desc; tmp; tmp = tmp->p_next_desc) {
-            ++p_rx_wc_buf_desc->rx_n_frags;
+            ++p_rx_wc_buf_desc->lwip_pbuf.rx_n_frags;
         }
     }
 
-    if (p_rx_wc_buf_desc->rx.is_sw_csum_need && compute_ip_checksum(p_ip_h)) {
+    if (p_rx_wc_buf_desc->rx_is_sw_csum_need && compute_ip_checksum(p_ip_h)) {
         return false; // false ip checksum
     }
 
@@ -1008,7 +1008,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t *)p_udp_h + sizeof(struct udphdr);
         p_rx_wc_buf_desc->rx.frag.iov_len = payload_len - sizeof(struct udphdr);
 
-        if (p_rx_wc_buf_desc->rx.is_sw_csum_need && p_udp_h->check &&
+        if (p_rx_wc_buf_desc->rx_is_sw_csum_need && p_udp_h->check &&
             compute_udp_checksum_rx(p_ip_h, p_udp_h, p_rx_wc_buf_desc)) {
             return false; // false udp checksum
         }
@@ -1060,7 +1060,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
         // Get the tcp header pointer + tcp payload size
         struct tcphdr *p_tcp_h = (struct tcphdr *)((uint8_t *)p_ip_h + hdr_data.ip_hdr_len);
 
-        if (p_rx_wc_buf_desc->rx.is_sw_csum_need &&
+        if (p_rx_wc_buf_desc->rx_is_sw_csum_need &&
             compute_tcp_checksum(p_ip_h, (unsigned short *)p_tcp_h,
                                  csum_hdr_len(p_ip_h, hdr_data))) {
             return false; // false tcp checksum

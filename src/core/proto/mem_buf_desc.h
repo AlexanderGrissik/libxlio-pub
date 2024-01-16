@@ -83,7 +83,7 @@ public:
 
         memset(&lwip_pbuf, 0, sizeof(lwip_pbuf));
         clear_transport_data();
-        memset(&ee, 0, sizeof(ee));
+        //memset(&ee, 0, sizeof(ee));
         reset_ref_count();
 
         lwip_pbuf.type = type;
@@ -106,13 +106,16 @@ public:
      * and extra fields to proceed customer specific requirements
      */
     struct pbuf lwip_pbuf;
-
+    
+    express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
     atomic_t n_ref_count; // number of interested receivers (sockinfo) [can be modified only in
                           // cq_mgr_rx context]
-    
-    int8_t rx_n_frags; // number of fragments
 
-    express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
+    uint16_t rx_strides_num;
+    //bool is_xlio_thr; // specify whether packet drained from XLIO internal thread or from
+    //                  // user app thread
+    bool rx_is_sw_csum_need; // specify if software checksum is need for this packet
+    uint8_t rx_n_transport_header_len;
 
     uint8_t *p_buffer;
 
@@ -146,18 +149,10 @@ public:
                     int ifindex; // Incoming interface index
                 } udp;
             };
-
-            size_t n_transport_header_len;
-            uint32_t flow_tag_id; // Flow Tag ID of this received packet
-            uint16_t strides_num;
-            //bool is_xlio_thr; // specify whether packet drained from XLIO internal thread or from
-            //                  // user app thread
-            bool is_sw_csum_need; // specify if software checksum is need for this packet
 #ifdef DEFINED_UTLS
             uint8_t tls_decrypted;
             uint8_t tls_type;
 #endif /* DEFINED_UTLS */
-            uint16_t strides_num;
         } rx;
         struct {
             //size_t dev_mem_length; // Total data aligned to 4 bytes.
@@ -179,8 +174,8 @@ public:
                  * id + count -1 -> ee.ee_data
                  */
                 uint32_t id;
-                uint32_t len;
-                uint16_t count;
+                //uint32_t len;
+                uint8_t count;
                 void *ctx;
                 void (*callback)(mem_buf_desc_t *);
             } zc;
