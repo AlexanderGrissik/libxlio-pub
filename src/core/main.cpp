@@ -891,6 +891,8 @@ void print_xlio_global_settings()
 
     vlog_printf(VLOG_INFO,
                 "---------------------------------------------------------------------------\n");
+    vlog_printf(VLOG_INFO,
+                "16_01_2024\n");
 }
 
 void prepare_fork()

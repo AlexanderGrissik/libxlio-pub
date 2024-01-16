@@ -167,7 +167,7 @@ extern "C" int xlio_socketxtreme_free_packets(struct xlio_socketxtreme_packet_de
         for (int i = 0; i < num; i++) {
             desc = reinterpret_cast<mem_buf_desc_t *>(packets[i].buff_lst);
             if (likely(desc)) {
-                p_socket_object = reinterpret_cast<sockinfo_tcp *>(desc->rx.context);
+                //p_socket_object = reinterpret_cast<sockinfo_tcp *>(desc->rx.context);
                 if (likely(p_socket_object)) {
                     p_socket_object->socketxtreme_recv_buffs_tcp(desc, packets[i].total_len);
                 } else {

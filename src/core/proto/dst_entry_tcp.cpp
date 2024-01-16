@@ -177,7 +177,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
         }
 
 #if 0
-        if (unlikely(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref > 1)) {
+        if (unlikely(p_tcp_iov[0].p_desc->lwip_pbuf.ref > 1)) {
             /*
              * First buffer in the vector is used for reference counting.
              * The reference is released after completion depending on
@@ -195,20 +195,20 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
              *
              * We don't change data, only pointer to buffer descriptor.
              */
-            pbuf_type type = (pbuf_type)p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.type;
+            pbuf_type type = (pbuf_type)p_tcp_iov[0].p_desc->lwip_pbuf.type;
             mem_buf_desc_t *p_mem_buf_desc =
-                get_buffer(type, &(p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.desc),
+                get_buffer(type, &(p_tcp_iov[0].p_desc->lwip_pbuf.desc),
                            is_set(attr.flags, XLIO_TX_PACKET_BLOCK));
             if (!p_mem_buf_desc) {
                 return -1;
             }
             p_tcp_iov[0].p_desc = p_mem_buf_desc;
         } else {
-            p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
+            p_tcp_iov[0].p_desc->lwip_pbuf.ref++;
         }
 #else
         /* The above workaround is not needed anymore, because there is no list anymore. */
-        p_tcp_iov[0].p_desc->lwip_pbuf.pbuf.ref++;
+        p_tcp_iov[0].p_desc->lwip_pbuf.ref++;
 #endif
 
         /* save pointers to ip and tcp headers for software checksum calculation */
@@ -227,14 +227,14 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
             m_sge[i].addr = (uintptr_t)p_tcp_iov[i].iovec.iov_base;
             m_sge[i].length = p_tcp_iov[i].iovec.iov_len;
             if (is_zerocopy) {
-                if (PBUF_DESC_EXPRESS == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
-                    m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.express_mkey;
-                } else if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
+                if (PBUF_DESC_EXPRESS == p_tcp_iov[i].p_desc->lwip_pbuf.desc.attr) {
+                    m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.desc.express_mkey;
+                } else if (PBUF_DESC_MKEY == p_tcp_iov[i].p_desc->lwip_pbuf.desc.attr) {
                     /* PBUF_DESC_MKEY - value is provided by user */
-                    m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mkey;
-                } else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr ||
-                           PBUF_DESC_NVME_TX == p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.attr) {
-                    mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.mdesc;
+                    m_sge[i].lkey = p_tcp_iov[i].p_desc->lwip_pbuf.desc.mkey;
+                } else if (PBUF_DESC_MDESC == p_tcp_iov[i].p_desc->lwip_pbuf.desc.attr ||
+                           PBUF_DESC_NVME_TX == p_tcp_iov[i].p_desc->lwip_pbuf.desc.attr) {
+                    mem_desc *mdesc = (mem_desc *)p_tcp_iov[i].p_desc->lwip_pbuf.desc.mdesc;
                     m_sge[i].lkey = mdesc->get_lkey(p_tcp_iov[i].p_desc, ib_ctx,
                                                     (void *)m_sge[i].addr, m_sge[i].length);
                     if (m_sge[i].lkey == LKEY_TX_DEFAULT) {
@@ -250,7 +250,7 @@ ssize_t dst_entry_tcp::fast_send(const iovec *p_iov, const ssize_t sz_iov, xlio_
                     masked_addr = (void *)((uint64_t)m_sge[i].addr & m_user_huge_page_mask);
                     m_sge[i].lkey =
                         m_p_ring->get_tx_user_lkey(masked_addr, m_n_sysvar_user_huge_page_size,
-                                                   p_tcp_iov[i].p_desc->lwip_pbuf.pbuf.desc.map);
+                                                   p_tcp_iov[i].p_desc->lwip_pbuf.desc.map);
                 }
             } else {
                 m_sge[i].lkey = (i == 0 ? m_p_ring->get_tx_lkey(m_id) : m_sge[0].lkey);
@@ -403,26 +403,26 @@ mem_buf_desc_t *dst_entry_tcp::get_buffer(pbuf_type type, pbuf_desc *desc,
         // for TX, set lwip payload to the data segment.
         // lwip will send it with payload pointing to the tcp header.
         if (p_mem_buf_desc->p_buffer) {
-            p_mem_buf_desc->lwip_pbuf.pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer +
+            p_mem_buf_desc->lwip_pbuf.payload = (u8_t *)p_mem_buf_desc->p_buffer +
                 m_header->m_aligned_l2_l3_len + sizeof(struct tcphdr);
         } else {
-            p_mem_buf_desc->lwip_pbuf.pbuf.payload = NULL;
+            p_mem_buf_desc->lwip_pbuf.payload = NULL;
         }
 
         /* Initialize pbuf description */
-        memset(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, 0,
-               sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
-        p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr = PBUF_DESC_NONE;
+        memset(&p_mem_buf_desc->lwip_pbuf.desc, 0,
+               sizeof(p_mem_buf_desc->lwip_pbuf.desc));
+        p_mem_buf_desc->lwip_pbuf.desc.attr = PBUF_DESC_NONE;
         if (desc) {
-            memcpy(&p_mem_buf_desc->lwip_pbuf.pbuf.desc, desc,
-                   sizeof(p_mem_buf_desc->lwip_pbuf.pbuf.desc));
-            if (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MDESC ||
-                p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NVME_TX) {
-                mem_desc *mdesc = (mem_desc *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.mdesc;
+            memcpy(&p_mem_buf_desc->lwip_pbuf.desc, desc,
+                   sizeof(p_mem_buf_desc->lwip_pbuf.desc));
+            if (p_mem_buf_desc->lwip_pbuf.desc.attr == PBUF_DESC_MDESC ||
+                p_mem_buf_desc->lwip_pbuf.desc.attr == PBUF_DESC_NVME_TX) {
+                mem_desc *mdesc = (mem_desc *)p_mem_buf_desc->lwip_pbuf.desc.mdesc;
                 mdesc->get();
-            } else if (p_mem_buf_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY &&
-                       (p_mem_buf_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MAP)) {
-                mapping_t *mapping = (mapping_t *)p_mem_buf_desc->lwip_pbuf.pbuf.desc.map;
+            } else if (p_mem_buf_desc->lwip_pbuf.type == PBUF_ZEROCOPY &&
+                       (p_mem_buf_desc->lwip_pbuf.desc.attr == PBUF_DESC_MAP)) {
+                mapping_t *mapping = (mapping_t *)p_mem_buf_desc->lwip_pbuf.desc.map;
                 mapping->get();
             }
         }
@@ -447,26 +447,26 @@ void dst_entry_tcp::put_buffer(mem_buf_desc_t *p_desc)
     } else {
 
         // potential race, ref is protected here by tcp lock, and in ring by ring_tx lock
-        if (likely(p_desc->lwip_pbuf.pbuf.ref)) {
-            p_desc->lwip_pbuf.pbuf.ref--;
+        if (likely(p_desc->lwip_pbuf.ref)) {
+            p_desc->lwip_pbuf.ref--;
         } else {
             dst_tcp_logerr("ref count of %p is already zero, double free??", p_desc);
         }
 
-        if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+        if (p_desc->lwip_pbuf.ref == 0) {
             p_desc->p_next_desc = NULL;
-            buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf.pbuf);
+            buffer_pool::free_tx_lwip_pbuf_custom(&p_desc->lwip_pbuf);
         }
     }
 }
 
 void dst_entry_tcp::put_zc_buffer(mem_buf_desc_t *p_desc)
 {
-    if (likely(p_desc->lwip_pbuf.pbuf.ref <= 1)) {
-        p_desc->lwip_pbuf.pbuf.ref = 1;
+    if (likely(p_desc->lwip_pbuf.ref <= 1)) {
+        p_desc->lwip_pbuf.ref = 1;
         p_desc->p_next_desc = m_p_zc_mem_buf_desc_list;
         m_p_zc_mem_buf_desc_list = p_desc;
     } else {
-        p_desc->lwip_pbuf.pbuf.ref--;
+        p_desc->lwip_pbuf.ref--;
     }
 }

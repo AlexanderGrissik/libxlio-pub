@@ -196,15 +196,15 @@ static lock_base *get_new_tcp_lock()
 
 inline void sockinfo_tcp::lwip_pbuf_init_custom(mem_buf_desc_t *p_desc)
 {
-    if (!p_desc->lwip_pbuf.pbuf.gro) {
-        p_desc->lwip_pbuf.pbuf.len = p_desc->lwip_pbuf.pbuf.tot_len =
+    if (!p_desc->lwip_pbuf.gro) {
+        p_desc->lwip_pbuf.len = p_desc->lwip_pbuf.tot_len =
             (p_desc->sz_data - p_desc->rx.n_transport_header_len);
-        p_desc->lwip_pbuf.pbuf.ref = 1;
-        p_desc->lwip_pbuf.pbuf.next = NULL;
-        p_desc->lwip_pbuf.pbuf.payload =
+        p_desc->lwip_pbuf.ref = 1;
+        p_desc->lwip_pbuf.next = NULL;
+        p_desc->lwip_pbuf.payload =
             (u8_t *)p_desc->p_buffer + p_desc->rx.n_transport_header_len;
     }
-    p_desc->lwip_pbuf.pbuf.gro = 0;
+    p_desc->lwip_pbuf.gro = 0;
 }
 
 /* change default rx_wait impl to flow based one */
@@ -257,26 +257,26 @@ inline void sockinfo_tcp::return_pending_tx_buffs()
 inline void sockinfo_tcp::reuse_buffer(mem_buf_desc_t *buff)
 {
     /* Special case when ZC buffers are used in RX path. */
-    if (buff->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) {
+    if (buff->lwip_pbuf.type == PBUF_ZEROCOPY) {
         dst_entry_tcp *p_dst = (dst_entry_tcp *)(m_p_connected_dst_entry);
         mem_buf_desc_t *underlying =
-            reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.pbuf.desc.mdesc);
+            reinterpret_cast<mem_buf_desc_t *>(buff->lwip_pbuf.desc.mdesc);
 
-        buff->lwip_pbuf.pbuf.desc.mdesc = NULL;
+        buff->lwip_pbuf.desc.mdesc = NULL;
         if (likely(p_dst)) {
             p_dst->put_zc_buffer(buff);
         } else {
             g_buffer_pool_zc->put_buffers_thread_safe(buff);
         }
 
-        if (underlying->lwip_pbuf.pbuf.ref > 1) {
-            --underlying->lwip_pbuf.pbuf.ref;
+        if (underlying->lwip_pbuf.ref > 1) {
+            --underlying->lwip_pbuf.ref;
             return;
         }
         /* Continue and release the underlying buffer. */
         buff = underlying;
-        buff->lwip_pbuf.pbuf.ref = 1;
-        buff->lwip_pbuf.pbuf.next = NULL;
+        buff->lwip_pbuf.ref = 1;
+        buff->lwip_pbuf.next = NULL;
         buff->p_next_desc = NULL;
     }
 
@@ -2037,7 +2037,7 @@ inline void sockinfo_tcp::rx_lwip_process_chained_pbufs(pbuf *p)
         p_curr_desc->reset_ref_count();
 
         save_strq_stats(p_curr_desc->rx.strides_num);
-        p_curr_desc->rx.context = this;
+        //p_curr_desc->rx.context = this;
         p_first_desc->rx.n_frags++;
         p_curr_desc->rx.frag.iov_base = p->payload;
         p_curr_desc->rx.frag.iov_len = p->len;
@@ -5233,19 +5233,19 @@ mem_buf_desc_t *sockinfo_tcp::get_next_desc(mem_buf_desc_t *p_desc)
     m_n_rx_pkt_ready_list_count--;
     if (p_desc->p_next_desc) {
         // vlog_printf(VLOG_ERROR, "detected chained pbufs! REF %u\n",
-        // p_desc->lwip_pbuf.pbuf.ref);
+        // p_desc->lwip_pbuf.ref);
         mem_buf_desc_t *prev = p_desc;
         p_desc = p_desc->p_next_desc;
-        prev->rx.sz_payload = prev->lwip_pbuf.pbuf.len;
-        p_desc->rx.sz_payload = p_desc->lwip_pbuf.pbuf.tot_len =
-            prev->lwip_pbuf.pbuf.tot_len - prev->lwip_pbuf.pbuf.len;
+        prev->rx.sz_payload = prev->lwip_pbuf.len;
+        p_desc->rx.sz_payload = p_desc->lwip_pbuf.tot_len =
+            prev->lwip_pbuf.tot_len - prev->lwip_pbuf.len;
         p_desc->rx.n_frags = --prev->rx.n_frags;
         p_desc->rx.src = prev->rx.src;
         p_desc->inc_ref_count();
         m_rx_pkt_ready_list.push_front(p_desc);
         m_n_rx_pkt_ready_list_count++;
         m_p_socket_stats->n_rx_ready_pkt_count++;
-        prev->lwip_pbuf.pbuf.next = NULL;
+        prev->lwip_pbuf.next = NULL;
         prev->p_next_desc = NULL;
         prev->rx.n_frags = 1;
         reuse_buffer(prev);
@@ -5332,20 +5332,20 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
 
         if (len < 0 && p_desc_iter) {
             // Update length of right side of chain after split - push to pkt_ready_list
-            p_desc_iter->rx.sz_payload = p_desc_iter->lwip_pbuf.pbuf.tot_len =
-                prev->lwip_pbuf.pbuf.tot_len - prev->lwip_pbuf.pbuf.len;
+            p_desc_iter->rx.sz_payload = p_desc_iter->lwip_pbuf.tot_len =
+                prev->lwip_pbuf.tot_len - prev->lwip_pbuf.len;
 
             // Update length of left side of chain after split - return to app
             mem_buf_desc_t *p_desc_head = reinterpret_cast<mem_buf_desc_t *>(p_pkts->packet_id);
             // XXX TODO: subsequent buffers are not updated
-            p_desc_head->lwip_pbuf.pbuf.tot_len = p_desc_head->rx.sz_payload -=
+            p_desc_head->lwip_pbuf.tot_len = p_desc_head->rx.sz_payload -=
                 p_desc_iter->rx.sz_payload;
 
             p_desc_iter->rx.n_frags = p_desc_head->rx.n_frags - p_pkts->sz_iov;
             p_desc_head->rx.n_frags = p_pkts->sz_iov;
             p_desc_iter->rx.src = prev->rx.src;
             p_desc_iter->inc_ref_count();
-            prev->lwip_pbuf.pbuf.next = NULL;
+            prev->lwip_pbuf.next = NULL;
             prev->p_next_desc = NULL;
 
             m_rx_pkt_ready_list.push_front(p_desc_iter);
@@ -5629,11 +5629,11 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
 
     if (likely(p_dst)) {
         p_desc = p_dst->get_buffer(type, desc);
-        if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY) &&
-            ((p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_EXPRESS) ||
-             (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NONE) ||
-             (p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_MKEY) ||
-             p_desc->lwip_pbuf.pbuf.desc.attr == PBUF_DESC_NVME_TX)) {
+        if (p_desc && (p_desc->lwip_pbuf.type == PBUF_ZEROCOPY) &&
+            ((p_desc->lwip_pbuf.desc.attr == PBUF_DESC_EXPRESS) ||
+             (p_desc->lwip_pbuf.desc.attr == PBUF_DESC_NONE) ||
+             (p_desc->lwip_pbuf.desc.attr == PBUF_DESC_MKEY) ||
+             p_desc->lwip_pbuf.desc.attr == PBUF_DESC_NVME_TX)) {
             /* Prepare error queue fields for send zerocopy */
             if (p_buff) {
                 /* It is a special case that can happen as a result
@@ -5643,7 +5643,7 @@ struct pbuf *sockinfo_tcp::tcp_tx_pbuf_alloc(void *p_conn, pbuf_type type, pbuf_
                 p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
                 p_desc->tx.zc.id = p_prev_desc->tx.zc.id;
                 p_desc->tx.zc.count = p_prev_desc->tx.zc.count;
-                p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
+                p_desc->tx.zc.len = p_desc->lwip_pbuf.len;
                 p_desc->tx.zc.ctx = p_prev_desc->tx.zc.ctx;
                 p_desc->tx.zc.callback = tcp_tx_zc_callback;
                 p_prev_desc->tx.zc.count = 0;
@@ -5687,7 +5687,7 @@ void sockinfo_tcp::tcp_tx_pbuf_free(void *p_conn, struct pbuf *p_buff)
             __log_err("ref count of %p is already zero, double free??", p_desc);
         }
 
-        if (p_desc->lwip_pbuf.pbuf.ref == 0) {
+        if (p_desc->lwip_pbuf.ref == 0) {
             p_desc->p_next_desc = NULL;
             buffer_pool::free_tx_lwip_pbuf_custom(p_buff);
         }
@@ -5699,13 +5699,13 @@ mem_buf_desc_t *sockinfo_tcp::tcp_tx_zc_alloc(mem_buf_desc_t *p_desc)
     p_desc->m_flags |= mem_buf_desc_t::ZCOPY;
     p_desc->tx.zc.id = atomic_read(&m_zckey);
     p_desc->tx.zc.count = 1;
-    p_desc->tx.zc.len = p_desc->lwip_pbuf.pbuf.len;
+    p_desc->tx.zc.len = p_desc->lwip_pbuf.len;
     p_desc->tx.zc.ctx = (void *)this;
     p_desc->tx.zc.callback = tcp_tx_zc_callback;
 
-    if (m_last_zcdesc && (m_last_zcdesc != p_desc) && (m_last_zcdesc->lwip_pbuf.pbuf.ref > 0) &&
+    if (m_last_zcdesc && (m_last_zcdesc != p_desc) && (m_last_zcdesc->lwip_pbuf.ref > 0) &&
         (m_last_zcdesc->tx.zc.id == p_desc->tx.zc.id)) {
-        m_last_zcdesc->tx.zc.len = m_last_zcdesc->lwip_pbuf.pbuf.len;
+        m_last_zcdesc->tx.zc.len = m_last_zcdesc->lwip_pbuf.len;
         m_last_zcdesc->tx.zc.count = 0;
     }
     m_last_zcdesc = p_desc;
@@ -6319,7 +6319,7 @@ void sockinfo_tcp::express_flush_dirty_sockets()
 void sockinfo_tcp::express_reclaim_buf(mem_buf_desc_t *buf)
 {
     lock_tcp_con();
-    tcp_recved(&m_pcb, buf->lwip_pbuf.pbuf.len);
+    tcp_recved(&m_pcb, buf->lwip_pbuf.len);
     reuse_buffer(buf);
     unlock_tcp_con();
 }
@@ -6330,7 +6330,7 @@ struct pbuf *sockinfo_tcp::express_tx_pbuf_alloc(void *p_conn, pbuf_type type, p
     sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(((struct tcp_pcb *)p_conn)->my_container);
     mem_buf_desc_t *p_desc = si->express_dst_entry_tcp->get_buffer(type, desc);
 
-    if (p_desc && (p_desc->lwip_pbuf.pbuf.type == PBUF_ZEROCOPY)) {
+    if (p_desc && (p_desc->lwip_pbuf.type == PBUF_ZEROCOPY)) {
         if (unlikely(p_buff)) {
             p_buff->desc.opaque = NULL; // To avoid early ZC completion callback
         }
@@ -6344,9 +6344,9 @@ struct pbuf *sockinfo_tcp::express_tx_pbuf_alloc(void *p_conn, pbuf_type type, p
 /* static */
 void sockinfo_tcp::express_tx_zc_callback(mem_buf_desc_t *p_desc)
 {
-    if (p_desc->lwip_pbuf.pbuf.desc.opaque && p_desc->tx.zc.ctx) {
+    if (p_desc->lwip_pbuf.desc.opaque && p_desc->tx.zc.ctx) {
         sockinfo_tcp *si = reinterpret_cast<sockinfo_tcp *>(p_desc->tx.zc.ctx);
-        si->express_zc_cb(si->express_opaque_sq, p_desc->lwip_pbuf.pbuf.desc.opaque);
+        si->express_zc_cb(si->express_opaque_sq, p_desc->lwip_pbuf.desc.opaque);
     }
 }
 

@@ -331,12 +331,12 @@ bool cq_mgr_rx::request_more_buffers()
 
 void cq_mgr_rx::return_extra_buffers()
 {
-    if (m_rx_pool.size() < m_n_sysvar_qp_compensation_level * 2) {
+    if (m_rx_pool.size() < m_n_sysvar_qp_compensation_level * 8) {
         return;
     }
     int buff_to_rel = m_rx_pool.size() - m_n_sysvar_qp_compensation_level;
 
-    cq_logfunc("releasing %d buffers to global rx pool", buff_to_rel);
+    cq_logwarn("releasing %d buffers to global rx pool", buff_to_rel);
     g_buffer_pool_rx_rwqe->put_buffers_thread_safe(&m_rx_pool, buff_to_rel);
     m_p_cq_stat->n_buffer_pool_len = m_rx_pool.size();
 }
@@ -349,7 +349,7 @@ mem_buf_desc_t *cq_mgr_rx::cqe_process_rx(mem_buf_desc_t *p_mem_buf_desc, enum b
     /* we use context to verify that on reclaim rx buffer path we return the buffer to the right CQ
      */
     p_mem_buf_desc->rx.is_xlio_thr = false;
-    p_mem_buf_desc->rx.context = NULL;
+    //p_mem_buf_desc->rx.context = NULL;
 
     if (unlikely(status != BS_OK)) {
         m_p_next_rx_desc_poll = NULL;
@@ -407,13 +407,13 @@ void cq_mgr_rx::compensate_qp_poll_failed()
 
 void cq_mgr_rx::reclaim_recv_buffer_helper(mem_buf_desc_t *buff)
 {
-    if (buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1)) {
+    if (buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.ref-- <= 1)) {
         if (likely(buff->p_desc_owner == m_p_ring)) {
             mem_buf_desc_t *temp = NULL;
             while (buff) {
                 VLIST_DEBUG_CQ_MGR_PRINT_ERROR_IS_MEMBER;
                 temp = buff;
-                assert(temp->lwip_pbuf.pbuf.type != PBUF_ZEROCOPY);
+                assert(temp->lwip_pbuf.type != PBUF_ZEROCOPY);
                 buff = temp->p_next_desc;
                 temp->clear_transport_data();
                 temp->p_next_desc = NULL;

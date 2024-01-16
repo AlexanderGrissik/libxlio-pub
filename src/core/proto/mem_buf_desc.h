@@ -86,7 +86,7 @@ public:
         memset(&ee, 0, sizeof(ee));
         reset_ref_count();
 
-        lwip_pbuf.pbuf.type = type;
+        lwip_pbuf.type = type;
 
         memset(&express, 0, sizeof(express));
     }
@@ -105,7 +105,7 @@ public:
      * It encapsulates pbuf structure from lwip
      * and extra fields to proceed customer specific requirements
      */
-    struct pbuf_custom lwip_pbuf;
+    struct pbuf lwip_pbuf;
 
     express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
 
@@ -126,7 +126,7 @@ public:
             size_t sz_payload; // This is the total amount of data of the packet, if
                                // (sz_payload>sz_data) means fragmented packet.
             timestamps_t timestamps;
-            void *context;
+            //void *context;
 
             union {
                 struct {
@@ -226,17 +226,17 @@ public:
 
     inline int add_ref_count(int x) { return atomic_fetch_add_relaxed(x, &n_ref_count); }
 
-    inline unsigned int lwip_pbuf_inc_ref_count() { return ++lwip_pbuf.pbuf.ref; }
+    inline unsigned int lwip_pbuf_inc_ref_count() { return ++lwip_pbuf.ref; }
 
     inline unsigned int lwip_pbuf_dec_ref_count()
     {
-        if (likely(lwip_pbuf.pbuf.ref)) {
-            --lwip_pbuf.pbuf.ref;
+        if (likely(lwip_pbuf.ref)) {
+            --lwip_pbuf.ref;
         }
-        return lwip_pbuf.pbuf.ref;
+        return lwip_pbuf.ref;
     }
 
-    inline unsigned int lwip_pbuf_get_ref_count() const { return lwip_pbuf.pbuf.ref; }
+    inline unsigned int lwip_pbuf_get_ref_count() const { return lwip_pbuf.ref; }
 };
 
 typedef xlio_list_t<mem_buf_desc_t, mem_buf_desc_t::buffer_node_offset> descq_t;

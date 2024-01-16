@@ -94,7 +94,7 @@ public:
                                    bool trylock = false) = 0;
     virtual void mem_buf_rx_release(mem_buf_desc_t *p_mem_buf_desc)
     {
-        buffer_pool::free_rx_lwip_pbuf_custom(&p_mem_buf_desc->lwip_pbuf.pbuf);
+        buffer_pool::free_rx_lwip_pbuf_custom(&p_mem_buf_desc->lwip_pbuf);
     };
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                   xlio_wr_tx_packet_attr attr) = 0;

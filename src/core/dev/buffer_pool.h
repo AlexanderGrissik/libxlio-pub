@@ -49,17 +49,17 @@ enum buffer_pool_type {
     BUFFER_POOL_TX,
 };
 
-inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
+inline static void free_lwip_pbuf(struct pbuf *pbuf_custom)
 {
     mem_buf_desc_t *p_desc = (mem_buf_desc_t *)pbuf_custom;
 
-    if (pbuf_custom->pbuf.desc.attr == PBUF_DESC_MDESC ||
-        pbuf_custom->pbuf.desc.attr == PBUF_DESC_NVME_TX) {
-        mem_desc *mdesc = (mem_desc *)pbuf_custom->pbuf.desc.mdesc;
+    if (pbuf_custom->desc.attr == PBUF_DESC_MDESC ||
+        pbuf_custom->desc.attr == PBUF_DESC_NVME_TX) {
+        mem_desc *mdesc = (mem_desc *)pbuf_custom->desc.mdesc;
         mdesc->put();
-    } else if ((pbuf_custom->pbuf.type == PBUF_ZEROCOPY) &&
-               (pbuf_custom->pbuf.desc.attr == PBUF_DESC_MAP)) {
-        mapping_t *mapping = (mapping_t *)pbuf_custom->pbuf.desc.map;
+    } else if ((pbuf_custom->type == PBUF_ZEROCOPY) &&
+               (pbuf_custom->desc.attr == PBUF_DESC_MAP)) {
+        mapping_t *mapping = (mapping_t *)pbuf_custom->desc.map;
         mapping->put();
     }
 
@@ -67,9 +67,9 @@ inline static void free_lwip_pbuf(struct pbuf_custom *pbuf_custom)
         p_desc->tx.zc.callback(p_desc);
         p_desc->m_flags = 0;
     }
-    pbuf_custom->pbuf.flags = 0;
-    pbuf_custom->pbuf.ref = 0;
-    pbuf_custom->pbuf.desc.attr = PBUF_DESC_NONE;
+    pbuf_custom->flags = 0;
+    pbuf_custom->ref = 0;
+    pbuf_custom->desc.attr = PBUF_DESC_NONE;
 }
 
 /**
