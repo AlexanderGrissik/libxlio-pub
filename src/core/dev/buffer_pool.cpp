@@ -129,7 +129,7 @@ bool buffer_pool::expand(size_t count)
         if (data_ptr) {
             data_ptr += m_buf_size;
         }
-    }//char (*__kaboom)[sizeof(mem_buf_desc_t)] = 1;
+    }//char (*__kaboom)[sizeof(mem_buf_desc_t::tx)] = 1;
     m_n_buffers_created += count;
     return true;
 }

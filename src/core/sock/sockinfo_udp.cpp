@@ -2269,7 +2269,7 @@ inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc
     //}
 
     // fill io vector array with data buffer pointers
-    iovec iov[p_desc->rx.n_frags];
+    iovec iov[p_desc->rx_n_frags];
     int nr_frags = 0;
 
     for (mem_buf_desc_t *tmp = p_desc; tmp; tmp = tmp->p_next_desc) {
@@ -2292,7 +2292,7 @@ inline void sockinfo_udp::rx_udp_cb_socketxtreme_helper(mem_buf_desc_t *p_desc)
 
     completion = &m_socketxtreme.ec->completion;
 
-    completion->packet.num_bufs = p_desc->rx.n_frags;
+    completion->packet.num_bufs = p_desc->rx_n_frags;
     completion->packet.total_len = 0;
     //p_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
     //                      sizeof(completion->src));

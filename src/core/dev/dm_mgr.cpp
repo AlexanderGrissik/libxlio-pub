@@ -202,8 +202,8 @@ bool dm_mgr::copy_data(struct mlx5_wqe_data_seg *seg, uint8_t *src, uint32_t len
     xlio_ibv_memcpy_dm_attr memcpy_attr;
     uint32_t length_aligned_8 = DM_ALIGN_SIZE(length, DM_MEMORY_MASK_8);
     size_t continuous_left = 0;
-    size_t &dev_mem_length = buff->tx.dev_mem_length = 0;
-
+    //size_t &dev_mem_length = buff->tx.dev_mem_length = 0;
+    NOT_IN_USE(buff);
     // Check if On Device Memory buffer is full
     if (m_used >= m_allocation) {
         goto dev_mem_oob;
@@ -215,7 +215,7 @@ bool dm_mgr::copy_data(struct mlx5_wqe_data_seg *seg, uint8_t *src, uint32_t len
             if (m_head - m_used >= length_aligned_8) {
                 // There is enough space at the beginning of the buffer.
                 m_head = 0;
-                dev_mem_length = continuous_left;
+                //dev_mem_length = continuous_left;
             } else {
                 // There no enough space at the beginning of the buffer.
                 goto dev_mem_oob;
@@ -239,8 +239,8 @@ bool dm_mgr::copy_data(struct mlx5_wqe_data_seg *seg, uint8_t *src, uint32_t len
     seg->lkey = htonl(m_p_dm_mr->lkey);
     seg->addr = htonll(m_head);
     m_head = (m_head + length_aligned_8) % m_allocation;
-    dev_mem_length += length_aligned_8;
-    m_used += dev_mem_length;
+    //dev_mem_length += length_aligned_8;
+    //m_used += dev_mem_length;
 
     // Update On Device Memory statistics
     m_p_ring_stat->simple.n_tx_dev_mem_pkt_count++;
@@ -269,11 +269,12 @@ dev_mem_oob:
  */
 void dm_mgr::release_data(mem_buf_desc_t *buff)
 {
-    m_used -= buff->tx.dev_mem_length;
-    buff->tx.dev_mem_length = 0;
+    NOT_IN_USE(buff);
+    //m_used -= buff->tx.dev_mem_length;
+    //buff->tx.dev_mem_length = 0;
 
-    dm_logfunc("Device memory release! buffer[%p] buffer_dev_mem_length[%zu] head[%zu] used[%zu]",
-               buff, buff->tx.dev_mem_length, m_head, m_used);
+    //dm_logfunc("Device memory release! buffer[%p] buffer_dev_mem_length[%zu] head[%zu] used[%zu]",
+    //           buff, buff->tx.dev_mem_length, m_head, m_used);
 }
 
 #endif /* DEFINED_IBV_DM */

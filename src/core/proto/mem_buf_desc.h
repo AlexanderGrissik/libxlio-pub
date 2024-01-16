@@ -107,6 +107,11 @@ public:
      */
     struct pbuf lwip_pbuf;
 
+    atomic_t n_ref_count; // number of interested receivers (sockinfo) [can be modified only in
+                          // cq_mgr_rx context]
+    
+    int8_t rx_n_frags; // number of fragments
+
     express_buf express; // For Express POC, (!) keep it as 2nd field just after lwip_pbuf
 
     uint8_t *p_buffer;
@@ -144,9 +149,9 @@ public:
 
             size_t n_transport_header_len;
             uint32_t flow_tag_id; // Flow Tag ID of this received packet
-            int8_t n_frags; // number of fragments
-            bool is_xlio_thr; // specify whether packet drained from XLIO internal thread or from
-                              // user app thread
+            uint16_t strides_num;
+            //bool is_xlio_thr; // specify whether packet drained from XLIO internal thread or from
+            //                  // user app thread
             bool is_sw_csum_need; // specify if software checksum is need for this packet
 #ifdef DEFINED_UTLS
             uint8_t tls_decrypted;
@@ -155,7 +160,7 @@ public:
             uint16_t strides_num;
         } rx;
         struct {
-            size_t dev_mem_length; // Total data aligned to 4 bytes.
+            //size_t dev_mem_length; // Total data aligned to 4 bytes.
             union {
                 struct iphdr *p_ip4_h;
                 struct ip6_hdr *p_ip6_h;
@@ -181,9 +186,7 @@ public:
             } zc;
         } tx;
     };
-
-    /* This field is needed for error queue processing */
-    struct sock_extended_err ee;
+    
     int m_flags; /* object description */
     uint32_t lkey; // Buffers lkey for QP access
     mem_buf_desc_t *p_next_desc; // A general purpose linked list of mem_buf_desc
@@ -195,9 +198,8 @@ public:
     // Rx: cq_mgr_rx owns the mem_buf_desc and the associated data buffer
     ring_slave *p_desc_owner;
 
-private:
-    atomic_t n_ref_count; // number of interested receivers (sockinfo) [can be modified only in
-                          // cq_mgr_rx context]
+    /* This field is needed for error queue processing */
+    //struct sock_extended_err ee;
 
 public:
     inline void clear_transport_data(void)

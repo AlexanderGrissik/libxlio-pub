@@ -952,9 +952,9 @@ void ring_simple::return_tx_pool_to_global_pool()
 
 int ring_simple::put_tx_buffer_helper(mem_buf_desc_t *buff)
 {
-    if (buff->tx.dev_mem_length) {
-        m_hqtx->dm_release_data(buff);
-    }
+    //if (buff->tx.dev_mem_length) {
+    //    m_hqtx->dm_release_data(buff);
+    //}
 
     // Potential race, ref is protected here by ring_tx lock, and in dst_entry_tcp &
     // sockinfo_tcp by tcp lock

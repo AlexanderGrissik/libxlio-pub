@@ -655,7 +655,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_rx_wc_buf_desc->rx.tcp.p_ip_h = p_ip_h;
                 p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
                 p_rx_wc_buf_desc->rx.n_transport_header_len = transport_header_len;
-                p_rx_wc_buf_desc->rx.n_frags = 1;
+                p_rx_wc_buf_desc->rx_n_frags = 1;
 
                 ring_logfunc("FAST PATH Rx TCP segment info: src_port=%d, dst_port=%d, "
                              "flags='%s%s%s%s%s%s' seq=%u, ack=%u, win=%u, payload_sz=%u",
@@ -681,7 +681,7 @@ bool ring_slave::rx_process_buffer(mem_buf_desc_t *p_rx_wc_buf_desc, void *pv_fd
                 p_rx_wc_buf_desc->rx.sz_payload = ntohs(p_udp_h->len) - sizeof(struct udphdr);
 
                 p_rx_wc_buf_desc->rx.udp.ifindex = m_parent->get_if_index();
-                p_rx_wc_buf_desc->rx.n_frags = 1;
+                p_rx_wc_buf_desc->rx_n_frags = 1;
 
                 ring_logfunc("FAST PATH Rx UDP datagram info: src_port=%d, dst_port=%d, "
                              "payload_sz=%d, csum=%#x",
@@ -956,7 +956,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
     }
 
     // Handle fragmentation
-    p_rx_wc_buf_desc->rx.n_frags = 1;
+    p_rx_wc_buf_desc->rx_n_frags = 1;
 
     // Currently we don't expect to receive fragments
     if (unlikely((hdr_data.ip_frag_off & IP_MF) || n_frag_offset)) {
@@ -987,7 +987,7 @@ bool steering_handler<KEY4T, KEY2T, HDR>::rx_process_buffer_no_flow_id(
 
         mem_buf_desc_t *tmp;
         for (tmp = p_rx_wc_buf_desc; tmp; tmp = tmp->p_next_desc) {
-            ++p_rx_wc_buf_desc->rx.n_frags;
+            ++p_rx_wc_buf_desc->rx_n_frags;
         }
     }
 
