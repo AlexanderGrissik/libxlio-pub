@@ -1556,7 +1556,7 @@ bool sockinfo_tcp::process_peer_ctl_packets(xlio_desc_list_t &peer_packets)
             return false;
         }
 
-        struct tcp_pcb *pcb = get_syn_received_pcb(desc->rx.src, desc->rx.dst);
+        struct tcp_pcb *pcb = nullptr;//get_syn_received_pcb(desc->rx.src, desc->rx.dst);
 
         // 2.1.2 get the pcb and sockinfo
         if (!pcb) {
@@ -1630,7 +1630,7 @@ void sockinfo_tcp::process_my_ctl_packets()
     // 1. demux packets in the listener list to map of list per peer (for child this will be
     // skipped)
     while (!temp_list.empty()) {
-        mem_buf_desc_t *desc = temp_list.get_and_pop_front();
+        //mem_buf_desc_t *desc = temp_list.get_and_pop_front();
 
         static const unsigned int MAX_SYN_RCVD = tcp_ctl_thread_on(m_sysvar_tcp_ctl_thread)
             ? safe_mce_sys().sysctl_reader.get_tcp_max_syn_backlog()
@@ -1640,9 +1640,9 @@ void sockinfo_tcp::process_my_ctl_packets()
         unsigned int num_con_waiting = m_rx_peer_packets.size();
 
         if (num_con_waiting < MAX_SYN_RCVD) {
-            m_rx_peer_packets[desc->rx.src].push_back(desc);
+            //m_rx_peer_packets[desc->rx.src].push_back(desc);
         } else { // map is full
-            peer_map_t::iterator iter = m_rx_peer_packets.find(desc->rx.src);
+            /*peer_map_t::iterator iter = m_rx_peer_packets.find(desc->rx.src);
             if (iter != m_rx_peer_packets.end()) {
                 // entry already exists, we can concatenate our packet
                 iter->second.push_back(desc);
@@ -1655,7 +1655,7 @@ void sockinfo_tcp::process_my_ctl_packets()
                                   MAX_SYN_RCVD);
                     m_rx_ctl_reuse_list.push_back(desc);
                 }
-            }
+            }*/
         }
     }
 
@@ -1918,7 +1918,7 @@ static inline void _rx_lwip_cb_socketxtreme_helper(pbuf *p,
     mem_buf_desc_t *current_desc = reinterpret_cast<mem_buf_desc_t *>(p);
 
     // Is IPv4 only.
-    assert(current_desc->rx.src.get_sa_family() == AF_INET);
+    //assert(current_desc->rx.src.get_sa_family() == AF_INET);
 
     if (buff_list_tail == nullptr) {
         // New completion
@@ -1927,8 +1927,8 @@ static inline void _rx_lwip_cb_socketxtreme_helper(pbuf *p,
         completion->packet.num_bufs = current_desc->rx.n_frags;
 
         assert(reinterpret_cast<mem_buf_desc_t *>(p)->rx.n_frags > 0);
-        current_desc->rx.src.get_sa(reinterpret_cast<sockaddr *>(&completion->src),
-                                    sizeof(completion->src));
+        //current_desc->rx.src.get_sa(reinterpret_cast<sockaddr *>(&completion->src),
+        //                            sizeof(completion->src));
         //if (use_hw_timestamp) {
         //    completion->packet.hw_timestamp = current_desc->rx.timestamps.hw;
         //}
@@ -2014,8 +2014,8 @@ inline void sockinfo_tcp::rx_lwip_process_chained_pbufs(pbuf *p)
     p_first_desc->rx.sz_payload = p->tot_len;
     p_first_desc->rx.n_frags = 0;
 
-    m_connected.get_sa(reinterpret_cast<sockaddr *>(&p_first_desc->rx.src),
-                       static_cast<socklen_t>(sizeof(p_first_desc->rx.src)));
+    //m_connected.get_sa(reinterpret_cast<sockaddr *>(&p_first_desc->rx.src),
+    //                   static_cast<socklen_t>(sizeof(p_first_desc->rx.src)));
 
     // We go over the p_first_desc again, so decrement what we did in rx_input_cb.
     m_socket_stats.strq_counters.n_strq_total_strides -=
@@ -2164,8 +2164,8 @@ err_t sockinfo_tcp::rx_lwip_cb_recv_callback(void *arg, struct tcp_pcb *pcb, str
 
         pkt_info.struct_sz = sizeof(pkt_info);
         pkt_info.packet_id = (void *)p_first_desc;
-        pkt_info.src = p_first_desc->rx.src.get_p_sa();
-        pkt_info.dst = p_first_desc->rx.dst.get_p_sa();
+        //pkt_info.src = p_first_desc->rx.src.get_p_sa();
+        //pkt_info.dst = p_first_desc->rx.dst.get_p_sa();
         pkt_info.socket_ready_queue_pkt_count = conn->m_p_socket_stats->n_rx_ready_pkt_count;
         pkt_info.socket_ready_queue_byte_count = conn->m_p_socket_stats->n_rx_ready_byte_count;
 
@@ -2481,8 +2481,8 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t *p_rx_pkt_mem_buf_desc_info, void 
     m_iomux_ready_fd_array = (fd_array_t *)pv_fd_ready_array;
 
     if (unlikely(get_tcp_state(&m_pcb) == LISTEN)) {
-        pcb = get_syn_received_pcb(p_rx_pkt_mem_buf_desc_info->rx.src,
-                                   p_rx_pkt_mem_buf_desc_info->rx.dst);
+        pcb = nullptr;//get_syn_received_pcb(p_rx_pkt_mem_buf_desc_info->rx.src,
+                       //            p_rx_pkt_mem_buf_desc_info->rx.dst);
         bool established_backlog_full = false;
         if (!pcb) {
             pcb = &m_pcb;
@@ -5241,7 +5241,7 @@ mem_buf_desc_t *sockinfo_tcp::get_next_desc(mem_buf_desc_t *p_desc)
         p_desc->rx.sz_payload = p_desc->lwip_pbuf.tot_len =
             prev->lwip_pbuf.tot_len - prev->lwip_pbuf.len;
         p_desc->rx.n_frags = --prev->rx.n_frags;
-        p_desc->rx.src = prev->rx.src;
+        //p_desc->rx.src = prev->rx.src;
         p_desc->inc_ref_count();
         m_rx_pkt_ready_list.push_front(p_desc);
         m_n_rx_pkt_ready_list_count++;
@@ -5344,7 +5344,7 @@ int sockinfo_tcp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags
 
             p_desc_iter->rx.n_frags = p_desc_head->rx.n_frags - p_pkts->sz_iov;
             p_desc_head->rx.n_frags = p_pkts->sz_iov;
-            p_desc_iter->rx.src = prev->rx.src;
+            //p_desc_iter->rx.src = prev->rx.src;
             p_desc_iter->inc_ref_count();
             prev->lwip_pbuf.next = NULL;
             prev->p_next_desc = NULL;

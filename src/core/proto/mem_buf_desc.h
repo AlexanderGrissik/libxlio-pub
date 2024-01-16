@@ -120,8 +120,8 @@ public:
     union {
         struct {
             iovec frag; // Datagram part base address and length
-            sock_addr src;
-            sock_addr dst;
+            //sock_addr src;
+            //sock_addr dst;
 
             size_t sz_payload; // This is the total amount of data of the packet, if
                                // (sz_payload>sz_data) means fragmented packet.

@@ -380,7 +380,7 @@ protected:
         size_t payload_size = pdesc->rx.sz_payload;
 
         if (__from && __fromlen) {
-            pdesc->rx.src.get_sa_by_family(__from, *__fromlen, m_family);
+            //pdesc->rx.src.get_sa_by_family(__from, *__fromlen, m_family);
         }
 
         if (in_flags & MSG_XLIO_ZCOPY) {

@@ -1848,8 +1848,8 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
     if (!p_desc) {
         return;
     }
-
-    sa_family_t rx_family = p_desc->rx.dst.get_sa_family();
+    NOT_IN_USE(cm_state);
+    /*sa_family_t rx_family = p_desc->rx.dst.get_sa_family();
     if (rx_family != AF_INET6 && rx_family != AF_INET) {
         return;
     }
@@ -1878,7 +1878,7 @@ void sockinfo_udp::handle_ip_pktinfo(struct cmsg_state *cm_state)
             addr_ipv6.get_in6_addr(), static_cast<unsigned int>(p_desc->rx.udp.ifindex)
         };
         insert_cmsg(cm_state, IPPROTO_IPV6, IPV6_PKTINFO, &pktinfo, sizeof(pktinfo));
-    }
+    }*/
 }
 
 // This function is relevant only for non-blocking socket
@@ -2256,8 +2256,8 @@ inline xlio_recv_callback_retval_t sockinfo_udp::inspect_by_user_cb(mem_buf_desc
 
     pkt_info.struct_sz = sizeof(pkt_info);
     pkt_info.packet_id = (void *)p_desc;
-    pkt_info.src = p_desc->rx.src.get_p_sa();
-    pkt_info.dst = p_desc->rx.dst.get_p_sa();
+    //pkt_info.src = p_desc->rx.src.get_p_sa();
+    //pkt_info.dst = p_desc->rx.dst.get_p_sa();
     pkt_info.socket_ready_queue_pkt_count = m_p_socket_stats->n_rx_ready_pkt_count;
     pkt_info.socket_ready_queue_byte_count = m_p_socket_stats->n_rx_ready_byte_count;
 
@@ -2294,8 +2294,8 @@ inline void sockinfo_udp::rx_udp_cb_socketxtreme_helper(mem_buf_desc_t *p_desc)
 
     completion->packet.num_bufs = p_desc->rx.n_frags;
     completion->packet.total_len = 0;
-    p_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
-                          sizeof(completion->src));
+    //p_desc->rx.src.get_sa(reinterpret_cast<struct sockaddr *>(&completion->src),
+    //                      sizeof(completion->src));
 
     //if (m_n_tsing_flags & SOF_TIMESTAMPING_RAW_HARDWARE) {
     //    completion->packet.hw_timestamp = p_desc->rx.timestamps.hw;
@@ -2357,10 +2357,12 @@ inline void sockinfo_udp::update_ready(mem_buf_desc_t *p_desc, void *pv_fd_ready
 
 bool sockinfo_udp::packet_is_loopback(mem_buf_desc_t *p_desc)
 {
-    auto iter =
-        m_rx_nd_map.find(ip_addr(p_desc->rx.src.get_ip_addr(), p_desc->rx.src.get_sa_family()));
-    return (iter != m_rx_nd_map.end()) &&
-        (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
+    NOT_IN_USE(p_desc);
+    return false;
+    //auto iter =
+    //    m_rx_nd_map.find(ip_addr(p_desc->rx.src.get_ip_addr(), p_desc->rx.src.get_sa_family()));
+    //return (iter != m_rx_nd_map.end()) &&
+    //    (iter->second.p_ndv->get_if_idx() == p_desc->rx.udp.ifindex);
 }
 
 bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
@@ -2391,26 +2393,26 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
      * If the user requests to bind the new socket to the same port number as the old one it will be
      * impossible to identify packets designated for the old socket in this way.
      */
-    if (unlikely(p_desc->rx.dst.get_in_port() != m_bound.get_in_port())) {
+    /*if (unlikely(p_desc->rx.dst.get_in_port() != m_bound.get_in_port())) {
         si_udp_logfunc("rx packet discarded - not socket's bound port (pkt: %s, sock: %s)",
                        p_desc->rx.dst.to_str_port().c_str(), m_bound.to_str_port().c_str());
         return false;
-    }
+    }*/
 
     /* Inspects UDP packets in case socket was connected */
     if (m_is_connected && !m_connected.is_anyport() && !m_connected.is_anyaddr()) {
-        if (unlikely(m_connected.get_in_port() != p_desc->rx.src.get_in_port())) {
-            si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %s, sock: %s)",
-                           p_desc->rx.src.to_str_port().c_str(), m_connected.to_str_port().c_str());
-            return false;
-        }
+        //if (unlikely(m_connected.get_in_port() != p_desc->rx.src.get_in_port())) {
+        //    si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %s, sock: %s)",
+        //                   p_desc->rx.src.to_str_port().c_str(), m_connected.to_str_port().c_str());
+        //    return false;
+       // }
 
-        if (unlikely(m_connected.get_ip_addr() != p_desc->rx.src.get_ip_addr())) {
-            si_udp_logfunc(
-                "rx packet discarded - not socket's connected addr (pkt: [%s], sock: [%s])",
-                p_desc->rx.src.to_str_ip_port().c_str(), m_connected.to_str_ip_port().c_str());
-            return false;
-        }
+        //if (unlikely(m_connected.get_ip_addr() != p_desc->rx.src.get_ip_addr())) {
+        //    si_udp_logfunc(
+        //        "rx packet discarded - not socket's connected addr (pkt: [%s], sock: [%s])",
+        //        p_desc->rx.src.to_str_ip_port().c_str(), m_connected.to_str_ip_port().c_str());
+        //    return false;
+        //}
     }
 
     /* Inspects multicast packets */
@@ -2426,9 +2428,9 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
             return false;
         }
         if (m_mc_num_grp_with_src_filter) {
-            const ip_address &mc_grp = p_desc->rx.dst.get_ip_addr();
+            const ip_address mc_grp;// = p_desc->rx.dst.get_ip_addr();
             if (mc_grp.is_mc(m_family)) {
-                const ip_address &mc_src = p_desc->rx.src.get_ip_addr();
+                const ip_address mc_src;// = p_desc->rx.src.get_ip_addr();
 
                 if (m_family == AF_INET) {
                     if ((m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) ||
@@ -2478,7 +2480,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
             }
             m_port_map_index =
                 ((m_port_map_index + 1) >= m_port_map.size() ? 0 : (m_port_map_index + 1));
-            int new_port = m_port_map[m_port_map_index].port;
+            //int new_port = m_port_map[m_port_map_index].port;
             socket_fd_api *sock_api =
                 g_p_fd_collection->get_sockfd(m_port_map[m_port_map_index].fd);
             if (!sock_api || sock_api->get_type() != FD_TYPE_SOCKET) {
@@ -2491,7 +2493,7 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t *p_desc, void *pv_fd_ready_array)
                 continue;
             }
             m_port_map_lock.unlock();
-            p_desc->rx.dst.set_in_port(new_port);
+            //p_desc->rx.dst.set_in_port(new_port);
             return ((sockinfo_udp *)sock_api)->rx_input_cb(p_desc, pv_fd_ready_array);
         }
     }
