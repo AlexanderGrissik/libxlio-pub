@@ -103,7 +103,7 @@
 #define VALID_SYSCALL(_func) ((orig_os_api._func) != nullptr)
 #endif
 #define SYSCALL(_func, ...)                                                                        \
-    ((VALID_SYSCALL(_func) ? get_orig_funcs() : (void)0), orig_os_api._func(__VA_ARGS__))
+    ((VALID_SYSCALL(_func) ? (void)0 : get_orig_funcs()), orig_os_api._func(__VA_ARGS__))
 #define SYSCALL_ERRNO_UNSUPPORTED(_func, ...)                                                      \
     (VALID_SYSCALL(_func) ? orig_os_api._func(__VA_ARGS__) : ((errno = EOPNOTSUPP), -1))
 #define XLIO_CALL(_func, ...) _func(__VA_ARGS__)

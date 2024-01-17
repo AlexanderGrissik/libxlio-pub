@@ -885,6 +885,9 @@ void print_xlio_global_settings()
         safe_mce_sys().skip_poll_in_rx
             ? (safe_mce_sys().skip_poll_in_rx == SKIP_POLL_IN_RX_ENABLE ? "Enabled " : "Epoll Only")
             : "Disabled");
+    VLOG_PARAM_NUMBER("GCOV SIGUSR1", safe_mce_sys().gcov_sigusr1,
+                      0, "XLIO_GCOV_SIGUSR1");
+
     VLOG_PARAM_STRING("Lock Type", safe_mce_sys().multilock, MCE_DEFAULT_MULTILOCK,
                       SYS_VAR_MULTILOCK,
                       (safe_mce_sys().multilock == MULTILOCK_SPIN ? "Spin " : "Mutex"));

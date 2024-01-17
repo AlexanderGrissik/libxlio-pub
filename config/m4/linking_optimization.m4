@@ -33,6 +33,7 @@
 AC_PROG_CC
 AC_PROG_CXX
 
+AC_MSG_CHECKING([for LTO])
 AC_ARG_ENABLE(lto, AS_HELP_STRING([--enable-lto], [Enable Link Time Optimization]),
      [
         enable_lto=$enableval
@@ -51,9 +52,15 @@ AS_IF([test "x$enable_lto" = "xyes"],
                 AC_MSG_ERROR([Compiler doesn't support link time optimization])
                 ;;
         esac
+	AC_MSG_RESULT([yes])
       ],
-      [AC_SUBST([XLIO_LTO], [""])])
+      [
+        AC_SUBST([XLIO_LTO], [""])
+	AC_MSG_RESULT([no])
+      ]
+)
 
+AC_MSG_CHECKING([for PGO generate])
 AC_ARG_WITH([profile-generate],
     [AS_HELP_STRING([--with-profile-generate=DIR], [Path to store profiles for Profile Guided Optimization])],
     [
@@ -70,14 +77,19 @@ AC_ARG_WITH([profile-generate],
                 AC_MSG_ERROR([Compiler doesn't support profile guided optimization])
                 ;;
         esac
+	AC_MSG_RESULT([$withval yes])
         profile_generate=yes
         CFLAGS="$CFLAGS $COMMON_FLAGS"
         CXXFLAGS="$CXXFLAGS $COMMON_FLAGS"
         LDFLAGS="$LDFLAGS $COMMON_FLAGS"
     ],
-    [profile_generate=no]
+    [
+        profile_generate=no
+	AC_MSG_RESULT([no])
+    ]
 )
 
+AC_MSG_CHECKING([for PGO use])
 AC_ARG_WITH([profile-use],
     [AS_HELP_STRING([--with-profile-use=DIR], [Path to read profiles for Profile Guided Optimization])],
     [
@@ -94,14 +106,22 @@ AC_ARG_WITH([profile-use],
                 AC_MSG_ERROR([Compiler doesn't support profile guided optimization])
                 ;;
         esac
+	AC_MSG_RESULT([$withval yes])
         profile_use=yes
         CFLAGS="$CFLAGS $COMMON_FLAGS"
         CXXFLAGS="$CXXFLAGS $COMMON_FLAGS"
         LDFLAGS="$LDFLAGS $COMMON_FLAGS"
     ],
-    [profile_use=no]
+    [
+        profile_use=no
+	AC_MSG_RESULT([no])
+    ]
 )
 
 AS_IF([test "x$profile_use" = "xyes" && test "x$profile_generate" = "xyes"], [
     AC_MSG_ERROR([** Cannot use both --with-profile-generate and --with-profile-use])
+])
+
+AS_IF([test "x$profile_generate" = "xyes"], [
+    AC_DEFINE_UNQUOTED([DEFINED_GCOV_PROF_GEN], [1], [Defined to 1 when profile-generate is enabled])
 ])

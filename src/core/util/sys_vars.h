@@ -472,7 +472,7 @@ public:
     bool handle_bf;
     skip_poll_in_rx_t skip_poll_in_rx;
     multilock_t multilock;
-
+    uint32_t gcov_sigusr1;
     bool enable_socketxtreme;
     option_3::mode_t enable_tso;
     option_3::mode_t enable_lro;

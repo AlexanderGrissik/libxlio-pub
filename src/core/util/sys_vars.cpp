@@ -546,6 +546,19 @@ exit:
     return ret;
 }
 
+#ifdef DEFINED_GCOV_PROF_GEN
+extern "C" void __gcov_dump();
+#else 
+void __gcov_dump() {}
+#endif
+
+void xlio_dump_gcov(int sig)
+{
+    NOT_IN_USE(sig);
+    vlog_printf(VLOG_WARNING, "Invoking __gcov_dump\n");
+    __gcov_dump();
+}
+
 /*
  * Intel and AMD CPUs have reserved bit 31 of ECX of CPUID leaf 0x1 as the hypervisor present bit.
  * This bit allows hypervisors to indicate their presence to the guest operating system.
@@ -899,6 +912,7 @@ void mce_sys_var::get_env_params()
     tcp_send_buffer_size = MCE_DEFAULT_TCP_SEND_BUFFER_SIZE;
     skip_poll_in_rx = MCE_DEFAULT_SKIP_POLL_IN_RX;
     multilock = MCE_DEFAULT_MULTILOCK;
+    gcov_sigusr1 = 0;
 
     read_hv();
 
@@ -2014,6 +2028,20 @@ void mce_sys_var::get_env_params()
             temp = 0;
         }
         multilock = (multilock_t)temp;
+    }
+
+    if ((env_ptr = getenv("XLIO_GCOV_SIGUSR1")) != NULL) {
+        struct sigaction sigact;
+        memset(&sigact, 0, sizeof(struct sigaction));
+        sigact.sa_handler = xlio_dump_gcov;
+
+        if (0 != sigaction(SIGUSR1, &sigact, nullptr)) {
+            gcov_sigusr1 = -1;
+            vlog_printf(VLOG_WARNING, "Unable to set SIGUSR1 gcov signal handler");
+        } else {
+            gcov_sigusr1 = 1;
+            vlog_printf(VLOG_INFO, "Registered SIGUSR1 gcov signal handler");
+        }
     }
 }
 

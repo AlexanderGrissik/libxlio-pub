@@ -88,7 +88,6 @@ m4_include([config/m4/dpcp.m4])
 m4_include([config/m4/nl.m4])
 m4_include([config/m4/prof.m4])
 m4_include([config/m4/compiler.m4])
-m4_include([config/m4/linking_optimization.m4])
 
 FUNC_CONFIGURE_INIT()
 
@@ -105,6 +104,8 @@ show_section_title "Configure build tools"
 : ${CPPFLAGS=""}
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
+
+m4_include([config/m4/linking_optimization.m4])
 
 # Find compiler, libtools, etc
 #

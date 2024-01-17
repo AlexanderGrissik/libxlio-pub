@@ -1863,6 +1863,8 @@ static int yy_get_next_buffer (void)
 	(yy_did_buffer_switch_on_eof) = 1;
 }
 
+#pragma GCC diagnostic push                             // save the actual diag context
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"  // disable maybe warnings
 static void libxlio_yy_load_buffer_state  (void)
 {
     	(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
@@ -1870,6 +1872,7 @@ static void libxlio_yy_load_buffer_state  (void)
 	libxlio_yyin = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
 	(yy_hold_char) = *(yy_c_buf_p);
 }
+#pragma GCC diagnostic pop  
 
 /** Allocate and initialize an input buffer state.
  * @param file A readable stream.
