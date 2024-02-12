@@ -137,7 +137,7 @@ public:
     sockinfo_tcp(int fd, int domain);
     virtual ~sockinfo_tcp();
 
-    virtual void clean_obj();
+    virtual void clean_socket_obj();
 
     void setPassthrough(bool _isPassthrough)
     {
@@ -322,8 +322,8 @@ public:
     inline int trylock_tcp_con(void) { return m_tcp_con_lock.trylock(); }
     inline void lock_tcp_con(void) { m_tcp_con_lock.lock(); }
     inline void unlock_tcp_con(void) { m_tcp_con_lock.unlock(); }
-
     inline void set_reguired_send_block(unsigned sz) { m_required_send_block = sz; }
+    bool is_cleaned() const { return m_is_cleaned; }
     static err_t rx_lwip_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
     static err_t rx_lwip_cb_socketxtreme(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
                                          err_t err);
@@ -577,7 +577,7 @@ private:
     // used for reporting 'connected' on second non-blocking call to connect or
     // second call to failed connect blocking socket.
     bool report_connected;
-
+    bool m_is_cleaned = false; // If this socket registered deletion on internal thread.
     int m_error_status;
 
     const buffer_batching_mode_t m_sysvar_buffer_batching_mode;
