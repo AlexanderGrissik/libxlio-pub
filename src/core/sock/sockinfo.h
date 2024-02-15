@@ -43,6 +43,7 @@
 #include "util/xlio_stats.h"
 #include "util/sys_vars.h"
 #include "util/wakeup_pipe.h"
+#include "iomux/epfd_info.h"
 #include "proto/flow_tuple.h"
 #include "proto/mem_buf_desc.h"
 #include "proto/dst_entry.h"
@@ -179,9 +180,15 @@ public:
     void set_m_n_sysvar_rx_num_buffs_reuse(int val) { m_n_sysvar_rx_num_buffs_reuse = val; }
 #endif
 
+    virtual int fcntl(int __cmd, unsigned long int __arg);
+    virtual int fcntl64(int __cmd, unsigned long int __arg);
+    virtual int ioctl(unsigned long int __request, unsigned long int __arg);
+    virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
+    virtual int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
     virtual void consider_rings_migration_rx();
     virtual int add_epoll_context(epfd_info *epfd);
     virtual void remove_epoll_context(epfd_info *epfd);
+    virtual int register_callback(xlio_recv_callback_t callback, void *context);
 
     inline bool set_flow_tag(uint32_t flow_tag_id)
     {
@@ -206,7 +213,7 @@ public:
     virtual void statistics_print(vlog_levels_t log_level = VLOG_DEBUG);
     uint32_t get_flow_tag_val() { return m_flow_tag_id; }
     inline in_protocol_t get_protocol(void) { return m_protocol; }
-
+    bool is_shadow_socket_present() { return m_fd >= 0 && m_fd != m_rx_epfd; }
     bool validate_and_convert_mapped_ipv4(sock_addr &sock) const;
     void socket_stats_init(void);
 
@@ -238,13 +245,8 @@ protected:
     }
 
     virtual void set_blocking(bool is_blocked);
-    virtual int fcntl(int __cmd, unsigned long int __arg);
-    virtual int fcntl64(int __cmd, unsigned long int __arg);
-    virtual int ioctl(unsigned long int __request, unsigned long int __arg);
-    virtual int setsockopt(int __level, int __optname, const void *__optval, socklen_t __optlen);
     int setsockopt_kernel(int __level, int __optname, const void *__optval, socklen_t __optlen,
                           int supported, bool allow_priv);
-    virtual int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen);
 
     virtual mem_buf_desc_t *get_front_m_rx_pkt_ready_list() = 0;
     virtual size_t get_size_m_rx_pkt_ready_list() = 0;
@@ -265,7 +267,6 @@ protected:
     virtual void post_deqeue(bool release_buff) = 0;
     virtual int os_epoll_wait(epoll_event *ep_events, int maxevents);
     virtual int zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags) = 0;
-    virtual int register_callback(xlio_recv_callback_t callback, void *context);
 
     virtual size_t handle_msg_trunc(size_t total_rx, size_t payload_size, int in_flags,
                                     int *p_out_flags);
@@ -306,7 +307,7 @@ protected:
     int set_sockopt_prio(__const void *__optval, socklen_t __optlen);
     bool ipv6_set_addr_sel_pref(int val);
     int ipv6_get_addr_sel_pref();
-
+    void insert_epoll_event(uint64_t events);
     virtual void handle_ip_pktinfo(struct cmsg_state *cm_state) = 0;
     inline void handle_recv_timestamping(struct cmsg_state *cm_state);
     inline void handle_recv_errqueue(struct cmsg_state *cm_state);
@@ -318,7 +319,6 @@ protected:
     int os_wait_sock_rx_epfd(epoll_event *ep_events, int maxevents);
     virtual bool try_un_offloading(); // un-offload the socket if possible
 
-    bool is_shadow_socket_present() { return m_fd >= 0 && m_fd != m_rx_epfd; }
     inline bool is_socketxtreme() { return safe_mce_sys().enable_socketxtreme; }
 
     inline void set_events_socketxtreme(uint64_t events)
@@ -353,7 +353,7 @@ protected:
             set_events_socketxtreme(events);
         }
 
-        socket_fd_api::notify_epoll_context((uint32_t)events);
+        insert_epoll_event(events);
     }
 
     inline void save_strq_stats(uint32_t packet_strides)
