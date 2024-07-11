@@ -483,28 +483,36 @@ int ring_bond::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *pv_fd_r
 {
     if (m_lock_ring_rx.trylock()) {
         errno = EAGAIN;
-        return 0;
+        return -1;
     }
 
-    int temp = 0;
-    int ret = 0;
+    bool lock_failure = true;
+    bool all_drained = true;
+    int rc = 0;
 
     for (uint32_t i = 0; i < m_recv_rings.size(); i++) {
         if (m_recv_rings[i]->is_up()) {
             // TODO consider returning immediately after finding something, continue next time from
             // next ring
-            temp = m_recv_rings[i]->poll_and_process_element_rx(p_cq_poll_sn, pv_fd_ready_array);
-            if (temp > 0) {
-                ret += temp;
+            rc = m_recv_rings[i]->poll_and_process_element_rx(p_cq_poll_sn, pv_fd_ready_array);
+            if (rc < 0) { // One ring had lock failure
+                all_drained = false;
+            } else if (rc == 0) { // One ring was not drained.
+                all_drained = false;
+                lock_failure = false;
+            } else { // This ring was drained
+                lock_failure = false;
             }
         }
     }
+
     m_lock_ring_rx.unlock();
-    if (ret > 0) {
-        return ret;
-    } else {
-        return temp;
+
+    if (unlikely(lock_failure)) {
+        return -1;
     }
+
+    return all_drained ? 1 : 0;
 }
 
 int ring_bond::poll_and_process_element_tx(uint64_t *p_cq_poll_sn)

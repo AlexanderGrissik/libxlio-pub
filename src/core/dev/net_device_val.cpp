@@ -1174,42 +1174,27 @@ void net_device_val::ring_key_redirection_release(resource_allocation_key *key)
     }
 }
 
-int net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn_rx,
-                                                         uint64_t *p_poll_sn_tx,
-                                                         void *pv_fd_ready_array /*=NULL*/)
+bool net_device_val::global_ring_poll_and_process_element(uint64_t *p_poll_sn_rx,
+                                                          uint64_t *p_poll_sn_tx,
+                                                          void *pv_fd_ready_array /*=NULL*/)
 {
     nd_logfuncall("");
-    int ret_total = 0;
+    int ret = 0;
+    bool all_drained = true;
     std::lock_guard<decltype(m_lock)> lock(m_lock);
     rings_hash_map_t::iterator ring_iter;
     for (ring_iter = m_h_ring_map.begin(); ring_iter != m_h_ring_map.end(); ring_iter++) {
-        int ret = THE_RING->poll_and_process_element_rx(p_poll_sn_rx, pv_fd_ready_array);
-        BULLSEYE_EXCLUDE_BLOCK_START
-        if (ret < 0 && errno != EAGAIN) {
-            nd_logerr("Error in RX ring->poll_and_process_element() of %p (errno=%d %s)", THE_RING,
-                      errno, strerror(errno));
-            return ret;
+        ret = THE_RING->poll_and_process_element_rx(p_poll_sn_rx, pv_fd_ready_array);
+        if (ret <= 0) { // CQ was not drained.
+            all_drained = false;
         }
-        BULLSEYE_EXCLUDE_BLOCK_END
-        if (ret > 0) {
-            nd_logfunc("ring[%p] RX Returned with: %d (sn=%d)", THE_RING, ret, *p_poll_sn_rx);
-            ret_total += ret;
-        }
-
         ret = THE_RING->poll_and_process_element_tx(p_poll_sn_tx);
-        BULLSEYE_EXCLUDE_BLOCK_START
-        if (ret < 0 && errno != EAGAIN) {
-            nd_logerr("Error in TX ring->poll_and_process_element() of %p (errno=%d %m)", THE_RING,
-                      errno);
-            return ret;
-        }
-        BULLSEYE_EXCLUDE_BLOCK_END
-        if (ret > 0) {
-            nd_logfunc("ring[%p] TX Returned with: %d (sn=%d)", THE_RING, ret, *p_poll_sn_tx);
-            ret_total += ret;
-        }
+        if (ret < 0) { // TX polling always drains TX CQ as long as lock was taken.
+            all_drained = false;
+        } 
     }
-    return ret_total;
+
+    return all_drained;
 }
 
 int net_device_val::global_ring_request_notification(uint64_t poll_sn_rx, uint64_t poll_sn_tx)
@@ -1228,7 +1213,6 @@ int net_device_val::global_ring_request_notification(uint64_t poll_sn_rx, uint64
         BULLSEYE_EXCLUDE_BLOCK_END
         nd_logfunc("ring[%p] RX Returned with: %d (sn=%d)", THE_RING, ret, poll_sn_rx);
         ret_total += ret;
-
         ret = THE_RING->request_notification(CQT_TX, poll_sn_tx);
         BULLSEYE_EXCLUDE_BLOCK_START
         if (ret < 0) {

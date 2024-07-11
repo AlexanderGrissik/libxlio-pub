@@ -423,7 +423,7 @@ int ring_simple::poll_and_process_element_rx(uint64_t *p_cq_poll_sn,
     int ret = 0;
     RING_TRY_LOCK_RUN_AND_UPDATE_RET(
         m_lock_ring_rx,
-        m_p_cq_mgr_rx->poll_and_process_element_rx(p_cq_poll_sn, pv_fd_ready_array));
+        (m_p_cq_mgr_rx->poll_and_process_element_rx(p_cq_poll_sn, pv_fd_ready_array) ? 1 : 0));
     return ret;
 }
 

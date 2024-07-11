@@ -300,11 +300,12 @@ int cq_mgr_rx_regrq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *p
 {
     /* Assume locked!!! */
     cq_logfuncall("");
+    int was_drained = 0; // Not drained.
 
-    uint32_t ret_rx_processed = process_recv_queue(pv_fd_ready_array);
-    if (unlikely(ret_rx_processed >= m_n_sysvar_cq_poll_batch_max)) {
+    uint32_t ret = process_recv_queue(pv_fd_ready_array);
+    if (unlikely(ret >= m_n_sysvar_cq_poll_batch_max)) {
         m_p_ring->m_gro_mgr.flush_all(pv_fd_ready_array);
-        return ret_rx_processed;
+        return false;
     }
 
     if (m_p_next_rx_desc_poll) {
@@ -313,7 +314,6 @@ int cq_mgr_rx_regrq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *p
     }
 
     buff_status_e status = BS_OK;
-    uint32_t ret = 0;
     while (ret < m_n_sysvar_cq_poll_batch_max) {
         mem_buf_desc_t *buff = poll(status);
         if (buff) {
@@ -330,6 +330,7 @@ int cq_mgr_rx_regrq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *p
                 }
             }
         } else {
+            was_drained = 1; // CQ is drained.
             break;
         }
     }
@@ -337,13 +338,19 @@ int cq_mgr_rx_regrq::poll_and_process_element_rx(uint64_t *p_cq_poll_sn, void *p
     update_global_sn_rx(*p_cq_poll_sn, ret);
 
     if (likely(ret > 0)) {
+<<<<<<< HEAD
         ret_rx_processed += ret;
+||||||| parent of 93b8c35 (issue: 3502635 Fix iomux sleep without draining the CQ)
+        ret_rx_processed += ret;
+        m_n_wce_counter += ret;
+=======
+>>>>>>> 93b8c35 (issue: 3502635 Fix iomux sleep without draining the CQ)
         m_p_ring->m_gro_mgr.flush_all(pv_fd_ready_array);
     } else {
         compensate_qp_poll_failed();
     }
 
-    return ret_rx_processed;
+    return was_drained;
 }
 
 #endif /* DEFINED_DIRECT_VERBS */

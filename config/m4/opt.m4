@@ -73,5 +73,4 @@ case "$enableval" in
 esac
 AC_DEFINE_UNQUOTED([MAX_DEFINED_LOG_LEVEL], [$enable_opt_log], [Log optimization level])
 AC_MSG_RESULT([$enableval])
-
 ])

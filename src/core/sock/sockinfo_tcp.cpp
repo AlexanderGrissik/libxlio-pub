@@ -3980,7 +3980,7 @@ bool sockinfo_tcp::is_readable(uint64_t *p_poll_sn, fd_array_t *p_fd_array)
         if (likely(m_p_rx_ring)) {
             // likely scenario: rx socket bound to specific cq
             ret = m_p_rx_ring->poll_and_process_element_rx(p_poll_sn, p_fd_array);
-            if (m_n_rx_pkt_ready_list_count || ret <= 0) {
+            if (m_n_rx_pkt_ready_list_count || ret != 0) {
                 break;
             }
         } else if (!m_rx_ring_map.empty()) {
@@ -3993,7 +3993,7 @@ bool sockinfo_tcp::is_readable(uint64_t *p_poll_sn, fd_array_t *p_fd_array)
                 ring *p_ring = rx_ring_iter->first;
                 // g_p_lwip->do_timers();
                 ret = p_ring->poll_and_process_element_rx(p_poll_sn, p_fd_array);
-                if (m_n_rx_pkt_ready_list_count || ret <= 0) {
+                if (m_n_rx_pkt_ready_list_count || ret != 0) {
                     break;
                 }
             }
