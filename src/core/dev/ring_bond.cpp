@@ -731,21 +731,6 @@ ib_ctx_handler *ring_bond::get_ctx(ring_user_id_t id)
     return m_xmit_rings[id]->get_ctx(0);
 }
 
-uint32_t ring_bond::get_max_payload_sz()
-{
-    return 0;
-}
-
-uint16_t ring_bond::get_max_header_sz()
-{
-    return 0;
-}
-
-bool ring_bond::is_tso()
-{
-    return false;
-}
-
 void ring_bond::slave_create(int if_index)
 {
     ring_slave *cur_slave;

@@ -83,9 +83,7 @@ public:
 
     int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) override;
     ib_ctx_handler *get_ctx(ring_user_id_t id) override;
-    uint32_t get_max_payload_sz() override;
-    uint16_t get_max_header_sz() override;
-    bool is_tso() override;
+    bool is_tso() override { return false; }
     void flow_del_all_rfs_safe() override;
     bool tls_tx_supported() override;
     bool tls_rx_supported() override;

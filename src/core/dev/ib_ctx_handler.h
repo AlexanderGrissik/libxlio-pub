@@ -37,6 +37,15 @@
 #include "dpcp/ib_ctx_handler_ibv.h"
 #include "doca/ib_ctx_handler_doca.h"
 
+// Max-Header = ETH(14) + IP(20) + TCP(20) + TCP OPTIONS(40)
+#define TSO_DEFAULT_MAX_HEADER_SIZE static_cast<uint16_t>(94U)
+
+struct dev_tso_caps {
+    uint32_t max_tso_payload_sz; // Maximum length of TCP payload for TSO
+    uint16_t max_tso_header_sz; // Maximum length of header for TSO
+    bool is_tso() const { return (max_tso_payload_sz && max_tso_header_sz); }
+};
+
 class ib_ctx_handler {
 public:
     ib_ctx_handler(const char *ibname);
@@ -49,9 +58,12 @@ public:
     void print_val();
     void convert_hw_time_to_system_time(uint64_t hwtime, struct timespec *systime);
     void set_ctx_time_converter_status(ts_conversion_mode_t conversion_mode);
+    void set_tso_caps(uint32_t max_payload_sz, uint16_t max_header_sz);
+    const dev_tso_caps &get_tso_caps() const { return m_tso; }
 
 private:
     std::string m_ibname;
+    dev_tso_caps m_tso;
 
 #ifdef DEFINED_DPCP_PATH_RX_OR_TX
 public:
@@ -59,7 +71,7 @@ public:
     const ib_ctx_handler_ibv &get_ctx_ibv_dev() const { return *m_ctx_ibv_dev; }
     void construct_ctx_ibv_dev(ibv_device *ibvdevice)
     {
-        m_ctx_ibv_dev = new ib_ctx_handler_ibv(ibvdevice, m_ibname);
+        m_ctx_ibv_dev = new ib_ctx_handler_ibv(ibvdevice, *this);
     }
 
 private:
@@ -71,7 +83,7 @@ public:
     ib_ctx_handler_doca &get_ctx_doca_dev() { return *m_ctx_doca_dev; }
     void construct_ctx_doca_dev(doca_devinfo *devinfo, const char *ifname)
     {
-        m_ctx_doca_dev = new ib_ctx_handler_doca(devinfo, m_ibname, ifname);
+        m_ctx_doca_dev = new ib_ctx_handler_doca(devinfo, *this, ifname);
     }
 
 private:

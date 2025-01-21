@@ -33,6 +33,7 @@
 
 #include "vlogger/vlogger.h"
 #include "dev/ib_ctx_handler.h"
+#include <cinttypes>
 
 #define MODULE_NAME "ibch"
 DOCA_LOG_REGISTER(ibch);
@@ -46,8 +47,9 @@ DOCA_LOG_REGISTER(ibch);
 #define ibch_logfuncall __log_info_funcall
 
 ib_ctx_handler::ib_ctx_handler(const char *ibname)
+    : m_ibname(ibname)
 {
-    m_ibname = ibname;
+    memset(&m_tso, 0, sizeof(m_tso));
 }
 
 ib_ctx_handler::~ib_ctx_handler()
@@ -61,9 +63,33 @@ ib_ctx_handler::~ib_ctx_handler()
 #endif // !DEFINED_DPCP_PATH_RX_AND_TX
 }
 
+void ib_ctx_handler::set_tso_caps(uint32_t max_payload_sz, uint16_t max_header_sz)
+{
+    m_tso.max_tso_header_sz = max_header_sz;
+    m_tso.max_tso_payload_sz = max_payload_sz;
+
+    if (m_tso.is_tso() && max_header_sz < TSO_DEFAULT_MAX_HEADER_SIZE) {
+        ibch_logwarn("HW (%s) supported TSO header size (%" PRIu16
+                     ") is less than minimum required (%" PRIu16
+                     "). TSO will not be used for this device.",
+                     m_ibname.c_str(), max_header_sz, TSO_DEFAULT_MAX_HEADER_SIZE);
+    }
+
+    if (m_tso.is_tso() && max_payload_sz > MCE_DEFAULT_MAX_TSO_SIZE) {
+        ibch_logwarn("max_tso cap (=%" PRIu32 ") is higher than default TSO size (=%" PRIu32 "). "
+                     "Increase XLIO_MAX_TSO_SIZE to get full TSO potential.",
+                     max_payload_sz, MCE_DEFAULT_MAX_TSO_SIZE);
+    }
+
+    ibch_logdbg("Device %s TSO attributes: is_tso = %d, max_tso_payload_sz = %" PRIu32
+                ", max_tso_header_sz = %" PRIu16,
+                m_ibname.c_str(), static_cast<int>(m_tso.is_tso()), m_tso.max_tso_payload_sz,
+                m_tso.max_tso_header_sz);
+}
+
 bool ib_ctx_handler::get_burst_capability() const
 {
-#ifndef DEFINED_DPCP_PATH_TX
+#ifndef DEFINED_DPCP_PATH_TXs
     return false;
 #else // DEFINED_DPCP_PATH_TX
     return get_ctx_ibv_dev().get_burst_capability();

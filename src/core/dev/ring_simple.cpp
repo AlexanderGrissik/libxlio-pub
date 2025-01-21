@@ -95,7 +95,6 @@ ring_simple::ring_simple(int if_index, ring *parent, bool use_locks)
     m_mtu = p_ndev->get_mtu();
 
     memset(&m_cq_moderation_info, 0, sizeof(m_cq_moderation_info));
-    memset(&m_tso, 0, sizeof(m_tso));
     memset(&m_tls, 0, sizeof(m_tls));
     memset(&m_lro, 0, sizeof(m_lro));
 }
@@ -187,6 +186,23 @@ void ring_simple::create_resources()
 
     save_l2_address(p_slave->p_L2_addr);
 
+    // Configure ring TSO
+    if ((safe_mce_sys().enable_tso == option_3::ON) ||
+        ((safe_mce_sys().enable_tso == option_3::AUTO) && (1 == validate_tso(get_if_index())))) {
+        m_is_tso = m_p_ib_ctx->get_tso_caps().is_tso();
+    }
+
+    // Configure flow-tag
+    m_flow_tag_enabled = !safe_mce_sys().disable_flow_tag && m_p_ib_ctx->get_flow_tag_capability();
+#if defined(DEFINED_NGINX) || defined(DEFINED_ENVOY)
+    if (g_p_app->type != APP_NONE && g_p_app->get_worker_id() >= 0) {
+        m_flow_tag_enabled = false;
+    }
+#endif
+
+    ring_logdbg("Ring %p attributes: m_flow_tag_enabled = %d, is_tso = %d", this,
+                static_cast<int>(m_flow_tag_enabled), static_cast<int>(is_tso()));
+
 #ifdef DEFINED_DPCP_PATH_TX
     m_p_tx_comp_event_channel =
         ibv_create_comp_channel(m_p_ib_ctx->get_ctx_ibv_dev().get_ibv_context());
@@ -217,32 +233,6 @@ void ring_simple::create_resources()
     }
     ring_logdbg("ring attributes: m_tx_num_wr = %d", m_tx_num_wr);
 #endif // DEFINED_DPCP_PATH_TX
-
-    /* Detect TSO capabilities */
-    memset(&m_tso, 0, sizeof(m_tso));
-    if ((safe_mce_sys().enable_tso == option_3::ON) ||
-        ((safe_mce_sys().enable_tso == option_3::AUTO) && (1 == validate_tso(get_if_index())))) {
-#ifdef DEFINED_DPCP_PATH_TX
-        const xlio_ibv_tso_caps *caps =
-            &xlio_get_tso_caps(m_p_ib_ctx->get_ctx_ibv_dev().get_ibv_device_attr_ex());
-        if (ibv_is_qpt_supported(caps->supported_qpts, IBV_QPT_RAW_PACKET)) {
-            if (caps->max_tso && (caps->max_tso > MCE_DEFAULT_MAX_TSO_SIZE)) {
-                ring_logwarn("max_tso cap (=%u) is higher than default TSO size (=%u). "
-                             "Increase XLIO_MAX_TSO_SIZE to get full TSO potential.",
-                             caps->max_tso, MCE_DEFAULT_MAX_TSO_SIZE);
-            }
-            m_tso.max_payload_sz = caps->max_tso;
-            /* ETH(14) + IP(20) + TCP(20) + TCP OPTIONS(40) */
-            m_tso.max_header_sz = 94;
-        }
-#else // DEFINED_DPCP_PATH_TX
-        m_tso.max_payload_sz = MCE_DEFAULT_MAX_TSO_SIZE;
-        m_tso.max_header_sz = 94;
-#endif // DEFINED_DPCP_PATH_TX
-    }
-    ring_logdbg("ring attributes: m_tso = %d", is_tso());
-    ring_logdbg("ring attributes: m_tso:max_payload_sz = %d", get_max_payload_sz());
-    ring_logdbg("ring attributes: m_tso:max_header_sz = %d", get_max_header_sz());
 
 #ifdef DEFINED_DPCP_PATH_RX
     /* Detect LRO capabilities */
@@ -302,14 +292,6 @@ void ring_simple::create_resources()
         ring_logdbg("ring attributes: m_tls:tls_synchronize_dek = %d", m_tls.tls_synchronize_dek);
     }
 #endif // DEFINED_DPCP_PATH_RX_OR_TX || DEFINED_UTLS
-
-    m_flow_tag_enabled = !safe_mce_sys().disable_flow_tag && m_p_ib_ctx->get_flow_tag_capability();
-#if defined(DEFINED_NGINX) || defined(DEFINED_ENVOY)
-    if (g_p_app->type != APP_NONE && g_p_app->get_worker_id() >= 0) {
-        m_flow_tag_enabled = false;
-    }
-#endif
-    ring_logdbg("ring attributes: m_flow_tag_enabled = %d", m_flow_tag_enabled);
 
 #ifdef DEFINED_DPCP_PATH_RX
     m_p_rx_comp_event_channel =
@@ -735,19 +717,4 @@ void ring_simple::stop_active_queue_rx()
 bool ring_simple::is_up()
 {
     return m_up_tx && m_up_rx;
-}
-
-uint32_t ring_simple::get_max_payload_sz()
-{
-    return m_tso.max_payload_sz;
-}
-
-uint16_t ring_simple::get_max_header_sz()
-{
-    return m_tso.max_header_sz;
-}
-
-bool ring_simple::is_tso()
-{
-    return (m_tso.max_payload_sz && m_tso.max_header_sz);
 }

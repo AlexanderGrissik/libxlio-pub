@@ -108,6 +108,7 @@ private:
     bool expand_doca_task_pool(bool is_lso);
     void start_doca_txq();
     void stop_doca_txq();
+    uint16_t get_minimal_tso_header_sz() const;
     bool check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_size, uint32_t &max_send_sge);
     doca_lso_metadata *get_lso_metadata();
 

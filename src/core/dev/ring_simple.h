@@ -87,9 +87,7 @@ public:
     size_t get_rx_channels_num() const override { return 1U; };
     int get_rx_channel_fd(size_t ch_idx) const override;
     int get_tx_channel_fd() const override;
-    uint32_t get_max_payload_sz(void) override;
-    uint16_t get_max_header_sz() override;
-    bool is_tso(void) override;
+    bool is_tso() override { return m_is_tso; }
     int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) override;
     bool tls_tx_supported() override { return m_tls.tls_tx; }
     bool tls_rx_supported() override { return m_tls.tls_rx; }
@@ -153,17 +151,11 @@ private:
     gro_mgr m_gro_mgr;
     bool m_up_tx = false;
     bool m_up_rx = false;
+    bool m_is_tso = false;
 
     L2_address *m_p_l2_addr = nullptr;
     uint32_t m_mtu;
 
-    struct {
-        /* Maximum length of TCP payload for TSO */
-        uint32_t max_payload_sz;
-
-        /* Maximum length of header for TSO */
-        uint16_t max_header_sz;
-    } m_tso;
     struct {
         /* TLS TX offload is supported */
         bool tls_tx;

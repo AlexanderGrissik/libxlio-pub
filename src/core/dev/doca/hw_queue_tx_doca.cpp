@@ -52,7 +52,6 @@ DOCA_LOG_REGISTER(hw_queue_tx);
 #define hwqtx_logfuncall __log_info_funcall
 
 #define DOCA_EXPAND_BATCH_SIZE     (1024)
-#define DOCA_MAX_LSO_HEADER        (64)
 #define DOCA_CHECKSUM_HW_L3_ENABLE (1)
 #define DOCA_CHECKSUM_HW_L4_ENABLE (1)
 #define DOCA_MAX_SGE_WITHOUT_TSO   (1)
@@ -102,7 +101,7 @@ bool hw_queue_tx::check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_siz
         return false;
     }
 
-    err = doca_eth_txq_cap_get_max_burst_size(devinfo, max_send_sge, DOCA_MAX_LSO_HEADER,
+    err = doca_eth_txq_cap_get_max_burst_size(devinfo, max_send_sge, get_minimal_tso_header_sz(),
                                               &max_burst_size);
     if (DOCA_IS_ERROR(err)) {
         PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_cap_get_max_burst_size");
@@ -174,7 +173,8 @@ bool hw_queue_tx::prepare_doca_txq()
         return false;
     }
 
-    err = doca_eth_txq_set_max_lso_header_size(m_doca_txq.get(), DOCA_MAX_LSO_HEADER);
+    // Using max possible header size will make
+    err = doca_eth_txq_set_max_lso_header_size(m_doca_txq.get(), get_minimal_tso_header_sz());
     if (DOCA_IS_ERROR(err)) {
         PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_set_max_lso_header_size");
         return false;
@@ -340,6 +340,12 @@ void hw_queue_tx::up()
 void hw_queue_tx::down()
 {
     stop_doca_txq();
+}
+
+uint16_t hw_queue_tx::get_minimal_tso_header_sz() const
+{
+    return std::min(TSO_DEFAULT_MAX_HEADER_SIZE,
+                    m_p_ib_ctx_handler->get_tso_caps().max_tso_header_sz);
 }
 
 void hw_queue_tx::destory_doca_txq(doca_eth_txq *txq)

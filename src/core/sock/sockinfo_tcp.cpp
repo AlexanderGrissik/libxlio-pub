@@ -880,12 +880,13 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
             /* dst_entry has resolved tx ring,
              * so it is a time to provide TSO information to PCB
              */
-            auto *ring = m_p_connected_dst_entry->get_ring();
-            uint32_t max_tso_sz = std::min(ring->get_max_payload_sz(), safe_mce_sys().max_tso_sz);
+            uint32_t max_tso_sz =
+                std::min(m_p_connected_dst_entry->get_ctx()->get_tso_caps().max_tso_payload_sz,
+                         safe_mce_sys().max_tso_sz);
             m_pcb.tso.max_buf_sz = std::min(safe_mce_sys().tx_buf_size, max_tso_sz);
             m_pcb.tso.max_payload_sz = max_tso_sz;
 #ifdef DEFINED_DPCP_PATH_TX
-            m_pcb.tso.max_send_sge = ring->get_max_send_sge();
+            m_pcb.tso.max_send_sge = m_p_connected_dst_entry->get_ring()->get_max_send_sge();
 #else
             m_pcb.tso.max_send_sge = 8;
 #endif
@@ -4129,8 +4130,7 @@ int sockinfo_tcp::tcp_setsockopt(int __level, int __optname, __const void *__opt
                     }
                     ops = new sockinfo_tcp_ops_tls(this);
                 }
-            }
-            else {
+            } else {
                 si_tcp_logdbg("(TCP_ULP) %s option is not supported", (char *)__optval);
                 errno = ENOPROTOOPT;
                 ret = -1;

@@ -110,12 +110,15 @@ DOCA_LOG_REGISTER(xliostat);
 #define FORMAT_STATS_s_32bit   "%-20s %d\n"
 #define FORMAT_STATS_64bit     "%-20s %" PRIu64 " %-3s\n"
 #define FORMAT_STATS_double    "%-20s %.1f\n"
-#define FORMAT_RING_PACKETS    "%-20s %zu / %zu [KBs/pkts] %-3s\n"
+#define FORMAT_RING_PACKETS    "%-20s %zu / %zu / %zu [KBs/pkts/bytes-pkt] %-3s\n"
 #define FORMAT_RING_STRIDES    "%-20s %zu / %zu / %zu [total/max-per-packet/packets-per-rwqe] %-3s\n"
 #define FORMAT_RING_INTERRUPT  "%-20s %zu / %zu [requests/received] %-3s\n"
 #define FORMAT_RING_MODERATION "%-20s %u / %u [frames/usec period]\n"
 #define FORMAT_RING_DM_STATS   "%-20s %zu / %zu / %zu [kilobytes/packets/oob] %-3s\n"
 #define FORMAT_RING_MASTER     "%-20s %p\n"
+
+#define FORMAT_RING_PACKETS_LINE(txt, bytes, pkts, postfix)                                        \
+    FORMAT_RING_PACKETS, (txt), (bytes) / BYTES_TRAFFIC_UNIT, (pkts), (bytes) / (pkts), (post_fix)
 
 #define INTERVAL                1
 #define BYTES_TRAFFIC_UNIT      e_K
@@ -502,14 +505,13 @@ void print_ring_stats(ring_instance_block_t *p_ring_inst_arr)
                 printf(FORMAT_RING_MASTER, "Master:", p_ring_stats->p_ring_master);
             }
 
-            printf(FORMAT_RING_PACKETS,
-                   "TX Offload:", p_hwq_tx_stats->n_tx_byte_count / BYTES_TRAFFIC_UNIT,
-                   p_hwq_tx_stats->n_tx_pkt_count, post_fix);
+            printf(FORMAT_RING_PACKETS_LINE("TX Offload:", p_hwq_tx_stats->n_tx_byte_count,
+                                            p_hwq_tx_stats->n_tx_pkt_count, post_fix));
 
             if (p_hwq_tx_stats->n_tx_tso_pkt_count || p_hwq_tx_stats->n_tx_tso_byte_count) {
-                printf(FORMAT_RING_PACKETS,
-                       "TX TSO Offload:", p_hwq_tx_stats->n_tx_tso_byte_count / BYTES_TRAFFIC_UNIT,
-                       p_hwq_tx_stats->n_tx_tso_pkt_count, post_fix);
+                printf(
+                    FORMAT_RING_PACKETS_LINE("TX TSO Offload:", p_hwq_tx_stats->n_tx_tso_byte_count,
+                                             p_hwq_tx_stats->n_tx_tso_pkt_count, post_fix));
             }
 
             if (p_ring_stats->n_tx_retransmits) {
@@ -541,20 +543,17 @@ void print_ring_stats(ring_instance_block_t *p_ring_inst_arr)
                     p_ring_stats->n_tx_dev_mem_pkt_count, p_ring_stats->n_tx_dev_mem_oob, post_fix);
             }
 
-            printf(FORMAT_RING_PACKETS,
-                   "RX Offload:", p_hwq_rx_stats->n_rx_byte_count / BYTES_TRAFFIC_UNIT,
-                   p_hwq_rx_stats->n_rx_pkt_count, post_fix);
+            printf(FORMAT_RING_PACKETS_LINE("RX Offload:", p_hwq_rx_stats->n_rx_byte_count,
+                                            p_hwq_rx_stats->n_rx_pkt_count, post_fix));
 
             if (p_hwq_rx_stats->n_rx_lro_packets) {
-                printf(FORMAT_RING_PACKETS,
-                       "RX LRO Offload:", p_hwq_rx_stats->n_rx_lro_bytes / BYTES_TRAFFIC_UNIT,
-                       p_hwq_rx_stats->n_rx_lro_packets, post_fix);
+                printf(FORMAT_RING_PACKETS_LINE("RX LRO Offload:", p_hwq_rx_stats->n_rx_lro_bytes,
+                                                p_hwq_rx_stats->n_rx_lro_packets, post_fix));
             }
 
             if (p_hwq_rx_stats->n_rx_gro_packets) {
-                printf(FORMAT_RING_PACKETS,
-                       "RX GRO:", p_hwq_rx_stats->n_rx_gro_bytes / BYTES_TRAFFIC_UNIT,
-                       p_hwq_rx_stats->n_rx_gro_packets, post_fix);
+                printf(FORMAT_RING_PACKETS_LINE("RX GRO:", p_hwq_rx_stats->n_rx_gro_bytes,
+                                                p_hwq_rx_stats->n_rx_gro_packets, post_fix));
                 printf(FORMAT_STATS_64bit, "RX GRO avg pkt size:",
                        p_hwq_rx_stats->n_rx_gro_bytes / p_hwq_rx_stats->n_rx_gro_packets, post_fix);
                 printf(FORMAT_STATS_double, "RX GRO frags/pkt:",

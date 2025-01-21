@@ -45,6 +45,7 @@
 #include "utils/lock_wrapper.h"
 
 typedef std::unordered_map<uint32_t, struct ibv_mr *> mr_map_lkey_t;
+class ib_ctx_handler;
 
 struct pacing_caps_t {
     uint32_t rate_limit_min;
@@ -59,7 +60,7 @@ struct pacing_caps_t {
 
 class ib_ctx_handler_ibv : public event_handler_ibverbs {
 public:
-    ib_ctx_handler_ibv(ibv_device *ibvdevice, std::string &ibname);
+    ib_ctx_handler_ibv(ibv_device *ibvdevice, ib_ctx_handler &parent_ib_ctx);
     virtual ~ib_ctx_handler_ibv();
     ibv_pd *get_ibv_pd() { return m_p_ibv_pd; }
     ibv_device *get_ibv_device() { return m_p_ibv_device; }
@@ -111,7 +112,7 @@ private:
     size_t m_on_device_memory;
     bool m_flow_tag_enabled;
     bool m_removed;
-    std::string &m_ibname;
+    ib_ctx_handler &m_parent_ib_ctx;
 };
 #endif // DEFINED_DPCP_PATH_RX_OR_TX
 #endif // IB_CTX_HANDLER_IBV_H

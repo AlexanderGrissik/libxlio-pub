@@ -75,18 +75,17 @@ int parse_dpcp_version(const char *dpcp_ver)
     return (loops == 0U ? ver : 0);
 }
 
-ib_ctx_handler_ibv::ib_ctx_handler_ibv(ibv_device *ibvdevice, std::string &ibname)
+ib_ctx_handler_ibv::ib_ctx_handler_ibv(ibv_device *ibvdevice, ib_ctx_handler &parent_ib_ctx)
     : m_lock_umr("spin_lock_umr")
     , m_p_ctx_time_converter(nullptr)
     , m_on_device_memory(0)
     , m_removed(false)
-    , m_ibname(ibname)
+    , m_parent_ib_ctx(parent_ib_ctx)
 {
     if (!ibvdevice) {
         ibch_logpanic("Nullptr ibv_device in ib_ctx_handler");
     }
 
-    m_ibname = ibname;
     m_p_ibv_device = ibvdevice;
 
     m_p_adapter = set_dpcp_adapter();
@@ -123,6 +122,13 @@ ib_ctx_handler_ibv::ib_ctx_handler_ibv(ibv_device *ibvdevice, std::string &ibnam
 
     g_p_event_handler_manager->register_ibverbs_event(m_p_ibv_context->async_fd, this,
                                                       m_p_ibv_context, 0);
+
+    { // Avoid err label jump cross initialization.
+        const xlio_ibv_tso_caps &caps = xlio_get_tso_caps(get_ibv_device_attr_ex());
+        if (ibv_is_qpt_supported(caps.supported_qpts, IBV_QPT_RAW_PACKET)) {
+            m_parent_ib_ctx.set_tso_caps(caps.max_tso, TSO_DEFAULT_MAX_HEADER_SIZE);
+        }
+    }
 
     return;
 
@@ -377,8 +383,8 @@ uint32_t ib_ctx_handler_ibv::mem_reg(void *addr, size_t length, uint64_t access)
         m_mr_map_lkey[mr->lkey] = mr;
         lkey = mr->lkey;
 
-        ibch_logdbg("dev:%s (%p) addr=%p length=%lu pd=%p", m_ibname.c_str(), m_p_ibv_device, addr,
-                    length, m_p_ibv_pd);
+        ibch_logdbg("dev:%s (%p) addr=%p length=%lu pd=%p", m_parent_ib_ctx.get_ibname().c_str(),
+                    m_p_ibv_device, addr, length, m_p_ibv_pd);
     }
 
     return lkey;
@@ -389,8 +395,8 @@ void ib_ctx_handler_ibv::mem_dereg(uint32_t lkey)
     auto iter = m_mr_map_lkey.find(lkey);
     if (iter != m_mr_map_lkey.end()) {
         struct ibv_mr *mr = iter->second;
-        ibch_logdbg("dev:%s (%p) addr=%p length=%lu pd=%p", m_ibname.c_str(), m_p_ibv_device,
-                    mr->addr, mr->length, m_p_ibv_pd);
+        ibch_logdbg("dev:%s (%p) addr=%p length=%lu pd=%p", m_parent_ib_ctx.get_ibname().c_str(),
+                    m_p_ibv_device, mr->addr, mr->length, m_p_ibv_pd);
         IF_VERBS_FAILURE_EX(ibv_dereg_mr(mr), EIO)
         {
             ibch_logdbg("failed de-registering a memory region "

@@ -44,6 +44,7 @@
 #include <cinttypes>
 #include <sock/sock-app.h>
 #include "dev/dpcp/cq_mgr_rx_regrq.h"
+#include "dev/ib_ctx_handler.h"
 
 #undef MODULE_NAME
 #define MODULE_NAME "hw_queue_tx_dpcp"
@@ -228,7 +229,8 @@ int hw_queue_tx::configure(const slave_data_t *slave,
     // MLX5 return 32678 WQEBBs at max so minimal number
     int max_wqe_sz =
         16 + 14 + 16 * qp_init_attr.cap.max_send_sge + qp_init_attr.cap.max_inline_data + 4;
-    max_wqe_sz += (m_p_ring->is_tso() ? m_p_ring->m_tso.max_header_sz : 94);
+    max_wqe_sz += (m_p_ring->is_tso() ? m_p_ib_ctx_handler->get_tso_caps().max_tso_header_sz
+                                      : TSO_DEFAULT_MAX_HEADER_SIZE);
     int num_wr = 32678 * 64 / max_wqe_sz;
     hwqtx_logdbg("calculated max_wqe_sz=%d num_wr=%d", max_wqe_sz, num_wr);
     if (num_wr < (signed)m_tx_num_wr) {
@@ -372,8 +374,9 @@ int hw_queue_tx::prepare_queue(xlio_ibv_qp_init_attr &qp_init_attr)
                                     qp_init_attr);
 
     if (m_p_ring->is_tso()) {
-        xlio_ibv_qp_init_attr_tso(qp_init_attr, m_p_ring->get_max_header_sz());
-        hwqtx_logdbg("create qp with max_tso_header = %d", m_p_ring->get_max_header_sz());
+        uint16_t max_tso_header_sz = m_p_ib_ctx_handler->get_tso_caps().max_tso_header_sz;
+        xlio_ibv_qp_init_attr_tso(qp_init_attr, max_tso_header_sz);
+        hwqtx_logdbg("create qp with max_tso_header = %d", max_tso_header_sz);
     }
 
     m_mlx5_qp.qp =

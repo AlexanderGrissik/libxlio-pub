@@ -109,8 +109,6 @@ public:
                                        uint16_t eth_proto, uint16_t encap_proto,
                                        const ip_address &src_ip, const ip_address &dst_ip,
                                        uint16_t src_port, uint16_t dst_port) = 0;
-    virtual uint32_t get_max_payload_sz() = 0;
-    virtual uint16_t get_max_header_sz() = 0;
     virtual bool is_tso() = 0;
     virtual ib_ctx_handler *get_ctx(ring_user_id_t id) = 0;
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) = 0;
