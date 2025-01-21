@@ -87,7 +87,8 @@ public:
     size_t get_rx_channels_num() const override { return 1U; };
     int get_rx_channel_fd(size_t ch_idx) const override;
     int get_tx_channel_fd() const override;
-    bool is_tso() override { return m_is_tso; }
+    bool is_tso() const override { return m_is_tso; }
+    uint32_t get_max_send_buf_list_len() const override;
     int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) override;
     bool tls_tx_supported() override { return m_tls.tls_tx; }
     bool tls_rx_supported() override { return m_tls.tls_rx; }
@@ -206,7 +207,6 @@ protected:
 #ifdef DEFINED_DPCP_PATH_TX
 public:
     friend class cq_mgr_tx;
-    uint32_t get_max_send_sge(void) override;
     uint32_t get_tx_user_lkey(void *addr, size_t length) override;
     uint32_t get_max_inline_data() override;
     bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe) override;

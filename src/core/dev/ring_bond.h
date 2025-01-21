@@ -83,7 +83,8 @@ public:
 
     int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) override;
     ib_ctx_handler *get_ctx(ring_user_id_t id) override;
-    bool is_tso() override { return false; }
+    bool is_tso() const override { return false; }
+    uint32_t get_max_send_buf_list_len() const override;
     void flow_del_all_rfs_safe() override;
     bool tls_tx_supported() override;
     bool tls_rx_supported() override;
@@ -97,7 +98,6 @@ public:
     bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe) override;
     uint32_t get_tx_user_lkey(void *addr, size_t length) override;
     uint32_t get_max_inline_data() override;
-    uint32_t get_max_send_sge() override;
     uint32_t get_tx_lkey(ring_user_id_t id) override;
     void reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx) override;
     std::unique_ptr<xlio_tis> create_tis(uint32_t flag) const override;
@@ -132,6 +132,7 @@ public:
 
 protected:
     void update_rx_channel_fds();
+    void update_cap(ring_slave *slave = nullptr);
 
     /* Fill m_xmit_rings array */
     void popup_xmit_rings();
@@ -169,11 +170,8 @@ protected:
 
     std::vector<struct flow_sink_t> m_rx_flows;
     int *m_p_n_rx_channel_fds = nullptr;
-#ifdef DEFINED_DPCP_PATH_TX
-    void update_cap(ring_slave *slave = nullptr);
+    uint32_t m_max_send_sge = 0U;
     uint32_t m_max_inline_data;
-    uint32_t m_max_send_sge;
-#endif // DEFINED_DPCP_PATH_TX
 
 private:
     net_device_val::bond_type m_type;

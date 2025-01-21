@@ -68,11 +68,8 @@ ring_bond::ring_bond(int if_index)
     m_recv_rings.clear();
     m_type = p_ndev->get_is_bond();
     m_xmit_hash_policy = p_ndev->get_bond_xmit_hash_policy();
-#ifdef DEFINED_DPCP_PATH_TX
     m_max_inline_data = 0;
-    m_max_send_sge = 0;
     update_cap();
-#endif // DEFINED_DPCP_PATH_TX
 
     print_val();
     const slave_data_vector_t &slaves = p_ndev->get_slave_array();
@@ -764,6 +761,30 @@ bool ring_bond::tls_rx_supported()
     return false;
 }
 
+uint32_t ring_bond::get_max_send_buf_list_len() const
+{
+    return m_max_send_sge;
+}
+
+void ring_bond::update_cap(ring_slave *slave)
+{
+    if (!slave) {
+        m_max_inline_data = (uint32_t)(-1);
+        m_max_send_sge = (uint32_t)(-1);
+        return;
+    }
+
+#ifdef DEFINED_DPCP_PATH_TX
+    m_max_inline_data = (m_max_inline_data == (uint32_t)(-1)
+                             ? slave->get_max_inline_data()
+                             : std::min(m_max_inline_data, slave->get_max_inline_data()));
+#endif
+
+    m_max_send_sge = (m_max_send_sge == (uint32_t)(-1)
+                          ? slave->get_max_send_buf_list_len()
+                          : std::min(m_max_send_sge, slave->get_max_send_buf_list_len()));
+}
+
 #ifdef DEFINED_DPCP_PATH_TX
 
 std::unique_ptr<xlio_tis> ring_bond::create_tis(uint32_t flag) const
@@ -834,28 +855,6 @@ bool ring_bond::get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p
 uint32_t ring_bond::get_max_inline_data()
 {
     return m_max_inline_data;
-}
-
-uint32_t ring_bond::get_max_send_sge()
-{
-    return m_max_send_sge;
-}
-
-void ring_bond::update_cap(ring_slave *slave)
-{
-    if (!slave) {
-        m_max_inline_data = (uint32_t)(-1);
-        m_max_send_sge = (uint32_t)(-1);
-        return;
-    }
-
-    m_max_inline_data = (m_max_inline_data == (uint32_t)(-1)
-                             ? slave->get_max_inline_data()
-                             : std::min(m_max_inline_data, slave->get_max_inline_data()));
-
-    m_max_send_sge =
-        (m_max_send_sge == (uint32_t)(-1) ? slave->get_max_send_sge()
-                                          : std::min(m_max_send_sge, slave->get_max_send_sge()));
 }
 
 void ring_bond::reset_inflight_zc_buffers_ctx(ring_user_id_t id, void *ctx)

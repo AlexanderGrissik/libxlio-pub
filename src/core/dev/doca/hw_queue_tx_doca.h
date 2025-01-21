@@ -109,7 +109,7 @@ private:
     void start_doca_txq();
     void stop_doca_txq();
     uint16_t get_minimal_tso_header_sz() const;
-    bool check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_size, uint32_t &max_send_sge);
+    bool check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_size);
     doca_lso_metadata *get_lso_metadata();
 
     std::unique_ptr<doca_eth_txq, decltype(&destory_doca_txq)> m_doca_txq {nullptr,

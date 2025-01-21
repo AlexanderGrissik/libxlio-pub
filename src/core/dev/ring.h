@@ -109,7 +109,8 @@ public:
                                        uint16_t eth_proto, uint16_t encap_proto,
                                        const ip_address &src_ip, const ip_address &dst_ip,
                                        uint16_t src_port, uint16_t dst_port) = 0;
-    virtual bool is_tso() = 0;
+    virtual bool is_tso() const = 0;
+    virtual uint32_t get_max_send_buf_list_len() const = 0;
     virtual ib_ctx_handler *get_ctx(ring_user_id_t id) = 0;
     virtual int modify_ratelimit(struct xlio_rate_limit_t &rate_limit) = 0;
     virtual bool tls_tx_supported() = 0;
@@ -125,7 +126,6 @@ public:
     virtual bool get_hw_dummy_send_support(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe) = 0;
     virtual uint32_t get_tx_user_lkey(void *addr, size_t length) = 0;
     virtual uint32_t get_max_inline_data() = 0;
-    virtual uint32_t get_max_send_sge(void) = 0;
     virtual uint32_t get_tx_lkey(ring_user_id_t id) = 0;
     virtual void send_ring_buffer(ring_user_id_t id, xlio_ibv_send_wr *p_send_wqe,
                                   xlio_wr_tx_packet_attr attr) = 0;

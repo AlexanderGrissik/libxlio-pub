@@ -261,7 +261,7 @@ uint32_t ring_simple::get_max_inline_data()
     return m_hqtx->get_max_inline_data();
 }
 
-uint32_t ring_simple::get_max_send_sge()
+uint32_t ring_simple::get_max_send_buf_list_len() const
 {
     return m_hqtx->get_max_send_sge();
 }

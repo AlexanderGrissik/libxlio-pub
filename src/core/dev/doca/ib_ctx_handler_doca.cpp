@@ -40,6 +40,7 @@
 #include "sock/sock-app.h"
 #include "dev/ib_ctx_handler.h"
 #include <doca_eth_txq.h>
+#include <cinttypes>
 
 #define MODULE_NAME "ibch"
 DOCA_LOG_REGISTER(ibch);
@@ -90,6 +91,17 @@ void ib_ctx_handler_doca::open_doca_dev(doca_devinfo *devinfo)
         PRINT_DOCA_ERR(ibch_logpanic, err, "doca_dev_open devinfo: %p,%s", devinfo,
                        m_parent_ib_ctx.get_ibname().c_str());
     }
+
+    err = doca_eth_txq_cap_get_max_send_buf_list_len(devinfo, &m_max_send_buf_list_len);
+    if (DOCA_IS_ERROR(err)) {
+        PRINT_DOCA_ERR(ibch_logwarn, err,
+                       "doca_eth_txq_cap_get_max_send_buf_list_len devinfo: %p,%s", devinfo,
+                       m_parent_ib_ctx.get_ibname().c_str());
+        m_max_send_buf_list_len = 1U;
+    }
+
+    ibch_logdbg("Device %s attributes: max_send_buf_list_len = %" PRIu32,
+                m_parent_ib_ctx.get_ibname().c_str(), m_max_send_buf_list_len);
 
     uint32_t max_lso_msg_size = 0U;
     err = doca_eth_txq_cap_get_max_lso_msg_size(devinfo, &max_lso_msg_size);

@@ -92,6 +92,11 @@ void ring_simple::send_doca_failure(mem_buf_desc_t *buff)
     mem_buf_tx_release(buff); // We must dec ref count if it was not sent.
 }
 
+uint32_t ring_simple::get_max_send_buf_list_len() const
+{
+    return m_p_ib_ctx->get_ctx_doca_dev().get_max_send_buf_list_len();
+}
+
 #endif // !DEFINED_DPCP_PATH_TX
 
 #ifndef DEFINED_DPCP_PATH_RX

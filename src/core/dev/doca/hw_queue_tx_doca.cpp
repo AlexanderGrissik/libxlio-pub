@@ -85,8 +85,7 @@ hw_queue_tx::~hw_queue_tx()
     hwqtx_logdbg("Destructor hw_queue_tx end");
 }
 
-bool hw_queue_tx::check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_size,
-                                  uint32_t &max_send_sge)
+bool hw_queue_tx::check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_size)
 {
     doca_error_t err = doca_eth_txq_cap_is_type_supported(devinfo, DOCA_ETH_TXQ_TYPE_REGULAR,
                                                           DOCA_ETH_TXQ_DATA_PATH_TYPE_CPU);
@@ -95,14 +94,9 @@ bool hw_queue_tx::check_doca_caps(doca_devinfo *devinfo, uint32_t &max_burst_siz
         return false;
     }
 
-    err = doca_eth_txq_cap_get_max_send_buf_list_len(devinfo, &max_send_sge);
-    if (DOCA_IS_ERROR(err)) {
-        PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_cap_get_max_send_buf_list_len");
-        return false;
-    }
-
-    err = doca_eth_txq_cap_get_max_burst_size(devinfo, max_send_sge, get_minimal_tso_header_sz(),
-                                              &max_burst_size);
+    err = doca_eth_txq_cap_get_max_burst_size(
+        devinfo, m_p_ib_ctx_handler->get_ctx_doca_dev().get_max_send_buf_list_len(),
+        get_minimal_tso_header_sz(), &max_burst_size);
     if (DOCA_IS_ERROR(err)) {
         PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_cap_get_max_burst_size");
         return false;
@@ -138,9 +132,8 @@ bool hw_queue_tx::prepare_doca_txq()
     doca_dev *dev = m_p_ib_ctx_handler->get_ctx_doca_dev().get_doca_device();
     doca_devinfo *devinfo = doca_dev_as_devinfo(dev);
     uint32_t max_burst_size = 0U;
-    uint32_t max_send_sge = 0U;
 
-    if (!check_doca_caps(devinfo, max_burst_size, max_send_sge)) {
+    if (!check_doca_caps(devinfo, max_burst_size)) {
         hwqtx_logerr("TXQ caps failed, Dev:%s", m_p_ib_ctx_handler->get_ibname().c_str());
         return false;
     }
@@ -154,9 +147,11 @@ bool hw_queue_tx::prepare_doca_txq()
     m_doca_txq.reset(txq);
     m_doca_ctx_txq = doca_eth_txq_as_doca_ctx(m_doca_txq.get());
 
-    err = doca_eth_txq_set_max_send_buf_list_len(txq, max_send_sge);
+    err = doca_eth_txq_set_max_send_buf_list_len(
+        txq, m_p_ib_ctx_handler->get_ctx_doca_dev().get_max_send_buf_list_len());
     if (DOCA_IS_ERROR(err)) {
-        PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_set_max_send_buf_list_len");
+        PRINT_DOCA_ERR(hwqtx_logerr, err, "doca_eth_txq_set_max_send_buf_list_len(%" PRIu32 ")",
+                       m_p_ib_ctx_handler->get_ctx_doca_dev().get_max_send_buf_list_len());
         return false;
     }
 

@@ -358,7 +358,7 @@ bool dst_entry::resolve_ring()
                 delete[] m_sge;
                 m_sge = nullptr;
             }
-            m_sge = new (std::nothrow) struct ibv_sge[m_p_ring->get_max_send_sge()];
+            m_sge = new (std::nothrow) struct ibv_sge[m_p_ring->get_max_send_buf_list_len()];
             if (!m_sge) {
                 dst_logpanic("%s Failed to allocate send SGE", to_str().c_str());
             }
@@ -662,7 +662,7 @@ void dst_entry::do_ring_migration_tx(lock_base &socket_lock, resource_allocation
         delete[] m_sge;
         m_sge = nullptr;
     }
-    m_sge = new (std::nothrow) struct ibv_sge[m_p_ring->get_max_send_sge()];
+    m_sge = new (std::nothrow) struct ibv_sge[m_p_ring->get_max_send_buf_list_len()];
     if (!m_sge) {
         dst_logpanic("%s Failed to allocate send SGE", to_str().c_str());
     }

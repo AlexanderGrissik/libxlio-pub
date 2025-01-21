@@ -885,11 +885,8 @@ bool sockinfo_tcp::prepare_dst_to_send(bool is_accepted_socket /* = false */)
                          safe_mce_sys().max_tso_sz);
             m_pcb.tso.max_buf_sz = std::min(safe_mce_sys().tx_buf_size, max_tso_sz);
             m_pcb.tso.max_payload_sz = max_tso_sz;
-#ifdef DEFINED_DPCP_PATH_TX
-            m_pcb.tso.max_send_sge = m_p_connected_dst_entry->get_ring()->get_max_send_sge();
-#else
-            m_pcb.tso.max_send_sge = 8;
-#endif
+            m_pcb.tso.max_send_sge =
+                m_p_connected_dst_entry->get_ring()->get_max_send_buf_list_len();
         }
     }
     return ret_val;

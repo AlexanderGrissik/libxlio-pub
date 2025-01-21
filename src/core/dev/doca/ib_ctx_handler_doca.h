@@ -54,6 +54,7 @@ public:
     void set_ctx_time_converter_status(ts_conversion_mode_t conversion_mode);
     void convert_hw_time_to_system_time(uint64_t hwtime, struct timespec *systime);
     const std::string &get_ifname() const { return m_ifname; }
+    uint32_t get_max_send_buf_list_len() const { return m_max_send_buf_list_len; }
 
 private:
     void open_doca_dev(doca_devinfo *devinfo);
@@ -66,6 +67,7 @@ private:
     time_converter *m_p_ctx_time_converter = nullptr;
     std::string m_ifname;
     ib_ctx_handler &m_parent_ib_ctx;
+    uint32_t m_max_send_buf_list_len = 0U;
 };
 #endif // !DEFINED_DPCP_PATH_RX_AND_TX
 #endif // IB_CTX_HANDLER_DOCA_H

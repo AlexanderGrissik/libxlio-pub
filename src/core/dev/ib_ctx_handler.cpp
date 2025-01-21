@@ -109,7 +109,7 @@ bool ib_ctx_handler::is_packet_pacing_supported(uint32_t rate) const
 bool ib_ctx_handler::get_flow_tag_capability() const
 {
 #ifndef DEFINED_DPCP_PATH_RX
-    return true;
+    return true; // No DOCA API available to check for this cap.
 #else // DEFINED_DPCP_PATH_RX
     return get_ctx_ibv_dev().get_flow_tag_capability();
 #endif // DEFINED_DPCP_PATH_RX
