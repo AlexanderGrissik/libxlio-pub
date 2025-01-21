@@ -277,6 +277,7 @@ public:
                            bool is_zerocopy) override;
 
 private:
+    void send_doca_failure(mem_buf_desc_t *buff);
     doca_mmap *m_p_doca_mmap;
 #endif // DEFINED_DPCP_PATH_TX
 

@@ -65,20 +65,33 @@ void ring_simple::poll_and_process_element_tx()
 uint32_t ring_simple::send_doca_single(void *ptr, uint32_t len, mem_buf_desc_t *buff)
 {
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
-    uint32_t ret = m_hqtx->send_doca_single(ptr, len, buff);
-    m_p_ring_stat->n_tx_dropped_wqes += (ret == 0);
     m_hqtx->poll_and_process_doca_tx();
+    uint32_t ret = m_hqtx->send_doca_single(ptr, len, buff);
+    if (unlikely(ret == 0)) {
+        send_doca_failure(buff);
+    }
+
     return ret;
 }
 
 uint32_t ring_simple::send_doca_lso(struct iovec &h, struct pbuf *p, uint16_t mss, bool is_zerocopy)
 {
     std::lock_guard<decltype(m_lock_ring_tx)> lock(m_lock_ring_tx);
-    uint32_t ret = m_hqtx->send_doca_lso(h, p, mss, is_zerocopy);
-    m_p_ring_stat->n_tx_dropped_wqes += (ret == 0);
     m_hqtx->poll_and_process_doca_tx();
+    uint32_t ret = m_hqtx->send_doca_lso(h, p, mss, is_zerocopy);
+    if (unlikely(ret == 0)) {
+        send_doca_failure(reinterpret_cast<mem_buf_desc_t *>(p));
+    }
+
     return ret;
 }
+
+void ring_simple::send_doca_failure(mem_buf_desc_t *buff)
+{
+    ++(m_p_ring_stat->n_tx_dropped_wqes);
+    mem_buf_tx_release(buff); // We must dec ref count if it was not sent.
+}
+
 #endif // !DEFINED_DPCP_PATH_TX
 
 #ifndef DEFINED_DPCP_PATH_RX
